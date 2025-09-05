@@ -12,6 +12,34 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **📱 Mobile App**: React Native app with consistent design
 - **🕷️ Smart Scraping**: Generic scraping system for museums and events
 
+## 🚀 Quick Start
+
+```bash
+# Clone and setup
+git clone <repository-url>
+cd planner
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup environment
+cp env_example.txt .env
+
+# Initialize database
+python scripts/seed_data.py
+
+# Start the app
+python app.py
+```
+
+Visit: `http://localhost:5001`
+
+📖 **For detailed setup instructions, see [SETUP.md](SETUP.md)**
+
 ## 🎭 Event Types
 
 ### 🚶 Tours
@@ -215,6 +243,18 @@ This project follows professional Python development practices:
 - **Documentation**: Comprehensive README and inline documentation
 - **Code Organization**: No messy files in root directory - everything properly organized
 
+## 🔧 Troubleshooting
+
+### Common Issues
+- **Port 5000 in use**: Change `APP_PORT` in `.env` to 5001
+- **Database errors**: Delete `instance/events.db` and run `python scripts/seed_data.py`
+- **Python not found**: Use `python3` instead of `python`
+- **Dependencies not found**: Make sure virtual environment is activated
+
+### Getting Help
+- Check [SETUP.md](SETUP.md) for detailed instructions
+- Check [REQUIREMENTS.md](REQUIREMENTS.md) for project understanding
+
 ## 🤝 Contributing
 
 1. Follow the minimal design principles
@@ -229,17 +269,3 @@ This project follows professional Python development practices:
 ## 📄 License
 
 MIT License - feel free to use and modify!
-
-## 🆘 Troubleshooting
-
-### Common Issues
-- **Port 5000 conflict**: App runs on port 5001 by default
-- **Calendar integration**: Requires Google Calendar API setup
-- **Database issues**: Run `python scripts/seed_data.py` to reset
-- **Mobile app**: Ensure React Native environment is properly configured
-
-### Getting Help
-- Check the setup logs for detailed error messages
-- Ensure all environment variables are properly set
-- Verify Google Calendar API credentials
-- Check that all dependencies are installed
