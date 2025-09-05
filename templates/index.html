@@ -906,7 +906,6 @@
             if (event.url) {
                 enhancedDescription += `\n\nMore Details: ${event.url}`;
             }
-            enhancedDescription += `\n\n💚 Suggested Color: Sage Green (#9CAF88)`;
             
             // Build Google Calendar URL with pre-filled event details and timezone
             const baseUrl = 'https://calendar.google.com/calendar/render';
@@ -1146,7 +1145,6 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 if (event.url) {
                     description += `\\n\\nMore Details: ${event.url}`;
                 }
-                description += `\\n\\n💚 Suggested Color: Sage Green (#9CAF88)`;
                 
                 // Escape special characters for ICS
                 const escapeICS = (str) => {
@@ -1167,6 +1165,7 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     `DESCRIPTION:${escapeICS(description)}`,
                     `LOCATION:${escapeICS(event.venue_name || '')}`,
                     `URL:${event.url || ''}`,
+                    'CATEGORIES:Sage',
                     'STATUS:CONFIRMED',
                     'TRANSP:OPAQUE',
                     'END:VEVENT'
