@@ -244,10 +244,6 @@ def index():
     """Main page with city selection and time filtering"""
     return render_template('index.html')
 
-@app.route('/test')
-def test():
-    """Test page"""
-    return render_template('test.html')
 
 @app.route('/favicon.ico')
 def favicon():
@@ -345,107 +341,6 @@ def get_venues():
     
     venues = query.all()
     return jsonify([venue.to_dict() for venue in venues])
-
-@app.route('/api/calendar/add', methods=['POST'])
-def add_to_calendar():
-    """Add event to Google Calendar"""
-    try:
-        data = request.get_json()
-        event_id = data.get('event_id')
-        event_type = data.get('event_type')
-        
-        if not event_id or not event_type:
-            return jsonify({'error': 'Event ID and type are required'}), 400
-        
-        # Get city timezone
-        city_id = data.get('city_id')
-        if not city_id:
-            return jsonify({'error': 'City ID is required'}), 400
-        
-        city = City.query.get(city_id)
-        if not city:
-            return jsonify({'error': 'City not found'}), 404
-        
-        # Get event data based on type
-        event_data = None
-        if event_type == 'tour':
-            tour = Tour.query.get(event_id)
-            if tour:
-                event_data = {
-                    'title': tour.title,
-                    'description': tour.description,
-                    'start_time': tour.start_time.strftime('%H:%M') if tour.start_time else None,
-                    'end_time': tour.end_time.strftime('%H:%M') if tour.end_time else None,
-                    'start_date': data.get('start_date', date.today().isoformat()),
-                    'meeting_location': tour.meeting_location,
-                    'venue_name': tour.venue.name if tour.venue else None,
-                    'url': tour.url
-                }
-        elif event_type == 'exhibition':
-            exhibition = Exhibition.query.get(event_id)
-            if exhibition:
-                event_data = {
-                    'title': exhibition.title,
-                    'description': exhibition.description,
-                    'start_date': exhibition.start_date.isoformat(),
-                    'end_date': exhibition.end_date.isoformat(),
-                    'exhibition_location': exhibition.exhibition_location,
-                    'venue_name': exhibition.venue.name if exhibition.venue else None,
-                    'url': exhibition.url
-                }
-        
-        if not event_data:
-            return jsonify({'error': 'Event not found'}), 404
-        
-        # Try to create calendar event
-        try:
-            from config.calendar_service import get_calendar_service, CalendarEventBuilder
-            
-            calendar_service = get_calendar_service()
-            if calendar_service:
-                # Build calendar event based on type
-                if event_type == 'tour':
-                    calendar_event = CalendarEventBuilder.build_tour_event(event_data, city.timezone)
-                elif event_type == 'exhibition':
-                    calendar_event = CalendarEventBuilder.build_exhibition_event(event_data, city.timezone)
-                else:
-                    return jsonify({'error': 'Unsupported event type'}), 400
-                
-                # Create the event
-                calendar_event_id = calendar_service.create_event(calendar_event)
-                
-                if calendar_event_id:
-                    return jsonify({
-                        'message': 'Event added to Google Calendar successfully',
-                        'calendar_event_id': calendar_event_id
-                    })
-                else:
-                    return jsonify({'error': 'Failed to create calendar event'}), 500
-            else:
-                # Fallback to demo mode if calendar service not available
-                return jsonify({
-                    'message': 'Event added to calendar successfully (demo mode - Google Calendar not configured)',
-                    'calendar_event_id': f'demo_{event_id}'
-                })
-                
-        except ImportError:
-            # Calendar service not available
-            return jsonify({
-                'message': 'Event added to calendar successfully (demo mode - Google Calendar not configured)',
-                'calendar_event_id': f'demo_{event_id}'
-            })
-        except Exception as calendar_error:
-            print(f"Calendar service error: {calendar_error}")
-            return jsonify({
-                'message': 'Event added to calendar successfully (demo mode - Calendar service error)',
-                'calendar_event_id': f'demo_{event_id}'
-            })
-            
-    except Exception as e:
-        print(f"Error adding event to calendar: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scraping():
