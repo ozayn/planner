@@ -244,6 +244,11 @@ def index():
     """Main page with city selection and time filtering"""
     return render_template('index.html')
 
+@app.route('/test')
+def test():
+    """Test page"""
+    return render_template('test.html')
+
 @app.route('/favicon.ico')
 def favicon():
     """Serve favicon to prevent 404 errors"""
@@ -441,6 +446,59 @@ def add_to_calendar():
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/scrape', methods=['POST'])
+def trigger_scraping():
+    """Trigger the scraping process to refresh event data"""
+    try:
+        import subprocess
+        import json
+        
+        # Run the DC scraper
+        scraper_result = subprocess.run([
+            sys.executable, 'scripts/dc_scraper.py'
+        ], capture_output=True, text=True, cwd=os.getcwd())
+        
+        if scraper_result.returncode != 0:
+            return jsonify({
+                'error': 'Scraping failed',
+                'stderr': scraper_result.stderr
+            }), 500
+        
+        # Run the seed script to update the database
+        seed_result = subprocess.run([
+            sys.executable, 'scripts/seed_dc_data.py'
+        ], capture_output=True, text=True, cwd=os.getcwd())
+        
+        if seed_result.returncode != 0:
+            return jsonify({
+                'error': 'Database seeding failed',
+                'stderr': seed_result.stderr
+            }), 500
+        
+        # Try to parse the scraper output to get event count
+        try:
+            with open('dc_scraped_data.json', 'r') as f:
+                scraped_data = json.load(f)
+                events_added = len(scraped_data.get('events', []))
+        except:
+            events_added = 'unknown'
+        
+        return jsonify({
+            'message': 'Scraping completed successfully',
+            'events_added': events_added,
+            'scraper_output': scraper_result.stdout,
+            'seed_output': seed_result.stdout
+        })
+        
+    except Exception as e:
+        print(f"Scraping error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Scraping failed',
+            'details': str(e)
+        }), 500
 
 if __name__ == '__main__':
     with app.app_context():

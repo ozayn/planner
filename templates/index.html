@@ -471,6 +471,18 @@
             
             <div class="control-group">
                 <div class="control-label">
+                    <i class="fas fa-sync-alt"></i> Data
+                </div>
+                <div class="selection-actions">
+                    <button class="selection-btn" onclick="triggerScraping()" id="scrapingBtn">
+                        <i class="fas fa-spider"></i> Refresh Events
+                    </button>
+                    <span class="selection-count" id="scrapingStatus">Ready to scrape</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
                     <i class="fas fa-clock"></i> Time
                 </div>
                 <div class="time-filter">
@@ -1419,6 +1431,67 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     <p>Please try again later</p>
                 </div>
             `;
+        }
+        
+        async function triggerScraping() {
+            const scrapingBtn = document.getElementById('scrapingBtn');
+            const scrapingStatus = document.getElementById('scrapingStatus');
+            
+            // Update UI to show scraping in progress
+            scrapingBtn.disabled = true;
+            scrapingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping...';
+            scrapingStatus.textContent = 'Scraping events...';
+            
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Scraping failed: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Show success
+                scrapingStatus.textContent = `Scraped ${result.events_added} events successfully`;
+                scrapingBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
+                scrapingBtn.style.backgroundColor = 'var(--secondary-pastel)';
+                
+                // Reload events if a city is selected
+                if (currentCity) {
+                    setTimeout(() => {
+                        loadEvents();
+                    }, 1000);
+                }
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Refresh Events';
+                    scrapingBtn.style.backgroundColor = '';
+                    scrapingBtn.disabled = false;
+                    scrapingStatus.textContent = 'Ready to scrape';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Scraping error:', error);
+                
+                // Show error
+                scrapingStatus.textContent = 'Scraping failed - check console';
+                scrapingBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+                scrapingBtn.style.backgroundColor = '#ffebee';
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Refresh Events';
+                    scrapingBtn.style.backgroundColor = '';
+                    scrapingBtn.disabled = false;
+                    scrapingStatus.textContent = 'Ready to scrape';
+                }, 3000);
+            }
         }
     </script>
 </body>
