@@ -469,6 +469,7 @@
         
         // Load cities on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, starting initialization...');
             loadCities();
             setupEventListeners();
         });
@@ -507,8 +508,16 @@
         
         async function loadCities() {
             try {
+                console.log('Loading cities...');
                 const response = await fetch('/api/cities');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const cities = await response.json();
+                console.log('Cities loaded:', cities);
                 
                 const select = document.getElementById('citySelect');
                 cities.forEach(city => {
@@ -517,8 +526,16 @@
                     option.textContent = city.display_name;
                     select.appendChild(option);
                 });
+                
+                console.log('Cities added to dropdown');
             } catch (error) {
                 console.error('Error loading cities:', error);
+                // Show error in UI
+                const select = document.getElementById('citySelect');
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Error loading cities - check console';
+                select.appendChild(option);
             }
         }
         
@@ -596,30 +613,54 @@
             
             const timeDisplay = startTime && endTime ? `${startTime} - ${endTime}` : startTime || '';
             
+            // Escape HTML and quotes to prevent JavaScript errors
+            const escapeHtml = (str) => {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;')
+                         .replace(/</g, '&lt;')
+                         .replace(/>/g, '&gt;')
+                         .replace(/"/g, '&quot;')
+                         .replace(/'/g, '&#39;');
+            };
+            
+            const escapeAttr = (str) => {
+                if (!str) return '';
+                return str.replace(/"/g, '&quot;')
+                         .replace(/'/g, '&#39;');
+            };
+            
+            const eventType = escapeAttr(event.event_type || 'tour');
+            const meetingLocation = escapeAttr(event.meeting_location || '');
+            const eventUrl = escapeAttr(event.url || '');
+            const eventTitle = escapeHtml(event.title);
+            const venueName = escapeHtml(event.venue_name || '');
+            const description = escapeHtml(event.description || '');
+            const isSelected = selectedEvents.has(event.id);
+            
             return `
-                <div class="event-card" data-event-type="${event.event_type || 'tour'}" 
-                     data-meeting-location="${event.meeting_location || ''}" 
-                     data-url="${event.url || ''}">
+                <div class="event-card" data-event-type="${eventType}" 
+                     data-meeting-location="${meetingLocation}" 
+                     data-url="${eventUrl}">
                     ${getEventImage(event)}
-                    <h3 class="event-title">${event.title}</h3>
+                    <h3 class="event-title">${eventTitle}</h3>
                     <div class="event-meta">
                         <span><i class="fas fa-calendar"></i> ${new Date(event.start_date).toLocaleDateString()}</span>
                         ${timeDisplay ? `<span><i class="fas fa-clock"></i> ${timeDisplay}</span>` : ''}
-                        ${event.venue_name ? `<span><i class="fas fa-map-marker-alt"></i> ${event.venue_name}</span>` : ''}
-                        ${event.meeting_location ? `<span><i class="fas fa-door-open"></i> ${event.meeting_location}</span>` : ''}
+                        ${venueName ? `<span><i class="fas fa-map-marker-alt"></i> ${venueName}</span>` : ''}
+                        ${meetingLocation ? `<span><i class="fas fa-door-open"></i> ${meetingLocation}</span>` : ''}
                     </div>
-                    ${event.description ? `<p class="event-description">${event.description}</p>` : ''}
+                    ${description ? `<p class="event-description">${description}</p>` : ''}
                     <div class="event-actions">
-                        <button class="action-btn ${selectedEvents.has(${event.id}) ? 'selected' : ''}" onclick="toggleEventSelection(${event.id}, this)">
+                        <button class="action-btn ${isSelected ? 'selected' : ''}" onclick="toggleEventSelection(${event.id}, this)">
                             <i class="fas fa-heart"></i>
-                            <div class="tooltip">${selectedEvents.has(${event.id}) ? 'Remove from selection' : 'Add to selection'}</div>
+                            <div class="tooltip">${isSelected ? 'Remove from selection' : 'Add to selection'}</div>
                         </button>
                         <button class="action-btn" onclick="addToCalendar(${event.id}, this)">
                             <i class="fas fa-calendar-plus"></i>
                             <div class="tooltip">Add to calendar</div>
                         </button>
-                        ${event.url ? `
-                            <button class="action-btn" onclick="window.open('${event.url}', '_blank')">
+                        ${eventUrl ? `
+                            <button class="action-btn" onclick="window.open('${eventUrl}', '_blank')">
                                 <i class="fas fa-external-link-alt"></i>
                                 <div class="tooltip">View details</div>
                             </button>
