@@ -887,30 +887,26 @@
                 endDateTime.setHours(23, 59, 59, 999);
             }
             
-            // Format dates for Google Calendar URL with proper timezone
-            const formatGoogleDate = (date, timezone) => {
-                // Convert to the city's timezone
-                const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
-                const cityOffset = getTimezoneOffset(timezone);
-                const cityDate = new Date(utcDate.getTime() + (cityOffset * 60000));
-                
-                const year = cityDate.getFullYear();
-                const month = String(cityDate.getMonth() + 1).padStart(2, '0');
-                const day = String(cityDate.getDate()).padStart(2, '0');
-                const hours = String(cityDate.getHours()).padStart(2, '0');
-                const minutes = String(cityDate.getMinutes()).padStart(2, '0');
-                const seconds = String(cityDate.getSeconds()).padStart(2, '0');
+            // Format dates for Google Calendar URL - keep original time, specify timezone
+            const formatGoogleDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
                 return `${year}${month}${day}T${hours}${minutes}${seconds}`;
             };
             
-            // Build Google Calendar URL with pre-filled event details
+            // Build Google Calendar URL with pre-filled event details and timezone
             const baseUrl = 'https://calendar.google.com/calendar/render';
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: event.title,
-                dates: `${formatGoogleDate(startDateTime, cityTimezone)}/${formatGoogleDate(endDateTime, cityTimezone)}`,
+                dates: `${formatGoogleDate(startDateTime)}/${formatGoogleDate(endDateTime)}`,
                 details: event.description || '',
-                location: event.venue_name || ''
+                location: event.venue_name || '',
+                ctz: cityTimezone
             });
             
             return `${baseUrl}?${params.toString()}`;
@@ -1077,7 +1073,16 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 'VERSION:2.0',
                 'PRODID:-//Event Planner//DC Events//EN',
                 'CALSCALE:GREGORIAN',
-                'METHOD:PUBLISH'
+                'METHOD:PUBLISH',
+                `BEGIN:VTIMEZONE`,
+                `TZID:${cityTimezone}`,
+                `BEGIN:STANDARD`,
+                `DTSTART:19700101T000000`,
+                `TZOFFSETFROM:+0000`,
+                `TZOFFSETTO:+0000`,
+                `TZNAME:GMT`,
+                `END:STANDARD`,
+                `END:VTIMEZONE`
             ];
             
             events.forEach(event => {
@@ -1112,18 +1117,14 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 }
                 
                 // Format dates for ICS with proper timezone
-                const formatICSDate = (date, timezone) => {
-                    // Convert to the city's timezone
-                    const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
-                    const cityOffset = getTimezoneOffset(timezone);
-                    const cityDate = new Date(utcDate.getTime() + (cityOffset * 60000));
-                    
-                    const year = cityDate.getFullYear();
-                    const month = String(cityDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(cityDate.getDate()).padStart(2, '0');
-                    const hours = String(cityDate.getHours()).padStart(2, '0');
-                    const minutes = String(cityDate.getMinutes()).padStart(2, '0');
-                    const seconds = String(cityDate.getSeconds()).padStart(2, '0');
+                const formatICSDate = (date) => {
+                    // Keep original time, specify timezone separately
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
                     return `${year}${month}${day}T${hours}${minutes}${seconds}`;
                 };
                 
@@ -1149,8 +1150,8 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 icsContent.push(
                     'BEGIN:VEVENT',
                     `UID:${eventId}`,
-                    `DTSTART:${formatICSDate(startDateTime, cityTimezone)}`,
-                    `DTEND:${formatICSDate(endDateTime, cityTimezone)}`,
+                    `DTSTART;TZID=${cityTimezone}:${formatICSDate(startDateTime)}`,
+                    `DTEND;TZID=${cityTimezone}:${formatICSDate(endDateTime)}`,
                     `SUMMARY:${escapeICS(event.title)}`,
                     `DESCRIPTION:${escapeICS(description)}`,
                     `LOCATION:${escapeICS(event.venue_name || '')}`,
