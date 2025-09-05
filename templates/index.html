@@ -915,7 +915,8 @@
                 dates: `${formatGoogleDate(startDateTime)}/${formatGoogleDate(endDateTime)}`,
                 details: enhancedDescription,
                 location: event.venue_name || '',
-                ctz: cityTimezone
+                ctz: cityTimezone,
+                color: '#9CAF88'
             });
             
             return `${baseUrl}?${params.toString()}`;
@@ -1083,6 +1084,7 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 'PRODID:-//Event Planner//DC Events//EN',
                 'CALSCALE:GREGORIAN',
                 'METHOD:PUBLISH',
+                'COLOR:#9CAF88',
                 `BEGIN:VTIMEZONE`,
                 `TZID:${cityTimezone}`,
                 `BEGIN:STANDARD`,
