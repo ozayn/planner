@@ -353,6 +353,17 @@
             color: var(--text-primary);
         }
         
+        .action-btn.calendar-btn {
+            border-color: var(--secondary-pastel);
+            color: var(--secondary-pastel);
+        }
+        
+        .action-btn.calendar-btn:hover {
+            background: var(--secondary-pastel);
+            color: white;
+            border-color: var(--secondary-pastel);
+        }
+        
         .tooltip {
             position: absolute;
             bottom: 100%;
@@ -703,6 +714,10 @@
                             <i class="fas fa-heart"></i>
                             <div class="tooltip">${isSelected ? 'Remove from selection' : 'Add to selection'}</div>
                         </button>
+                        <button class="action-btn calendar-btn" onclick="downloadSingleEventCalendar(${event.id})">
+                            <i class="fas fa-calendar-plus"></i>
+                            <div class="tooltip">Add to calendar</div>
+                        </button>
                         ${eventUrl ? `
                             <button class="action-btn" onclick="window.open('${eventUrl}', '_blank')">
                                 <i class="fas fa-external-link-alt"></i>
@@ -800,6 +815,81 @@
                     tooltip.textContent = selectedEvents.has(eventId) ? 'Remove from selection' : 'Add to selection';
                 }
             });
+        }
+        
+        function downloadSingleEventCalendar(eventId) {
+            const event = allEvents.find(e => e.id === eventId);
+            if (!event) {
+                alert('Event not found.');
+                return;
+            }
+            
+            // Show progress
+            const button = event.target || document.querySelector(`[onclick*="downloadSingleEventCalendar(${eventId})"]`);
+            if (button) {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                button.disabled = true;
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                }, 1000);
+            }
+            
+            try {
+                // Generate ICS content for single event
+                const icsContent = generateICSContent([event]);
+                
+                // Generate descriptive filename
+                const filename = generateCalendarFilename([event]);
+                
+                // Create and download file
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                // Open Google Calendar import page
+                const googleCalendarImportUrl = 'https://calendar.google.com/calendar/u/0/r/settings/export';
+                window.open(googleCalendarImportUrl, '_blank');
+                
+                // Show success message
+                setTimeout(() => {
+                    const instructions = `
+Calendar file downloaded successfully!
+
+📅 Google Calendar import page opened in new tab!
+
+Quick import steps:
+1. In the Google Calendar tab, click "Select file from your computer"
+2. Choose the downloaded calendar file
+3. Select your calendar and click "Import"
+
+🍎 Apple Calendar:
+1. Double-click the downloaded file
+2. Or drag it to the Calendar app
+
+📧 Outlook:
+1. Go to File → Open & Export → Import/Export
+2. Select "Import an iCalendar (.ics) file"
+3. Choose the downloaded file
+
+The file contains 1 event with proper time and location.
+                    `;
+                    
+                    alert(instructions);
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error downloading calendar file:', error);
+                alert('Failed to download calendar file. Please try again.');
+            }
         }
         
         function downloadCalendarFile() {
