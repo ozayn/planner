@@ -101,7 +101,7 @@ def seed_sample_tours():
             'language': 'English',
             'venue_id': natural_history.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://naturalhistory.si.edu/visit'
+            'url': 'https://naturalhistory.si.edu'
         },
         {
             'title': 'Ocean Life Exploration',
@@ -115,7 +115,7 @@ def seed_sample_tours():
             'language': 'English',
             'venue_id': natural_history.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://naturalhistory.si.edu/visit'
+            'url': 'https://naturalhistory.si.edu'
         },
         {
             'title': 'Renaissance Masterpieces Tour',
@@ -129,7 +129,7 @@ def seed_sample_tours():
             'language': 'English',
             'venue_id': national_gallery.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.nga.gov/visit'
+            'url': 'https://www.nga.gov'
         },
         {
             'title': 'Impressionist Collection Walk',
@@ -143,7 +143,7 @@ def seed_sample_tours():
             'language': 'English',
             'venue_id': national_gallery.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.nga.gov/visit'
+            'url': 'https://www.nga.gov'
         }
     ]
     
@@ -217,7 +217,7 @@ def seed_london_venues():
             'address': 'Bankside, London SE1 9TG, UK',
             'latitude': 51.5076,
             'longitude': -0.0994,
-            'website_url': 'https://www.tate.org.uk/visit/tate-modern',
+            'website_url': 'https://www.tate.org.uk',
             'description': 'Modern and contemporary art museum',
             'city_id': london.id
         },
@@ -265,7 +265,7 @@ def seed_london_tours():
             'language': 'English',
             'venue_id': british_museum.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.britishmuseum.org/visit'
+            'url': 'https://www.britishmuseum.org'
         },
         {
             'title': 'Modern Art Masterpieces',
@@ -279,7 +279,7 @@ def seed_london_tours():
             'language': 'English',
             'venue_id': tate_modern.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.tate.org.uk/visit/tate-modern'
+            'url': 'https://www.tate.org.uk'
         },
         {
             'title': 'Dinosaur Discovery Walk',
@@ -293,7 +293,7 @@ def seed_london_tours():
             'language': 'English',
             'venue_id': Venue.query.filter_by(name='Natural History Museum', city_id=london.id).first().id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.nhm.ac.uk/visit'
+            'url': 'https://www.nhm.ac.uk'
         }
     ]
     
@@ -318,7 +318,7 @@ def seed_los_angeles_venues():
             'address': '1200 Getty Center Dr, Los Angeles, CA 90049, USA',
             'latitude': 34.0780,
             'longitude': -118.4743,
-            'website_url': 'https://www.getty.edu/visit/center/',
+            'website_url': 'https://www.getty.edu',
             'description': 'World-class art museum with stunning architecture',
             'city_id': la.id
         },
@@ -376,7 +376,7 @@ def seed_los_angeles_tours():
             'language': 'English',
             'venue_id': getty_center.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.getty.edu/visit/center'
+            'url': 'https://www.getty.edu'
         },
         {
             'title': 'Modern Art Collection Walk',
@@ -390,7 +390,7 @@ def seed_los_angeles_tours():
             'language': 'English',
             'venue_id': lacma.id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://www.lacma.org/visit'
+            'url': 'https://www.lacma.org'
         },
         {
             'title': 'Sunset Photography Session',
@@ -404,7 +404,7 @@ def seed_los_angeles_tours():
             'language': 'English',
             'venue_id': Venue.query.filter_by(name='Griffith Observatory', city_id=la.id).first().id,
             'image_url': None,  # Will default to venue image
-            'url': 'https://griffithobservatory.org/visit'
+            'url': 'https://griffithobservatory.org'
         }
     ]
     
