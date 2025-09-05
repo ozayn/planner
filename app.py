@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -239,6 +240,11 @@ class Photowalk(Event):
         })
         return base_dict
 
+@app.route('/test-events')
+def test_events():
+    """Test page for debugging events"""
+    return render_template('test_events.html')
+
 @app.route('/')
 def index():
     """Main page with city selection and time filtering"""
@@ -292,19 +298,36 @@ def get_events():
     events = []
     
     if not event_type or event_type == 'tours':
+        # Get venues for this city first
+        city_venues = Venue.query.filter_by(city_id=city_id).all()
+        venue_ids = [v.id for v in city_venues]
+        
         tours = Tour.query.filter(
-            Tour.venue.has(Venue.city_id == city_id),
+            Tour.venue_id.in_(venue_ids),
             Tour.start_date >= start_date,
             Tour.start_date <= end_date
         ).all()
         events.extend([tour.to_dict() for tour in tours])
     
     if not event_type or event_type == 'exhibitions':
-        exhibitions = Exhibition.query.filter(
-            Exhibition.venue.has(Venue.city_id == city_id),
-            Exhibition.start_date <= end_date,
-            Exhibition.end_date >= start_date
-        ).all()
+        # Get venues for this city first
+        city_venues = Venue.query.filter_by(city_id=city_id).all()
+        venue_ids = [v.id for v in city_venues]
+        
+        if time_range == 'today':
+            # For today, only show exhibitions that are currently running
+            exhibitions = Exhibition.query.filter(
+                Exhibition.venue_id.in_(venue_ids),
+                Exhibition.start_date <= start_date,
+                Exhibition.end_date >= start_date
+            ).all()
+        else:
+            # For other time ranges, show exhibitions that overlap with the range
+            exhibitions = Exhibition.query.filter(
+                Exhibition.venue_id.in_(venue_ids),
+                Exhibition.start_date <= end_date,
+                Exhibition.end_date >= start_date
+            ).all()
         events.extend([exhibition.to_dict() for exhibition in exhibitions])
     
     if not event_type or event_type == 'festivals':
@@ -342,6 +365,27 @@ def get_venues():
     venues = query.all()
     return jsonify([venue.to_dict() for venue in venues])
 
+@app.route('/api/scrape-progress')
+def get_scraping_progress():
+    """Get real-time scraping progress"""
+    try:
+        # Read the current scraping progress from a temporary file
+        progress_file = 'scraping_progress.json'
+        if os.path.exists(progress_file):
+            with open(progress_file, 'r') as f:
+                progress_data = json.load(f)
+            return jsonify(progress_data)
+        else:
+            return jsonify({
+                'status': 'not_started',
+                'current_step': '',
+                'progress': 0,
+                'events_found': 0,
+                'log_entries': []
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scraping():
     """Trigger the scraping process to refresh event data"""
@@ -369,7 +413,7 @@ def trigger_scraping():
         
         # Run the DC scraper
         scraper_result = subprocess.run([
-            sys.executable, 'scripts/dc_scraper.py'
+            sys.executable, 'scripts/dc_scraper_progress.py'
         ], capture_output=True, text=True, cwd=os.getcwd())
         
         if scraper_result.returncode != 0:

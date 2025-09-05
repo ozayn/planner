@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Washington DC Real Data Scraper
-Scrapes real data from DC museums, venues, and events
+Washington DC Data Scraper
+Scrapes live data from DC museums, venues, and events
 """
 
 import requests
@@ -13,6 +13,12 @@ from datetime import datetime, timedelta, date
 from urllib.parse import urljoin, urlparse
 import re
 import logging
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -24,205 +30,300 @@ class DCDataScraper:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
+        
+        # Setup Selenium WebDriver
+        self.driver = None
+        self.setup_driver()
+        
         self.base_urls = {
             'smithsonian': 'https://www.si.edu',
             'national_gallery': 'https://www.nga.gov',
-            'national_mall': 'https://www.nps.gov/nama',
             'kennedy_center': 'https://www.kennedy-center.org',
             'library_congress': 'https://www.loc.gov',
             'national_archives': 'https://www.archives.gov',
             'holocaust_museum': 'https://www.ushmm.org',
             'spy_museum': 'https://www.spymuseum.org',
-            'newseum': 'https://www.newseum.org',
-            'national_air_space': 'https://airandspace.si.edu'
+            'air_space': 'https://airandspace.si.edu',
+            'natural_history': 'https://naturalhistory.si.edu',
+            'american_history': 'https://americanhistory.si.edu'
         }
+        
+    def setup_driver(self):
+        """Setup Chrome WebDriver with options"""
+        try:
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')  # Run in background
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--window-size=1920,1080')
+            chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+            
+            self.driver = webdriver.Chrome(options=chrome_options)
+            logger.info("Chrome WebDriver initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize WebDriver: {e}")
+            self.driver = None
         
     def delay(self):
         """Add random delay to be respectful"""
-        time.sleep(random.uniform(1, 3))
+        time.sleep(random.uniform(2, 5))
         
-    def scrape_smithsonian_museums(self):
-        """Scrape Smithsonian museum data"""
-        logger.info("Scraping Smithsonian museums...")
-        
-        museums = [
-            {
-                'name': 'National Museum of Natural History',
-                'url': 'https://naturalhistory.si.edu',
-                'type': 'museum',
-                'description': 'Explore the natural world through exhibits on dinosaurs, gems, human origins, and more.',
-                'address': '10th St. & Constitution Ave. NW, Washington, DC 20560',
-                'latitude': 38.8913,
-                'longitude': -77.0262
-            },
-            {
-                'name': 'National Air and Space Museum',
-                'url': 'https://airandspace.si.edu',
-                'type': 'museum',
-                'description': 'Discover the history of aviation and space exploration through interactive exhibits.',
-                'address': '600 Independence Ave SW, Washington, DC 20560',
-                'latitude': 38.8882,
-                'longitude': -77.0199
-            },
-            {
-                'name': 'National Museum of American History',
-                'url': 'https://americanhistory.si.edu',
-                'type': 'museum',
-                'description': 'Explore American history through artifacts, documents, and interactive exhibits.',
-                'address': '1300 Constitution Ave NW, Washington, DC 20560',
-                'latitude': 38.8913,
-                'longitude': -77.0301
-            },
-            {
-                'name': 'National Museum of African American History and Culture',
-                'url': 'https://nmaahc.si.edu',
-                'type': 'museum',
-                'description': 'Explore African American history, culture, and contributions to American society.',
-                'address': '1400 Constitution Ave NW, Washington, DC 20560',
-                'latitude': 38.8910,
-                'longitude': -77.0326
-            },
-            {
-                'name': 'Hirshhorn Museum and Sculpture Garden',
-                'url': 'https://hirshhorn.si.edu',
-                'type': 'museum',
-                'description': 'Contemporary art museum featuring modern and contemporary art collections.',
-                'address': 'Independence Ave SW & 7th St SW, Washington, DC 20560',
-                'latitude': 38.8883,
-                'longitude': -77.0226
-            },
-            {
-                'name': 'Freer Gallery of Art',
-                'url': 'https://asia.si.edu',
-                'type': 'museum',
-                'description': 'Asian art collection featuring works from China, Japan, Korea, and Southeast Asia.',
-                'address': '1050 Independence Ave SW, Washington, DC 20560',
-                'latitude': 38.8883,
-                'longitude': -77.0262
-            },
-            {
-                'name': 'Arthur M. Sackler Gallery',
-                'url': 'https://asia.si.edu',
-                'type': 'museum',
-                'description': 'Asian art museum featuring ancient and contemporary works from Asia.',
-                'address': '1050 Independence Ave SW, Washington, DC 20560',
-                'latitude': 38.8883,
-                'longitude': -77.0262
-            }
-        ]
-        
-        return museums
-        
-    def scrape_national_gallery(self):
-        """Scrape National Gallery of Art data"""
-        logger.info("Scraping National Gallery of Art...")
+    def scrape_smithsonian_events(self):
+        """Scrape events from Smithsonian website"""
+        logger.info("Scraping Smithsonian events...")
+        events = []
         
         try:
-            url = 'https://www.nga.gov/visit/tours.html'
-            response = self.session.get(url)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Extract tour information
-            tours = []
-            tour_elements = soup.find_all(['div', 'section'], class_=re.compile(r'tour|program'))
-            
-            for element in tour_elements:
-                title_elem = element.find(['h1', 'h2', 'h3', 'h4'], string=re.compile(r'tour|walk|talk', re.I))
-                if title_elem:
-                    title = title_elem.get_text().strip()
-                    description = element.find('p')
-                    description_text = description.get_text().strip() if description else ""
-                    
-                    tours.append({
-                        'title': title,
-                        'description': description_text,
-                        'type': 'tour',
-                        'venue': 'National Gallery of Art'
-                    })
-            
-            return tours
-            
+            # Use Selenium to handle JavaScript
+            if self.driver:
+                self.driver.get("https://www.si.edu/events")
+                self.delay()
+                
+                # Wait for events to load
+                try:
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "event-item"))
+                    )
+                except TimeoutException:
+                    logger.warning("Timeout waiting for Smithsonian events to load")
+                    return events
+                
+                # Extract event data
+                event_elements = self.driver.find_elements(By.CLASS_NAME, "event-item")
+                
+                for element in event_elements[:10]:  # Limit to 10 events
+                    try:
+                        title_elem = element.find_element(By.CLASS_NAME, "event-title")
+                        title = title_elem.text.strip()
+                        
+                        # Try to get date
+                        date_elem = element.find_element(By.CLASS_NAME, "event-date")
+                        date_text = date_elem.text.strip()
+                        
+                        # Try to get venue
+                        venue_elem = element.find_element(By.CLASS_NAME, "event-venue")
+                        venue = venue_elem.text.strip()
+                        
+                        # Try to get description
+                        desc_elem = element.find_element(By.CLASS_NAME, "event-description")
+                        description = desc_elem.text.strip()
+                        
+                        # Try to get URL
+                        link_elem = element.find_element(By.TAG_NAME, "a")
+                        url = link_elem.get_attribute("href")
+                        
+                        event = {
+                            'title': title,
+                            'description': description,
+                            'venue_name': venue,
+                            'start_date': self.parse_date(date_text),
+                            'url': url,
+                            'source': 'Smithsonian'
+                        }
+                        events.append(event)
+                        
+                    except NoSuchElementException as e:
+                        logger.warning(f"Could not extract event data: {e}")
+                        continue
+                        
+            else:
+                # Fallback to requests if Selenium fails
+                response = self.session.get("https://www.si.edu/events")
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                # Look for event elements
+                event_elements = soup.find_all('div', class_='event-item')
+                
+                for element in event_elements[:5]:  # Limit to 5 events
+                    try:
+                        title_elem = element.find('h3', class_='event-title')
+                        title = title_elem.text.strip() if title_elem else "Smithsonian Event"
+                        
+                        date_elem = element.find('span', class_='event-date')
+                        date_text = date_elem.text.strip() if date_elem else ""
+                        
+                        venue_elem = element.find('span', class_='event-venue')
+                        venue = venue_elem.text.strip() if venue_elem else "Smithsonian Institution"
+                        
+                        desc_elem = element.find('p', class_='event-description')
+                        description = desc_elem.text.strip() if desc_elem else "Smithsonian event"
+                        
+                        link_elem = element.find('a')
+                        url = link_elem.get('href') if link_elem else ""
+                        
+                        event = {
+                            'title': title,
+                            'description': description,
+                            'venue_name': venue,
+                            'start_date': self.parse_date(date_text),
+                            'url': url,
+                            'source': 'Smithsonian'
+                        }
+                        events.append(event)
+                        
+                    except Exception as e:
+                        logger.warning(f"Could not extract event data: {e}")
+                        continue
+                        
         except Exception as e:
-            logger.error(f"Error scraping National Gallery: {e}")
-            return []
+            logger.error(f"Error scraping Smithsonian events: {e}")
             
-    def scrape_kennedy_center(self):
-        """Scrape Kennedy Center events"""
+        logger.info(f"Scraped {len(events)} Smithsonian events")
+        return events
+        
+    def scrape_national_gallery_events(self):
+        """Scrape events from National Gallery of Art"""
+        logger.info("Scraping National Gallery events...")
+        events = []
+        
+        try:
+            if self.driver:
+                self.driver.get("https://www.nga.gov/calendar")
+                self.delay()
+                
+                # Wait for calendar to load
+                try:
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "calendar-event"))
+                    )
+                except TimeoutException:
+                    logger.warning("Timeout waiting for National Gallery calendar to load")
+                    return events
+                
+                # Extract event data
+                event_elements = self.driver.find_elements(By.CLASS_NAME, "calendar-event")
+                
+                for element in event_elements[:8]:  # Limit to 8 events
+                    try:
+                        title_elem = element.find_element(By.CLASS_NAME, "event-title")
+                        title = title_elem.text.strip()
+                        
+                        date_elem = element.find_element(By.CLASS_NAME, "event-date")
+                        date_text = date_elem.text.strip()
+                        
+                        desc_elem = element.find_element(By.CLASS_NAME, "event-description")
+                        description = desc_elem.text.strip()
+                        
+                        link_elem = element.find_element(By.TAG_NAME, "a")
+                        url = link_elem.get_attribute("href")
+                        
+                        event = {
+                            'title': title,
+                            'description': description,
+                            'venue_name': 'National Gallery of Art',
+                            'start_date': self.parse_date(date_text),
+                            'url': url,
+                            'source': 'National Gallery'
+                        }
+                        events.append(event)
+                        
+                    except NoSuchElementException as e:
+                        logger.warning(f"Could not extract National Gallery event data: {e}")
+                        continue
+                        
+        except Exception as e:
+            logger.error(f"Error scraping National Gallery events: {e}")
+            
+        logger.info(f"Scraped {len(events)} National Gallery events")
+        return events
+        
+    def scrape_kennedy_center_events(self):
+        """Scrape events from Kennedy Center"""
         logger.info("Scraping Kennedy Center events...")
+        events = []
         
         try:
-            url = 'https://www.kennedy-center.org/calendar'
-            response = self.session.get(url)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            events = []
-            event_elements = soup.find_all(['div', 'article'], class_=re.compile(r'event|performance'))
-            
-            for element in event_elements:
-                title_elem = element.find(['h1', 'h2', 'h3', 'h4'])
-                if title_elem:
-                    title = title_elem.get_text().strip()
-                    
-                    # Look for date information
-                    date_elem = element.find(['time', 'span'], class_=re.compile(r'date|time'))
-                    date_text = date_elem.get_text().strip() if date_elem else ""
-                    
-                    events.append({
-                        'title': title,
-                        'date': date_text,
-                        'type': 'performance',
-                        'venue': 'Kennedy Center'
-                    })
-            
-            return events
-            
+            if self.driver:
+                self.driver.get("https://www.kennedy-center.org/calendar")
+                self.delay()
+                
+                # Wait for events to load
+                try:
+                    WebDriverWait(self.driver, 15).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "event-card"))
+                    )
+                except TimeoutException:
+                    logger.warning("Timeout waiting for Kennedy Center events to load")
+                    return events
+                
+                # Extract event data
+                event_elements = self.driver.find_elements(By.CLASS_NAME, "event-card")
+                
+                for element in event_elements[:6]:  # Limit to 6 events
+                    try:
+                        title_elem = element.find_element(By.CLASS_NAME, "event-title")
+                        title = title_elem.text.strip()
+                        
+                        date_elem = element.find_element(By.CLASS_NAME, "event-date")
+                        date_text = date_elem.text.strip()
+                        
+                        desc_elem = element.find_element(By.CLASS_NAME, "event-description")
+                        description = desc_elem.text.strip()
+                        
+                        link_elem = element.find_element(By.TAG_NAME, "a")
+                        url = link_elem.get_attribute("href")
+                        
+                        event = {
+                            'title': title,
+                            'description': description,
+                            'venue_name': 'Kennedy Center',
+                            'start_date': self.parse_date(date_text),
+                            'url': url,
+                            'source': 'Kennedy Center'
+                        }
+                        events.append(event)
+                        
+                    except NoSuchElementException as e:
+                        logger.warning(f"Could not extract Kennedy Center event data: {e}")
+                        continue
+                        
         except Exception as e:
-            logger.error(f"Error scraping Kennedy Center: {e}")
-            return []
+            logger.error(f"Error scraping Kennedy Center events: {e}")
             
-    def scrape_library_congress(self):
-        """Scrape Library of Congress events"""
-        logger.info("Scraping Library of Congress events...")
+        logger.info(f"Scraped {len(events)} Kennedy Center events")
+        return events
         
+    def parse_date(self, date_text):
+        """Parse date text and return formatted date string"""
+        if not date_text:
+            return datetime.now().strftime('%Y-%m-%d')
+            
         try:
-            url = 'https://www.loc.gov/events'
-            response = self.session.get(url)
-            response.raise_for_status()
+            # Try to parse common date formats
+            date_formats = [
+                '%B %d, %Y',  # September 5, 2025
+                '%b %d, %Y',  # Sep 5, 2025
+                '%m/%d/%Y',   # 09/05/2025
+                '%Y-%m-%d',   # 2025-09-05
+                '%B %d',      # September 5
+                '%b %d'       # Sep 5
+            ]
             
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            events = []
-            event_elements = soup.find_all(['div', 'article'], class_=re.compile(r'event|program'))
-            
-            for element in event_elements:
-                title_elem = element.find(['h1', 'h2', 'h3', 'h4'])
-                if title_elem:
-                    title = title_elem.get_text().strip()
+            for fmt in date_formats:
+                try:
+                    parsed_date = datetime.strptime(date_text, fmt)
+                    # If no year, assume current year
+                    if parsed_date.year == 1900:
+                        parsed_date = parsed_date.replace(year=datetime.now().year)
+                    return parsed_date.strftime('%Y-%m-%d')
+                except ValueError:
+                    continue
                     
-                    events.append({
-                        'title': title,
-                        'type': 'lecture',
-                        'venue': 'Library of Congress'
-                    })
-            
-            return events
+            # If all parsing fails, return today's date
+            return datetime.now().strftime('%Y-%m-%d')
             
         except Exception as e:
-            logger.error(f"Error scraping Library of Congress: {e}")
-            return []
+            logger.warning(f"Could not parse date '{date_text}': {e}")
+            return datetime.now().strftime('%Y-%m-%d')
             
-    def create_dc_venues(self):
-        """Create comprehensive DC venue data"""
-        logger.info("Creating DC venue data...")
+    def create_venues(self):
+        """Create venue data"""
+        logger.info("Creating venue data...")
         
         venues = [
-            # Smithsonian Museums
             {
-                'name': 'National Museum of Natural History',
+                'name': 'Smithsonian National Museum of Natural History',
                 'venue_type': 'museum',
                 'address': '10th St. & Constitution Ave. NW, Washington, DC 20560',
                 'latitude': 38.8913,
@@ -233,7 +334,7 @@ class DCDataScraper:
                 'instagram_url': 'https://instagram.com/naturalhistory'
             },
             {
-                'name': 'National Air and Space Museum',
+                'name': 'Smithsonian National Air and Space Museum',
                 'venue_type': 'museum',
                 'address': '600 Independence Ave SW, Washington, DC 20560',
                 'latitude': 38.8882,
@@ -244,556 +345,108 @@ class DCDataScraper:
                 'instagram_url': 'https://instagram.com/airandspacemuseum'
             },
             {
-                'name': 'National Museum of American History',
-                'venue_type': 'museum',
-                'address': '1300 Constitution Ave NW, Washington, DC 20560',
-                'latitude': 38.8913,
-                'longitude': -77.0301,
-                'image_url': 'https://americanhistory.si.edu/sites/default/files/styles/hero_image/public/media/images/american-history-museum-exterior.jpg',
-                'website_url': 'https://americanhistory.si.edu',
-                'description': 'Explore American history through artifacts, documents, and interactive exhibits.',
-                'instagram_url': 'https://instagram.com/amhistorymuseum'
-            },
-            {
-                'name': 'National Museum of African American History and Culture',
-                'venue_type': 'museum',
-                'address': '1400 Constitution Ave NW, Washington, DC 20560',
-                'latitude': 38.8910,
-                'longitude': -77.0326,
-                'image_url': 'https://nmaahc.si.edu/sites/default/files/styles/hero_image/public/media/images/african-american-museum-exterior.jpg',
-                'website_url': 'https://nmaahc.si.edu',
-                'description': 'Explore African American history, culture, and contributions to American society.',
-                'instagram_url': 'https://instagram.com/nmaahc'
-            },
-            {
-                'name': 'Hirshhorn Museum and Sculpture Garden',
-                'venue_type': 'museum',
-                'address': 'Independence Ave SW & 7th St SW, Washington, DC 20560',
-                'latitude': 38.8883,
-                'longitude': -77.0226,
-                'image_url': 'https://hirshhorn.si.edu/sites/default/files/styles/hero_image/public/media/images/hirshhorn-exterior.jpg',
-                'website_url': 'https://hirshhorn.si.edu',
-                'description': 'Contemporary art museum featuring modern and contemporary art collections.',
-                'instagram_url': 'https://instagram.com/hirshhorn'
-            },
-            {
-                'name': 'Freer Gallery of Art',
-                'venue_type': 'museum',
-                'address': '1050 Independence Ave SW, Washington, DC 20560',
-                'latitude': 38.8883,
-                'longitude': -77.0262,
-                'image_url': 'https://asia.si.edu/sites/default/files/styles/hero_image/public/media/images/freer-gallery-exterior.jpg',
-                'website_url': 'https://asia.si.edu',
-                'description': 'Asian art collection featuring works from China, Japan, Korea, and Southeast Asia.',
-                'instagram_url': 'https://instagram.com/freersackler'
-            },
-            {
-                'name': 'Arthur M. Sackler Gallery',
-                'venue_type': 'museum',
-                'address': '1050 Independence Ave SW, Washington, DC 20560',
-                'latitude': 38.8883,
-                'longitude': -77.0262,
-                'image_url': 'https://asia.si.edu/sites/default/files/styles/hero_image/public/media/images/sackler-gallery-exterior.jpg',
-                'website_url': 'https://asia.si.edu',
-                'description': 'Asian art museum featuring ancient and contemporary works from Asia.',
-                'instagram_url': 'https://instagram.com/freersackler'
-            },
-            # Non-Smithsonian Museums
-            {
                 'name': 'National Gallery of Art',
                 'venue_type': 'museum',
-                'address': 'Constitution Ave NW, Washington, DC 20565',
+                'address': '6th St. & Constitution Ave. NW, Washington, DC 20565',
                 'latitude': 38.8914,
                 'longitude': -77.0200,
-                'image_url': 'https://www.nga.gov/sites/default/files/styles/hero_image/public/media/images/nga-exterior.jpg',
+                'image_url': 'https://www.nga.gov/content/ngaweb/collection/overview.html',
                 'website_url': 'https://www.nga.gov',
-                'description': 'Premier art museum featuring European and American masterpieces.',
+                'description': 'Home to one of the finest collections of paintings, sculptures, and decorative arts.',
                 'instagram_url': 'https://instagram.com/ngadc'
             },
             {
                 'name': 'Kennedy Center',
                 'venue_type': 'performing_arts',
                 'address': '2700 F St NW, Washington, DC 20566',
-                'latitude': 38.8961,
+                'latitude': 38.8969,
                 'longitude': -77.0558,
-                'image_url': 'https://www.kennedy-center.org/sites/default/files/styles/hero_image/public/media/images/kennedy-center-exterior.jpg',
+                'image_url': 'https://www.kennedy-center.org/images/kennedy-center-exterior.jpg',
                 'website_url': 'https://www.kennedy-center.org',
-                'description': 'Premier performing arts center featuring concerts, theater, and dance.',
+                'description': 'The national performing arts center featuring theater, music, and dance.',
                 'instagram_url': 'https://instagram.com/kennedycenter'
-            },
-            {
-                'name': 'Library of Congress',
-                'venue_type': 'library',
-                'address': '101 Independence Ave SE, Washington, DC 20540',
-                'latitude': 38.8887,
-                'longitude': -77.0047,
-                'image_url': 'https://www.loc.gov/sites/default/files/styles/hero_image/public/media/images/loc-exterior.jpg',
-                'website_url': 'https://www.loc.gov',
-                'description': 'World\'s largest library with millions of books, manuscripts, and digital resources.',
-                'instagram_url': 'https://instagram.com/libraryofcongress'
-            },
-            {
-                'name': 'National Archives',
-                'venue_type': 'museum',
-                'address': '701 Constitution Ave NW, Washington, DC 20408',
-                'latitude': 38.8929,
-                'longitude': -77.0226,
-                'image_url': 'https://www.archives.gov/sites/default/files/styles/hero_image/public/media/images/archives-exterior.jpg',
-                'website_url': 'https://www.archives.gov',
-                'description': 'Preserves and provides access to the records of the U.S. government.',
-                'instagram_url': 'https://instagram.com/usnationalarchives'
-            },
-            {
-                'name': 'United States Holocaust Memorial Museum',
-                'venue_type': 'museum',
-                'address': '100 Raoul Wallenberg Pl SW, Washington, DC 20024',
-                'latitude': 38.8869,
-                'longitude': -77.0326,
-                'image_url': 'https://www.ushmm.org/sites/default/files/styles/hero_image/public/media/images/holocaust-museum-exterior.jpg',
-                'website_url': 'https://www.ushmm.org',
-                'description': 'Memorial and museum dedicated to documenting the history of the Holocaust.',
-                'instagram_url': 'https://instagram.com/ushmm'
-            },
-            {
-                'name': 'International Spy Museum',
-                'venue_type': 'museum',
-                'address': '700 L\'Enfant Plaza SW, Washington, DC 20024',
-                'latitude': 38.8844,
-                'longitude': -77.0244,
-                'image_url': 'https://www.spymuseum.org/sites/default/files/styles/hero_image/public/media/images/spy-museum-exterior.jpg',
-                'website_url': 'https://www.spymuseum.org',
-                'description': 'Interactive museum exploring the world of espionage and intelligence.',
-                'instagram_url': 'https://instagram.com/spymuseum'
             }
         ]
         
         return venues
         
-    def create_dc_tours(self):
-        """Create realistic DC tour data"""
-        logger.info("Creating DC tour data...")
-        
-        tours = [
-            # Smithsonian Tours
-            {
-                'title': 'Natural History Highlights Tour',
-                'description': 'Explore the most popular exhibits including the Hope Diamond, dinosaur fossils, and human origins.',
-                'venue_name': 'National Museum of Natural History',
-                'meeting_location': 'Main Entrance, Constitution Avenue',
-                'tour_type': 'highlights',
-                'max_participants': 25,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '10:00',
-                'end_time': '11:30',
-                'url': 'https://naturalhistory.si.edu/visit/tours'
-            },
-            {
-                'title': 'Air and Space Exploration Tour',
-                'description': 'Discover the history of aviation and space exploration through interactive exhibits.',
-                'venue_name': 'National Air and Space Museum',
-                'meeting_location': 'Main Entrance, Independence Avenue',
-                'tour_type': 'guided',
-                'max_participants': 20,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '14:00',
-                'end_time': '15:30',
-                'url': 'https://airandspace.si.edu/visit/tours'
-            },
-            {
-                'title': 'American History Treasures Tour',
-                'description': 'See iconic artifacts including the Star-Spangled Banner, Lincoln\'s hat, and more.',
-                'venue_name': 'National Museum of American History',
-                'meeting_location': 'Main Entrance, Constitution Avenue',
-                'tour_type': 'treasures',
-                'max_participants': 30,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '11:00',
-                'end_time': '12:30',
-                'url': 'https://americanhistory.si.edu/visit/tours'
-            },
-            {
-                'title': 'African American History and Culture Tour',
-                'description': 'Explore the rich history and contributions of African Americans to American society.',
-                'venue_name': 'National Museum of African American History and Culture',
-                'meeting_location': 'Main Entrance, Constitution Avenue',
-                'tour_type': 'cultural',
-                'max_participants': 25,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '13:00',
-                'end_time': '14:30',
-                'url': 'https://nmaahc.si.edu/visit/tours'
-            },
-            {
-                'title': 'Contemporary Art Walk',
-                'description': 'Explore modern and contemporary art in the Hirshhorn Museum and Sculpture Garden.',
-                'venue_name': 'Hirshhorn Museum and Sculpture Garden',
-                'meeting_location': 'Main Entrance, Independence Avenue',
-                'tour_type': 'art_walk',
-                'max_participants': 20,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '15:00',
-                'end_time': '16:30',
-                'url': 'https://hirshhorn.si.edu/visit/tours'
-            },
-            {
-                'title': 'Asian Art Collection Tour',
-                'description': 'Discover masterpieces from China, Japan, Korea, and Southeast Asia.',
-                'venue_name': 'Freer Gallery of Art',
-                'meeting_location': 'Main Entrance, Independence Avenue',
-                'tour_type': 'art_collection',
-                'max_participants': 20,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '12:00',
-                'end_time': '13:30',
-                'url': 'https://asia.si.edu/visit/tours'
-            },
-            # National Gallery Tours
-            {
-                'title': 'European Masterpieces Tour',
-                'description': 'Explore European paintings from the Renaissance to the 19th century.',
-                'venue_name': 'National Gallery of Art',
-                'meeting_location': 'West Building Rotunda',
-                'tour_type': 'art_tour',
-                'max_participants': 25,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '10:30',
-                'end_time': '12:00',
-                'url': 'https://www.nga.gov/visit/tours'
-            },
-            {
-                'title': 'American Art Collection Tour',
-                'description': 'Discover American paintings and sculptures from the 18th to 20th centuries.',
-                'venue_name': 'National Gallery of Art',
-                'meeting_location': 'East Building Entrance',
-                'tour_type': 'art_tour',
-                'max_participants': 25,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '14:30',
-                'end_time': '16:00',
-                'url': 'https://www.nga.gov/visit/tours'
-            },
-            {
-                'title': 'Sculpture Garden Walk',
-                'description': 'Explore outdoor sculptures in the National Gallery\'s sculpture garden.',
-                'venue_name': 'National Gallery of Art',
-                'meeting_location': 'Sculpture Garden Entrance',
-                'tour_type': 'outdoor_walk',
-                'max_participants': 30,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '16:30',
-                'end_time': '17:30',
-                'url': 'https://www.nga.gov/visit/tours'
-            },
-            # Kennedy Center Tours
-            {
-                'title': 'Kennedy Center Architecture Tour',
-                'description': 'Explore the iconic architecture and history of the Kennedy Center.',
-                'venue_name': 'Kennedy Center',
-                'meeting_location': 'Main Entrance, F Street',
-                'tour_type': 'architecture',
-                'max_participants': 20,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '10:00',
-                'end_time': '11:00',
-                'url': 'https://www.kennedy-center.org/visit/tours'
-            },
-            {
-                'title': 'Behind the Scenes Tour',
-                'description': 'Go behind the scenes of America\'s premier performing arts center.',
-                'venue_name': 'Kennedy Center',
-                'meeting_location': 'Main Entrance, F Street',
-                'tour_type': 'behind_scenes',
-                'max_participants': 15,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '15:00',
-                'end_time': '16:00',
-                'url': 'https://www.kennedy-center.org/visit/tours'
-            },
-            # Library of Congress Tours
-            {
-                'title': 'Library of Congress Architecture Tour',
-                'description': 'Explore the stunning architecture and history of the world\'s largest library.',
-                'venue_name': 'Library of Congress',
-                'meeting_location': 'Main Entrance, Independence Avenue',
-                'tour_type': 'architecture',
-                'max_participants': 25,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '11:00',
-                'end_time': '12:00',
-                'url': 'https://www.loc.gov/visit/tours'
-            },
-            {
-                'title': 'Rare Books and Manuscripts Tour',
-                'description': 'See rare books, manuscripts, and historical documents.',
-                'venue_name': 'Library of Congress',
-                'meeting_location': 'Main Entrance, Independence Avenue',
-                'tour_type': 'special_collections',
-                'max_participants': 20,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '14:00',
-                'end_time': '15:00',
-                'url': 'https://www.loc.gov/visit/tours'
-            },
-            # National Archives Tours
-            {
-                'title': 'National Archives Rotunda Tour',
-                'description': 'See the Declaration of Independence, Constitution, and Bill of Rights.',
-                'venue_name': 'National Archives',
-                'meeting_location': 'Main Entrance, Constitution Avenue',
-                'tour_type': 'historical_documents',
-                'max_participants': 30,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '10:00',
-                'end_time': '11:00',
-                'url': 'https://www.archives.gov/visit/tours'
-            },
-            {
-                'title': 'Research Facilities Tour',
-                'description': 'Explore the research facilities and learn about archival preservation.',
-                'venue_name': 'National Archives',
-                'meeting_location': 'Research Entrance, Pennsylvania Avenue',
-                'tour_type': 'research',
-                'max_participants': 20,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '13:00',
-                'end_time': '14:00',
-                'url': 'https://www.archives.gov/visit/tours'
-            },
-            # Holocaust Museum Tours
-            {
-                'title': 'Holocaust History Tour',
-                'description': 'Learn about the Holocaust through artifacts, photographs, and personal stories.',
-                'venue_name': 'United States Holocaust Memorial Museum',
-                'meeting_location': 'Main Entrance, Raoul Wallenberg Place',
-                'tour_type': 'historical',
-                'max_participants': 25,
-                'price': 0.0,
-                'language': 'English',
-                'start_time': '10:00',
-                'end_time': '11:30',
-                'url': 'https://www.ushmm.org/visit/tours'
-            },
-            # Spy Museum Tours
-            {
-                'title': 'Spy Museum Interactive Tour',
-                'description': 'Experience the world of espionage through interactive exhibits and artifacts.',
-                'venue_name': 'International Spy Museum',
-                'meeting_location': 'Main Entrance, L\'Enfant Plaza',
-                'tour_type': 'interactive',
-                'max_participants': 30,
-                'price': 24.95,
-                'language': 'English',
-                'start_time': '11:00',
-                'end_time': '12:30',
-                'url': 'https://www.spymuseum.org/visit/tours'
-            },
-            {
-                'title': 'Cold War Espionage Tour',
-                'description': 'Explore Cold War espionage through artifacts and interactive exhibits.',
-                'venue_name': 'International Spy Museum',
-                'meeting_location': 'Main Entrance, L\'Enfant Plaza',
-                'tour_type': 'historical',
-                'max_participants': 25,
-                'price': 24.95,
-                'language': 'English',
-                'start_time': '14:00',
-                'end_time': '15:30',
-                'url': 'https://www.spymuseum.org/visit/tours'
-            }
-        ]
-        
-        return tours
-        
-    def create_dc_exhibitions(self):
-        """Create realistic DC exhibition data"""
-        logger.info("Creating DC exhibition data...")
-        
-        exhibitions = [
-            {
-                'title': 'Hope Diamond: A Timeless Treasure',
-                'description': 'Explore the history and science behind the world\'s most famous diamond.',
-                'venue_name': 'National Museum of Natural History',
-                'exhibition_location': 'Hall of Geology, Gems, and Minerals',
-                'curator': 'Dr. Jeffrey Post',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://naturalhistory.si.edu/exhibits/hope-diamond'
-            },
-            {
-                'title': 'Apollo 11: First Steps on the Moon',
-                'description': 'Celebrate the 55th anniversary of the Apollo 11 moon landing.',
-                'venue_name': 'National Air and Space Museum',
-                'exhibition_location': 'Apollo Gallery',
-                'curator': 'Dr. Michael Neufeld',
-                'admission_price': 0.0,
-                'start_date': '2024-07-20',
-                'end_date': '2024-12-31',
-                'url': 'https://airandspace.si.edu/exhibits/apollo-11'
-            },
-            {
-                'title': 'Star-Spangled Banner: The Flag That Inspired the Anthem',
-                'description': 'See the original flag that inspired Francis Scott Key to write the national anthem.',
-                'venue_name': 'National Museum of American History',
-                'exhibition_location': 'Flag Gallery',
-                'curator': 'Dr. Jennifer Jones',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://americanhistory.si.edu/exhibits/star-spangled-banner'
-            },
-            {
-                'title': 'Slavery and Freedom',
-                'description': 'Explore the complex history of slavery and freedom in America.',
-                'venue_name': 'National Museum of African American History and Culture',
-                'exhibition_location': 'Slavery and Freedom Gallery',
-                'curator': 'Dr. Mary Elliott',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://nmaahc.si.edu/exhibits/slavery-freedom'
-            },
-            {
-                'title': 'Contemporary Art from the Collection',
-                'description': 'Explore contemporary art from the Hirshhorn\'s permanent collection.',
-                'venue_name': 'Hirshhorn Museum and Sculpture Garden',
-                'exhibition_location': 'Second Floor Galleries',
-                'curator': 'Dr. Melissa Chiu',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://hirshhorn.si.edu/exhibits/contemporary-art'
-            },
-            {
-                'title': 'Asian Art Masterpieces',
-                'description': 'Explore masterpieces from the Freer and Sackler collections.',
-                'venue_name': 'Freer Gallery of Art',
-                'exhibition_location': 'Main Galleries',
-                'curator': 'Dr. Julian Raby',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://asia.si.edu/exhibits/asian-art-masterpieces'
-            },
-            {
-                'title': 'European Masterpieces',
-                'description': 'Explore European paintings from the Renaissance to the 19th century.',
-                'venue_name': 'National Gallery of Art',
-                'exhibition_location': 'West Building',
-                'curator': 'Dr. David Brown',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://www.nga.gov/exhibits/european-masterpieces'
-            },
-            {
-                'title': 'American Art Collection',
-                'description': 'Discover American paintings and sculptures from the 18th to 20th centuries.',
-                'venue_name': 'National Gallery of Art',
-                'exhibition_location': 'East Building',
-                'curator': 'Dr. Franklin Kelly',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://www.nga.gov/exhibits/american-art'
-            },
-            {
-                'title': 'Founding Documents',
-                'description': 'See the Declaration of Independence, Constitution, and Bill of Rights.',
-                'venue_name': 'National Archives',
-                'exhibition_location': 'Rotunda',
-                'curator': 'Dr. David Ferriero',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://www.archives.gov/exhibits/founding-documents'
-            },
-            {
-                'title': 'Holocaust History',
-                'description': 'Learn about the Holocaust through artifacts, photographs, and personal stories.',
-                'venue_name': 'United States Holocaust Memorial Museum',
-                'exhibition_location': 'Permanent Exhibition',
-                'curator': 'Dr. Sara Bloomfield',
-                'admission_price': 0.0,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://www.ushmm.org/exhibits/holocaust-history'
-            },
-            {
-                'title': 'Spy Museum Collection',
-                'description': 'Explore the world of espionage through artifacts and interactive exhibits.',
-                'venue_name': 'International Spy Museum',
-                'exhibition_location': 'Main Galleries',
-                'curator': 'Dr. Peter Earnest',
-                'admission_price': 24.95,
-                'start_date': '2024-01-01',
-                'end_date': '2024-12-31',
-                'url': 'https://www.spymuseum.org/exhibits/spy-collection'
-            }
-        ]
-        
-        return exhibitions
-        
     def scrape_all_dc_data(self):
-        """Scrape all DC data and return comprehensive dataset"""
-        logger.info("Starting comprehensive DC data scraping...")
+        """Scrape all DC data"""
+        logger.info("Starting DC data scraping...")
         
-        # Create base data
-        venues = self.create_dc_venues()
-        tours = self.create_dc_tours()
-        exhibitions = self.create_dc_exhibitions()
+        # Create venues
+        venues = self.create_venues()
         
-        # Try to scrape real data (with fallback to created data)
-        try:
-            smithsonian_tours = self.scrape_smithsonian_museums()
-            national_gallery_tours = self.scrape_national_gallery()
-            kennedy_center_events = self.scrape_kennedy_center()
-            library_congress_events = self.scrape_library_congress()
-            
-            # Combine scraped and created data
-            all_tours = tours + national_gallery_tours
-            all_events = kennedy_center_events + library_congress_events
-            
-        except Exception as e:
-            logger.error(f"Error scraping real data: {e}")
-            all_tours = tours
-            all_events = []
+        # Scrape events
+        all_events = []
         
-        return {
+        # Define scraping steps with progress tracking
+        scraping_steps = [
+            {
+                'name': 'Smithsonian Museums',
+                'url': 'https://naturalhistory.si.edu',
+                'method': self.scrape_smithsonian_events,
+                'progress': 25
+            },
+            {
+                'name': 'National Gallery of Art',
+                'url': 'https://www.nga.gov',
+                'method': self.scrape_national_gallery_events,
+                'progress': 50
+            },
+            {
+                'name': 'Kennedy Center',
+                'url': 'https://www.kennedy-center.org',
+                'method': self.scrape_kennedy_center_events,
+                'progress': 75
+            }
+        ]
+        
+        # Only return real scraped data - no sample data
+        if not all_events:
+            logger.info("No real events were scraped from websites")
+        
+        # Create comprehensive dataset
+        data = {
             'venues': venues,
-            'tours': all_tours,
-            'exhibitions': exhibitions,
             'events': all_events,
-            'scraped_at': datetime.now().isoformat()
+            'scraped_at': datetime.now().isoformat(),
+            'total_venues': len(venues),
+            'total_events': len(all_events),
+            'scraping_steps': scraping_steps
         }
         
-    def save_data(self, data, filename='dc_scraped_data.json'):
-        """Save scraped data to JSON file"""
-        with open(filename, 'w') as f:
+        # Save to JSON file
+        with open('dc_scraped_data.json', 'w') as f:
             json.dump(data, f, indent=2)
-        logger.info(f"Data saved to {filename}")
+            
+        logger.info(f"Data saved to dc_scraped_data.json")
+        logger.info(f"Scraped {len(venues)} venues")
+        logger.info(f"Scraped {len(all_events)} events")
+        
+        return data
+        
+    def cleanup(self):
+        """Clean up resources"""
+        if self.driver:
+            self.driver.quit()
+            logger.info("WebDriver closed")
+
+def main():
+    """Main function"""
+    scraper = DCDataScraper()
+    
+    try:
+        data = scraper.scrape_all_dc_data()
+        print(f"\nScraping completed!")
+        print(f"Scraped {data['total_venues']} venues")
+        print(f"Scraped {data['total_events']} events")
+        
+    except Exception as e:
+        logger.error(f"Scraping failed: {e}")
+        
+    finally:
+        scraper.cleanup()
 
 if __name__ == "__main__":
-    scraper = DCDataScraper()
-    data = scraper.scrape_all_dc_data()
-    scraper.save_data(data)
-    
-    print(f"Scraped {len(data['venues'])} venues")
-    print(f"Scraped {len(data['tours'])} tours")
-    print(f"Scraped {len(data['exhibitions'])} exhibitions")
-    print(f"Scraped {len(data['events'])} events")
+    main()

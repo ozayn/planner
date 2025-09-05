@@ -430,6 +430,73 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* Progress Bar Styles */
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow-soft);
+            border: 2px solid var(--border-soft);
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-header span {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-soft);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-pastel), var(--secondary-pastel));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .scraping-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--neutral-pastel);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+        
+        .log-entry.success {
+            color: #059669;
+        }
+        
+        .log-entry.warning {
+            color: #d97706;
+        }
+        
+        .log-entry.error {
+            color: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -479,6 +546,18 @@
                     </button>
                     <span class="selection-count" id="scrapingStatus">Select city, type & date to scrape</span>
                 </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="progress-container" style="display: none;">
+                <div class="progress-header">
+                    <span id="progressText">Scraping events...</span>
+                    <span id="progressCount">0 events found</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="scrapingLog" class="scraping-log"></div>
             </div>
             
             <div class="control-group">
@@ -590,8 +669,10 @@
         async function loadCities() {
             try {
                 console.log('Loading cities...');
+                console.log('About to fetch /api/cities');
                 const response = await fetch('/api/cities');
                 console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -632,8 +713,12 @@
                     event_type: currentEventType
                 });
                 
+                console.log('Making API request:', `/api/events?${params}`);
                 const response = await fetch(`/api/events?${params}`);
                 const events = await response.json();
+                
+                console.log('API response:', events);
+                console.log('Number of events:', events.length);
                 
                 allEvents = events;
                 displayEvents(events);
@@ -644,37 +729,61 @@
         }
         
         function displayEvents(events) {
+            console.log('displayEvents called with:', events.length, 'events');
             const container = document.getElementById('eventsContainer');
             const selectionControls = document.getElementById('selectionControls');
             
             if (events.length === 0) {
+                console.log('No events to display, showing empty state');
                 showEmptyState();
                 selectionControls.style.display = 'none';
                 return;
             }
             
+            console.log('Displaying', events.length, 'events');
+            
             // Show selection controls when events are loaded
             selectionControls.style.display = 'flex';
             
+            const eventsHtml = events.map(event => createEventCard(event)).join('');
+            console.log('Generated HTML length:', eventsHtml.length);
+            
             container.innerHTML = `
                 <div class="events-grid">
-                    ${events.map(event => createEventCard(event)).join('')}
+                    ${eventsHtml}
                 </div>
             `;
             
+            console.log('Events container updated');
             updateSelectionCount();
+        }
+        
+        // Global escape functions
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                     .replace(/</g, '&lt;')
+                     .replace(/>/g, '&gt;')
+                     .replace(/"/g, '&quot;')
+                     .replace(/'/g, '&#39;');
+        }
+        
+        function escapeAttr(str) {
+            if (!str) return '';
+            return str.replace(/"/g, '&quot;')
+                     .replace(/'/g, '&#39;');
         }
         
         function getEventImage(event) {
             if (event.image_url) {
-                return `<img src="${event.image_url}" alt="${event.title}" class="event-image">`;
+                return `<img src="${event.image_url}" alt="${escapeAttr(event.title)}" class="event-image">`;
             } else if (event.venue_name) {
                 // Generate Google Maps Street View image for the venue
                 const venueName = encodeURIComponent(event.venue_name);
                 const googleMapsImage = `https://maps.googleapis.com/maps/api/streetview?size=400x200&location=${venueName}&fov=90&heading=0&pitch=0&key=YOUR_API_KEY`;
                 // Fallback to a generic museum image if no API key
                 const fallbackImage = 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop';
-                return `<img src="${fallbackImage}" alt="${event.title}" class="event-image">`;
+                return `<img src="${fallbackImage}" alt="${escapeAttr(event.title)}" class="event-image">`;
             }
             return '';
         }
@@ -693,22 +802,6 @@
             }) : '';
             
             const timeDisplay = startTime && endTime ? `${startTime} - ${endTime}` : startTime || '';
-            
-            // Escape HTML and quotes to prevent JavaScript errors
-            const escapeHtml = (str) => {
-                if (!str) return '';
-                return str.replace(/&/g, '&amp;')
-                         .replace(/</g, '&lt;')
-                         .replace(/>/g, '&gt;')
-                         .replace(/"/g, '&quot;')
-                         .replace(/'/g, '&#39;');
-            };
-            
-            const escapeAttr = (str) => {
-                if (!str) return '';
-                return str.replace(/"/g, '&quot;')
-                         .replace(/'/g, '&#39;');
-            };
             
             const eventType = escapeAttr(event.event_type || 'tour');
             const meetingLocation = escapeAttr(event.meeting_location || '');
@@ -1280,11 +1373,29 @@ The file contains ${selectedEventData.length} events with proper times and locat
         async function triggerScraping() {
             const scrapingBtn = document.getElementById('scrapingBtn');
             const scrapingStatus = document.getElementById('scrapingStatus');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressText = document.getElementById('progressText');
+            const progressCount = document.getElementById('progressCount');
+            const progressFill = document.getElementById('progressFill');
+            const scrapingLog = document.getElementById('scrapingLog');
+            
+            // Show progress bar
+            progressContainer.style.display = 'block';
+            progressText.textContent = 'Starting scraping...';
+            progressCount.textContent = '0 events found';
+            progressFill.style.width = '0%';
+            scrapingLog.innerHTML = '';
             
             // Update UI to show scraping in progress
             scrapingBtn.disabled = true;
             scrapingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping...';
             scrapingStatus.textContent = 'Scraping events...';
+            
+            // Add initial log entry
+            addLogEntry('Starting scraping process...', 'info');
+            
+            // Start progress polling
+            const progressInterval = setInterval(updateProgress, 1000);
             
             try {
                 const response = await fetch('/api/scrape', {
@@ -1305,6 +1416,17 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 
                 const result = await response.json();
                 
+                // Clear progress polling
+                clearInterval(progressInterval);
+                
+                // Update progress
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Scraping completed!';
+                progressCount.textContent = `${result.events_added} events found`;
+                
+                // Add success log entry
+                addLogEntry(`Scraping completed successfully! Found ${result.events_added} events.`, 'success');
+                
                 // Show success
                 scrapingStatus.textContent = `Scraped ${result.events_added} events successfully`;
                 scrapingBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
@@ -1317,30 +1439,82 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     }, 1000);
                 }
                 
-                // Reset button after 3 seconds
+                // Reset button after 5 seconds
                 setTimeout(() => {
                     scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Scrape Selected';
                     scrapingBtn.style.backgroundColor = '';
                     scrapingBtn.disabled = false;
                     updateScrapingButton();
-                }, 3000);
+                    progressContainer.style.display = 'none';
+                }, 5000);
                 
             } catch (error) {
                 console.error('Scraping error:', error);
+                
+                // Clear progress polling
+                clearInterval(progressInterval);
+                
+                // Update progress
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Scraping failed';
+                addLogEntry(`Error: ${error.message}`, 'error');
                 
                 // Show error
                 scrapingStatus.textContent = 'Scraping failed - check console';
                 scrapingBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
                 scrapingBtn.style.backgroundColor = '#ffebee';
                 
-                // Reset button after 3 seconds
+                // Reset button after 5 seconds
                 setTimeout(() => {
                     scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Scrape Selected';
                     scrapingBtn.style.backgroundColor = '';
                     scrapingBtn.disabled = false;
                     updateScrapingButton();
-                }, 3000);
+                    progressContainer.style.display = 'none';
+                }, 5000);
             }
+        }
+        
+        async function updateProgress() {
+            try {
+                const response = await fetch('/api/scrape-progress');
+                const progress = await response.json();
+                
+                if (progress.status === 'in_progress') {
+                    const progressFill = document.getElementById('progressFill');
+                    const progressText = document.getElementById('progressText');
+                    const progressCount = document.getElementById('progressCount');
+                    
+                    // Update progress bar
+                    progressFill.style.width = `${progress.progress}%`;
+                    progressText.textContent = `Scraping ${progress.current_step}...`;
+                    progressCount.textContent = `${progress.events_found} events found`;
+                    
+                    // Add log entries
+                    if (progress.log_entries && progress.log_entries.length > 0) {
+                        const scrapingLog = document.getElementById('scrapingLog');
+                        const currentLogCount = scrapingLog.children.length;
+                        
+                        // Add new log entries
+                        for (let i = currentLogCount; i < progress.log_entries.length; i++) {
+                            const entry = progress.log_entries[i];
+                            addLogEntry(entry.message, entry.type || 'info');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating progress:', error);
+            }
+        }
+        
+        function addLogEntry(message, type = 'info') {
+            const scrapingLog = document.getElementById('scrapingLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            scrapingLog.appendChild(logEntry);
+            scrapingLog.scrollTop = scrapingLog.scrollHeight;
         }
     </script>
 </body>
