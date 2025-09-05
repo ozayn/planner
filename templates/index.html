@@ -851,6 +851,10 @@
         }
         
         function createGoogleCalendarEvent(event) {
+            const citySelect = document.getElementById('citySelect');
+            const selectedCityId = citySelect.value;
+            const cityTimezone = getCityTimezone(selectedCityId);
+            
             // Format dates for Google Calendar
             const startDate = new Date(event.start_date);
             const endDate = event.end_date ? new Date(event.end_date) : startDate;
@@ -883,9 +887,20 @@
                 endDateTime.setHours(23, 59, 59, 999);
             }
             
-            // Format dates for Google Calendar URL (UTC format)
-            const formatGoogleDate = (date) => {
-                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            // Format dates for Google Calendar URL with proper timezone
+            const formatGoogleDate = (date, timezone) => {
+                // Convert to the city's timezone
+                const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+                const cityOffset = getTimezoneOffset(timezone);
+                const cityDate = new Date(utcDate.getTime() + (cityOffset * 60000));
+                
+                const year = cityDate.getFullYear();
+                const month = String(cityDate.getMonth() + 1).padStart(2, '0');
+                const day = String(cityDate.getDate()).padStart(2, '0');
+                const hours = String(cityDate.getHours()).padStart(2, '0');
+                const minutes = String(cityDate.getMinutes()).padStart(2, '0');
+                const seconds = String(cityDate.getSeconds()).padStart(2, '0');
+                return `${year}${month}${day}T${hours}${minutes}${seconds}`;
             };
             
             // Build Google Calendar URL with pre-filled event details
@@ -893,7 +908,7 @@
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: event.title,
-                dates: `${formatGoogleDate(startDateTime)}/${formatGoogleDate(endDateTime)}`,
+                dates: `${formatGoogleDate(startDateTime, cityTimezone)}/${formatGoogleDate(endDateTime, cityTimezone)}`,
                 details: event.description || '',
                 location: event.venue_name || ''
             });
