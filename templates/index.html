@@ -958,6 +958,7 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     const startHour = parseTime(event.start_time);
                     const endHour = parseTime(event.end_time);
                     
+                    // Create dates assuming they are in the city's local time
                     startDateTime = new Date(eventDate);
                     startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
                     
@@ -979,9 +980,15 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     endDateTime.setHours(17, 0, 0, 0);
                 }
                 
-                // Format dates for ICS (UTC format)
+                // Format dates for ICS - use floating time (no timezone)
                 const formatICSDate = (date) => {
-                    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}${month}${day}T${hours}${minutes}${seconds}`;
                 };
                 
                 // Create enhanced description
