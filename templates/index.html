@@ -206,28 +206,19 @@
             color: var(--text-primary);
         }
         
-        .selection-btn.export-btn {
+        .selection-btn.import-btn {
             background: var(--accent-pastel);
             border-color: var(--accent-pastel);
             color: var(--text-primary);
-            font-weight: 500;
-        }
-        
-        .selection-btn.export-btn:hover {
-            background: var(--primary-pastel);
-            border-color: var(--primary-pastel);
-        }
-        
-        .selection-btn.import-btn {
-            background: var(--secondary-pastel);
-            border-color: var(--secondary-pastel);
-            color: var(--text-primary);
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
         }
         
         .selection-btn.import-btn:hover {
             background: var(--primary-pastel);
             border-color: var(--primary-pastel);
+            transform: translateY(-1px);
         }
         
         .selection-count {
@@ -460,11 +451,8 @@
                     <button class="selection-btn" onclick="deselectAllEvents()">
                         <i class="fas fa-times"></i> Deselect All
                     </button>
-                    <button class="selection-btn export-btn" onclick="exportSelectedToCalendar()">
-                        <i class="fas fa-calendar-plus"></i> Add to Google Calendar
-                    </button>
                     <button class="selection-btn import-btn" onclick="downloadCalendarFile()">
-                        <i class="fas fa-download"></i> Download .ics File
+                        <i class="fas fa-download"></i> Download Calendar File
                     </button>
                     <span class="selection-count" id="selectionCount">0 selected</span>
                 </div>
@@ -715,10 +703,6 @@
                             <i class="fas fa-heart"></i>
                             <div class="tooltip">${isSelected ? 'Remove from selection' : 'Add to selection'}</div>
                         </button>
-                        <button class="action-btn" onclick="addToCalendar(${event.id}, this)">
-                            <i class="fas fa-calendar-plus"></i>
-                            <div class="tooltip">Add to calendar</div>
-                        </button>
                         ${eventUrl ? `
                             <button class="action-btn" onclick="window.open('${eventUrl}', '_blank')">
                                 <i class="fas fa-external-link-alt"></i>
@@ -831,30 +815,77 @@
                 return;
             }
             
-            // Generate ICS content
-            const icsContent = generateICSContent(selectedEventData);
+            // Show progress
+            const downloadBtn = document.querySelector('.import-btn');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing download...';
+            downloadBtn.disabled = true;
             
-            // Create and download file
-            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'selected-events.ics';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            // Show success message
-            const importBtn = document.querySelector('.import-btn');
-            const originalText = importBtn.innerHTML;
-            importBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
-            importBtn.style.backgroundColor = 'var(--secondary-pastel)';
-            
-            setTimeout(() => {
-                importBtn.innerHTML = originalText;
-                importBtn.style.backgroundColor = '';
-            }, 2000);
+            try {
+                // Generate ICS content
+                const icsContent = generateICSContent(selectedEventData);
+                
+                // Create and download file
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `dc-events-${selectedEventData.length}-events.ics`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                // Show success message with instructions
+                downloadBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+                downloadBtn.style.backgroundColor = 'var(--secondary-pastel)';
+                
+                // Show instructions
+                setTimeout(() => {
+                    const instructions = `
+Calendar file downloaded successfully!
+
+To import into your calendar:
+
+📅 Google Calendar:
+1. Go to calendar.google.com
+2. Click the "+" button → "Import"
+3. Select the downloaded file
+4. Choose your calendar and click "Import"
+
+🍎 Apple Calendar:
+1. Double-click the downloaded file
+2. Or drag it to the Calendar app
+
+📧 Outlook:
+1. Go to File → Open & Export → Import/Export
+2. Select "Import an iCalendar (.ics) file"
+3. Choose the downloaded file
+
+The file contains ${selectedEventData.length} events with proper times and locations.
+                    `;
+                    
+                    alert(instructions);
+                    
+                    // Reset button
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = originalText;
+                        downloadBtn.style.backgroundColor = '';
+                        downloadBtn.disabled = false;
+                    }, 1000);
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error downloading calendar file:', error);
+                downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Download failed';
+                downloadBtn.style.backgroundColor = '#ffebee';
+                
+                setTimeout(() => {
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.style.backgroundColor = '';
+                    downloadBtn.disabled = false;
+                }, 2000);
+            }
         }
         
         function generateICSContent(events) {
@@ -944,42 +975,6 @@
             return icsContent.join('\r\n');
         }
         
-        function exportSelectedToCalendar() {
-            if (selectedEvents.size === 0) {
-                alert('Please select at least one event to export.');
-                return;
-            }
-            
-            const selectedEventData = allEvents.filter(event => selectedEvents.has(event.id));
-            
-            if (selectedEventData.length === 0) {
-                alert('No selected events found.');
-                return;
-            }
-            
-            // Create a single Google Calendar URL with multiple events
-            // Google Calendar doesn't support bulk import via URL, so we'll create individual URLs
-            // and open them in sequence with a small delay
-            
-            let delay = 0;
-            selectedEventData.forEach((event, index) => {
-                setTimeout(() => {
-                    createCalendarEvent(event);
-                }, delay);
-                delay += 1000; // 1 second delay between each event
-            });
-            
-            // Show success message
-            const exportBtn = document.querySelector('.export-btn');
-            const originalText = exportBtn.innerHTML;
-            exportBtn.innerHTML = '<i class="fas fa-check"></i> Exporting...';
-            exportBtn.style.backgroundColor = 'var(--secondary-pastel)';
-            
-            setTimeout(() => {
-                exportBtn.innerHTML = originalText;
-                exportBtn.style.backgroundColor = '';
-            }, selectedEventData.length * 1000 + 2000);
-        }
         
         function createCalendarEvent(event) {
             try {
