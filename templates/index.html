@@ -898,13 +898,22 @@
                 return `${year}${month}${day}T${hours}${minutes}${seconds}`;
             };
             
+            // Create enhanced description with meeting location and URL
+            let enhancedDescription = event.description || '';
+            if (event.meeting_location) {
+                enhancedDescription += `\n\nMeeting Location: ${event.meeting_location}`;
+            }
+            if (event.url) {
+                enhancedDescription += `\n\nMore Details: ${event.url}`;
+            }
+            
             // Build Google Calendar URL with pre-filled event details and timezone
             const baseUrl = 'https://calendar.google.com/calendar/render';
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: event.title,
                 dates: `${formatGoogleDate(startDateTime)}/${formatGoogleDate(endDateTime)}`,
-                details: event.description || '',
+                details: enhancedDescription,
                 location: event.venue_name || '',
                 ctz: cityTimezone
             });
