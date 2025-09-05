@@ -100,8 +100,8 @@ def seed_sample_tours():
             'tour_type': 'specialized',
             'language': 'English',
             'venue_id': natural_history.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://naturalhistory.si.edu/visit/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://naturalhistory.si.edu/visit'
         },
         {
             'title': 'Ocean Life Exploration',
@@ -114,8 +114,8 @@ def seed_sample_tours():
             'tour_type': 'specialized',
             'language': 'English',
             'venue_id': natural_history.id,
-            'image_url': 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
-            'url': 'https://naturalhistory.si.edu/visit/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://naturalhistory.si.edu/visit'
         },
         {
             'title': 'Renaissance Masterpieces Tour',
@@ -128,8 +128,8 @@ def seed_sample_tours():
             'tour_type': 'docent',
             'language': 'English',
             'venue_id': national_gallery.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.nga.gov/visit/tours.html'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.nga.gov/visit'
         },
         {
             'title': 'Impressionist Collection Walk',
@@ -142,8 +142,8 @@ def seed_sample_tours():
             'tour_type': 'general',
             'language': 'English',
             'venue_id': national_gallery.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.nga.gov/visit/tours.html'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.nga.gov/visit'
         }
     ]
     
@@ -264,8 +264,8 @@ def seed_london_tours():
             'tour_type': 'specialized',
             'language': 'English',
             'venue_id': british_museum.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.britishmuseum.org/visit/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.britishmuseum.org/visit'
         },
         {
             'title': 'Modern Art Masterpieces',
@@ -278,8 +278,8 @@ def seed_london_tours():
             'tour_type': 'docent',
             'language': 'English',
             'venue_id': tate_modern.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.tate.org.uk/visit/tate-modern/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.tate.org.uk/visit/tate-modern'
         },
         {
             'title': 'Dinosaur Discovery Walk',
@@ -292,8 +292,8 @@ def seed_london_tours():
             'tour_type': 'family',
             'language': 'English',
             'venue_id': Venue.query.filter_by(name='Natural History Museum', city_id=london.id).first().id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.nhm.ac.uk/visit/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.nhm.ac.uk/visit'
         }
     ]
     
@@ -375,8 +375,8 @@ def seed_los_angeles_tours():
             'tour_type': 'docent',
             'language': 'English',
             'venue_id': getty_center.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.getty.edu/visit/center/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.getty.edu/visit/center'
         },
         {
             'title': 'Modern Art Collection Walk',
@@ -389,8 +389,8 @@ def seed_los_angeles_tours():
             'tour_type': 'specialized',
             'language': 'English',
             'venue_id': lacma.id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://www.lacma.org/visit/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://www.lacma.org/visit'
         },
         {
             'title': 'Sunset Photography Session',
@@ -403,8 +403,8 @@ def seed_los_angeles_tours():
             'tour_type': 'photography',
             'language': 'English',
             'venue_id': Venue.query.filter_by(name='Griffith Observatory', city_id=la.id).first().id,
-            'image_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-            'url': 'https://griffithobservatory.org/visit/tours'
+            'image_url': None,  # Will default to venue image
+            'url': 'https://griffithobservatory.org/visit'
         }
     ]
     
@@ -476,6 +476,8 @@ def seed_sample_photowalks():
 def seed_all_data():
     """Seed all sample data"""
     with app.app_context():
+        # Create all tables first
+        db.create_all()
         seed_cities()
         seed_washington_dc_venues()
         seed_london_venues()

@@ -493,6 +493,20 @@
             `;
         }
         
+        function getEventImage(event) {
+            if (event.image_url) {
+                return `<img src="${event.image_url}" alt="${event.title}" class="event-image">`;
+            } else if (event.venue_name) {
+                // Generate Google Maps Street View image for the venue
+                const venueName = encodeURIComponent(event.venue_name);
+                const googleMapsImage = `https://maps.googleapis.com/maps/api/streetview?size=400x200&location=${venueName}&fov=90&heading=0&pitch=0&key=YOUR_API_KEY`;
+                // Fallback to a generic museum image if no API key
+                const fallbackImage = 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop';
+                return `<img src="${fallbackImage}" alt="${event.title}" class="event-image">`;
+            }
+            return '';
+        }
+        
         function createEventCard(event) {
             const startTime = event.start_time ? new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString('en-US', { 
                 hour: 'numeric', 
@@ -512,7 +526,7 @@
                 <div class="event-card" data-event-type="${event.event_type || 'tour'}" 
                      data-meeting-location="${event.meeting_location || ''}" 
                      data-url="${event.url || ''}">
-                    ${event.image_url ? `<img src="${event.image_url}" alt="${event.title}" class="event-image">` : ''}
+                    ${getEventImage(event)}
                     <h3 class="event-title">${event.title}</h3>
                     <div class="event-meta">
                         <span><i class="fas fa-calendar"></i> ${new Date(event.start_date).toLocaleDateString()}</span>
