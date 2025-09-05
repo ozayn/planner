@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* Pastel color palette */
+            --primary-pastel: #E8F4FD;
+            --secondary-pastel: #F0F8E8;
+            --accent-pastel: #FFF0F5;
+            --neutral-pastel: #F8F9FA;
+            --text-soft: #6B7280;
+            --text-primary: #374151;
+            --border-soft: #E5E7EB;
+            
+            /* Artistic fonts */
+            --font-display: 'Playfair Display', serif;
+            --font-body: 'Inter', sans-serif;
+            
+            /* Soft shadows */
+            --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--primary-pastel) 0%, var(--secondary-pastel) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .header h1 {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: var(--text-soft);
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-soft);
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            min-width: 100px;
+        }
+        
+        .select-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-soft);
+            border-radius: 12px;
+            background: white;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: var(--text-primary);
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: var(--accent-pastel);
+            box-shadow: 0 0 0 3px rgba(255, 240, 245, 0.3);
+        }
+        
+        .time-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .time-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border-soft);
+            border-radius: 20px;
+            background: white;
+            color: var(--text-soft);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .time-btn:hover {
+            border-color: var(--accent-pastel);
+            color: var(--text-primary);
+        }
+        
+        .time-btn.active {
+            background: var(--accent-pastel);
+            border-color: var(--accent-pastel);
+            color: var(--text-primary);
+        }
+        
+        .event-type-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .event-type-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border-soft);
+            border-radius: 20px;
+            background: white;
+            color: var(--text-soft);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .event-type-btn:hover {
+            border-color: var(--secondary-pastel);
+            color: var(--text-primary);
+        }
+        
+        .event-type-btn.active {
+            background: var(--secondary-pastel);
+            border-color: var(--secondary-pastel);
+            color: var(--text-primary);
+        }
+        
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .event-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-soft);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .event-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+        
+        .event-title {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .event-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-soft);
+        }
+        
+        .event-description {
+            color: var(--text-soft);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        .event-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border-soft);
+            border-radius: 50%;
+            background: white;
+            color: var(--text-soft);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .action-btn:hover {
+            border-color: var(--accent-pastel);
+            color: var(--text-primary);
+            transform: scale(1.1);
+        }
+        
+        .action-btn.selected {
+            background: var(--accent-pastel);
+            border-color: var(--accent-pastel);
+            color: var(--text-primary);
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-primary);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            margin-bottom: 0.5rem;
+        }
+        
+        .action-btn:hover .tooltip {
+            opacity: 1;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-soft);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-soft);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                padding: 1.5rem;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-label {
+                min-width: auto;
+                margin-bottom: 0.5rem;
+            }
+            
+            .events-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Event Planner</h1>
+            <p>Discover amazing events in your city</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-label">
+                    <i class="fas fa-map-marker-alt"></i> City
+                </div>
+                <div class="select-wrapper">
+                    <select id="citySelect">
+                        <option value="">Select a city...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <i class="fas fa-clock"></i> Time
+                </div>
+                <div class="time-filter">
+                    <button class="time-btn active" data-range="today">Today</button>
+                    <button class="time-btn" data-range="tomorrow">Tomorrow</button>
+                    <button class="time-btn" data-range="this_week">This Week</button>
+                    <button class="time-btn" data-range="this_month">This Month</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <i class="fas fa-filter"></i> Events
+                </div>
+                <div class="event-type-filter">
+                    <button class="event-type-btn active" data-type="">
+                        <i class="fas fa-th"></i> All
+                    </button>
+                    <button class="event-type-btn" data-type="tours">
+                        <i class="fas fa-walking"></i> Tours
+                    </button>
+                    <button class="event-type-btn" data-type="exhibitions">
+                        <i class="fas fa-palette"></i> Exhibitions
+                    </button>
+                    <button class="event-type-btn" data-type="festivals">
+                        <i class="fas fa-calendar-alt"></i> Festivals
+                    </button>
+                    <button class="event-type-btn" data-type="photowalks">
+                        <i class="fas fa-camera"></i> Photowalks
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="eventsContainer">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Select a city to see events</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCity = null;
+        let currentTimeRange = 'today';
+        let currentEventType = '';
+        
+        // Load cities on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCities();
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // City selection
+            document.getElementById('citySelect').addEventListener('change', function() {
+                currentCity = this.value;
+                if (currentCity) {
+                    loadEvents();
+                } else {
+                    showEmptyState();
+                }
+            });
+            
+            // Time range buttons
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTimeRange = this.dataset.range;
+                    if (currentCity) loadEvents();
+                });
+            });
+            
+            // Event type buttons
+            document.querySelectorAll('.event-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.event-type-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentEventType = this.dataset.type;
+                    if (currentCity) loadEvents();
+                });
+            });
+        }
+        
+        async function loadCities() {
+            try {
+                const response = await fetch('/api/cities');
+                const cities = await response.json();
+                
+                const select = document.getElementById('citySelect');
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.id;
+                    option.textContent = city.display_name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading cities:', error);
+            }
+        }
+        
+        async function loadEvents() {
+            if (!currentCity) return;
+            
+            showLoading();
+            
+            try {
+                const params = new URLSearchParams({
+                    city_id: currentCity,
+                    time_range: currentTimeRange,
+                    event_type: currentEventType
+                });
+                
+                const response = await fetch(`/api/events?${params}`);
+                const events = await response.json();
+                
+                displayEvents(events);
+            } catch (error) {
+                console.error('Error loading events:', error);
+                showError();
+            }
+        }
+        
+        function displayEvents(events) {
+            const container = document.getElementById('eventsContainer');
+            
+            if (events.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="events-grid">
+                    ${events.map(event => createEventCard(event)).join('')}
+                </div>
+            `;
+        }
+        
+        function createEventCard(event) {
+            const startTime = event.start_time ? new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            }) : '';
+            
+            const endTime = event.end_time ? new Date(`2000-01-01T${event.end_time}`).toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            }) : '';
+            
+            const timeDisplay = startTime && endTime ? `${startTime} - ${endTime}` : startTime || '';
+            
+            return `
+                <div class="event-card" data-event-type="${event.event_type || 'tour'}" 
+                     data-meeting-location="${event.meeting_location || ''}" 
+                     data-url="${event.url || ''}">
+                    ${event.image_url ? `<img src="${event.image_url}" alt="${event.title}" class="event-image">` : ''}
+                    <h3 class="event-title">${event.title}</h3>
+                    <div class="event-meta">
+                        <span><i class="fas fa-calendar"></i> ${new Date(event.start_date).toLocaleDateString()}</span>
+                        ${timeDisplay ? `<span><i class="fas fa-clock"></i> ${timeDisplay}</span>` : ''}
+                        ${event.venue_name ? `<span><i class="fas fa-map-marker-alt"></i> ${event.venue_name}</span>` : ''}
+                        ${event.meeting_location ? `<span><i class="fas fa-door-open"></i> ${event.meeting_location}</span>` : ''}
+                    </div>
+                    ${event.description ? `<p class="event-description">${event.description}</p>` : ''}
+                    <div class="event-actions">
+                        <button class="action-btn ${event.is_selected ? 'selected' : ''}" onclick="toggleEventSelection(${event.id})">
+                            <i class="fas fa-heart"></i>
+                            <div class="tooltip">Add to favorites</div>
+                        </button>
+                        <button class="action-btn" onclick="addToCalendar(${event.id}, this)">
+                            <i class="fas fa-calendar-plus"></i>
+                            <div class="tooltip">Add to calendar</div>
+                        </button>
+                        ${event.url ? `
+                            <button class="action-btn" onclick="window.open('${event.url}', '_blank')">
+                                <i class="fas fa-external-link-alt"></i>
+                                <div class="tooltip">View details</div>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function toggleEventSelection(eventId) {
+            // Toggle selection state
+            const btn = event.target.closest('.action-btn');
+            btn.classList.toggle('selected');
+            
+            // Update backend
+            // This would be implemented with an API call
+            console.log('Toggle event selection:', eventId);
+        }
+        
+        function addToCalendar(eventId, buttonElement) {
+            try {
+                const eventCard = buttonElement.closest('.event-card');
+                const eventType = eventCard.dataset.eventType || 'tour';
+                
+                // Get event details from the card
+                const title = eventCard.querySelector('.event-title').textContent;
+                const description = eventCard.querySelector('.event-description')?.textContent || '';
+                const meetingLocation = eventCard.dataset.meetingLocation || '';
+                const eventUrl = eventCard.dataset.url || '';
+                const dateElement = eventCard.querySelector('.event-meta span');
+                const dateText = dateElement ? dateElement.textContent.trim() : '';
+                const timeElement = eventCard.querySelector('.event-meta span:nth-child(2)');
+                const timeText = timeElement ? timeElement.textContent.trim() : '';
+                const venueElement = eventCard.querySelector('.event-meta span:nth-child(3)');
+                const venueText = venueElement ? venueElement.textContent.trim() : '';
+                
+                // Get city timezone from the current city selection
+                const citySelect = document.getElementById('citySelect');
+                const selectedCityId = citySelect.value;
+                const cityTimezone = getCityTimezone(selectedCityId);
+                
+                // Parse date and time (keep original time, just add timezone context)
+                const eventDate = new Date(dateText);
+                let startDateTime, endDateTime;
+                
+                if (timeText && timeText.includes(' - ')) {
+                    const [startTime, endTime] = timeText.split(' - ');
+                    const startHour = parseTime(startTime);
+                    const endHour = parseTime(endTime);
+                    
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                    
+                    endDateTime = new Date(eventDate);
+                    endDateTime.setHours(endHour.hour, endHour.minute, 0, 0);
+                } else if (timeText) {
+                    const startHour = parseTime(timeText);
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                    
+                    endDateTime = new Date(startDateTime);
+                    endDateTime.setHours(startDateTime.getHours() + 1); // Default 1 hour duration
+                } else {
+                    // All day event
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(9, 0, 0, 0);
+                    
+                    endDateTime = new Date(eventDate);
+                    endDateTime.setHours(17, 0, 0, 0);
+                }
+                
+                // Format dates for Google Calendar URL (local time, not UTC)
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hour = String(date.getHours()).padStart(2, '0');
+                    const minute = String(date.getMinutes()).padStart(2, '0');
+                    const second = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}${month}${day}T${hour}${minute}${second}`;
+                };
+                
+                // Create enhanced description with meeting location and URL
+                let enhancedDescription = description;
+                if (meetingLocation) {
+                    enhancedDescription += `\n\nMeeting Location: ${meetingLocation}`;
+                }
+                if (eventUrl) {
+                    enhancedDescription += `\n\nMore Details: ${eventUrl}`;
+                }
+                
+                // Create Google Calendar URL with timezone information
+                const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+                    `&text=${encodeURIComponent(title)}` +
+                    `&dates=${formatDate(startDateTime)}/${formatDate(endDateTime)}` +
+                    `&details=${encodeURIComponent(enhancedDescription)}` +
+                    `&location=${encodeURIComponent(venueText)}` +
+                    `&ctz=${encodeURIComponent(cityTimezone)}`;
+                
+                // Open Google Calendar in new tab
+                window.open(googleCalendarUrl, '_blank');
+                
+                // Show success animation
+                const btn = buttonElement;
+                const originalIcon = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.style.backgroundColor = 'var(--secondary-pastel)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalIcon;
+                    btn.style.backgroundColor = '';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error opening calendar:', error);
+                alert('Error opening calendar. Please try again.');
+            }
+        }
+        
+        function parseTime(timeStr) {
+            // Parse time string like "10:00 AM" or "14:30"
+            const cleanTime = timeStr.trim();
+            const is12Hour = cleanTime.includes('AM') || cleanTime.includes('PM');
+            
+            if (is12Hour) {
+                const [time, period] = cleanTime.split(' ');
+                const [hour, minute] = time.split(':').map(Number);
+                let hour24 = hour;
+                
+                if (period === 'PM' && hour !== 12) {
+                    hour24 += 12;
+                } else if (period === 'AM' && hour === 12) {
+                    hour24 = 0;
+                }
+                
+                return { hour: hour24, minute: minute || 0 };
+            } else {
+                const [hour, minute] = cleanTime.split(':').map(Number);
+                return { hour: hour || 0, minute: minute || 0 };
+            }
+        }
+        
+        function getCityTimezone(cityId) {
+            // Map city IDs to their timezones
+            const cityTimezones = {
+                '1': 'America/New_York',    // Washington DC
+                '2': 'America/New_York',     // New York
+                '3': 'America/New_York',     // Baltimore
+                '4': 'America/New_York',     // Philadelphia
+                '5': 'Europe/London',        // London
+                '6': 'America/Los_Angeles',  // Los Angeles
+                '7': 'Europe/Paris',         // Paris
+                '8': 'Asia/Tokyo',           // Tokyo
+                '9': 'Australia/Sydney'     // Sydney
+            };
+            
+            return cityTimezones[cityId] || 'America/New_York'; // Default to EST
+        }
+        
+        function showLoading() {
+            document.getElementById('eventsContainer').innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading events...</p>
+                </div>
+            `;
+        }
+        
+        function showEmptyState() {
+            document.getElementById('eventsContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No events found</h3>
+                    <p>Try selecting a different city or time range</p>
+                </div>
+            `;
+        }
+        
+        function showError() {
+            document.getElementById('eventsContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error loading events</h3>
+                    <p>Please try again later</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

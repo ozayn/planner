@@ -1,0 +1,28 @@
+# Environment Configuration
+# Copy this file to .env and update with your actual values
+
+# Database
+DATABASE_URL=sqlite:///events.db
+
+# Flask Configuration
+FLASK_ENV=development
+FLASK_DEBUG=True
+
+# Google Calendar API (for calendar integration)
+GOOGLE_CALENDAR_CREDENTIALS_PATH=credentials.json
+GOOGLE_CALENDAR_TOKEN_PATH=token.json
+
+# Scraping Configuration
+SCRAPING_HEADLESS=True
+SCRAPING_TIMEOUT=10
+
+# App Configuration
+APP_PORT=5001
+APP_HOST=0.0.0.0
+
+# Security
+SECRET_KEY=your-secret-key-here
+
+# External APIs
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+INSTAGRAM_API_KEY=your-instagram-api-key
