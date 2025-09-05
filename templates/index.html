@@ -936,6 +936,23 @@ The file contains ${selectedEventData.length} events with proper times and locat
             return cityNames[cityId] || 'UnknownCity';
         }
         
+        function getTimezoneOffset(timezone) {
+            // Timezone offsets in minutes from UTC
+            const timezoneOffsets = {
+                'America/New_York': -300,      // EST (UTC-5)
+                'America/Los_Angeles': -480,    // PST (UTC-8)
+                'America/Chicago': -360,        // CST (UTC-6)
+                'America/Denver': -420,          // MST (UTC-7)
+                'Europe/London': 0,             // GMT (UTC+0)
+                'Europe/Paris': 60,              // CET (UTC+1)
+                'Asia/Tokyo': 540,              // JST (UTC+9)
+                'Australia/Sydney': 660,        // AEDT (UTC+11)
+                'America/Baltimore': -300,      // EST (UTC-5)
+                'America/Philadelphia': -300    // EST (UTC-5)
+            };
+            return timezoneOffsets[timezone] || 0;
+        }
+        
         function generateICSContent(events) {
             const citySelect = document.getElementById('citySelect');
             const selectedCityId = citySelect.value;
@@ -958,7 +975,7 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     const startHour = parseTime(event.start_time);
                     const endHour = parseTime(event.end_time);
                     
-                    // Create dates assuming they are in the city's local time
+                    // Create dates in the city's local time
                     startDateTime = new Date(eventDate);
                     startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
                     
@@ -980,14 +997,19 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     endDateTime.setHours(17, 0, 0, 0);
                 }
                 
-                // Format dates for ICS - use floating time (no timezone)
-                const formatICSDate = (date) => {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                // Format dates for ICS with proper timezone
+                const formatICSDate = (date, timezone) => {
+                    // Convert to the city's timezone
+                    const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+                    const cityOffset = getTimezoneOffset(timezone);
+                    const cityDate = new Date(utcDate.getTime() + (cityOffset * 60000));
+                    
+                    const year = cityDate.getFullYear();
+                    const month = String(cityDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(cityDate.getDate()).padStart(2, '0');
+                    const hours = String(cityDate.getHours()).padStart(2, '0');
+                    const minutes = String(cityDate.getMinutes()).padStart(2, '0');
+                    const seconds = String(cityDate.getSeconds()).padStart(2, '0');
                     return `${year}${month}${day}T${hours}${minutes}${seconds}`;
                 };
                 
@@ -1013,8 +1035,8 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 icsContent.push(
                     'BEGIN:VEVENT',
                     `UID:${eventId}`,
-                    `DTSTART:${formatICSDate(startDateTime)}`,
-                    `DTEND:${formatICSDate(endDateTime)}`,
+                    `DTSTART:${formatICSDate(startDateTime, cityTimezone)}`,
+                    `DTEND:${formatICSDate(endDateTime, cityTimezone)}`,
                     `SUMMARY:${escapeICS(event.title)}`,
                     `DESCRIPTION:${escapeICS(description)}`,
                     `LOCATION:${escapeICS(event.venue_name || '')}`,
