@@ -179,6 +179,52 @@
             color: var(--text-primary);
         }
         
+        .selection-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .selection-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border-soft);
+            border-radius: 20px;
+            background: white;
+            color: var(--text-soft);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .selection-btn:hover {
+            border-color: var(--accent-pastel);
+            color: var(--text-primary);
+        }
+        
+        .selection-btn.export-btn {
+            background: var(--accent-pastel);
+            border-color: var(--accent-pastel);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .selection-btn.export-btn:hover {
+            background: var(--primary-pastel);
+            border-color: var(--primary-pastel);
+        }
+        
+        .selection-count {
+            color: var(--text-soft);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 1rem;
+        }
+        
         .events-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -352,6 +398,24 @@
                 </div>
             </div>
             
+            <div class="control-group" id="selectionControls" style="display: none;">
+                <div class="control-label">
+                    <i class="fas fa-check-circle"></i> Selected
+                </div>
+                <div class="selection-actions">
+                    <button class="selection-btn" onclick="selectAllEvents()">
+                        <i class="fas fa-check-double"></i> Select All
+                    </button>
+                    <button class="selection-btn" onclick="deselectAllEvents()">
+                        <i class="fas fa-times"></i> Deselect All
+                    </button>
+                    <button class="selection-btn export-btn" onclick="exportSelectedToCalendar()">
+                        <i class="fas fa-download"></i> Export to Calendar
+                    </button>
+                    <span class="selection-count" id="selectionCount">0 selected</span>
+                </div>
+            </div>
+            
             <div class="control-group">
                 <div class="control-label">
                     <i class="fas fa-clock"></i> Time
@@ -400,6 +464,8 @@
         let currentCity = null;
         let currentTimeRange = 'today';
         let currentEventType = '';
+        let selectedEvents = new Set();
+        let allEvents = [];
         
         // Load cities on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -471,6 +537,7 @@
                 const response = await fetch(`/api/events?${params}`);
                 const events = await response.json();
                 
+                allEvents = events;
                 displayEvents(events);
             } catch (error) {
                 console.error('Error loading events:', error);
@@ -480,17 +547,24 @@
         
         function displayEvents(events) {
             const container = document.getElementById('eventsContainer');
+            const selectionControls = document.getElementById('selectionControls');
             
             if (events.length === 0) {
                 showEmptyState();
+                selectionControls.style.display = 'none';
                 return;
             }
+            
+            // Show selection controls when events are loaded
+            selectionControls.style.display = 'flex';
             
             container.innerHTML = `
                 <div class="events-grid">
                     ${events.map(event => createEventCard(event)).join('')}
                 </div>
             `;
+            
+            updateSelectionCount();
         }
         
         function getEventImage(event) {
@@ -536,9 +610,9 @@
                     </div>
                     ${event.description ? `<p class="event-description">${event.description}</p>` : ''}
                     <div class="event-actions">
-                        <button class="action-btn ${event.is_selected ? 'selected' : ''}" onclick="toggleEventSelection(${event.id})">
+                        <button class="action-btn ${selectedEvents.has(${event.id}) ? 'selected' : ''}" onclick="toggleEventSelection(${event.id}, this)">
                             <i class="fas fa-heart"></i>
-                            <div class="tooltip">Add to favorites</div>
+                            <div class="tooltip">${selectedEvents.has(${event.id}) ? 'Remove from selection' : 'Add to selection'}</div>
                         </button>
                         <button class="action-btn" onclick="addToCalendar(${event.id}, this)">
                             <i class="fas fa-calendar-plus"></i>
@@ -555,14 +629,167 @@
             `;
         }
         
-        function toggleEventSelection(eventId) {
-            // Toggle selection state
-            const btn = event.target.closest('.action-btn');
-            btn.classList.toggle('selected');
+        function toggleEventSelection(eventId, buttonElement) {
+            if (selectedEvents.has(eventId)) {
+                selectedEvents.delete(eventId);
+                buttonElement.classList.remove('selected');
+            } else {
+                selectedEvents.add(eventId);
+                buttonElement.classList.add('selected');
+            }
             
-            // Update backend
-            // This would be implemented with an API call
-            console.log('Toggle event selection:', eventId);
+            updateSelectionCount();
+        }
+        
+        function selectAllEvents() {
+            allEvents.forEach(event => {
+                selectedEvents.add(event.id);
+            });
+            
+            // Update UI
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                if (btn.onclick && btn.onclick.toString().includes('toggleEventSelection')) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            updateSelectionCount();
+        }
+        
+        function deselectAllEvents() {
+            selectedEvents.clear();
+            
+            // Update UI
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                if (btn.onclick && btn.onclick.toString().includes('toggleEventSelection')) {
+                    btn.classList.remove('selected');
+                }
+            });
+            
+            updateSelectionCount();
+        }
+        
+        function updateSelectionCount() {
+            const countElement = document.getElementById('selectionCount');
+            const count = selectedEvents.size;
+            countElement.textContent = `${count} selected`;
+            
+            // Update tooltips
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                const tooltip = btn.querySelector('.tooltip');
+                if (tooltip && btn.onclick && btn.onclick.toString().includes('toggleEventSelection')) {
+                    const eventId = parseInt(btn.onclick.toString().match(/toggleEventSelection\((\d+)/)[1]);
+                    tooltip.textContent = selectedEvents.has(eventId) ? 'Remove from selection' : 'Add to selection';
+                }
+            });
+        }
+        
+        function exportSelectedToCalendar() {
+            if (selectedEvents.size === 0) {
+                alert('Please select at least one event to export.');
+                return;
+            }
+            
+            const selectedEventData = allEvents.filter(event => selectedEvents.has(event.id));
+            
+            if (selectedEventData.length === 0) {
+                alert('No selected events found.');
+                return;
+            }
+            
+            // Create a single Google Calendar URL with multiple events
+            // Google Calendar doesn't support bulk import via URL, so we'll create individual URLs
+            // and open them in sequence with a small delay
+            
+            let delay = 0;
+            selectedEventData.forEach((event, index) => {
+                setTimeout(() => {
+                    createCalendarEvent(event);
+                }, delay);
+                delay += 1000; // 1 second delay between each event
+            });
+            
+            // Show success message
+            const exportBtn = document.querySelector('.export-btn');
+            const originalText = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-check"></i> Exporting...';
+            exportBtn.style.backgroundColor = 'var(--secondary-pastel)';
+            
+            setTimeout(() => {
+                exportBtn.innerHTML = originalText;
+                exportBtn.style.backgroundColor = '';
+            }, selectedEventData.length * 1000 + 2000);
+        }
+        
+        function createCalendarEvent(event) {
+            try {
+                const citySelect = document.getElementById('citySelect');
+                const selectedCityId = citySelect.value;
+                const cityTimezone = getCityTimezone(selectedCityId);
+                
+                // Parse date and time
+                const eventDate = new Date(event.start_date);
+                let startDateTime, endDateTime;
+                
+                if (event.start_time && event.end_time) {
+                    const startHour = parseTime(event.start_time);
+                    const endHour = parseTime(event.end_time);
+                    
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                    
+                    endDateTime = new Date(eventDate);
+                    endDateTime.setHours(endHour.hour, endHour.minute, 0, 0);
+                } else if (event.start_time) {
+                    const startHour = parseTime(event.start_time);
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                    
+                    endDateTime = new Date(startDateTime);
+                    endDateTime.setHours(startDateTime.getHours() + 1);
+                } else {
+                    // All day event
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(9, 0, 0, 0);
+                    
+                    endDateTime = new Date(eventDate);
+                    endDateTime.setHours(17, 0, 0, 0);
+                }
+                
+                // Format dates for Google Calendar URL
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hour = String(date.getHours()).padStart(2, '0');
+                    const minute = String(date.getMinutes()).padStart(2, '0');
+                    const second = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}${month}${day}T${hour}${minute}${second}`;
+                };
+                
+                // Create enhanced description
+                let enhancedDescription = event.description || '';
+                if (event.meeting_location) {
+                    enhancedDescription += `\n\nMeeting Location: ${event.meeting_location}`;
+                }
+                if (event.url) {
+                    enhancedDescription += `\n\nMore Details: ${event.url}`;
+                }
+                
+                // Create Google Calendar URL
+                const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+                    `&text=${encodeURIComponent(event.title)}` +
+                    `&dates=${formatDate(startDateTime)}/${formatDate(endDateTime)}` +
+                    `&details=${encodeURIComponent(enhancedDescription)}` +
+                    `&location=${encodeURIComponent(event.venue_name || '')}` +
+                    `&ctz=${encodeURIComponent(cityTimezone)}`;
+                
+                // Open Google Calendar in new tab
+                window.open(googleCalendarUrl, '_blank');
+                
+            } catch (error) {
+                console.error('Error creating calendar event:', error);
+            }
         }
         
         function addToCalendar(eventId, buttonElement) {
@@ -722,6 +949,9 @@
                     <p>Try selecting a different city or time range</p>
                 </div>
             `;
+            
+            // Hide selection controls when no events
+            document.getElementById('selectionControls').style.display = 'none';
         }
         
         function showError() {
