@@ -838,58 +838,67 @@
             }
             
             try {
-                // Generate ICS content for single event
-                const icsContent = generateICSContent([event]);
+                // Create Google Calendar URL with event details
+                const googleCalendarUrl = createGoogleCalendarEvent(event);
                 
-                // Generate descriptive filename
-                const filename = generateCalendarFilename([event]);
-                
-                // Create and download file
-                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                // Open Google Calendar import page
-                const googleCalendarImportUrl = 'https://calendar.google.com/calendar/u/0/r/settings/export';
-                window.open(googleCalendarImportUrl, '_blank');
-                
-                // Show success message
-                setTimeout(() => {
-                    const instructions = `
-Calendar file downloaded successfully!
-
-📅 Google Calendar import page opened in new tab!
-
-Quick import steps:
-1. In the Google Calendar tab, click "Select file from your computer"
-2. Choose the downloaded calendar file
-3. Select your calendar and click "Import"
-
-🍎 Apple Calendar:
-1. Double-click the downloaded file
-2. Or drag it to the Calendar app
-
-📧 Outlook:
-1. Go to File → Open & Export → Import/Export
-2. Select "Import an iCalendar (.ics) file"
-3. Choose the downloaded file
-
-The file contains 1 event with proper time and location.
-                    `;
-                    
-                    alert(instructions);
-                }, 500);
+                // Open Google Calendar with pre-filled event
+                window.open(googleCalendarUrl, '_blank');
                 
             } catch (error) {
-                console.error('Error downloading calendar file:', error);
-                alert('Failed to download calendar file. Please try again.');
+                console.error('Error opening Google Calendar:', error);
+                alert('Failed to open Google Calendar. Please try again.');
             }
+        }
+        
+        function createGoogleCalendarEvent(event) {
+            // Format dates for Google Calendar
+            const startDate = new Date(event.start_date);
+            const endDate = event.end_date ? new Date(event.end_date) : startDate;
+            
+            // Format times
+            let startDateTime, endDateTime;
+            
+            if (event.start_time && event.end_time) {
+                const startHour = parseTime(event.start_time);
+                const endHour = parseTime(event.end_time);
+                
+                startDateTime = new Date(startDate);
+                startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                
+                endDateTime = new Date(endDate);
+                endDateTime.setHours(endHour.hour, endHour.minute, 0, 0);
+            } else if (event.start_time) {
+                const startHour = parseTime(event.start_time);
+                startDateTime = new Date(startDate);
+                startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                
+                endDateTime = new Date(startDateTime);
+                endDateTime.setHours(startDateTime.getHours() + 1);
+            } else {
+                // All day event
+                startDateTime = new Date(startDate);
+                startDateTime.setHours(0, 0, 0, 0);
+                
+                endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+            }
+            
+            // Format dates for Google Calendar URL (UTC format)
+            const formatGoogleDate = (date) => {
+                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            };
+            
+            // Build Google Calendar URL with pre-filled event details
+            const baseUrl = 'https://calendar.google.com/calendar/render';
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: event.title,
+                dates: `${formatGoogleDate(startDateTime)}/${formatGoogleDate(endDateTime)}`,
+                details: event.description || '',
+                location: event.venue_name || ''
+            });
+            
+            return `${baseUrl}?${params.toString()}`;
         }
         
         function downloadCalendarFile() {
