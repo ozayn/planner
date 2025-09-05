@@ -471,13 +471,13 @@
             
             <div class="control-group">
                 <div class="control-label">
-                    <i class="fas fa-sync-alt"></i> Data
+                    <i class="fas fa-sync-alt"></i> Scrape
                 </div>
                 <div class="selection-actions">
-                    <button class="selection-btn" onclick="triggerScraping()" id="scrapingBtn">
-                        <i class="fas fa-spider"></i> Refresh Events
+                    <button class="selection-btn" onclick="triggerScraping()" id="scrapingBtn" disabled>
+                        <i class="fas fa-spider"></i> Scrape Selected
                     </button>
-                    <span class="selection-count" id="scrapingStatus">Ready to scrape</span>
+                    <span class="selection-count" id="scrapingStatus">Select city, type & date to scrape</span>
                 </div>
             </div>
             
@@ -543,6 +543,7 @@
             // City selection
             document.getElementById('citySelect').addEventListener('change', function() {
                 currentCity = this.value;
+                updateScrapingButton();
                 if (currentCity) {
                     loadEvents();
                 } else {
@@ -556,6 +557,7 @@
                     document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentTimeRange = this.dataset.range;
+                    updateScrapingButton();
                     if (currentCity) loadEvents();
                 });
             });
@@ -566,9 +568,23 @@
                     document.querySelectorAll('.event-type-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentEventType = this.dataset.type;
+                    updateScrapingButton();
                     if (currentCity) loadEvents();
                 });
             });
+        }
+        
+        function updateScrapingButton() {
+            const scrapingBtn = document.getElementById('scrapingBtn');
+            const scrapingStatus = document.getElementById('scrapingStatus');
+            
+            if (currentCity && currentTimeRange && currentEventType !== undefined) {
+                scrapingBtn.disabled = false;
+                scrapingStatus.textContent = `Ready to scrape ${currentEventType || 'all events'} for selected city`;
+            } else {
+                scrapingBtn.disabled = true;
+                scrapingStatus.textContent = 'Select city, type & date to scrape';
+            }
         }
         
         async function loadCities() {
@@ -1447,7 +1463,12 @@ The file contains ${selectedEventData.length} events with proper times and locat
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    body: JSON.stringify({
+                        city_id: currentCity,
+                        event_type: currentEventType,
+                        time_range: currentTimeRange
+                    })
                 });
                 
                 if (!response.ok) {
@@ -1470,10 +1491,10 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 
                 // Reset button after 3 seconds
                 setTimeout(() => {
-                    scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Refresh Events';
+                    scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Scrape Selected';
                     scrapingBtn.style.backgroundColor = '';
                     scrapingBtn.disabled = false;
-                    scrapingStatus.textContent = 'Ready to scrape';
+                    updateScrapingButton();
                 }, 3000);
                 
             } catch (error) {
@@ -1486,10 +1507,10 @@ The file contains ${selectedEventData.length} events with proper times and locat
                 
                 // Reset button after 3 seconds
                 setTimeout(() => {
-                    scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Refresh Events';
+                    scrapingBtn.innerHTML = '<i class="fas fa-spider"></i> Scrape Selected';
                     scrapingBtn.style.backgroundColor = '';
                     scrapingBtn.disabled = false;
-                    scrapingStatus.textContent = 'Ready to scrape';
+                    updateScrapingButton();
                 }, 3000);
             }
         }

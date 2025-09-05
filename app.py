@@ -454,6 +454,24 @@ def trigger_scraping():
         import subprocess
         import json
         
+        # Get parameters from request
+        data = request.get_json() or {}
+        city_id = data.get('city_id')
+        event_type = data.get('event_type', '')
+        time_range = data.get('time_range', 'today')
+        
+        # Get city information
+        if city_id:
+            city = City.query.get(city_id)
+            if not city:
+                return jsonify({'error': 'City not found'}), 404
+            city_name = city.name
+        else:
+            city_name = 'Washington DC'  # Default for now
+        
+        # For now, we'll use the existing DC scraper but could be extended
+        # to support different cities and event types
+        
         # Run the DC scraper
         scraper_result = subprocess.run([
             sys.executable, 'scripts/dc_scraper.py'
@@ -485,8 +503,11 @@ def trigger_scraping():
             events_added = 'unknown'
         
         return jsonify({
-            'message': 'Scraping completed successfully',
+            'message': f'Scraping completed successfully for {city_name}',
             'events_added': events_added,
+            'city': city_name,
+            'event_type': event_type,
+            'time_range': time_range,
             'scraper_output': scraper_result.stdout,
             'seed_output': seed_result.stdout
         })
