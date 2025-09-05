@@ -59,7 +59,14 @@ npx react-native run-android
 ## Environment Configuration
 
 ### Required Environment Variables
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (copy from `env_example.txt`):
+
+```bash
+# Copy the example environment file
+cp env_example.txt .env
+```
+
+Then edit `.env` with your settings:
 
 ```env
 # Application Settings
@@ -76,6 +83,8 @@ GOOGLE_CALENDAR_CLIENT_SECRET=your-client-secret
 GOOGLE_CALENDAR_REDIRECT_URI=http://localhost:5001/auth/callback
 ```
 
+**Note**: The `.env` file is ignored by git for security. Use `env_example.txt` as a template.
+
 ### Google Calendar Setup (Optional)
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
@@ -88,6 +97,8 @@ GOOGLE_CALENDAR_REDIRECT_URI=http://localhost:5001/auth/callback
 planner/
 ├── app.py                 # Main Flask application
 ├── requirements.txt       # Python dependencies
+├── .gitignore            # Git ignore rules
+├── env_example.txt       # Environment variables template
 ├── config/               # Configuration modules
 │   ├── models.py         # Database models
 │   ├── calendar_service.py # Google Calendar integration
@@ -101,9 +112,11 @@ planner/
 ├── mobile/               # React Native mobile app
 │   ├── App.js           # Main mobile component
 │   └── package.json     # Mobile dependencies
-├── instance/            # Database files
+├── instance/            # Database files (created on first run)
 └── tests/              # Test files
 ```
+
+**Note**: Files like `.env`, `__pycache__/`, and `instance/` are ignored by git for security and cleanliness.
 
 ## Features
 
