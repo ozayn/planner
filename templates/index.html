@@ -218,6 +218,18 @@
             border-color: var(--primary-pastel);
         }
         
+        .selection-btn.import-btn {
+            background: var(--secondary-pastel);
+            border-color: var(--secondary-pastel);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .selection-btn.import-btn:hover {
+            background: var(--primary-pastel);
+            border-color: var(--primary-pastel);
+        }
+        
         .selection-count {
             color: var(--text-soft);
             font-size: 0.9rem;
@@ -240,11 +252,50 @@
             border: 1px solid var(--border-soft);
             transition: all 0.3s ease;
             position: relative;
+            cursor: pointer;
         }
         
         .event-card:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-hover);
+        }
+        
+        .event-card.selected {
+            border: 2px solid var(--accent-pastel);
+            background: rgba(255, 240, 245, 0.9);
+            box-shadow: 0 4px 20px rgba(255, 240, 245, 0.3);
+        }
+        
+        .event-card.selected:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(255, 240, 245, 0.4);
+        }
+        
+        .selection-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-pastel);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .event-card.selected .selection-indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .selection-indicator i {
+            color: var(--text-primary);
+            font-size: 0.8rem;
         }
         
         .event-image {
@@ -410,7 +461,10 @@
                         <i class="fas fa-times"></i> Deselect All
                     </button>
                     <button class="selection-btn export-btn" onclick="exportSelectedToCalendar()">
-                        <i class="fas fa-download"></i> Export to Calendar
+                        <i class="fas fa-calendar-plus"></i> Add to Google Calendar
+                    </button>
+                    <button class="selection-btn import-btn" onclick="downloadCalendarFile()">
+                        <i class="fas fa-download"></i> Download .ics File
                     </button>
                     <span class="selection-count" id="selectionCount">0 selected</span>
                 </div>
@@ -638,9 +692,15 @@
             const isSelected = selectedEvents.has(event.id);
             
             return `
-                <div class="event-card" data-event-type="${eventType}" 
+                <div class="event-card ${isSelected ? 'selected' : ''}" 
+                     data-event-type="${eventType}" 
                      data-meeting-location="${meetingLocation}" 
-                     data-url="${eventUrl}">
+                     data-url="${eventUrl}"
+                     data-event-id="${event.id}"
+                     onclick="toggleEventCardSelection(${event.id}, this)">
+                    <div class="selection-indicator">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
                     ${getEventImage(event)}
                     <h3 class="event-title">${eventTitle}</h3>
                     <div class="event-meta">
@@ -650,7 +710,7 @@
                         ${meetingLocation ? `<span><i class="fas fa-door-open"></i> ${meetingLocation}</span>` : ''}
                     </div>
                     ${description ? `<p class="event-description">${description}</p>` : ''}
-                    <div class="event-actions">
+                    <div class="event-actions" onclick="event.stopPropagation()">
                         <button class="action-btn ${isSelected ? 'selected' : ''}" onclick="toggleEventSelection(${event.id}, this)">
                             <i class="fas fa-heart"></i>
                             <div class="tooltip">${isSelected ? 'Remove from selection' : 'Add to selection'}</div>
@@ -670,6 +730,29 @@
             `;
         }
         
+        function toggleEventCardSelection(eventId, cardElement) {
+            // Toggle selection
+            if (selectedEvents.has(eventId)) {
+                selectedEvents.delete(eventId);
+                cardElement.classList.remove('selected');
+            } else {
+                selectedEvents.add(eventId);
+                cardElement.classList.add('selected');
+            }
+            
+            // Update heart button
+            const heartBtn = cardElement.querySelector('.action-btn');
+            if (heartBtn) {
+                heartBtn.classList.toggle('selected');
+                const tooltip = heartBtn.querySelector('.tooltip');
+                if (tooltip) {
+                    tooltip.textContent = selectedEvents.has(eventId) ? 'Remove from selection' : 'Add to selection';
+                }
+            }
+            
+            updateSelectionCount();
+        }
+        
         function toggleEventSelection(eventId, buttonElement) {
             if (selectedEvents.has(eventId)) {
                 selectedEvents.delete(eventId);
@@ -677,6 +760,12 @@
             } else {
                 selectedEvents.add(eventId);
                 buttonElement.classList.add('selected');
+            }
+            
+            // Update card appearance
+            const cardElement = buttonElement.closest('.event-card');
+            if (cardElement) {
+                cardElement.classList.toggle('selected');
             }
             
             updateSelectionCount();
@@ -688,9 +777,11 @@
             });
             
             // Update UI
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                if (btn.onclick && btn.onclick.toString().includes('toggleEventSelection')) {
-                    btn.classList.add('selected');
+            document.querySelectorAll('.event-card').forEach(card => {
+                card.classList.add('selected');
+                const heartBtn = card.querySelector('.action-btn');
+                if (heartBtn) {
+                    heartBtn.classList.add('selected');
                 }
             });
             
@@ -701,9 +792,11 @@
             selectedEvents.clear();
             
             // Update UI
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                if (btn.onclick && btn.onclick.toString().includes('toggleEventSelection')) {
-                    btn.classList.remove('selected');
+            document.querySelectorAll('.event-card').forEach(card => {
+                card.classList.remove('selected');
+                const heartBtn = card.querySelector('.action-btn');
+                if (heartBtn) {
+                    heartBtn.classList.remove('selected');
                 }
             });
             
@@ -723,6 +816,132 @@
                     tooltip.textContent = selectedEvents.has(eventId) ? 'Remove from selection' : 'Add to selection';
                 }
             });
+        }
+        
+        function downloadCalendarFile() {
+            if (selectedEvents.size === 0) {
+                alert('Please select at least one event to download.');
+                return;
+            }
+            
+            const selectedEventData = allEvents.filter(event => selectedEvents.has(event.id));
+            
+            if (selectedEventData.length === 0) {
+                alert('No selected events found.');
+                return;
+            }
+            
+            // Generate ICS content
+            const icsContent = generateICSContent(selectedEventData);
+            
+            // Create and download file
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'selected-events.ics';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            // Show success message
+            const importBtn = document.querySelector('.import-btn');
+            const originalText = importBtn.innerHTML;
+            importBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+            importBtn.style.backgroundColor = 'var(--secondary-pastel)';
+            
+            setTimeout(() => {
+                importBtn.innerHTML = originalText;
+                importBtn.style.backgroundColor = '';
+            }, 2000);
+        }
+        
+        function generateICSContent(events) {
+            const citySelect = document.getElementById('citySelect');
+            const selectedCityId = citySelect.value;
+            const cityTimezone = getCityTimezone(selectedCityId);
+            
+            let icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Event Planner//DC Events//EN',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH'
+            ];
+            
+            events.forEach(event => {
+                // Parse date and time
+                const eventDate = new Date(event.start_date);
+                let startDateTime, endDateTime;
+                
+                if (event.start_time && event.end_time) {
+                    const startHour = parseTime(event.start_time);
+                    const endHour = parseTime(event.end_time);
+                    
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                    
+                    endDateTime = new Date(eventDate);
+                    endDateTime.setHours(endHour.hour, endHour.minute, 0, 0);
+                } else if (event.start_time) {
+                    const startHour = parseTime(event.start_time);
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(startHour.hour, startHour.minute, 0, 0);
+                    
+                    endDateTime = new Date(startDateTime);
+                    endDateTime.setHours(startDateTime.getHours() + 1);
+                } else {
+                    // All day event
+                    startDateTime = new Date(eventDate);
+                    startDateTime.setHours(9, 0, 0, 0);
+                    
+                    endDateTime = new Date(eventDate);
+                    endDateTime.setHours(17, 0, 0, 0);
+                }
+                
+                // Format dates for ICS (UTC format)
+                const formatICSDate = (date) => {
+                    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                };
+                
+                // Create enhanced description
+                let description = event.description || '';
+                if (event.meeting_location) {
+                    description += `\\n\\nMeeting Location: ${event.meeting_location}`;
+                }
+                if (event.url) {
+                    description += `\\n\\nMore Details: ${event.url}`;
+                }
+                
+                // Escape special characters for ICS
+                const escapeICS = (str) => {
+                    return str.replace(/\\/g, '\\\\')
+                             .replace(/;/g, '\\;')
+                             .replace(/,/g, '\\,')
+                             .replace(/\n/g, '\\n');
+                };
+                
+                const eventId = `event-${event.id}-${Date.now()}`;
+                
+                icsContent.push(
+                    'BEGIN:VEVENT',
+                    `UID:${eventId}`,
+                    `DTSTART:${formatICSDate(startDateTime)}`,
+                    `DTEND:${formatICSDate(endDateTime)}`,
+                    `SUMMARY:${escapeICS(event.title)}`,
+                    `DESCRIPTION:${escapeICS(description)}`,
+                    `LOCATION:${escapeICS(event.venue_name || '')}`,
+                    `URL:${event.url || ''}`,
+                    'STATUS:CONFIRMED',
+                    'TRANSP:OPAQUE',
+                    'END:VEVENT'
+                );
+            });
+            
+            icsContent.push('END:VCALENDAR');
+            
+            return icsContent.join('\r\n');
         }
         
         function exportSelectedToCalendar() {
