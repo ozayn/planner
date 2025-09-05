@@ -452,7 +452,7 @@
                         <i class="fas fa-times"></i> Deselect All
                     </button>
                     <button class="selection-btn import-btn" onclick="downloadCalendarFile()">
-                        <i class="fas fa-download"></i> Download Calendar File
+                        <i class="fas fa-download"></i> Download & Open Google Calendar
                     </button>
                     <span class="selection-count" id="selectionCount">0 selected</span>
                 </div>
@@ -836,6 +836,10 @@
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
                 
+                // Open Google Calendar import page
+                const googleCalendarImportUrl = 'https://calendar.google.com/calendar/u/0/r/settings/export';
+                window.open(googleCalendarImportUrl, '_blank');
+                
                 // Show success message with instructions
                 downloadBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
                 downloadBtn.style.backgroundColor = 'var(--secondary-pastel)';
@@ -845,13 +849,12 @@
                     const instructions = `
 Calendar file downloaded successfully!
 
-To import into your calendar:
+📅 Google Calendar import page opened in new tab!
 
-📅 Google Calendar:
-1. Go to calendar.google.com
-2. Click the "+" button → "Import"
-3. Select the downloaded file
-4. Choose your calendar and click "Import"
+Quick import steps:
+1. In the Google Calendar tab, click "Select file from your computer"
+2. Choose the downloaded "dc-events-${selectedEventData.length}-events.ics" file
+3. Select your calendar and click "Import"
 
 🍎 Apple Calendar:
 1. Double-click the downloaded file
