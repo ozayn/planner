@@ -6,7 +6,7 @@
     <title>Admin Dashboard - Event Planner</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <metahttp-equiv="Expires" content="0">
     <style>
         * {
             margin: 0;
@@ -1059,53 +1059,154 @@
                 return;
             }
             
+            // Define the exact order of columns to ensure headers and data match
+            const columnOrder = [
+                'id',
+                'name', 
+                'venue_type',
+                'city_name',
+                'address',
+                'opening_hours',
+                'phone_number',
+                'email',
+                'website_url',
+                'image_url',
+                'latitude',
+                'longitude',
+                'facebook_url',
+                'instagram_url',
+                'twitter_url',
+                'holiday_hours',
+                'admission_fee',
+                'tour_info',
+                'description',
+                'additional_info',
+                'created_at',
+                'updated_at'
+            ];
+            
             // Get the first venue to determine available fields dynamically
             const sampleVenue = window.filteredVenues[0];
             const availableFields = Object.keys(sampleVenue);
             
+            // Generate table headers in the defined order
+            const tableHead = document.querySelector('#venuesTable').closest('table').querySelector('thead tr');
+            if (tableHead) {
+                let headerRow = '';
+                
+                // Generate headers in the exact same order as data
+                columnOrder.forEach(field => {
+                    if (availableFields.includes(field)) {
+                        switch(field) {
+                            case 'id': headerRow += '<th>ID</th>'; break;
+                            case 'name': headerRow += '<th>Name</th>'; break;
+                            case 'venue_type': headerRow += '<th>Type</th>'; break;
+                            case 'city_name': headerRow += '<th>City</th>'; break;
+                            case 'address': headerRow += '<th>Address</th>'; break;
+                            case 'opening_hours': headerRow += '<th>Hours</th>'; break;
+                            case 'phone_number': headerRow += '<th>Phone</th>'; break;
+                            case 'email': headerRow += '<th>Email</th>'; break;
+                            case 'website_url': headerRow += '<th>Website</th>'; break;
+                            case 'image_url': headerRow += '<th>Image</th>'; break;
+                            case 'latitude': headerRow += '<th>Latitude</th>'; break;
+                            case 'longitude': headerRow += '<th>Longitude</th>'; break;
+                            case 'facebook_url': headerRow += '<th>Facebook</th>'; break;
+                            case 'instagram_url': headerRow += '<th>Instagram</th>'; break;
+                            case 'twitter_url': headerRow += '<th>Twitter</th>'; break;
+                            case 'holiday_hours': headerRow += '<th>Holiday Hours</th>'; break;
+                            case 'admission_fee': headerRow += '<th>Admission</th>'; break;
+                            case 'tour_info': headerRow += '<th>Tour Info</th>'; break;
+                            case 'description': headerRow += '<th>Description</th>'; break;
+                            case 'additional_info': headerRow += '<th>Additional Info</th>'; break;
+                            case 'created_at': headerRow += '<th>Created</th>'; break;
+                            case 'updated_at': headerRow += '<th>Updated</th>'; break;
+                        }
+                    }
+                });
+                
+                // Always include Actions header
+                headerRow += '<th>Actions</th>';
+                
+                tableHead.innerHTML = headerRow;
+            }
+            
+            // Generate data rows in the exact same order as headers
             tableBody.innerHTML = window.filteredVenues.map(venue => {
                 let row = '<tr id="venue-row-' + venue.id + '">';
                 
-                // Always include ID
-                row += '<td>' + venue.id + '</td>';
-                
-                // Include all available fields dynamically
-                if (availableFields.includes('name')) {
-                    row += '<td><strong>' + (venue.name || 'N/A') + '</strong></td>';
-                }
-                if (availableFields.includes('venue_type')) {
-                    row += '<td><span class="badge">' + (venue.venue_type || 'N/A') + '</span></td>';
-                }
-                if (availableFields.includes('city_name')) {
-                    row += '<td>' + (venue.city_name || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('address')) {
-                    row += '<td>' + (venue.address || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('opening_hours')) {
-                    row += '<td>' + (venue.opening_hours || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('phone_number')) {
-                    row += '<td>' + (venue.phone_number || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('email')) {
-                    row += '<td>' + (venue.email || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('website_url')) {
-                    row += '<td>' + (venue.website_url ? '<a href="' + venue.website_url + '" target="_blank">Website</a>' : 'N/A') + '</td>';
-                }
-                if (availableFields.includes('admission_fee')) {
-                    row += '<td>' + (venue.admission_fee || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('description')) {
-                    row += '<td>' + (venue.description || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('created_at')) {
-                    row += '<td>' + (venue.created_at ? new Date(venue.created_at).toLocaleDateString() : 'N/A') + '</td>';
-                }
-                if (availableFields.includes('updated_at')) {
-                    row += '<td>' + (venue.updated_at ? new Date(venue.updated_at).toLocaleDateString() : 'N/A') + '</td>';
-                }
+                // Generate data cells in the exact same order as headers
+                columnOrder.forEach(field => {
+                    if (availableFields.includes(field)) {
+                        switch(field) {
+                            case 'id':
+                                row += '<td>' + venue.id + '</td>';
+                                break;
+                            case 'name':
+                                row += '<td><strong>' + (venue.name || 'N/A') + '</strong></td>';
+                                break;
+                            case 'venue_type':
+                                row += '<td><span class="badge">' + (venue.venue_type || 'N/A') + '</span></td>';
+                                break;
+                            case 'city_name':
+                                row += '<td>' + (venue.city_name || 'N/A') + '</td>';
+                                break;
+                            case 'address':
+                                row += '<td>' + (venue.address || 'N/A') + '</td>';
+                                break;
+                            case 'opening_hours':
+                                row += '<td>' + (venue.opening_hours || 'N/A') + '</td>';
+                                break;
+                            case 'phone_number':
+                                row += '<td>' + (venue.phone_number || 'N/A') + '</td>';
+                                break;
+                            case 'email':
+                                row += '<td>' + (venue.email || 'N/A') + '</td>';
+                                break;
+                            case 'website_url':
+                                row += '<td>' + (venue.website_url ? '<a href="' + venue.website_url + '" target="_blank">Website</a>' : 'N/A') + '</td>';
+                                break;
+                            case 'image_url':
+                                row += '<td>' + (venue.image_url ? '<a href="' + venue.image_url + '" target="_blank">View</a>' : 'N/A') + '</td>';
+                                break;
+                            case 'latitude':
+                                row += '<td>' + (venue.latitude || 'N/A') + '</td>';
+                                break;
+                            case 'longitude':
+                                row += '<td>' + (venue.longitude || 'N/A') + '</td>';
+                                break;
+                            case 'facebook_url':
+                                row += '<td>' + (venue.facebook_url ? '<a href="' + venue.facebook_url + '" target="_blank">Facebook</a>' : 'N/A') + '</td>';
+                                break;
+                            case 'instagram_url':
+                                row += '<td>' + (venue.instagram_url || 'N/A') + '</td>';
+                                break;
+                            case 'twitter_url':
+                                row += '<td>' + (venue.twitter_url || 'N/A') + '</td>';
+                                break;
+                            case 'holiday_hours':
+                                row += '<td>' + (venue.holiday_hours || 'N/A') + '</td>';
+                                break;
+                            case 'admission_fee':
+                                row += '<td>' + (venue.admission_fee || 'N/A') + '</td>';
+                                break;
+                            case 'tour_info':
+                                row += '<td>' + (venue.tour_info || 'N/A') + '</td>';
+                                break;
+                            case 'description':
+                                row += '<td>' + (venue.description || 'N/A') + '</td>';
+                                break;
+                            case 'additional_info':
+                                row += '<td>' + (venue.additional_info ? 'Yes' : 'N/A') + '</td>';
+                                break;
+                            case 'created_at':
+                                row += '<td>' + (venue.created_at ? new Date(venue.created_at).toLocaleDateString() : 'N/A') + '</td>';
+                                break;
+                            case 'updated_at':
+                                row += '<td>' + (venue.updated_at ? new Date(venue.updated_at).toLocaleDateString() : 'N/A') + '</td>';
+                                break;
+                        }
+                    }
+                });
                 
                 // Always include actions
                 row += '<td>' +

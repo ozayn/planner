@@ -251,6 +251,7 @@ class Venue(db.Model):
     email = db.Column(db.String(100))
     tour_info = db.Column(db.Text)
     admission_fee = db.Column(db.Text)
+    additional_info = db.Column(db.Text)  # JSON blob for extra venue details
     city_id = db.Column(db.Integer, db.ForeignKey('cities.id', ondelete='CASCADE'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
