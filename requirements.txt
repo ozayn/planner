@@ -1,6 +1,7 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
 Flask-SQLAlchemy==3.0.5
+Flask-WTF==1.2.1
 requests==2.31.0
 beautifulsoup4==4.12.2
 lxml==6.0.1
@@ -10,5 +11,15 @@ google-api-python-client==2.108.0
 google-auth-httplib2==0.1.1
 google-auth-oauthlib==1.1.0
 Pillow>=9.0.0
-python-dotenv==1.0.0
 gunicorn==21.2.0
+openai==1.107.0
+groq==0.31.1
+selenium==4.15.2
+python-dotenv==1.0.0
+anthropic==0.7.8
+cohere==4.37.0
+google-generativeai==0.3.2
+mistralai==1.0.0
+geopy==2.4.1
+timezonefinder==8.0.0
+fuzzywuzzy==0.18.0

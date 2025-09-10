@@ -14,10 +14,15 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 
 ## 🚀 Quick Start
 
+⚠️ **IMPORTANT: Always activate virtual environment first!**
+
 ```bash
 # Clone and setup
 git clone <repository-url>
 cd planner
+
+# 🔥 ALWAYS RUN THIS FIRST!
+source venv/bin/activate
 
 # Create virtual environment
 python3 -m venv venv
@@ -161,7 +166,7 @@ npm run android  # or npm run ios
 ### Environment Variables (.env)
 ```bash
 # Database
-DATABASE_URL=sqlite:///events.db
+DATABASE_URL=sqlite:///Users/oz/.local/share/planner/events.db
 
 # Flask
 FLASK_ENV=development
@@ -247,7 +252,7 @@ This project follows professional Python development practices:
 
 ### Common Issues
 - **Port 5000 in use**: Change `APP_PORT` in `.env` to 5001
-- **Database errors**: Delete `instance/events.db` and run `python scripts/seed_data.py`
+- **Database errors**: Delete `~/.local/share/planner/events.db` and run `python scripts/seed_data.py`
 - **Python not found**: Use `python3` instead of `python`
 - **Dependencies not found**: Make sure virtual environment is activated
 

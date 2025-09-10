@@ -1,0 +1,1521 @@
+{
+  "metadata": {
+    "version": "1.2",
+    "created": "2025-09-10",
+    "description": "Predefined cultural venues - core data only",
+    "total_cities": 18,
+    "total_venues": 129,
+    "updated": "2025-09-10 12:51:25"
+  },
+  "cities": {
+    "1": {
+      "name": "Los Angeles",
+      "venues": [
+        {
+          "name": "Getty Center",
+          "venue_type": "Museum",
+          "address": "1200 Getty Center Dr, Los Angeles, CA 90049",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(310) 440-7300",
+          "email": "info@getty.edu",
+          "description": null,
+          "tour_info": "Free admission. Art museum with gardens and city views.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Los Angeles County Museum of Art (LACMA)",
+          "venue_type": "Museum",
+          "address": "5905 Wilshire Blvd, Los Angeles, CA 90036",
+          "opening_hours": "11:00 AM - 6:00 PM",
+          "phone_number": "(323) 857-6000",
+          "email": "info@lacma.org",
+          "description": null,
+          "tour_info": "Admission $20. Largest art museum in the western United States.",
+          "admission_fee": "$20"
+        },
+        {
+          "name": "Griffith Observatory",
+          "venue_type": "Observatory",
+          "address": "2800 E Observatory Rd, Los Angeles, CA 90027",
+          "opening_hours": "12:00 PM - 10:00 PM",
+          "phone_number": "(213) 473-0800",
+          "email": "info@griffithobservatory.org",
+          "description": null,
+          "tour_info": "Free admission. Observatory with planetarium and city views.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Hollywood Walk of Fame",
+          "venue_type": "Landmark",
+          "address": "Hollywood Blvd, Los Angeles, CA 90028",
+          "opening_hours": "24 hours",
+          "phone_number": "(323) 469-8311",
+          "email": "info@hollywoodchamber.net",
+          "description": null,
+          "tour_info": "Free admission. Famous sidewalk with celebrity stars.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Santa Monica Pier",
+          "venue_type": "Landmark",
+          "address": "200 Santa Monica Pier, Santa Monica, CA 90401",
+          "opening_hours": "6:00 AM - 12:00 AM",
+          "phone_number": "(310) 458-8900",
+          "email": "info@santamonicapier.org",
+          "description": null,
+          "tour_info": "Free admission. Historic pier with amusement park and Pacific views.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "2": {
+      "name": "San Francisco",
+      "venues": [
+        {
+          "name": "San Francisco Museum of Modern Art (SFMOMA)",
+          "venue_type": "Museum",
+          "address": "151 3rd St, San Francisco, CA 94103",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "(415) 357-4000",
+          "email": "info@sfmoma.org",
+          "description": null,
+          "tour_info": "Admission $25. Modern and contemporary art museum.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "de Young Museum",
+          "venue_type": "Museum",
+          "address": "50 Hagiwara Tea Garden Dr, San Francisco, CA 94118",
+          "opening_hours": "9:30 AM - 5:15 PM",
+          "phone_number": "(415) 750-3600",
+          "email": "info@famsf.org",
+          "description": null,
+          "tour_info": "Admission $15. Art museum featuring American and international art.",
+          "admission_fee": "$15"
+        },
+        {
+          "name": "Palace of Fine Arts",
+          "venue_type": "Landmark",
+          "address": "3301 Lyon St, San Francisco, CA 94123",
+          "opening_hours": "6:00 AM - 9:00 PM",
+          "phone_number": "(415) 563-6504",
+          "email": "info@palaceoffinearts.org",
+          "description": null,
+          "tour_info": "Free admission. Historic landmark with classical architecture.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Golden Gate Bridge",
+          "venue_type": "Landmark",
+          "address": "Golden Gate Bridge, San Francisco, CA",
+          "opening_hours": "24 hours",
+          "phone_number": "(415) 921-5858",
+          "email": "info@goldengate.org",
+          "description": null,
+          "tour_info": "Free admission. Iconic suspension bridge with pedestrian walkway.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Alcatraz Island",
+          "venue_type": "Historic Site",
+          "address": "Alcatraz Island, San Francisco, CA 94133",
+          "opening_hours": "9:00 AM - 6:30 PM",
+          "phone_number": "(415) 561-4900",
+          "email": "info@nps.gov",
+          "description": null,
+          "tour_info": "Ferry required. Former federal prison with guided tours.",
+          "admission_fee": "$45"
+        }
+      ]
+    },
+    "3": {
+      "name": "Chicago",
+      "venues": [
+        {
+          "name": "Art Institute of Chicago",
+          "venue_type": "Museum",
+          "address": "111 S Michigan Ave, Chicago, IL 60603",
+          "opening_hours": "10:30 AM - 5:00 PM",
+          "phone_number": "(312) 443-3600",
+          "email": "info@artic.edu",
+          "description": null,
+          "tour_info": "Admission $25. World-renowned art museum with Impressionist collection.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "Field Museum",
+          "venue_type": "Museum",
+          "address": "1400 S Lake Shore Dr, Chicago, IL 60605",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(312) 922-9410",
+          "email": "info@fieldmuseum.org",
+          "description": null,
+          "tour_info": "Admission $26. Natural history museum with Sue the T. rex.",
+          "admission_fee": "$26"
+        },
+        {
+          "name": "Shedd Aquarium",
+          "venue_type": "Aquarium",
+          "address": "1200 S Lake Shore Dr, Chicago, IL 60605",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(312) 939-2438",
+          "email": "info@sheddaquarium.org",
+          "description": null,
+          "tour_info": "Admission $40. One of the world's largest indoor aquariums.",
+          "admission_fee": "$40"
+        },
+        {
+          "name": "Millennium Park",
+          "venue_type": "Park",
+          "address": "201 E Randolph St, Chicago, IL 60602",
+          "opening_hours": "6:00 AM - 11:00 PM",
+          "phone_number": "(312) 742-1168",
+          "email": "info@millenniumpark.org",
+          "description": null,
+          "tour_info": "Free admission. Public park with Cloud Gate sculpture.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Willis Tower Skydeck",
+          "venue_type": "Observation Deck",
+          "address": "233 S Wacker Dr, Chicago, IL 60606",
+          "opening_hours": "9:00 AM - 10:00 PM",
+          "phone_number": "(312) 875-9447",
+          "email": "info@theskydeck.com",
+          "description": null,
+          "tour_info": "Admission $30. Glass observation deck on 103rd floor.",
+          "admission_fee": "$30"
+        }
+      ]
+    },
+    "4": {
+      "name": "Boston",
+      "venues": [
+        {
+          "name": "Museum of Fine Arts Boston",
+          "venue_type": "Museum",
+          "address": "465 Huntington Ave, Boston, MA 02115",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "(617) 267-9300",
+          "email": "info@mfa.org",
+          "description": null,
+          "tour_info": "Admission $25. Comprehensive art museum with diverse collections.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "Isabella Stewart Gardner Museum",
+          "venue_type": "Museum",
+          "address": "25 Evans Way, Boston, MA 02115",
+          "opening_hours": "11:00 AM - 5:00 PM",
+          "phone_number": "(617) 566-1401",
+          "email": "info@isgm.org",
+          "description": null,
+          "tour_info": "Admission $20. Historic mansion with art collection and gardens.",
+          "admission_fee": "$20"
+        },
+        {
+          "name": "Freedom Trail",
+          "venue_type": "Historic Trail",
+          "address": "Boston, MA",
+          "opening_hours": "24 hours",
+          "phone_number": "(617) 357-8300",
+          "email": "info@thefreedomtrail.org",
+          "description": null,
+          "tour_info": "Free admission. 2.5-mile trail through historic Boston sites.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Fenway Park",
+          "venue_type": "Stadium",
+          "address": "4 Yawkey Way, Boston, MA 02215",
+          "opening_hours": "Tours available",
+          "phone_number": "(617) 226-6666",
+          "email": "info@redsox.com",
+          "description": null,
+          "tour_info": "Tour admission $25. Historic baseball stadium.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "Boston Common",
+          "venue_type": "Park",
+          "address": "139 Tremont St, Boston, MA 02111",
+          "opening_hours": "24 hours",
+          "phone_number": "(617) 635-4505",
+          "email": "info@boston.gov",
+          "description": null,
+          "tour_info": "Free admission. America's oldest public park.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "5": {
+      "name": "Seattle",
+      "venues": [
+        {
+          "name": "Space Needle",
+          "venue_type": "Observation Tower",
+          "address": "400 Broad St, Seattle, WA 98109",
+          "opening_hours": "10:00 AM - 8:00 PM",
+          "phone_number": "(206) 905-2100",
+          "email": "info@spaceneedle.com",
+          "description": null,
+          "tour_info": "Admission $35. Iconic observation tower with city views.",
+          "admission_fee": "$35"
+        },
+        {
+          "name": "Museum of Pop Culture (MoPOP)",
+          "venue_type": "Museum",
+          "address": "325 5th Ave N, Seattle, WA 98109",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "(206) 770-2700",
+          "email": "info@mopop.org",
+          "description": null,
+          "tour_info": "Admission $30. Museum dedicated to contemporary popular culture.",
+          "admission_fee": "$30"
+        },
+        {
+          "name": "Chihuly Garden and Glass",
+          "venue_type": "Museum",
+          "address": "305 Harrison St, Seattle, WA 98109",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "(206) 753-4940",
+          "email": "info@chihulygardenandglass.com",
+          "description": null,
+          "tour_info": "Admission $32. Glass art museum and garden.",
+          "admission_fee": "$32"
+        },
+        {
+          "name": "Pike Place Market",
+          "venue_type": "Market",
+          "address": "85 Pike St, Seattle, WA 98101",
+          "opening_hours": "9:00 AM - 6:00 PM",
+          "phone_number": "(206) 682-7453",
+          "email": "info@pikeplacemarket.org",
+          "description": null,
+          "tour_info": "Free admission. Historic public market with local vendors.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Seattle Art Museum",
+          "venue_type": "Museum",
+          "address": "1300 1st Ave, Seattle, WA 98101",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "(206) 654-3100",
+          "email": "info@seattleartmuseum.org",
+          "description": null,
+          "tour_info": "Admission $20. Art museum with diverse collections.",
+          "admission_fee": "$20"
+        }
+      ]
+    },
+    "6": {
+      "name": "Miami",
+      "venues": [
+        {
+          "name": "Vizcaya Museum and Gardens",
+          "venue_type": "Museum",
+          "address": "3251 S Miami Ave, Miami, FL 33129",
+          "opening_hours": "9:30 AM - 4:30 PM",
+          "phone_number": "(305) 250-9133",
+          "email": "info@vizcaya.org",
+          "description": null,
+          "tour_info": "Admission $22. Historic estate with Italian Renaissance gardens.",
+          "admission_fee": "$22"
+        },
+        {
+          "name": "P\u00e9rez Art Museum Miami (PAMM)",
+          "venue_type": "Museum",
+          "address": "1103 Biscayne Blvd, Miami, FL 33132",
+          "opening_hours": "11:00 AM - 6:00 PM",
+          "phone_number": "(305) 375-3000",
+          "email": "info@pamm.org",
+          "description": null,
+          "tour_info": "Admission $16. Modern and contemporary art museum.",
+          "admission_fee": "$16"
+        },
+        {
+          "name": "Frost Science Museum",
+          "venue_type": "Museum",
+          "address": "1101 Biscayne Blvd, Miami, FL 33132",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "(305) 434-9600",
+          "email": "info@frostscience.org",
+          "description": null,
+          "tour_info": "Admission $30. Science museum with planetarium and aquarium.",
+          "admission_fee": "$30"
+        },
+        {
+          "name": "Wynwood Walls",
+          "venue_type": "Art District",
+          "address": "2520 NW 2nd Ave, Miami, FL 33127",
+          "opening_hours": "10:30 AM - 11:30 PM",
+          "phone_number": "(305) 531-4411",
+          "email": "info@wynwoodwalls.com",
+          "description": null,
+          "tour_info": "Free admission. Outdoor museum of street art.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "South Beach",
+          "venue_type": "Beach",
+          "address": "South Beach, Miami Beach, FL 33139",
+          "opening_hours": "24 hours",
+          "phone_number": "(305) 673-7714",
+          "email": "info@miamibeachfl.gov",
+          "description": null,
+          "tour_info": "Free admission. Famous beach with Art Deco architecture.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "7": {
+      "name": "London",
+      "venues": [
+        {
+          "name": "British Museum",
+          "venue_type": "Museum",
+          "address": "Great Russell St, London WC1B 3DG, UK",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "+44 20 7323 8299",
+          "email": "info@britishmuseum.org",
+          "description": null,
+          "tour_info": "Free admission. Houses vast collection of world art and artifacts.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "National Gallery",
+          "venue_type": "Museum",
+          "address": "Trafalgar Square, London WC2N 5DN, UK",
+          "opening_hours": "Mon-Thu, Sat-Sun: 10:00 AM - 6:00 PM; Fri: 10:00 AM - 9:00 PM",
+          "phone_number": "+44 20 7747 2885",
+          "email": "info@nationalgallery.org.uk",
+          "description": null,
+          "tour_info": "Free admission. Collection of Western European paintings.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Tower of London",
+          "venue_type": "Historic Site",
+          "address": "London EC3N 4AB, UK",
+          "opening_hours": "9:00 AM - 5:30 PM",
+          "phone_number": "+44 844 482 7777",
+          "email": "info@hrp.org.uk",
+          "description": null,
+          "tour_info": "Admission \u00a329. Historic castle and former royal palace.",
+          "admission_fee": "\u00a329"
+        },
+        {
+          "name": "Tate Modern",
+          "venue_type": "Museum",
+          "address": "Bankside, London SE1 9TG, UK",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "+44 20 7887 8888",
+          "email": "info@tate.org.uk",
+          "description": null,
+          "tour_info": "Free admission. Modern and contemporary art museum.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Westminster Abbey",
+          "venue_type": "Church",
+          "address": "20 Deans Yd, London SW1P 3PA, UK",
+          "opening_hours": "9:30 AM - 3:30 PM",
+          "phone_number": "+44 20 7222 5152",
+          "email": "info@westminster-abbey.org",
+          "description": null,
+          "tour_info": "Admission \u00a327. Gothic church and UNESCO World Heritage Site.",
+          "admission_fee": "\u00a327"
+        }
+      ]
+    },
+    "8": {
+      "name": "Tokyo",
+      "venues": [
+        {
+          "name": "Tokyo National Museum",
+          "venue_type": "Museum",
+          "address": "13-9 Ueno Park, Taito City, Tokyo 110-8712, Japan",
+          "opening_hours": "9:30 AM - 5:00 PM",
+          "phone_number": "+81 3-3822-1111",
+          "email": "info@tnm.jp",
+          "description": null,
+          "tour_info": "Admission \u00a51000. Japan's oldest national museum.",
+          "admission_fee": "\u00a51000"
+        },
+        {
+          "name": "Meiji Shrine",
+          "venue_type": "Shrine",
+          "address": "1-1 Yoyogikamizonocho, Shibuya City, Tokyo 151-8557, Japan",
+          "opening_hours": "6:40 AM - 4:20 PM",
+          "phone_number": "+81 3-3379-5511",
+          "email": "info@meijijingu.or.jp",
+          "description": null,
+          "tour_info": "Free admission. Shinto shrine dedicated to Emperor Meiji.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Senso-ji Temple",
+          "venue_type": "Temple",
+          "address": "2-3-1 Asakusa, Taito City, Tokyo 111-0032, Japan",
+          "opening_hours": "6:00 AM - 5:00 PM",
+          "phone_number": "+81 3-3842-0181",
+          "email": "info@senso-ji.jp",
+          "description": null,
+          "tour_info": "Free admission. Tokyo's oldest Buddhist temple.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Tokyo Tower",
+          "venue_type": "Observation Tower",
+          "address": "4-2-8 Shibakoen, Minato City, Tokyo 105-0011, Japan",
+          "opening_hours": "9:00 AM - 10:30 PM",
+          "phone_number": "+81 3-3433-5111",
+          "email": "info@tokyotower.co.jp",
+          "description": null,
+          "tour_info": "Admission \u00a51200. Communications tower with observation decks.",
+          "admission_fee": "\u00a51200"
+        },
+        {
+          "name": "Ginza District",
+          "venue_type": "Shopping District",
+          "address": "Ginza, Chuo City, Tokyo, Japan",
+          "opening_hours": "10:00 AM - 8:00 PM",
+          "phone_number": "+81 3-3562-2111",
+          "email": "info@ginza.jp",
+          "description": null,
+          "tour_info": "Free admission. Upscale shopping area with art galleries.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "9": {
+      "name": "Sydney",
+      "venues": [
+        {
+          "name": "Sydney Opera House",
+          "venue_type": "Performing Arts Center",
+          "address": "Bennelong Point, Sydney NSW 2000, Australia",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "+61 2 9250 7111",
+          "email": "info@sydneyoperahouse.com",
+          "description": null,
+          "tour_info": "Tour admission $43. Iconic performing arts center.",
+          "admission_fee": "$43"
+        },
+        {
+          "name": "Art Gallery of New South Wales",
+          "venue_type": "Museum",
+          "address": "Art Gallery Rd, Sydney NSW 2000, Australia",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "+61 2 9225 1744",
+          "email": "info@artgallery.nsw.gov.au",
+          "description": null,
+          "tour_info": "Free admission. Leading art museum with diverse collections.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Australian Museum",
+          "venue_type": "Museum",
+          "address": "1 William St, Sydney NSW 2010, Australia",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "+61 2 9320 6000",
+          "email": "info@australianmuseum.net.au",
+          "description": null,
+          "tour_info": "Admission $15. Natural history and anthropology museum.",
+          "admission_fee": "$15"
+        },
+        {
+          "name": "Sydney Harbour Bridge",
+          "venue_type": "Bridge",
+          "address": "Sydney Harbour Bridge, Sydney NSW, Australia",
+          "opening_hours": "24 hours",
+          "phone_number": "+61 2 8274 7777",
+          "email": "info@bridgeclimb.com",
+          "description": null,
+          "tour_info": "Bridge climb $268. Steel arch bridge with climb experience.",
+          "admission_fee": "$268"
+        },
+        {
+          "name": "The Rocks",
+          "venue_type": "Historic District",
+          "address": "The Rocks, Sydney NSW 2000, Australia",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "+61 2 9240 8788",
+          "email": "info@therocks.com.au",
+          "description": null,
+          "tour_info": "Free admission. Historic area with markets and galleries.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "10": {
+      "name": "Montreal",
+      "venues": [
+        {
+          "name": "Montreal Museum of Fine Arts",
+          "venue_type": "Museum",
+          "address": "1380 Sherbrooke St W, Montreal, QC H3G 1J5, Canada",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "+1 514-285-2000",
+          "email": "info@mbamtl.org",
+          "description": null,
+          "tour_info": "Admission $24. Canada's oldest art museum.",
+          "admission_fee": "$24"
+        },
+        {
+          "name": "McCord Museum",
+          "venue_type": "Museum",
+          "address": "690 Sherbrooke St W, Montreal, QC H3A 1E9, Canada",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "+1 514-398-7100",
+          "email": "info@mccord-stewart.ca",
+          "description": null,
+          "tour_info": "Admission $20. Canadian history and culture museum.",
+          "admission_fee": "$20"
+        },
+        {
+          "name": "Notre-Dame Basilica",
+          "venue_type": "Cathedral",
+          "address": "110 Notre-Dame St W, Montreal, QC H2Y 1T1, Canada",
+          "opening_hours": "8:00 AM - 4:30 PM",
+          "phone_number": "+1 514-842-2925",
+          "email": "info@basiliquenddm.org",
+          "description": null,
+          "tour_info": "Admission $6. Gothic Revival cathedral.",
+          "admission_fee": "$6"
+        },
+        {
+          "name": "Old Montreal",
+          "venue_type": "Historic District",
+          "address": "Old Montreal, Montreal, QC, Canada",
+          "opening_hours": "24 hours",
+          "phone_number": "+1 514-844-4021",
+          "email": "info@oldmontreal.com",
+          "description": null,
+          "tour_info": "Free admission. Historic district with cobblestone streets.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Mount Royal Park",
+          "venue_type": "Park",
+          "address": "1260 Remembrance Rd, Montreal, QC H3H 1A2, Canada",
+          "opening_hours": "6:00 AM - 12:00 AM",
+          "phone_number": "+1 514-843-8240",
+          "email": "info@lemontroyal.qc.ca",
+          "description": null,
+          "tour_info": "Free admission. Large park with city views.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "11": {
+      "name": "Toronto",
+      "venues": [
+        {
+          "name": "Royal Ontario Museum",
+          "venue_type": "Museum",
+          "address": "100 Queen's Park, Toronto, ON M5S 2C6, Canada",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "+1 416-586-8000",
+          "email": "info@rom.on.ca",
+          "description": null,
+          "tour_info": "Admission $23. Natural history and world cultures museum.",
+          "admission_fee": "$23"
+        },
+        {
+          "name": "Art Gallery of Ontario",
+          "venue_type": "Museum",
+          "address": "317 Dundas St W, Toronto, ON M5T 1G4, Canada",
+          "opening_hours": "10:30 AM - 5:00 PM",
+          "phone_number": "+1 416-979-6648",
+          "email": "info@ago.ca",
+          "description": null,
+          "tour_info": "Admission $25. Art museum with Canadian and international collections.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "CN Tower",
+          "venue_type": "Observation Tower",
+          "address": "290 Bremner Blvd, Toronto, ON M5V 3L9, Canada",
+          "opening_hours": "9:00 AM - 10:00 PM",
+          "phone_number": "+1 416-868-6937",
+          "email": "info@cntower.ca",
+          "description": null,
+          "tour_info": "Admission $43. Iconic tower with observation decks.",
+          "admission_fee": "$43"
+        },
+        {
+          "name": "Casa Loma",
+          "venue_type": "Castle",
+          "address": "1 Austin Terrace, Toronto, ON M5R 1X8, Canada",
+          "opening_hours": "9:30 AM - 5:00 PM",
+          "phone_number": "+1 416-923-1171",
+          "email": "info@casaloma.ca",
+          "description": null,
+          "tour_info": "Admission $32. Gothic Revival castle.",
+          "admission_fee": "$32"
+        },
+        {
+          "name": "Distillery District",
+          "venue_type": "Historic District",
+          "address": "55 Mill St, Toronto, ON M5A 3C4, Canada",
+          "opening_hours": "10:00 AM - 9:00 PM",
+          "phone_number": "+1 416-364-1177",
+          "email": "info@thedistillerydistrict.com",
+          "description": null,
+          "tour_info": "Free admission. Historic district with shops and galleries.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "12": {
+      "name": "Vancouver",
+      "venues": [
+        {
+          "name": "Vancouver Art Gallery",
+          "venue_type": "Museum",
+          "address": "750 Hornby St, Vancouver, BC V6Z 2H7, Canada",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "+1 604-662-4700",
+          "email": "info@vanartgallery.bc.ca",
+          "description": null,
+          "tour_info": "Admission $24. Contemporary art museum.",
+          "admission_fee": "$24"
+        },
+        {
+          "name": "Museum of Anthropology",
+          "venue_type": "Museum",
+          "address": "6393 NW Marine Dr, Vancouver, BC V6T 1Z2, Canada",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "+1 604-822-5087",
+          "email": "info@moa.ubc.ca",
+          "description": null,
+          "tour_info": "Admission $18. Anthropology museum with First Nations art.",
+          "admission_fee": "$18"
+        },
+        {
+          "name": "Capilano Suspension Bridge",
+          "venue_type": "Bridge",
+          "address": "3735 Capilano Rd, North Vancouver, BC V7R 4J1, Canada",
+          "opening_hours": "9:00 AM - 7:00 PM",
+          "phone_number": "+1 604-985-7474",
+          "email": "info@capbridge.com",
+          "description": null,
+          "tour_info": "Admission $54. Suspension bridge with treetop adventures.",
+          "admission_fee": "$54"
+        },
+        {
+          "name": "Stanley Park",
+          "venue_type": "Park",
+          "address": "Stanley Park, Vancouver, BC V6G 1Z4, Canada",
+          "opening_hours": "24 hours",
+          "phone_number": "+1 604-257-8400",
+          "email": "info@stanleypark.com",
+          "description": null,
+          "tour_info": "Free admission. Large urban park with seawall.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Granville Island",
+          "venue_type": "Market",
+          "address": "Granville Island, Vancouver, BC V6H 3S2, Canada",
+          "opening_hours": "9:00 AM - 7:00 PM",
+          "phone_number": "+1 604-666-5784",
+          "email": "info@granvilleisland.com",
+          "description": null,
+          "tour_info": "Free admission. Public market with local vendors.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "13": {
+      "name": "Tehran",
+      "venues": [
+        {
+          "name": "National Museum of Iran",
+          "venue_type": "Museum",
+          "address": "30 Tir St, Tehran, Iran",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "+98 21 6670 2061",
+          "email": "info@nmi.ir",
+          "description": null,
+          "tour_info": "Admission 500,000 IRR. Iran's largest museum of ancient artifacts.",
+          "admission_fee": "500,000 IRR"
+        },
+        {
+          "name": "Golestan Palace",
+          "venue_type": "Palace",
+          "address": "Tehran, Iran",
+          "opening_hours": "9:00 AM - 4:30 PM",
+          "phone_number": "+98 21 3311 3335",
+          "email": "info@golestanpalace.ir",
+          "description": null,
+          "tour_info": "Admission 1,000,000 IRR. UNESCO World Heritage royal palace.",
+          "admission_fee": "1,000,000 IRR"
+        },
+        {
+          "name": "Tehran Museum of Contemporary Art",
+          "venue_type": "Museum",
+          "address": "Tehran, Iran",
+          "opening_hours": "10:00 AM - 6:00 PM",
+          "phone_number": "+98 21 8898 9374",
+          "email": "info@tmoca.com",
+          "description": null,
+          "tour_info": "Admission 300,000 IRR. Contemporary art museum.",
+          "admission_fee": "300,000 IRR"
+        },
+        {
+          "name": "Azadi Tower",
+          "venue_type": "Monument",
+          "address": "Tehran, Iran",
+          "opening_hours": "9:00 AM - 6:00 PM",
+          "phone_number": "+98 21 6602 2061",
+          "email": "info@azaditower.ir",
+          "description": null,
+          "tour_info": "Admission 200,000 IRR. Iconic monument and symbol of Tehran.",
+          "admission_fee": "200,000 IRR"
+        },
+        {
+          "name": "Grand Bazaar",
+          "venue_type": "Market",
+          "address": "Tehran Grand Bazaar, Tehran, Iran",
+          "opening_hours": "9:00 AM - 6:00 PM",
+          "phone_number": "+98 21 3311 3335",
+          "email": "info@tehranbazaar.ir",
+          "description": null,
+          "tour_info": "Free admission. Historic covered market.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "14": {
+      "name": "New York",
+      "venues": [
+        {
+          "name": "Metropolitan Museum of Art",
+          "venue_type": "Museum",
+          "address": "1000 5th Ave, New York, NY 10028",
+          "opening_hours": "10:00 AM - 5:00 PM",
+          "phone_number": "(212) 535-7710",
+          "email": "info@metmuseum.org",
+          "description": null,
+          "tour_info": "Suggested admission $25. One of the world's largest art museums.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "American Museum of Natural History",
+          "venue_type": "Museum",
+          "address": "Central Park West & 79th St, New York, NY 10024",
+          "opening_hours": "10:00 AM - 5:45 PM",
+          "phone_number": "(212) 769-5100",
+          "email": "info@amnh.org",
+          "description": null,
+          "tour_info": "Suggested admission $23. Features dinosaur fossils and planetarium.",
+          "admission_fee": "$23"
+        },
+        {
+          "name": "Metropolitan Museum of Art",
+          "venue_type": "Museum",
+          "address": "1000 5th Ave, New York, NY 10028",
+          "opening_hours": "Sun-Thu: 10:00 AM - 5:00 PM; Fri-Sat: 10:00 AM - 9:00 PM",
+          "phone_number": "(212) 535-7710",
+          "email": "info@metmuseum.org",
+          "description": "One of the world's largest art museums.",
+          "tour_info": "Pay-what-you-wish admission for New York residents.",
+          "admission_fee": "$30"
+        },
+        {
+          "name": "Museum of Modern Art (MoMA)",
+          "venue_type": "Museum",
+          "address": "11 W 53rd St, New York, NY 10019",
+          "opening_hours": "10:30 AM - 5:30 PM",
+          "phone_number": "(212) 708-9400",
+          "email": "info@moma.org",
+          "description": "Premier modern and contemporary art museum.",
+          "tour_info": "Home to Van Gogh's Starry Night and other masterpieces.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "American Museum of Natural History",
+          "venue_type": "Museum",
+          "address": "200 Central Park W, New York, NY 10024",
+          "opening_hours": "10:00 AM - 5:45 PM",
+          "phone_number": "(212) 769-5100",
+          "email": "info@amnh.org",
+          "description": "World's largest natural history museum.",
+          "tour_info": "Pay-what-you-wish admission available.",
+          "admission_fee": "$28"
+        },
+        {
+          "name": "Statue of Liberty",
+          "venue_type": "Monument",
+          "address": "Liberty Island, New York, NY 10004",
+          "opening_hours": "9:30 AM - 3:30 PM",
+          "phone_number": "(212) 363-3200",
+          "email": "info@nps.gov",
+          "description": "Iconic symbol of freedom and democracy.",
+          "tour_info": "Ferry access required. Crown access by reservation.",
+          "admission_fee": "$24.50"
+        },
+        {
+          "name": "Empire State Building",
+          "venue_type": "Landmark",
+          "address": "350 5th Ave, New York, NY 10118",
+          "opening_hours": "8:00 AM - 2:00 AM",
+          "phone_number": "(212) 736-3100",
+          "email": "info@esbnyc.com",
+          "description": "Iconic Art Deco skyscraper.",
+          "tour_info": "Observation decks on 86th and 102nd floors.",
+          "admission_fee": "$44"
+        },
+        {
+          "name": "Central Park",
+          "venue_type": "Park",
+          "address": "Central Park, New York, NY 10024",
+          "opening_hours": "6:00 AM - 1:00 AM",
+          "phone_number": "(212) 310-6600",
+          "email": "info@centralparknyc.org",
+          "description": "843-acre urban park in Manhattan.",
+          "tour_info": "Features lakes, meadows, and cultural attractions.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Times Square",
+          "venue_type": "Landmark",
+          "address": "Times Square, New York, NY 10036",
+          "opening_hours": "24 hours",
+          "phone_number": "(212) 768-1560",
+          "email": "info@timessquarenyc.org",
+          "description": "Famous commercial intersection and entertainment hub.",
+          "tour_info": "Known for its bright lights and Broadway theaters.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Brooklyn Bridge",
+          "venue_type": "Landmark",
+          "address": "Brooklyn Bridge, New York, NY 10038",
+          "opening_hours": "24 hours",
+          "phone_number": "(212) 639-9675",
+          "email": "info@nyc.gov",
+          "description": "Historic suspension bridge connecting Manhattan and Brooklyn.",
+          "tour_info": "Pedestrian walkway offers stunning city views.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "15": {
+      "name": "Paris",
+      "venues": [
+        {
+          "name": "Louvre Museum",
+          "venue_type": "Museum",
+          "address": "Rue de Rivoli, 75001 Paris, France",
+          "opening_hours": "9:00 AM - 6:00 PM",
+          "phone_number": "+33 1 40 20 50 50",
+          "email": "info@louvre.fr",
+          "description": null,
+          "tour_info": "Admission \u20ac17. World's largest art museum, home to Mona Lisa.",
+          "admission_fee": "\u20ac17"
+        },
+        {
+          "name": "Mus\u00e9e d'Orsay",
+          "venue_type": "Museum",
+          "address": "1 Rue de la L\u00e9gion d'Honneur, 75007 Paris, France",
+          "opening_hours": "9:30 AM - 6:00 PM",
+          "phone_number": "+33 1 40 49 48 14",
+          "email": "info@musee-orsay.fr",
+          "description": null,
+          "tour_info": "Admission \u20ac16. French art from 19th and early 20th centuries.",
+          "admission_fee": "\u20ac16"
+        },
+        {
+          "name": "Mus\u00e9e du Louvre",
+          "venue_type": "Museum",
+          "address": "Rue de Rivoli, 75001 Paris, France",
+          "opening_hours": "Mon, Thu, Sat-Sun: 9:00 AM - 6:00 PM; Wed, Fri: 9:00 AM - 9:45 PM",
+          "phone_number": "+33 1 40 20 50 50",
+          "email": "info@louvre.fr",
+          "description": "World's largest art museum and historic monument.",
+          "tour_info": "Home to the Mona Lisa and Venus de Milo.",
+          "admission_fee": "\u20ac17"
+        },
+        {
+          "name": "Mus\u00e9e d'Orsay",
+          "venue_type": "Museum",
+          "address": "1 Rue de la L\u00e9gion d'Honneur, 75007 Paris, France",
+          "opening_hours": "Tue-Sun: 9:30 AM - 6:00 PM; Thu: 9:30 AM - 9:45 PM",
+          "phone_number": "+33 1 40 49 48 14",
+          "email": "info@musee-orsay.fr",
+          "description": "Impressionist and post-impressionist art museum.",
+          "tour_info": "Housed in a former railway station.",
+          "admission_fee": "\u20ac16"
+        },
+        {
+          "name": "Eiffel Tower",
+          "venue_type": "Monument",
+          "address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
+          "opening_hours": "9:30 AM - 11:45 PM",
+          "phone_number": "+33 8 92 70 12 39",
+          "email": "info@toureiffel.paris",
+          "description": "Iconic iron lattice tower and symbol of Paris.",
+          "tour_info": "Three levels accessible by stairs or elevator.",
+          "admission_fee": "\u20ac29.40"
+        },
+        {
+          "name": "Notre-Dame Cathedral",
+          "venue_type": "Cathedral",
+          "address": "6 Parvis Notre-Dame - Pl. Jean-Paul II, 75004 Paris, France",
+          "opening_hours": "Currently closed for restoration",
+          "phone_number": "+33 1 42 34 56 10",
+          "email": "info@notredamedeparis.fr",
+          "description": "Medieval Catholic cathedral and architectural masterpiece.",
+          "tour_info": "Famous for its Gothic architecture and gargoyles.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Arc de Triomphe",
+          "venue_type": "Monument",
+          "address": "Place Charles de Gaulle, 75008 Paris, France",
+          "opening_hours": "10:00 AM - 10:30 PM",
+          "phone_number": "+33 1 55 37 73 77",
+          "email": "info@arc-de-triomphe.monuments-nationaux.fr",
+          "description": "Monumental arch honoring those who fought for France.",
+          "tour_info": "Offers panoramic views from the top.",
+          "admission_fee": "\u20ac13"
+        },
+        {
+          "name": "Champs-\u00c9lys\u00e9es",
+          "venue_type": "Avenue",
+          "address": "Champs-\u00c9lys\u00e9es, 75008 Paris, France",
+          "opening_hours": "24 hours",
+          "phone_number": "+33 1 42 89 46 00",
+          "email": "info@champselysees-paris.com",
+          "description": "Famous avenue known for luxury shopping and theaters.",
+          "tour_info": "Connects Place de la Concorde to Arc de Triomphe.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Montmartre",
+          "venue_type": "Historic District",
+          "address": "Montmartre, 75018 Paris, France",
+          "opening_hours": "24 hours",
+          "phone_number": "+33 1 42 62 21 21",
+          "email": "info@montmartre-guide.com",
+          "description": "Historic hilltop district known for artists and Sacr\u00e9-C\u0153ur.",
+          "tour_info": "Famous for its bohemian atmosphere and street artists.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Seine River",
+          "venue_type": "Waterway",
+          "address": "Seine River, Paris, France",
+          "opening_hours": "24 hours",
+          "phone_number": "+33 1 46 33 98 10",
+          "email": "info@bateaux-mouches.fr",
+          "description": "Historic river flowing through the heart of Paris.",
+          "tour_info": "River cruises offer unique views of Paris landmarks.",
+          "admission_fee": "Free"
+        }
+      ]
+    },
+    "16": {
+      "name": "Washington",
+      "venues": [
+        {
+          "name": "Smithsonian National Air and Space Museum",
+          "venue_type": "Museum",
+          "address": "600 Independence Ave SW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-2214",
+          "email": "info@si.edu",
+          "description": "Free admission. Features aviation and space exploration exhibits.",
+          "tour_info": "Home to the Wright Brothers' plane and Apollo 11 command module.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian National Museum of Natural History",
+          "venue_type": "Museum",
+          "address": "10th St. & Constitution Ave. NW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. World's largest natural history collection.",
+          "tour_info": "Features the Hope Diamond and dinosaur fossils.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian National Museum of American History",
+          "venue_type": "Museum",
+          "address": "1300 Constitution Ave. NW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Preserves American heritage and culture.",
+          "tour_info": "Home to the Star-Spangled Banner and Dorothy's ruby slippers.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian National Museum of African American History and Culture",
+          "venue_type": "Museum",
+          "address": "1400 Constitution Ave. NW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Celebrates African American history and culture.",
+          "tour_info": "Features artifacts from slavery to civil rights movement.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian National Museum of the American Indian",
+          "venue_type": "Museum",
+          "address": "4th St. & Independence Ave. SW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Dedicated to Native American history and culture.",
+          "tour_info": "Features contemporary and traditional Native American art.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
+          "venue_type": "Museum",
+          "address": "Independence Ave. SW & 7th St. SW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Modern and contemporary art museum.",
+          "tour_info": "Features outdoor sculpture garden and rotating exhibitions.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian Freer Gallery of Art",
+          "venue_type": "Museum",
+          "address": "Jefferson Dr. SW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Asian art and American art collections.",
+          "tour_info": "Features Whistler's Peacock Room and Asian ceramics.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Smithsonian Arthur M. Sackler Gallery",
+          "venue_type": "Museum",
+          "address": "1050 Independence Ave. SW, Washington, DC 20560",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Asian art museum.",
+          "tour_info": "Connected to Freer Gallery, features ancient and modern Asian art.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "National Gallery of Art",
+          "venue_type": "Museum",
+          "address": "Constitution Ave NW, Washington, DC 20565",
+          "opening_hours": "Mon-Sat: 10:00 AM - 5:00 PM; Sun: 11:00 AM - 6:00 PM",
+          "phone_number": "(202) 737-4215",
+          "email": "info@nga.gov",
+          "description": "Free admission. Houses European and American art collections.",
+          "tour_info": "Features works by Leonardo da Vinci, Van Gogh, and Monet.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "United States Holocaust Memorial Museum",
+          "venue_type": "Museum",
+          "address": "100 Raoul Wallenberg Pl SW, Washington, DC 20024",
+          "opening_hours": "10:00 AM - 5:30 PM",
+          "phone_number": "(202) 488-0400",
+          "email": "info@ushmm.org",
+          "description": "Free admission. Memorial and educational institution.",
+          "tour_info": "Commemorates the Holocaust and educates about genocide prevention.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "International Spy Museum",
+          "venue_type": "Museum",
+          "address": "700 L'Enfant Plaza SW, Washington, DC 20024",
+          "opening_hours": "9:00 AM - 7:00 PM",
+          "phone_number": "(202) 393-7798",
+          "email": "info@spymuseum.org",
+          "description": "Interactive museum about espionage history.",
+          "tour_info": "Features spy artifacts and interactive exhibits.",
+          "admission_fee": "$26.95"
+        },
+        {
+          "name": "Newseum",
+          "venue_type": "Museum",
+          "address": "555 Pennsylvania Ave NW, Washington, DC 20001",
+          "opening_hours": "Currently closed",
+          "phone_number": "(202) 292-6100",
+          "email": "info@newseum.org",
+          "description": "Museum dedicated to news and journalism.",
+          "tour_info": "Features Pulitzer Prize photographs and news history.",
+          "admission_fee": "Closed"
+        },
+        {
+          "name": "Lincoln Memorial",
+          "venue_type": "Monument",
+          "address": "2 Lincoln Memorial Cir NW, Washington, DC 20037",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring Abraham Lincoln.",
+          "tour_info": "Features the famous seated Lincoln statue and Gettysburg Address.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Washington Monument",
+          "venue_type": "Monument",
+          "address": "2 15th St NW, Washington, DC 20024",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Iconic obelisk honoring George Washington.",
+          "tour_info": "Tallest stone structure in the world at 555 feet.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Jefferson Memorial",
+          "venue_type": "Monument",
+          "address": "701 E Basin Dr SW, Washington, DC 20242",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring Thomas Jefferson.",
+          "tour_info": "Features quotes from the Declaration of Independence.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Vietnam Veterans Memorial",
+          "venue_type": "Memorial",
+          "address": "5 Henry Bacon Dr NW, Washington, DC 20007",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring Vietnam War veterans.",
+          "tour_info": "Features the Wall with names of fallen soldiers.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Korean War Veterans Memorial",
+          "venue_type": "Memorial",
+          "address": "900 Ohio Dr SW, Washington, DC 20024",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring Korean War veterans.",
+          "tour_info": "Features 19 stainless steel statues representing soldiers.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "World War II Memorial",
+          "venue_type": "Memorial",
+          "address": "1750 Independence Ave SW, Washington, DC 20024",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring World War II veterans.",
+          "tour_info": "Features 56 pillars representing US states and territories.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Martin Luther King Jr. Memorial",
+          "venue_type": "Memorial",
+          "address": "1964 Independence Ave SW, Washington, DC 20024",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring Dr. Martin Luther King Jr.",
+          "tour_info": "Features the Stone of Hope with King's likeness.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Franklin Delano Roosevelt Memorial",
+          "venue_type": "Memorial",
+          "address": "1850 West Basin Dr SW, Washington, DC 20024",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Memorial honoring President Franklin D. Roosevelt.",
+          "tour_info": "Features four outdoor rooms representing his four terms.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Capitol Building",
+          "venue_type": "Government Building",
+          "address": "First St SE, Washington, DC 20004",
+          "opening_hours": "8:30 AM - 4:30 PM",
+          "phone_number": "(202) 226-8000",
+          "email": "visitor.services@aoc.gov",
+          "description": "Home of the U.S. Congress.",
+          "tour_info": "Free guided tours available by reservation.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "White House",
+          "venue_type": "Government Building",
+          "address": "1600 Pennsylvania Ave NW, Washington, DC 20500",
+          "opening_hours": "Tours by appointment only",
+          "phone_number": "(202) 456-1111",
+          "email": "comments@whitehouse.gov",
+          "description": "Official residence of the U.S. President.",
+          "tour_info": "Public tours available through congressional offices.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Supreme Court",
+          "venue_type": "Government Building",
+          "address": "1 First St NE, Washington, DC 20543",
+          "opening_hours": "9:00 AM - 4:30 PM",
+          "phone_number": "(202) 479-3000",
+          "email": "info@supremecourt.gov",
+          "description": "Highest court in the United States.",
+          "tour_info": "Free guided tours and courtroom lectures available.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Library of Congress",
+          "venue_type": "Library",
+          "address": "101 Independence Ave SE, Washington, DC 20540",
+          "opening_hours": "Mon-Sat: 8:30 AM - 4:30 PM",
+          "phone_number": "(202) 707-5000",
+          "email": "info@loc.gov",
+          "description": "Largest library in the world.",
+          "tour_info": "Free guided tours of the Jefferson Building available.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Georgetown",
+          "venue_type": "Historic District",
+          "address": "Georgetown, Washington, DC 20007",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 298-7800",
+          "email": "info@georgetowndc.com",
+          "description": "Historic waterfront neighborhood.",
+          "tour_info": "Features historic architecture, shopping, and dining.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Capitol Hill",
+          "venue_type": "Historic District",
+          "address": "Capitol Hill, Washington, DC 20003",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 543-8919",
+          "email": "info@capitolhill.org",
+          "description": "Historic neighborhood home to Congress.",
+          "tour_info": "Features historic rowhouses and Eastern Market.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Dupont Circle",
+          "venue_type": "Historic District",
+          "address": "Dupont Circle, Washington, DC 20036",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 833-0180",
+          "email": "info@dupontcircle.org",
+          "description": "Historic neighborhood and traffic circle.",
+          "tour_info": "Features embassies, galleries, and restaurants.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "National Mall",
+          "venue_type": "Park",
+          "address": "National Mall, Washington, DC 20024",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Historic park connecting monuments and museums.",
+          "tour_info": "Two-mile stretch from Capitol to Lincoln Memorial.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Tidal Basin",
+          "venue_type": "Park",
+          "address": "Tidal Basin, Washington, DC 20024",
+          "opening_hours": "24 hours",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Man-made reservoir surrounded by cherry trees.",
+          "tour_info": "Famous for cherry blossom season in spring.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Rock Creek Park",
+          "venue_type": "Park",
+          "address": "Rock Creek Park, Washington, DC 20008",
+          "opening_hours": "6:00 AM - 10:00 PM",
+          "phone_number": "(202) 426-6841",
+          "email": "info@nps.gov",
+          "description": "Large urban park with hiking trails and nature center.",
+          "tour_info": "Features the National Zoo and planetarium.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "National Zoo",
+          "venue_type": "Zoo",
+          "address": "3001 Connecticut Ave NW, Washington, DC 20008",
+          "opening_hours": "8:00 AM - 6:00 PM",
+          "phone_number": "(202) 633-1000",
+          "email": "info@si.edu",
+          "description": "Free admission. Smithsonian's National Zoo.",
+          "tour_info": "Home to giant pandas and over 2,700 animals.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Kennedy Center",
+          "venue_type": "Performing Arts Center",
+          "address": "2700 F St NW, Washington, DC 20566",
+          "opening_hours": "10:00 AM - 9:00 PM",
+          "phone_number": "(202) 467-4600",
+          "email": "info@kennedy-center.org",
+          "description": "Premier performing arts center.",
+          "tour_info": "Home to the National Symphony Orchestra and Washington National Opera.",
+          "admission_fee": "Varies by performance"
+        },
+        {
+          "name": "Ford's Theatre",
+          "venue_type": "Theater",
+          "address": "511 10th St NW, Washington, DC 20004",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(202) 347-4833",
+          "email": "info@fords.org",
+          "description": "Historic theater where Lincoln was assassinated.",
+          "tour_info": "Features museum, theater performances, and Petersen House.",
+          "admission_fee": "$3"
+        },
+        {
+          "name": "Arena Stage",
+          "venue_type": "Theater",
+          "address": "1101 6th St SW, Washington, DC 20024",
+          "opening_hours": "Varies by performance",
+          "phone_number": "(202) 488-3300",
+          "email": "info@arenastage.org",
+          "description": "Regional theater company.",
+          "tour_info": "Produces contemporary and classic American plays.",
+          "admission_fee": "Varies by performance"
+        }
+      ]
+    },
+    "17": {
+      "name": "Baltimore",
+      "venues": [
+        {
+          "name": "Baltimore Museum of Art",
+          "venue_type": "Museum",
+          "address": "10 Art Museum Dr, Baltimore, MD 21218",
+          "opening_hours": "Wed-Sun: 10:00 AM - 5:00 PM",
+          "phone_number": "(410) 396-7100",
+          "email": "info@artbma.org",
+          "description": "Free admission. Features contemporary and modern art collections.",
+          "tour_info": "Home to the Cone Collection of Matisse and Picasso works.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Walters Art Museum",
+          "venue_type": "Museum",
+          "address": "600 N Charles St, Baltimore, MD 21201",
+          "opening_hours": "Wed-Sun: 10:00 AM - 5:00 PM",
+          "phone_number": "(410) 547-9000",
+          "email": "info@thewalters.org",
+          "description": "Free admission. Comprehensive art collection spanning 55 centuries.",
+          "tour_info": "Features ancient Egyptian, Greek, and Roman art.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Fort McHenry National Monument",
+          "venue_type": "Historic Site",
+          "address": "2400 E Fort Ave, Baltimore, MD 21230",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(410) 962-4290",
+          "email": "fomc_interpretation@nps.gov",
+          "description": "Birthplace of the Star-Spangled Banner.",
+          "tour_info": "Historic fort that defended Baltimore during the War of 1812.",
+          "admission_fee": "$15"
+        },
+        {
+          "name": "Inner Harbor",
+          "venue_type": "Waterfront",
+          "address": "Inner Harbor, Baltimore, MD 21202",
+          "opening_hours": "24 hours",
+          "phone_number": "(410) 837-4636",
+          "email": "info@baltimore.org",
+          "description": "Historic waterfront district with shops, restaurants, and attractions.",
+          "tour_info": "Home to the National Aquarium and historic ships.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "National Aquarium",
+          "venue_type": "Aquarium",
+          "address": "501 E Pratt St, Baltimore, MD 21202",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(410) 576-3800",
+          "email": "info@aqua.org",
+          "description": "One of the nation's premier aquariums.",
+          "tour_info": "Features over 20,000 animals in award-winning exhibits.",
+          "admission_fee": "$39.95"
+        }
+      ]
+    },
+    "18": {
+      "name": "Philadelphia",
+      "venues": [
+        {
+          "name": "Philadelphia Museum of Art",
+          "venue_type": "Museum",
+          "address": "2600 Benjamin Franklin Pkwy, Philadelphia, PA 19130",
+          "opening_hours": "Tue-Sun: 10:00 AM - 5:00 PM",
+          "phone_number": "(215) 763-8100",
+          "email": "info@philamuseum.org",
+          "description": "One of the largest art museums in the United States.",
+          "tour_info": "Famous for the Rocky Steps and extensive art collections.",
+          "admission_fee": "$25"
+        },
+        {
+          "name": "Independence Hall",
+          "venue_type": "Historic Site",
+          "address": "520 Chestnut St, Philadelphia, PA 19106",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(215) 965-2305",
+          "email": "independence_hall@nps.gov",
+          "description": "Birthplace of American independence.",
+          "tour_info": "Where the Declaration of Independence and Constitution were signed.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Liberty Bell Center",
+          "venue_type": "Historic Site",
+          "address": "526 Market St, Philadelphia, PA 19106",
+          "opening_hours": "9:00 AM - 5:00 PM",
+          "phone_number": "(215) 965-2305",
+          "email": "liberty_bell@nps.gov",
+          "description": "Home of the iconic Liberty Bell.",
+          "tour_info": "Symbol of American freedom and independence.",
+          "admission_fee": "Free"
+        },
+        {
+          "name": "Franklin Institute",
+          "venue_type": "Science Museum",
+          "address": "222 N 20th St, Philadelphia, PA 19103",
+          "opening_hours": "9:30 AM - 5:00 PM",
+          "phone_number": "(215) 448-1200",
+          "email": "info@fi.edu",
+          "description": "Premier science museum and educational center.",
+          "tour_info": "Features interactive exhibits and the famous Giant Heart.",
+          "admission_fee": "$23"
+        },
+        {
+          "name": "Reading Terminal Market",
+          "venue_type": "Market",
+          "address": "51 N 12th St, Philadelphia, PA 19107",
+          "opening_hours": "8:00 AM - 6:00 PM",
+          "phone_number": "(215) 922-2317",
+          "email": "info@readingterminalmarket.org",
+          "description": "Historic public market with diverse food vendors.",
+          "tour_info": "One of America's oldest and largest public markets.",
+          "admission_fee": "Free"
+        }
+      ]
+    }
+  }
+}

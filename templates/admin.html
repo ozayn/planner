@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Event Planner</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+            color: #495057;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .header p {
+            opacity: 0.7;
+            font-size: 1rem;
+        }
+
+        .nav {
+            background: white;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav button {
+            background: transparent;
+            color: #6b7280;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav button:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .nav button.active {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .data-section {
+            display: none;
+        }
+
+        .data-section.active {
+            display: block;
+        }
+
+        .data-section h2 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 20px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1d4ed8;
+            margin-bottom: 4px;
+        }
+
+        .stat-card p {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        /* Search and Filter Controls */
+        .search-controls {
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .filter-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .filter-button:hover {
+            background: #2563eb;
+        }
+
+        .clear-filters {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .clear-filters:hover {
+            background: #4b5563;
+        }
+
+        .add-button {
+            background: #16a34a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .add-button:hover {
+            background: #15803d;
+        }
+
+        .filter-summary {
+            background: #e0f2fe;
+            border: 1px solid #81d4fa;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: #0277bd;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .filter-summary.active {
+            display: block;
+        }
+
+        .filter-tag {
+            background: #3b82f6;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 4px;
+            display: inline-block;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .scroll-hint {
+            background: #f3f4f6;
+            color: #6b7280;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.8rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            color: #374151;
+            font-weight: 600;
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: top;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .data-table tr.hidden {
+            display: none;
+        }
+
+        .badge {
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.zero {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge.high {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        /* Action Buttons */
+        .edit-btn, .delete-btn {
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0 2px;
+            transition: background-color 0.2s ease;
+        }
+
+        .edit-btn:hover {
+            background: #dbeafe;
+        }
+
+        .delete-btn:hover {
+            background: #fee2e2;
+        }
+
+        /* Loading States */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* No Results Message */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: black;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .search-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                min-width: auto;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ Event Planner Admin Dashboard</h1>
+            <p>Complete management interface for Cities and Venues</p>
+        </div>
+
+        <div class="nav">
+            <button onclick="showSection('overview')" class="nav-btn active" id="nav-overview">📊 Overview</button>
+            <button onclick="showSection('cities')" class="nav-btn" id="nav-cities">🏙️ Cities</button>
+            <button onclick="showSection('venues')" class="nav-btn" id="nav-venues">🏛️ Venues</button>
+            <button onclick="showSection('events')" class="nav-btn" id="nav-events">🎭 Events</button>
+        </div>
+
+        <div class="content">
+            <!-- Overview Section -->
+            <div id="overview" class="data-section active">
+                <h2>📊 System Overview</h2>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="loading">Loading statistics...</div>
+                </div>
+            </div>
+
+            <!-- Cities Section -->
+            <div id="cities" class="data-section">
+                <h2>🏙️ Cities Management</h2>
+                
+                <!-- Search and Filter Controls -->
+                <div class="search-controls">
+                    <input type="text" id="citySearch" class="search-input" placeholder="🔍 Search cities...">
+                    <select id="cityCountryFilter" class="filter-select">
+                        <option value="">All Countries</option>
+                    </select>
+                    <select id="cityVenueFilter" class="filter-select">
+                        <option value="">All Venue Counts</option>
+                        <option value="0">None (0)</option>
+                        <option value="1-4">Few (1-4)</option>
+                        <option value="5+">Many (5+)</option>
+                    </select>
+                    <button onclick="applyCityFilters()" class="filter-button">🔍 Filter</button>
+                    <button onclick="clearCityFilters()" class="clear-filters">🗑️ Clear</button>
+                    <button onclick="openAddCityModal()" class="add-button">➕ Add City</button>
+                        </div>
+
+                <div id="cityFilterSummary" class="filter-summary"></div>
+                
+                <div class="table-container">
+                    <div class="scroll-hint">← Scroll horizontally and vertically to see all data →</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>State</th>
+                                <th>Country</th>
+                                <th>Timezone</th>
+                                <th>Display Name</th>
+                                <th>Venues</th>
+                                <th>Events</th>
+                                <th>Created</th>
+                                <th>Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="citiesTable">
+                            <tr><td colspan="11" class="loading">Loading cities...</td></tr>
+                        </tbody>
+                    </table>
+                        </div>
+            </div>
+
+            <!-- Venues Section -->
+            <div id="venues" class="data-section">
+                <h2>🏛️ Venues Management</h2>
+                
+                <!-- Search and Filter Controls -->
+                <div class="search-controls">
+                    <input type="text" id="venueSearch" class="search-input" placeholder="🔍 Search venues...">
+                    <select id="venueTypeFilter" class="filter-select">
+                        <option value="">All Types</option>
+                            </select>
+                    <select id="venueCityFilter" class="filter-select">
+                        <option value="">All Cities</option>
+                            </select>
+                    <select id="venueFeeFilter" class="filter-select">
+                        <option value="">All Admission Fees</option>
+                        <option value="free">Free Admission</option>
+                        <option value="paid">Paid Admission</option>
+                    </select>
+                    <button onclick="applyVenueFilters()" class="filter-button">🔍 Filter</button>
+                    <button onclick="clearVenueFilters()" class="clear-filters">🗑️ Clear</button>
+                    <button onclick="openAddVenueModal()" class="add-button">➕ Add Venue</button>
+                        </div>
+
+                <div id="venueFilterSummary" class="filter-summary"></div>
+                
+                <div class="table-container">
+                    <div class="scroll-hint">← Scroll horizontally and vertically to see all data →</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <!-- Headers will be dynamically generated -->
+                            </tr>
+                        </thead>
+                        <tbody id="venuesTable">
+                            <tr><td colspan="20" class="loading">Loading venues...</td></tr>
+                        </tbody>
+                    </table>
+                        </div>
+            </div>
+
+            <!-- Events Section -->
+            <div id="events" class="data-section">
+                <h2>🎭 Events Management</h2>
+                
+                <!-- Search and Filter Controls -->
+                <div class="search-controls">
+                    <input type="text" id="eventSearch" class="search-input" placeholder="🔍 Search events...">
+                    <select id="eventTypeFilter" class="filter-select">
+                        <option value="">All Types</option>
+                    </select>
+                    <select id="eventVenueFilter" class="filter-select">
+                        <option value="">All Venues</option>
+                    </select>
+                    <button onclick="applyEventFilters()" class="filter-button">🔍 Filter</button>
+                    <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
+                    <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
+                </div>
+
+                <div id="eventFilterSummary" class="filter-summary"></div>
+                
+                <div class="table-container">
+                    <div class="scroll-hint">← Scroll horizontally and vertically to see all data →</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Venue</th>
+                                <th>Start Date</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Description</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTable">
+                            <tr><td colspan="10" class="loading">Loading events...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+    <!-- Add City Modal -->
+    <div id="addCityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New City</h3>
+                <span class="close" onclick="closeModal('addCityModal')">&times;</span>
+                        </div>
+            <form id="addCityForm">
+                <div class="form-group">
+                    <label for="cityName">City Name *</label>
+                    <input type="text" id="cityName" required>
+                        </div>
+                <div class="form-group">
+                    <label for="cityState">State/Province</label>
+                    <input type="text" id="cityState">
+                        </div>
+                <div class="form-group">
+                    <label for="cityCountry">Country *</label>
+                    <input type="text" id="cityCountry" required>
+                        </div>
+                <div class="form-group">
+                    <label for="cityTimezone">Timezone</label>
+                    <input type="text" id="cityTimezone" placeholder="e.g., America/New_York">
+                        </div>
+                <div class="form-group">
+                    <label for="cityDisplayName">Display Name</label>
+                    <input type="text" id="cityDisplayName">
+                        </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addCityModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add City</button>
+                        </div>
+            </form>
+                        </div>
+                        </div>
+                        
+    <!-- Add Venue Modal -->
+    <div id="addVenueModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Venue</h3>
+                <span class="close" onclick="closeModal('addVenueModal')">&times;</span>
+                        </div>
+            <form id="addVenueForm">
+                <div class="form-group">
+                    <label for="venueName">Venue Name *</label>
+                    <input type="text" id="venueName" required>
+                        </div>
+                <div class="form-group">
+                    <label for="venueType">Venue Type *</label>
+                    <select id="venueType" required>
+                        <option value="">Select Type</option>
+                        <option value="Museum">Museum</option>
+                        <option value="Gallery">Gallery</option>
+                        <option value="Theater">Theater</option>
+                        <option value="Concert Hall">Concert Hall</option>
+                        <option value="Park">Park</option>
+                        <option value="Landmark">Landmark</option>
+                        <option value="Cultural Center">Cultural Center</option>
+                        <option value="Other">Other</option>
+                    </select>
+                        </div>
+                <div class="form-group">
+                    <label for="venueCity">City *</label>
+                    <select id="venueCity" required>
+                        <option value="">Select City</option>
+                            </select>
+                        </div>
+                <div class="form-group">
+                    <label for="venueAddress">Address</label>
+                    <input type="text" id="venueAddress">
+                        </div>
+                <div class="form-group">
+                    <label for="venueHours">Opening Hours</label>
+                    <input type="text" id="venueHours" placeholder="e.g., 10:00 AM - 5:00 PM">
+                        </div>
+                <div class="form-group">
+                    <label for="venuePhone">Phone Number</label>
+                    <input type="text" id="venuePhone">
+                        </div>
+                <div class="form-group">
+                    <label for="venueEmail">Email</label>
+                    <input type="email" id="venueEmail">
+                        </div>
+                <div class="form-group">
+                    <label for="venueWebsite">Website URL</label>
+                    <input type="url" id="venueWebsite">
+                        </div>
+                <div class="form-group">
+                    <label for="venueAdmission">Admission Fee</label>
+                    <input type="text" id="venueAdmission" placeholder="e.g., Free, $10, $15-25">
+                        </div>
+                <div class="form-group">
+                    <label for="venueDescription">Description</label>
+                    <textarea id="venueDescription" rows="3" placeholder="Brief description of the venue..."></textarea>
+                        </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addVenueModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Venue</button>
+                        </div>
+                    </form>
+        </div>
+    </div>
+
+    <script>
+        console.log('Minimal script test - starting...');
+        
+        // Simple test function
+        async function loadOverview() {
+            try {
+                console.log('Loading overview statistics...');
+                const statsGrid = document.getElementById('statsGrid');
+                
+                if (!statsGrid) {
+                    console.error('statsGrid element not found!');
+                    return;
+                }
+                
+                const response = await fetch('/api/admin/stats');
+                const stats = await response.json();
+                
+                statsGrid.innerHTML = 
+                    '<div class="stat-card">' +
+                        '<h3>' + stats.cities + '</h3>' +
+                        '<p>🏙️ Cities</p>' +
+                    '</div>' +
+                    '<div class="stat-card">' +
+                        '<h3>' + stats.venues + '</h3>' +
+                        '<p>🏛️ Venues</p>' +
+                    '</div>' +
+                    '<div class="stat-card">' +
+                        '<h3>' + stats.events + '</h3>' +
+                        '<p>🎭 Events</p>' +
+                    '</div>';
+                
+                console.log('Statistics loaded successfully');
+            } catch (error) {
+                console.error('Error loading overview:', error);
+                const statsGrid = document.getElementById('statsGrid');
+                if (statsGrid) {
+                    statsGrid.innerHTML = '<div class="no-results">❌ Failed to load statistics: ' + error.message + '</div>';
+                }
+            }
+        }
+        
+        // Navigation functions
+        function showSection(sectionName) {
+            console.log('Switching to section:', sectionName);
+            
+            // Hide all sections
+            document.querySelectorAll('.data-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName).classList.add('active');
+            document.getElementById('nav-' + sectionName).classList.add('active');
+            
+            // Load data for the section
+            switch(sectionName) {
+                case 'overview':
+                    loadOverview();
+                    break;
+                case 'cities':
+                    loadCities();
+                    break;
+                case 'venues':
+                    loadVenues();
+                    break;
+                case 'events':
+                    loadEvents();
+                    break;
+            }
+            
+            console.log('Section switched successfully');
+        }
+        
+        // Load cities data
+        async function loadCities() {
+            try {
+                console.log('Loading cities...');
+                const response = await fetch('/api/admin/cities');
+                const cities = await response.json();
+                
+                if (cities.error) throw new Error(cities.error);
+                
+                console.log('Cities loaded:', cities.length);
+                
+                // Store cities globally for filtering
+                window.allCities = cities;
+                window.filteredCities = [...cities];
+                
+                // Render the cities table
+                renderCitiesTable();
+                populateCityFilters();
+                
+            } catch (error) {
+                console.error('Error loading cities:', error);
+                const citiesTable = document.getElementById('citiesTable');
+                if (citiesTable) {
+                    citiesTable.innerHTML = '<tr><td colspan="11" class="no-results">❌ Failed to load cities: ' + error.message + '</td></tr>';
+                }
+            }
+        }
+        
+        // Render cities table dynamically
+        function renderCitiesTable() {
+            const tableBody = document.getElementById('citiesTable');
+            if (!tableBody) return;
+            
+            if (!window.filteredCities || window.filteredCities.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="11" class="no-results">🔍 No cities match your filters</td></tr>';
+                return;
+            }
+            
+            // Get the first city to determine available fields dynamically
+            const sampleCity = window.filteredCities[0];
+            const availableFields = Object.keys(sampleCity);
+            
+            tableBody.innerHTML = window.filteredCities.map(city => {
+                let row = '<tr id="city-row-' + city.id + '">';
+                
+                // Always include ID
+                row += '<td>' + city.id + '</td>';
+                
+                // Include all available fields dynamically
+                if (availableFields.includes('name')) {
+                    row += '<td><strong>' + (city.name || 'N/A') + '</strong></td>';
+                }
+                if (availableFields.includes('state')) {
+                    row += '<td>' + (city.state || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('country')) {
+                    row += '<td>' + (city.country || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('timezone')) {
+                    row += '<td>' + (city.timezone || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('display_name')) {
+                    row += '<td>' + (city.display_name || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('venue_count')) {
+                    const venueCount = city.venue_count || 0;
+                    const badgeClass = venueCount === 0 ? 'zero' : venueCount >= 5 ? 'high' : '';
+                    row += '<td><span class="badge ' + badgeClass + '">' + venueCount + '</span></td>';
+                }
+                if (availableFields.includes('event_count')) {
+                    const eventCount = city.event_count || 0;
+                    const badgeClass = eventCount === 0 ? 'zero' : eventCount >= 5 ? 'high' : '';
+                    row += '<td><span class="badge ' + badgeClass + '">' + eventCount + '</span></td>';
+                }
+                if (availableFields.includes('created_at')) {
+                    row += '<td>' + (city.created_at ? new Date(city.created_at).toLocaleDateString() : 'N/A') + '</td>';
+                }
+                if (availableFields.includes('updated_at')) {
+                    row += '<td>' + (city.updated_at ? new Date(city.updated_at).toLocaleDateString() : 'N/A') + '</td>';
+                }
+                
+                // Always include actions
+                row += '<td>' +
+                    '<button onclick="editCity(' + city.id + ')" class="edit-btn">✏️</button>' +
+                    '<button onclick="deleteCity(' + city.id + ')" class="delete-btn">🗑️</button>' +
+                '</td>';
+                
+                row += '</tr>';
+                return row;
+            }).join('');
+        }
+        
+        // Populate city filters
+        function populateCityFilters() {
+            const countryFilter = document.getElementById('cityCountryFilter');
+            if (!countryFilter || !window.allCities) return;
+            
+            const countries = [...new Set(window.allCities.map(city => city.country).filter(Boolean))].sort();
+            
+            countryFilter.innerHTML = '<option value="">All Countries</option>';
+            countries.forEach(country => {
+                countryFilter.innerHTML += '<option value="' + country + '">' + country + '</option>';
+            });
+        }
+        
+        // City filter functions
+        function applyCityFilters() {
+            if (!window.allCities) return;
+            
+            const searchTerm = document.getElementById('citySearch').value.toLowerCase();
+            const countryFilter = document.getElementById('cityCountryFilter').value;
+            const venueFilter = document.getElementById('cityVenueFilter').value;
+            
+            window.filteredCities = window.allCities.filter(city => {
+                const matchesSearch = !searchTerm || 
+                    city.name.toLowerCase().includes(searchTerm) ||
+                    (city.state && city.state.toLowerCase().includes(searchTerm)) ||
+                    city.country.toLowerCase().includes(searchTerm);
+                
+                const matchesCountry = !countryFilter || city.country === countryFilter;
+                
+                const matchesVenue = !venueFilter || (() => {
+                    const count = city.venue_count || 0;
+                    switch (venueFilter) {
+                        case '0': return count === 0;
+                        case '1-4': return count >= 1 && count <= 4;
+                        case '5+': return count >= 5;
+                        default: return true;
+                    }
+                })();
+                
+                return matchesSearch && matchesCountry && matchesVenue;
+            });
+            
+            renderCitiesTable();
+        }
+        
+        function clearCityFilters() {
+            document.getElementById('citySearch').value = '';
+            document.getElementById('cityCountryFilter').value = '';
+            document.getElementById('cityVenueFilter').value = '';
+            
+            if (window.allCities) {
+                window.filteredCities = [...window.allCities];
+                renderCitiesTable();
+            }
+        }
+        
+        function openAddCityModal() {
+            document.getElementById('addCityModal').style.display = 'block';
+            // Clear form
+            document.getElementById('addCityForm').reset();
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        function editCity(id) {
+            alert('Edit City functionality will be implemented here for city ID: ' + id);
+        }
+        
+        function deleteCity(id) {
+            if (confirm('Are you sure you want to delete this city?')) {
+                alert('Delete City functionality will be implemented here for city ID: ' + id);
+            }
+        }
+        
+        // Load venues data
+        async function loadVenues() {
+            try {
+                console.log('Loading venues...');
+                const response = await fetch('/api/admin/venues');
+                const venues = await response.json();
+                
+                if (venues.error) throw new Error(venues.error);
+                
+                console.log('Venues loaded:', venues.length);
+                
+                // Store venues globally for filtering
+                window.allVenues = venues;
+                window.filteredVenues = [...venues];
+                
+                // Render the venues table
+                renderVenuesTable();
+                populateVenueFilters();
+                
+            } catch (error) {
+                console.error('Error loading venues:', error);
+                const venuesTable = document.getElementById('venuesTable');
+                if (venuesTable) {
+                    venuesTable.innerHTML = '<tr><td colspan="20" class="no-results">❌ Failed to load venues: ' + error.message + '</td></tr>';
+                }
+            }
+        }
+        
+        // Render venues table dynamically
+        function renderVenuesTable() {
+            const tableBody = document.getElementById('venuesTable');
+            if (!tableBody) return;
+            
+            if (!window.filteredVenues || window.filteredVenues.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="20" class="no-results">🔍 No venues match your filters</td></tr>';
+                return;
+            }
+            
+            // Get the first venue to determine available fields dynamically
+            const sampleVenue = window.filteredVenues[0];
+            const availableFields = Object.keys(sampleVenue);
+            
+            tableBody.innerHTML = window.filteredVenues.map(venue => {
+                let row = '<tr id="venue-row-' + venue.id + '">';
+                
+                // Always include ID
+                row += '<td>' + venue.id + '</td>';
+                
+                // Include all available fields dynamically
+                if (availableFields.includes('name')) {
+                    row += '<td><strong>' + (venue.name || 'N/A') + '</strong></td>';
+                }
+                if (availableFields.includes('venue_type')) {
+                    row += '<td><span class="badge">' + (venue.venue_type || 'N/A') + '</span></td>';
+                }
+                if (availableFields.includes('city_name')) {
+                    row += '<td>' + (venue.city_name || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('address')) {
+                    row += '<td>' + (venue.address || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('opening_hours')) {
+                    row += '<td>' + (venue.opening_hours || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('phone_number')) {
+                    row += '<td>' + (venue.phone_number || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('email')) {
+                    row += '<td>' + (venue.email || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('website_url')) {
+                    row += '<td>' + (venue.website_url ? '<a href="' + venue.website_url + '" target="_blank">Website</a>' : 'N/A') + '</td>';
+                }
+                if (availableFields.includes('admission_fee')) {
+                    row += '<td>' + (venue.admission_fee || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('description')) {
+                    row += '<td>' + (venue.description || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('created_at')) {
+                    row += '<td>' + (venue.created_at ? new Date(venue.created_at).toLocaleDateString() : 'N/A') + '</td>';
+                }
+                if (availableFields.includes('updated_at')) {
+                    row += '<td>' + (venue.updated_at ? new Date(venue.updated_at).toLocaleDateString() : 'N/A') + '</td>';
+                }
+                
+                // Always include actions
+                row += '<td>' +
+                    '<button onclick="editVenue(' + venue.id + ')" class="edit-btn">✏️</button>' +
+                    '<button onclick="deleteVenue(' + venue.id + ')" class="delete-btn">🗑️</button>' +
+                '</td>';
+                
+                row += '</tr>';
+                return row;
+            }).join('');
+        }
+        
+        // Populate venue filters
+        function populateVenueFilters() {
+            const typeFilter = document.getElementById('venueTypeFilter');
+            const cityFilter = document.getElementById('venueCityFilter');
+            
+            if (!typeFilter || !cityFilter || !window.allVenues) return;
+            
+            const types = [...new Set(window.allVenues.map(venue => venue.venue_type).filter(Boolean))].sort();
+            const cities = [...new Set(window.allVenues.map(venue => venue.city_name).filter(Boolean))].sort();
+            
+            typeFilter.innerHTML = '<option value="">All Types</option>';
+            types.forEach(type => {
+                typeFilter.innerHTML += '<option value="' + type + '">' + type + '</option>';
+            });
+            
+            cityFilter.innerHTML = '<option value="">All Cities</option>';
+            cities.forEach(city => {
+                cityFilter.innerHTML += '<option value="' + city + '">' + city + '</option>';
+            });
+        }
+        
+        // Venue filter functions
+        function applyVenueFilters() {
+            if (!window.allVenues) return;
+            
+            const searchTerm = document.getElementById('venueSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('venueTypeFilter').value;
+            const cityFilter = document.getElementById('venueCityFilter').value;
+            
+            window.filteredVenues = window.allVenues.filter(venue => {
+                const matchesSearch = !searchTerm || 
+                    venue.name.toLowerCase().includes(searchTerm) ||
+                    (venue.venue_type && venue.venue_type.toLowerCase().includes(searchTerm)) ||
+                    (venue.address && venue.address.toLowerCase().includes(searchTerm)) ||
+                    (venue.description && venue.description.toLowerCase().includes(searchTerm));
+                
+                const matchesType = !typeFilter || venue.venue_type === typeFilter;
+                const matchesCity = !cityFilter || venue.city_name === cityFilter;
+                
+                return matchesSearch && matchesType && matchesCity;
+            });
+            
+            renderVenuesTable();
+        }
+        
+        function clearVenueFilters() {
+            document.getElementById('venueSearch').value = '';
+            document.getElementById('venueTypeFilter').value = '';
+            document.getElementById('venueCityFilter').value = '';
+            
+            if (window.allVenues) {
+                window.filteredVenues = [...window.allVenues];
+                renderVenuesTable();
+            }
+        }
+        
+        function openAddVenueModal() {
+            alert('Add Venue functionality will be implemented here');
+        }
+        
+        function editVenue(id) {
+            alert('Edit Venue functionality will be implemented here for venue ID: ' + id);
+        }
+        
+        function deleteVenue(id) {
+            if (confirm('Are you sure you want to delete this venue?')) {
+                alert('Delete Venue functionality will be implemented here for venue ID: ' + id);
+            }
+        }
+        
+        // Load events data
+        async function loadEvents() {
+            try {
+                console.log('Loading events...');
+                const response = await fetch('/api/admin/events');
+                const events = await response.json();
+                
+                if (events.error) throw new Error(events.error);
+                
+                console.log('Events loaded:', events.length);
+                
+                // Store events globally for filtering
+                window.allEvents = events;
+                window.filteredEvents = [...events];
+                
+                // Render the events table
+                renderEventsTable();
+                populateEventFilters();
+                
+            } catch (error) {
+                console.error('Error loading events:', error);
+                const eventsTable = document.getElementById('eventsTable');
+                if (eventsTable) {
+                    eventsTable.innerHTML = '<tr><td colspan="10" class="no-results">❌ Failed to load events: ' + error.message + '</td></tr>';
+                }
+            }
+        }
+        
+        // Render events table dynamically
+        function renderEventsTable() {
+            const tableBody = document.getElementById('eventsTable');
+            if (!tableBody) return;
+            
+            if (!window.filteredEvents || window.filteredEvents.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="10" class="no-results">🔍 No events found</td></tr>';
+                return;
+            }
+            
+            // Get the first event to determine available fields dynamically
+            const sampleEvent = window.filteredEvents[0];
+            const availableFields = Object.keys(sampleEvent);
+            
+            tableBody.innerHTML = window.filteredEvents.map(event => {
+                let row = '<tr id="event-row-' + event.id + '">';
+                
+                // Always include ID
+                row += '<td>' + event.id + '</td>';
+                
+                // Include all available fields dynamically
+                if (availableFields.includes('title')) {
+                    row += '<td><strong>' + (event.title || 'N/A') + '</strong></td>';
+                }
+                if (availableFields.includes('event_type')) {
+                    row += '<td>' + (event.event_type || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('venue_name')) {
+                    row += '<td>' + (event.venue_name || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('start_date')) {
+                    row += '<td>' + (event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A') + '</td>';
+                }
+                if (availableFields.includes('start_time')) {
+                    row += '<td>' + (event.start_time || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('end_time')) {
+                    row += '<td>' + (event.end_time || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('description')) {
+                    row += '<td>' + (event.description || 'N/A') + '</td>';
+                }
+                if (availableFields.includes('created_at')) {
+                    row += '<td>' + (event.created_at ? new Date(event.created_at).toLocaleDateString() : 'N/A') + '</td>';
+                }
+                
+                // Always include actions
+                row += '<td>' +
+                    '<button onclick="editEvent(' + event.id + ')" class="edit-btn">✏️</button>' +
+                    '<button onclick="deleteEvent(' + event.id + ')" class="delete-btn">🗑️</button>' +
+                '</td>';
+                
+                row += '</tr>';
+                return row;
+            }).join('');
+        }
+        
+        function editEvent(id) {
+            alert('Edit Event functionality will be implemented here for event ID: ' + id);
+        }
+        
+        function deleteEvent(id) {
+            if (confirm('Are you sure you want to delete this event?')) {
+                alert('Delete Event functionality will be implemented here for event ID: ' + id);
+            }
+        }
+        
+        // Event filter functions
+        function applyEventFilters() {
+            if (!window.allEvents) return;
+            
+            const searchTerm = document.getElementById('eventSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('eventTypeFilter').value;
+            const venueFilter = document.getElementById('eventVenueFilter').value;
+            
+            window.filteredEvents = window.allEvents.filter(event => {
+                const matchesSearch = !searchTerm || 
+                    event.title.toLowerCase().includes(searchTerm) ||
+                    (event.event_type && event.event_type.toLowerCase().includes(searchTerm)) ||
+                    (event.description && event.description.toLowerCase().includes(searchTerm));
+                
+                const matchesType = !typeFilter || event.event_type === typeFilter;
+                const matchesVenue = !venueFilter || event.venue_name === venueFilter;
+                
+                return matchesSearch && matchesType && matchesVenue;
+            });
+            
+            renderEventsTable();
+        }
+        
+        function clearEventFilters() {
+            document.getElementById('eventSearch').value = '';
+            document.getElementById('eventTypeFilter').value = '';
+            document.getElementById('eventVenueFilter').value = '';
+            
+            if (window.allEvents) {
+                window.filteredEvents = [...window.allEvents];
+                renderEventsTable();
+            }
+        }
+        
+        function openAddEventModal() {
+            alert('Add Event functionality will be implemented here');
+        }
+        
+        // Populate event filters
+        function populateEventFilters() {
+            const typeFilter = document.getElementById('eventTypeFilter');
+            const venueFilter = document.getElementById('eventVenueFilter');
+            
+            if (!typeFilter || !venueFilter || !window.allEvents) return;
+            
+            const types = [...new Set(window.allEvents.map(event => event.event_type).filter(Boolean))].sort();
+            const venues = [...new Set(window.allEvents.map(event => event.venue_name).filter(Boolean))].sort();
+            
+            typeFilter.innerHTML = '<option value="">All Types</option>';
+            types.forEach(type => {
+                typeFilter.innerHTML += '<option value="' + type + '">' + type + '</option>';
+            });
+            
+            venueFilter.innerHTML = '<option value="">All Venues</option>';
+            venues.forEach(venue => {
+                venueFilter.innerHTML += '<option value="' + venue + '">' + venue + '</option>';
+            });
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, calling loadOverview...');
+            loadOverview();
+            
+            // Add form submission handlers
+            const addCityForm = document.getElementById('addCityForm');
+            if (addCityForm) {
+                addCityForm.addEventListener('submit', handleAddCity);
+            }
+        });
+        
+        // Handle add city form submission
+        async function handleAddCity(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('cityName').value.trim(),
+                state: document.getElementById('cityState').value.trim(),
+                country: document.getElementById('cityCountry').value.trim(),
+                timezone: document.getElementById('cityTimezone').value.trim()
+            };
+            
+            // Validate required fields
+            if (!formData.name || !formData.country) {
+                alert('City name and country are required');
+                return;
+            }
+            
+            try {
+                console.log('Adding city:', formData);
+                
+                const response = await fetch('/api/admin/add-city', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    console.log('City added successfully:', result);
+                    alert('City added successfully!');
+                    
+                    // Close modal
+                    closeModal('addCityModal');
+                    
+                    // Reload cities data
+                    await loadCities();
+                    
+                } else {
+                    console.error('Error adding city:', result);
+                    alert('Error adding city: ' + (result.error || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                console.error('Error adding city:', error);
+                alert('Error adding city: ' + error.message);
+            }
+        }
+        
+        console.log('Minimal script test - loaded');
+    </script>
+</body>
+</html>

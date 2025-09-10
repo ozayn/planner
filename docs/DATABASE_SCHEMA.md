@@ -1,263 +1,141 @@
-# Database Schema Visualization
+# Database Schema
 
-## Entity Relationship Diagram
+*Last updated: 2025-01-09T23:30:00.000000*
 
-```mermaid
-erDiagram
-    CITIES {
-        int id PK
-        string name
-        string state
-        string country
-        string timezone
-        string country_code
-        decimal latitude
-        decimal longitude
-        boolean is_active
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    VENUES {
-        int id PK
-        string name
-        string venue_type
-        text address
-        decimal latitude
-        decimal longitude
-        string image_url
-        string instagram_url
-        string website_url
-        text description
-        int city_id FK
-        boolean is_active
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    EVENTS {
-        int id PK
-        string title
-        text description
-        date start_date
-        date end_date
-        time start_time
-        time end_time
-        string image_url
-        string url
-        boolean is_selected
-        string event_type
-        string status
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    TOURS {
-        int id PK,FK
-        int venue_id FK
-        string meeting_location
-        string tour_type
-        int max_participants
-        decimal price
-        string language
-        string difficulty_level
-        int duration_minutes
-    }
-    
-    EXHIBITIONS {
-        int id PK,FK
-        int venue_id FK
-        string exhibition_location
-        string curator
-        decimal admission_price
-        string age_restriction
-        text accessibility_info
-    }
-    
-    FESTIVALS {
-        int id PK,FK
-        int city_id FK
-        string festival_type
-        boolean multiple_locations
-        string organizer
-        string ticket_url
-    }
-    
-    PHOTOWALKS {
-        int id PK,FK
-        int city_id FK
-        string start_location
-        string end_location
-        decimal start_latitude
-        decimal start_longitude
-        decimal end_latitude
-        decimal end_longitude
-        string difficulty_level
-        text equipment_needed
-        string organizer
-        int max_participants
-    }
-    
-    VENUE_HOURS {
-        int id PK
-        int venue_id FK
-        int day_of_week
-        time open_time
-        time close_time
-        boolean is_closed
-        string special_note
-    }
-    
-    EVENT_CATEGORIES {
-        int id PK
-        string name
-        text description
-        string icon
-        string color
-        boolean is_active
-        timestamp created_at
-    }
-    
-    EVENT_TAGS {
-        int id PK
-        string name
-        string color
-        timestamp created_at
-    }
-    
-    EVENT_TAG_ASSIGNMENTS {
-        int event_id PK,FK
-        int tag_id PK,FK
-        timestamp created_at
-    }
-    
-    USER_FAVORITES {
-        int id PK
-        string user_id
-        int event_id FK
-        timestamp created_at
-    }
-    
-    CALENDAR_INTEGRATIONS {
-        int id PK
-        string user_id
-        int event_id FK
-        string calendar_event_id
-        string integration_type
-        string status
-        text error_message
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    %% Relationships
-    CITIES ||--o{ VENUES : "has"
-    CITIES ||--o{ FESTIVALS : "hosts"
-    CITIES ||--o{ PHOTOWALKS : "hosts"
-    
-    VENUES ||--o{ TOURS : "offers"
-    VENUES ||--o{ EXHIBITIONS : "hosts"
-    VENUES ||--o{ VENUE_HOURS : "has"
-    
-    EVENTS ||--o| TOURS : "extends"
-    EVENTS ||--o| EXHIBITIONS : "extends"
-    EVENTS ||--o| FESTIVALS : "extends"
-    EVENTS ||--o| PHOTOWALKS : "extends"
-    
-    EVENTS ||--o{ EVENT_TAG_ASSIGNMENTS : "tagged"
-    EVENT_TAGS ||--o{ EVENT_TAG_ASSIGNMENTS : "assigned"
-    
-    EVENTS ||--o{ USER_FAVORITES : "favorited"
-    EVENTS ||--o{ CALENDAR_INTEGRATIONS : "integrated"
-```
+## Overview
 
-## Key Design Features
+This document describes the current database schema for the Planner application. The application uses a **unified Event model** approach where all event types are stored in a single `events` table with an `event_type` field to distinguish between them.
 
-### 1. Polymorphic Inheritance
-- **Events Table**: Base table for all event types
-- **Specialized Tables**: Tours, Exhibitions, Festivals, Photowalks
-- **Single Table Inheritance**: Efficient queries across event types
+## Architecture Overview
 
-### 2. Geographic Support
-- **Cities**: Full geographic data with timezone support
-- **Venues**: Precise location coordinates
-- **Photowalks**: Start/end location tracking
+The database uses a **unified events architecture** with three main tables:
+- `cities`: Geographic locations
+- `venues`: Cultural institutions and locations  
+- `events`: **Single unified table** for all event types (tours, exhibitions, festivals, photowalks)
 
-### 3. Flexible Relationships
-- **Venues**: Can host multiple event types
-- **Cities**: Can host city-wide events (festivals, photowalks)
-- **Tags**: Many-to-many relationship for flexible categorization
+**Important**: There are NO separate tables for different event types. All events are stored in the unified `events` table.
 
-### 4. User Features
-- **Favorites**: User-specific event preferences
-- **Calendar Integration**: Track external calendar sync status
-- **Session Support**: Works with or without user accounts
+## Tables
 
-### 5. Performance Optimizations
-- **Strategic Indexes**: On frequently queried columns
-- **Composite Indexes**: For multi-column queries
-- **Soft Deletes**: Maintain data integrity
+### Cities
 
-## Index Strategy
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| id | INTEGER | No |  | Yes |
+| name | VARCHAR(100) | No |  | No |
+| state | VARCHAR(50) | Yes |  | No |
+| country | VARCHAR(100) | No |  | No |
+| timezone | VARCHAR(50) | No |  | No |
+| created_at | DATETIME | Yes |  | No |
+| updated_at | DATETIME | Yes | '2025-09-09T22:23:00.358548' | No |
 
-### Primary Indexes
-```sql
--- Cities
-CREATE INDEX idx_cities_country ON cities(country);
-CREATE INDEX idx_cities_timezone ON cities(timezone);
-CREATE INDEX idx_cities_active ON cities(is_active);
+### Events (Unified Model)
 
--- Venues
-CREATE INDEX idx_venues_city ON venues(city_id);
-CREATE INDEX idx_venues_type ON venues(venue_type);
-CREATE INDEX idx_venues_location ON venues(latitude, longitude);
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| id | INTEGER | No |  | Yes |
+| title | VARCHAR(200) | No |  | No |
+| description | TEXT | Yes |  | No |
+| start_date | DATE | No |  | No |
+| end_date | DATE | Yes |  | No |
+| start_time | TIME | Yes |  | No |
+| end_time | TIME | Yes |  | No |
+| image_url | VARCHAR(500) | Yes |  | No |
+| url | VARCHAR(500) | Yes |  | No |
+| is_selected | BOOLEAN | Yes |  | No |
+| event_type | VARCHAR(50) | No |  | No |
+| created_at | DATETIME | Yes |  | No |
+| updated_at | DATETIME | Yes | '2025-09-09T22:23:00.358548' | No |
+| city_id | INTEGER | Yes |  | No |
+| venue_id | INTEGER | Yes |  | No |
 
--- Events
-CREATE INDEX idx_events_type ON events(event_type);
-CREATE INDEX idx_events_dates ON events(start_date, end_date);
-CREATE INDEX idx_events_status ON events(status);
-CREATE INDEX idx_events_selected ON events(is_selected);
+#### Location Fields (Multi-purpose)
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| start_location | VARCHAR(200) | Yes |  | No |
+| end_location | VARCHAR(200) | Yes |  | No |
+| start_latitude | FLOAT | Yes |  | No |
+| start_longitude | FLOAT | Yes |  | No |
+| end_latitude | FLOAT | Yes |  | No |
+| end_longitude | FLOAT | Yes |  | No |
 
--- Tours
-CREATE INDEX idx_tours_venue ON tours(venue_id);
-CREATE INDEX idx_tours_type ON tours(tour_type);
-CREATE INDEX idx_tours_language ON tours(language);
+#### Tour-specific Fields
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| tour_type | VARCHAR(50) | Yes |  | No |
+| max_participants | INTEGER | Yes |  | No |
+| price | FLOAT | Yes |  | No |
+| language | VARCHAR(50) | Yes | 'English' | No |
 
--- User Features
-CREATE INDEX idx_favorites_user ON user_favorites(user_id);
-CREATE INDEX idx_calendar_user ON calendar_integrations(user_id);
-```
+#### Exhibition-specific Fields
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| exhibition_location | VARCHAR(200) | Yes |  | No |
+| curator | VARCHAR(200) | Yes |  | No |
+| admission_price | FLOAT | Yes |  | No |
 
-### Composite Indexes
-```sql
--- Event filtering
-CREATE INDEX idx_events_city_type ON events(city_id, event_type, start_date);
-CREATE INDEX idx_events_date_range ON events(start_date, end_date, status);
+#### Festival-specific Fields
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| festival_type | VARCHAR(100) | Yes |  | No |
+| multiple_locations | BOOLEAN | Yes | False | No |
 
--- Venue operations
-CREATE INDEX idx_venues_city_type ON venues(city_id, venue_type, is_active);
-```
+#### Photowalk-specific Fields
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| difficulty_level | VARCHAR(50) | Yes |  | No |
+| equipment_needed | TEXT | Yes |  | No |
+| organizer | VARCHAR(200) | Yes |  | No |
 
-## Data Flow
+### Venues
 
-### 1. Event Creation
-1. Create base event record
-2. Create specific event type record
-3. Link to venue/city
-4. Add tags and categories
-5. Update indexes
+| Column | Type | Nullable | Default | Primary Key |
+|--------|------|----------|---------|-------------|
+| id | INTEGER | No |  | Yes |
+| name | VARCHAR(200) | No |  | No |
+| venue_type | VARCHAR(50) | No |  | No |
+| address | TEXT | Yes |  | No |
+| latitude | FLOAT | Yes |  | No |
+| longitude | FLOAT | Yes |  | No |
+| image_url | VARCHAR(500) | Yes |  | No |
+| instagram_url | VARCHAR(200) | Yes |  | No |
+| facebook_url | VARCHAR(200) | Yes |  | No |
+| twitter_url | VARCHAR(200) | Yes |  | No |
+| youtube_url | VARCHAR(200) | Yes |  | No |
+| tiktok_url | VARCHAR(200) | Yes |  | No |
+| website_url | VARCHAR(200) | Yes |  | No |
+| description | TEXT | Yes |  | No |
+| city_id | INTEGER | No |  | No |
+| created_at | DATETIME | Yes |  | No |
+| opening_hours | TEXT | Yes |  | No |
+| holiday_hours | TEXT | Yes |  | No |
+| phone_number | VARCHAR(50) | Yes |  | No |
+| email | VARCHAR(200) | Yes |  | No |
+| tour_info | TEXT | Yes |  | No |
+| admission_fee | TEXT | Yes |  | No |
+| updated_at | DATETIME | Yes | '2025-09-09T22:23:00.358548' | No |
 
-### 2. Event Querying
-1. Filter by city and date range
-2. Join with event type tables
-3. Include venue information
-4. Apply user preferences
-5. Return paginated results
+## Event Types
 
-### 3. User Interactions
-1. Track favorites
-2. Sync with external calendars
-3. Maintain user session data
-4. Log user preferences
+The `event_type` field in the events table can have the following values:
+- `tour`: Museum tours, guided walks, etc.
+- `exhibition`: Art exhibitions, museum displays, etc.
+- `festival`: Cultural festivals, music events, etc.
+- `photowalk`: Photography walks and tours
 
-This schema provides a solid foundation for a scalable event management system with proper normalization, performance optimization, and user features.
+**Note**: The API uses singular forms (`tour`, `exhibition`, `festival`, `photowalk`) to match the database values.
+
+## Relationships
+
+- **Cities** → **Venues**: One-to-many (city can have multiple venues)
+- **Cities** → **Events**: One-to-many (city can have multiple events)
+- **Venues** → **Events**: One-to-many (venue can have multiple events)
+- **Events** can be associated with either a city (for city-wide events) or a venue (for venue-specific events)
+
+## Notes
+
+- The unified Event model approach simplifies CRUD operations and reduces database complexity
+- Event-specific fields are nullable and only populated when relevant to the event type
+- All events share common fields like title, description, dates, and times
+- Location fields serve multiple purposes depending on event type (meeting point, exhibition location, start/end points)
+
