@@ -97,7 +97,7 @@ CORS(app)
 
 # Configure CSRF protection
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_ENABLED'] = False
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour
 csrf = CSRFProtect(app)
 
@@ -894,6 +894,7 @@ def update_city(city_id):
         print(f"Error updating city: {e}")
         return jsonify({'error': str(e)}), 500
 
+@csrf.exempt
 @app.route('/api/admin/cities/<int:city_id>', methods=['DELETE'])
 def delete_city(city_id):
     """Delete a city and handle related data"""

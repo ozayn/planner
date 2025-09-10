@@ -984,8 +984,40 @@
         }
         
         function deleteCity(id) {
-            if (confirm('Are you sure you want to delete this city?')) {
-                alert('Delete City functionality will be implemented here for city ID: ' + id);
+            if (confirm('Are you sure you want to delete this city? This will also delete all associated venues and events.')) {
+                handleDeleteCity(id);
+            }
+        }
+        
+        // Handle delete city API call
+        async function handleDeleteCity(cityId) {
+            try {
+                console.log('Deleting city:', cityId);
+                
+                const response = await fetch('/api/admin/cities/' + cityId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    console.log('City deleted successfully:', result);
+                    alert('City deleted successfully!');
+                    
+                    // Reload cities data
+                    await loadCities();
+                    
+                } else {
+                    console.error('Error deleting city:', result);
+                    alert('Error deleting city: ' + (result.error || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                console.error('Error deleting city:', error);
+                alert('Error deleting city: ' + error.message);
             }
         }
         

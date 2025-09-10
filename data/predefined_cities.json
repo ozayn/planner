@@ -3,8 +3,8 @@
     "version": "1.2",
     "created": "2025-09-10",
     "description": "Predefined cities database for event planner - core data only",
-    "total_cities": 21,
-    "last_updated": "2025-09-10 16:21:32",
+    "total_cities": 22,
+    "last_updated": "2025-09-10 16:24:01",
     "new_cities_added": 1,
     "cities_updated": 0
   },
@@ -134,6 +134,12 @@
       "state": "Bayern",
       "country": "Germany",
       "timezone": "Europe/Paris"
+    },
+    "22": {
+      "name": "Test",
+      "state": null,
+      "country": "Test",
+      "timezone": "Europe/London"
     }
   }
 }
