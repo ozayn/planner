@@ -895,6 +895,30 @@ def update_city(city_id):
         return jsonify({'error': str(e)}), 500
 
 @csrf.exempt
+@app.route('/api/admin/sync-cities', methods=['POST'])
+def manual_sync_cities():
+    """Manually sync cities from database to predefined_cities.json"""
+    try:
+        success = sync_cities_to_predefined_json()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Cities synced to predefined_cities.json successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to sync cities'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@csrf.exempt
 @app.route('/api/admin/cities/<int:city_id>', methods=['DELETE'])
 def delete_city(city_id):
     """Delete a city and handle related data"""
