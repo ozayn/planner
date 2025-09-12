@@ -28,7 +28,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .header {
@@ -241,9 +241,12 @@
         /* Table Styles */
         .table-container {
             overflow-x: auto;
+            overflow-y: visible;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             background: white;
+            width: 100%;
+            max-width: 100%;
         }
 
         .scroll-hint {
@@ -257,6 +260,7 @@
 
         .data-table {
             width: 100%;
+            min-width: 1200px;
             border-collapse: collapse;
             font-size: 0.9rem;
         }
@@ -277,6 +281,52 @@
             padding: 10px 8px;
             border-bottom: 1px solid #f3f4f6;
             vertical-align: top;
+            white-space: nowrap;
+            min-width: 100px;
+        }
+
+        .data-table td.description,
+        .data-table td.additional_info {
+            white-space: normal;
+            max-width: 200px;
+            word-wrap: break-word;
+        }
+
+        /* Social Media Links */
+        .data-table a[href*="instagram.com"] {
+            color: #E4405F !important;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .data-table a[href*="instagram.com"]:hover {
+            color: #C13584 !important;
+            text-decoration: underline;
+        }
+
+        .data-table a[href*="twitter.com"] {
+            color: #1DA1F2 !important;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .data-table a[href*="twitter.com"]:hover {
+            color: #0d8bd9 !important;
+            text-decoration: underline;
+        }
+
+        .data-table a[href*="facebook.com"] {
+            color: #1877F2 !important;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .data-table a[href*="facebook.com"]:hover {
+            color: #166fe5 !important;
+            text-decoration: underline;
         }
 
         .data-table tr:hover {
@@ -1175,13 +1225,35 @@
                                 row += '<td>' + (venue.longitude || 'N/A') + '</td>';
                                 break;
                             case 'facebook_url':
-                                row += '<td>' + (venue.facebook_url ? '<a href="' + venue.facebook_url + '" target="_blank">Facebook</a>' : 'N/A') + '</td>';
+                                if (venue.facebook_url && venue.facebook_url !== 'N/A') {
+                                    row += '<td><a href="' + venue.facebook_url + '" target="_blank" style="color: #1877F2; text-decoration: none;">Facebook</a></td>';
+                                } else {
+                                    row += '<td>N/A</td>';
+                                }
                                 break;
                             case 'instagram_url':
-                                row += '<td>' + (venue.instagram_url || 'N/A') + '</td>';
+                                if (venue.instagram_url && venue.instagram_url !== 'N/A') {
+                                    // Convert Instagram handle to clickable link
+                                    let instagramHandle = venue.instagram_url;
+                                    if (instagramHandle.startsWith('@')) {
+                                        instagramHandle = instagramHandle.substring(1);
+                                    }
+                                    row += '<td><a href="https://www.instagram.com/' + instagramHandle + '" target="_blank" style="color: #E4405F; text-decoration: none;">@' + instagramHandle + '</a></td>';
+                                } else {
+                                    row += '<td>N/A</td>';
+                                }
                                 break;
                             case 'twitter_url':
-                                row += '<td>' + (venue.twitter_url || 'N/A') + '</td>';
+                                if (venue.twitter_url && venue.twitter_url !== 'N/A') {
+                                    // Convert Twitter handle to clickable link
+                                    let twitterHandle = venue.twitter_url;
+                                    if (twitterHandle.startsWith('@')) {
+                                        twitterHandle = twitterHandle.substring(1);
+                                    }
+                                    row += '<td><a href="https://www.twitter.com/' + twitterHandle + '" target="_blank" style="color: #1DA1F2; text-decoration: none;">@' + twitterHandle + '</a></td>';
+                                } else {
+                                    row += '<td>N/A</td>';
+                                }
                                 break;
                             case 'holiday_hours':
                                 row += '<td>' + (venue.holiday_hours || 'N/A') + '</td>';
