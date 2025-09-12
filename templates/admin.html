@@ -1319,6 +1319,7 @@
             const searchTerm = document.getElementById('venueSearch').value.toLowerCase();
             const typeFilter = document.getElementById('venueTypeFilter').value;
             const cityFilter = document.getElementById('venueCityFilter').value;
+            const feeFilter = document.getElementById('venueFeeFilter').value;
             
             window.filteredVenues = window.allVenues.filter(venue => {
                 const matchesSearch = !searchTerm || 
@@ -1330,7 +1331,23 @@
                 const matchesType = !typeFilter || venue.venue_type === typeFilter;
                 const matchesCity = !cityFilter || venue.city_name === cityFilter;
                 
-                return matchesSearch && matchesType && matchesCity;
+                // Fee filter logic
+                let matchesFee = true;
+                if (feeFilter === 'free') {
+                    matchesFee = !venue.admission_fee || 
+                                venue.admission_fee.toLowerCase().includes('free') ||
+                                venue.admission_fee.toLowerCase().includes('no charge') ||
+                                venue.admission_fee.toLowerCase().includes('complimentary') ||
+                                venue.admission_fee === 'N/A';
+                } else if (feeFilter === 'paid') {
+                    matchesFee = venue.admission_fee && 
+                               !venue.admission_fee.toLowerCase().includes('free') &&
+                               !venue.admission_fee.toLowerCase().includes('no charge') &&
+                               !venue.admission_fee.toLowerCase().includes('complimentary') &&
+                               venue.admission_fee !== 'N/A';
+                }
+                
+                return matchesSearch && matchesType && matchesCity && matchesFee;
             });
             
             renderVenuesTable();
@@ -1340,6 +1357,7 @@
             document.getElementById('venueSearch').value = '';
             document.getElementById('venueTypeFilter').value = '';
             document.getElementById('venueCityFilter').value = '';
+            document.getElementById('venueFeeFilter').value = '';
             
             if (window.allVenues) {
                 window.filteredVenues = [...window.allVenues];
@@ -1524,6 +1542,53 @@
             const addCityForm = document.getElementById('addCityForm');
             if (addCityForm) {
                 addCityForm.addEventListener('submit', handleAddCity);
+            }
+            
+            // Add search input event listeners for real-time filtering
+            const citySearch = document.getElementById('citySearch');
+            if (citySearch) {
+                citySearch.addEventListener('input', applyCityFilters);
+            }
+            
+            const venueSearch = document.getElementById('venueSearch');
+            if (venueSearch) {
+                venueSearch.addEventListener('input', applyVenueFilters);
+            }
+            
+            const eventSearch = document.getElementById('eventSearch');
+            if (eventSearch) {
+                eventSearch.addEventListener('input', applyEventFilters);
+            }
+            
+            // Add filter dropdown event listeners for real-time filtering
+            const cityCountryFilter = document.getElementById('cityCountryFilter');
+            if (cityCountryFilter) {
+                cityCountryFilter.addEventListener('change', applyCityFilters);
+            }
+            
+            const venueTypeFilter = document.getElementById('venueTypeFilter');
+            if (venueTypeFilter) {
+                venueTypeFilter.addEventListener('change', applyVenueFilters);
+            }
+            
+            const venueCityFilter = document.getElementById('venueCityFilter');
+            if (venueCityFilter) {
+                venueCityFilter.addEventListener('change', applyVenueFilters);
+            }
+            
+            const venueFeeFilter = document.getElementById('venueFeeFilter');
+            if (venueFeeFilter) {
+                venueFeeFilter.addEventListener('change', applyVenueFilters);
+            }
+            
+            const eventTypeFilter = document.getElementById('eventTypeFilter');
+            if (eventTypeFilter) {
+                eventTypeFilter.addEventListener('change', applyEventFilters);
+            }
+            
+            const eventVenueFilter = document.getElementById('eventVenueFilter');
+            if (eventVenueFilter) {
+                eventVenueFilter.addEventListener('change', applyEventFilters);
             }
         });
         
