@@ -156,6 +156,42 @@
             box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.1);
         }
 
+        .venue-type-checkboxes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .price-filter-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #374151;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .checkbox-label:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 6px;
+            width: 14px;
+            height: 14px;
+            accent-color: #667eea;
+        }
+
         .discover-button {
             width: 100% !important;
             padding: 6px 10px !important;
@@ -185,58 +221,6 @@
             box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1) !important;
         }
 
-        .add-venue-section {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 20px;
-            border: 1px solid #cbd5e1;
-        }
-
-        .add-venue-section h3 {
-            color: #4a5568;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-
-        .add-venue-form {
-            display: grid;
-            gap: 10px;
-        }
-
-        .add-venue-form input {
-            padding: 8px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .add-venue-btn {
-            padding: 3px 6px !important;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 3px !important;
-            font-size: 0.7rem !important;
-            font-weight: 500 !important;
-            cursor: pointer !important;
-            transition: all 0.2s ease !important;
-            box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2) !important;
-        }
-
-        .add-venue-btn:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 2px 3px rgba(16, 185, 129, 0.3) !important;
-        }
-        
-        .venue-help-text {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 8px;
-            text-align: center;
-            font-style: italic;
-        }
 
         .progress-section {
             background: #f7fafc;
@@ -346,17 +330,18 @@
         }
 
         .venue-card {
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
             transition: all 0.3s ease;
             background: #fafafa;
+            min-height: 60px;
         }
 
         .venue-card:hover {
             border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(102, 126, 234, 0.15);
         }
 
         .venue-card.selected {
@@ -368,44 +353,42 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .venue-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 5px;
-        }
-
-        .venue-type {
-            color: #667eea;
+            font-size: 0.85rem;
             font-weight: 500;
-            font-size: 0.8rem;
-            text-transform: uppercase;
+            color: #2d3748;
+            line-height: 1.2;
+            flex: 1;
+            margin-right: 8px;
         }
 
         .venue-checkbox {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             cursor: pointer;
+            flex-shrink: 0;
         }
 
-        .venue-description {
-            color: #4a5568;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            margin-bottom: 10px;
+        .venue-price {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-align: center;
+            margin-top: 4px;
         }
 
-        .venue-website {
-            color: #667eea;
-            font-size: 0.8rem;
-            text-decoration: none;
+        .venue-price.free {
+            background: #f0f9ff;
+            color: #0369a1;
         }
 
-        .venue-website:hover {
-            text-decoration: underline;
+        .venue-price.paid {
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .events-panel {
@@ -731,29 +714,59 @@
                         <option value="exhibition">Exhibitions</option>
                         <option value="festival">Festivals</option>
                         <option value="photowalk">Photowalks</option>
+                        <option value="film">Films</option>
+                        <option value="talk">Talks</option>
                     </select>
                 </div>
 
-                <button id="discoverButton" class="discover-button" title="Ask LLM to Discover Venues">
-                    🤖
+                <div class="form-group">
+                    <label>Venue Types:</label>
+                    <div class="venue-type-checkboxes">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="venueTypeMuseum" value="museum" checked>
+                            Museum
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="venueTypeGallery" value="gallery" checked>
+                            Gallery
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="venueTypeCultural" value="cultural_center" checked>
+                            Cultural Center
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="venueTypeHistoric" value="historic_site" checked>
+                            Historic Site
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="venueTypeOther" value="other" checked>
+                            Other
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Price Filter:</label>
+                    <div class="price-filter-checkboxes">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="priceFilterAll" value="all" checked>
+                            All Venues
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="priceFilterFree" value="free">
+                            🆓 Free Only
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="priceFilterPaid" value="paid">
+                            💰 Paid Only
+                        </label>
+                    </div>
+                </div>
+
+                <button id="loadVenuesButton" class="discover-button" title="Load Available Venues">
+                    📋
                 </button>
 
-                <!-- Add Custom Venue Section -->
-                <div class="add-venue-section">
-                    <h3>➕</h3>
-                    <div class="add-venue-form">
-                        <input type="text" id="customVenueName" placeholder="Venue Name">
-                        <select id="customVenueType">
-                            <option value="museum">Museum</option>
-                            <option value="gallery">Gallery</option>
-                            <option value="cultural_center">Cultural Center</option>
-                            <option value="historic_site">Historic Site</option>
-                            <option value="other">Other</option>
-                        </select>
-                        <button id="addVenueBtn" class="add-venue-btn" title="Add Venue">➕</button>
-                    </div>
-                    <p class="venue-help-text">💡 Just enter venue name</p>
-                </div>
 
                 <!-- Progress Section -->
                 <div class="progress-section">
@@ -795,9 +808,9 @@
 
                 <div id="venuesContainer">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🤖</div>
-                        <h3>Ready to Discover Venues!</h3>
-                        <p>Select a city and event type, then click "Ask LLM to Discover Venues" to find cultural institutions that offer the events you're looking for.</p>
+                        <div class="empty-state-icon">📋</div>
+                        <h3>Ready to Load Venues!</h3>
+                        <p>Select a city and event type, then click "Load Available Venues" to see all venues in our database that offer the events you're looking for.</p>
                     </div>
                 </div>
             </div>
@@ -842,7 +855,7 @@
         // DOM elements
         const citySelect = document.getElementById('citySelect');
         const eventTypeSelect = document.getElementById('eventTypeSelect');
-        const discoverButton = document.getElementById('discoverButton');
+        const loadVenuesButton = document.getElementById('loadVenuesButton');
         const scrapeButton = document.getElementById('scrapeButton');
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
@@ -852,10 +865,6 @@
         const exportAllBtn = document.getElementById('exportAllBtn');
         const notification = document.getElementById('notification');
 
-        // Custom venue elements
-        const customVenueName = document.getElementById('customVenueName');
-        const customVenueType = document.getElementById('customVenueType');
-        const addVenueBtn = document.getElementById('addVenueBtn');
 
         // Status elements
         const statusCity = document.getElementById('statusCity');
@@ -893,15 +902,17 @@
 
         // Setup event listeners
         function setupEventListeners() {
-            discoverButton.addEventListener('click', handleDiscoverVenues);
+            loadVenuesButton.addEventListener('click', handleLoadVenues);
             scrapeButton.addEventListener('click', handleScrapeEvents);
             exportSelectedBtn.addEventListener('click', exportSelectedEvents);
             exportAllBtn.addEventListener('click', exportAllEvents);
-            addVenueBtn.addEventListener('click', addCustomVenue);
             
             // Update status when selections change
             citySelect.addEventListener('change', updateStatus);
             eventTypeSelect.addEventListener('change', updateStatus);
+            
+            // Add price filter event listeners
+            setupPriceFilterListeners();
         }
 
         // Update status display
@@ -913,8 +924,50 @@
             statusEventType.textContent = currentEventType;
         }
 
-        // Handle discover venues button click
-        async function handleDiscoverVenues() {
+        // Get selected venue types
+        function getSelectedVenueTypes() {
+            const venueTypeCheckboxes = [
+                'venueTypeMuseum',
+                'venueTypeGallery', 
+                'venueTypeCultural',
+                'venueTypeHistoric',
+                'venueTypeOther'
+            ];
+            
+            return venueTypeCheckboxes
+                .map(id => document.getElementById(id))
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+        }
+
+        // Setup price filter event listeners
+        function setupPriceFilterListeners() {
+            const priceFilters = ['priceFilterAll', 'priceFilterFree', 'priceFilterPaid'];
+            
+            priceFilters.forEach(filterId => {
+                document.getElementById(filterId).addEventListener('change', function() {
+                    if (this.checked) {
+                        // Uncheck other price filters
+                        priceFilters.forEach(otherId => {
+                            if (otherId !== filterId) {
+                                document.getElementById(otherId).checked = false;
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+        // Get selected price filter
+        function getSelectedPriceFilter() {
+            if (document.getElementById('priceFilterAll').checked) return 'all';
+            if (document.getElementById('priceFilterFree').checked) return 'free';
+            if (document.getElementById('priceFilterPaid').checked) return 'paid';
+            return 'all'; // Default to all
+        }
+
+        // Handle load venues button click
+        async function handleLoadVenues() {
             const cityId = citySelect.value;
             const eventType = eventTypeSelect.value;
 
@@ -923,35 +976,46 @@
                 return;
             }
 
+            // Get selected venue types
+            const selectedVenueTypes = getSelectedVenueTypes();
+            if (selectedVenueTypes.length === 0) {
+                showNotification('Please select at least one venue type', 'error');
+                return;
+            }
+
             // Update UI
-            discoverButton.disabled = true;
-            discoverButton.innerHTML = '<span class="loading-spinner"></span> Discovering venues...';
-            updateProgress(10, 'Asking LLM about venues...');
+            loadVenuesButton.disabled = true;
+            loadVenuesButton.innerHTML = '<span class="loading-spinner"></span> Loading venues...';
+            updateProgress(10, 'Loading available venues...');
 
             try {
-                // Step 1: Discover venues using LLM
-                updateProgress(30, 'LLM is finding venues that offer ' + eventType + '...');
+                // Load existing venues from database
+                updateProgress(50, 'Loading venues...');
                 
-                const response = await fetch('/api/discover-venues', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        city_id: parseInt(cityId),
-                        event_type: eventType
-                    })
-                });
-
+                // Build API URL with selected venue types
+                const venueTypesParam = selectedVenueTypes.join(',');
+                const response = await fetch(`/api/venues?city_id=${cityId}&venue_types=${venueTypesParam}`);
+                
                 if (!response.ok) {
-                    throw new Error('Venue discovery failed');
+                    throw new Error('Failed to load venues');
                 }
 
-                const result = await response.json();
-                updateProgress(70, 'Processing discovered venues...');
+                const venues = await response.json();
+                updateProgress(80, 'Processing venues...');
 
-                // Step 2: Load and display venues
-                allVenues = result.venues || [];
+                // Apply price filter
+                const priceFilter = getSelectedPriceFilter();
+                let filteredVenues = venues || [];
+                
+                if (priceFilter !== 'all') {
+                    filteredVenues = venues.filter(venue => {
+                        const isFree = isVenueFree(venue);
+                        return priceFilter === 'free' ? isFree : !isFree;
+                    });
+                }
+
+                // Load and display venues
+                allVenues = filteredVenues;
                 selectedVenues.clear();
                 
                 // Select all venues by default
@@ -967,16 +1031,16 @@
                 // Enable scrape button
                 scrapeButton.disabled = allVenues.length === 0;
                 
-                updateProgress(100, 'Complete! Found ' + allVenues.length + ' venues');
-                showNotification(`Successfully discovered ${allVenues.length} venues!`, 'success');
+                updateProgress(100, 'Complete! Loaded ' + allVenues.length + ' venues');
+                showNotification(`Loaded ${allVenues.length} available venues!`, 'success');
 
             } catch (error) {
-                console.error('Venue discovery error:', error);
-                showNotification('Venue discovery failed: ' + error.message, 'error');
-                updateProgress(0, 'Venue discovery failed');
+                console.error('Venue loading error:', error);
+                showNotification('Failed to load venues: ' + error.message, 'error');
+                updateProgress(0, 'Venue loading failed');
             } finally {
-                discoverButton.disabled = false;
-                discoverButton.innerHTML = '🤖';
+                loadVenuesButton.disabled = false;
+                loadVenuesButton.innerHTML = '📋';
             }
         }
 
@@ -986,8 +1050,8 @@
                 venuesContainer.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🔍</div>
-                        <h3>No Venues Found</h3>
-                        <p>No venues found for ${currentCity} that offer ${currentEventType}. Try a different city or event type.</p>
+                        <h3>No Venues Available</h3>
+                        <p>No venues in our database for ${currentCity} that offer ${currentEventType}. Try a different city or event type.</p>
                     </div>
                 `;
                 return;
@@ -999,29 +1063,40 @@
         // Create venue card
         function createVenueCard(venue) {
             const isSelected = selectedVenues.has(venue.id);
+            const isFree = isVenueFree(venue);
+            const freeText = isFree ? '🆓 Free' : '💰 Paid';
+            const priceClass = isFree ? 'free' : 'paid';
             
             return `
                 <div class="venue-card ${isSelected ? 'selected' : ''}" data-venue-id="${venue.id}">
                     <div class="venue-header">
-                        <div>
-                            <div class="venue-title">${venue.name}</div>
-                            <div class="venue-type">${venue.venue_type}</div>
-                        </div>
+                        <div class="venue-title">${venue.name}</div>
                         <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleVenueSelection(${venue.id})">
                     </div>
-                    
-                    <div class="venue-description">
-                        ${venue.description || 'No description available.'}
-                    </div>
-                    
-                    ${venue.website_url ? `
-                    <a href="${venue.website_url}" target="_blank" class="venue-website">
-                        🌐 ${venue.website_url}
-                    </a>
-                    ` : ''}
+                    <div class="venue-price ${priceClass}">${freeText}</div>
                 </div>
             `;
+        }
+
+        // Check if venue is free
+        function isVenueFree(venue) {
+            if (!venue.admission_fee) return true;
+            
+            const fee = venue.admission_fee.toLowerCase();
+            
+            // Check for paid indicators first (these override free indicators)
+            if (fee.includes('$') && !fee.includes('$0')) {
+                return false;
+            }
+            
+            // Check for explicit free indicators
+            return fee.includes('free') || 
+                   fee.includes('$0') || 
+                   fee.includes('no charge') ||
+                   fee.includes('donation') ||
+                   fee.includes('suggested donation') ||
+                   fee.includes('admission free');
         }
 
         // Toggle venue selection
@@ -1043,90 +1118,6 @@
             scrapeButton.disabled = selectedVenues.size === 0;
         }
 
-        // Add custom venue
-        async function addCustomVenue() {
-            const name = customVenueName.value.trim();
-            const type = customVenueType.value;
-
-            if (!name) {
-                showNotification('Please enter a venue name', 'error');
-                return;
-            }
-
-            const cityId = citySelect.value;
-            if (!cityId) {
-                showNotification('Please select a city first', 'error');
-                return;
-            }
-
-            // Show loading state
-            addVenueBtn.disabled = true;
-            addVenueBtn.innerHTML = '<span class="loading-spinner"></span> Adding venue...';
-
-            try {
-                const response = await fetch('/api/add-venue-manually', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: name,
-                        city_id: parseInt(cityId),
-                        venue_type: type
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to add venue');
-                }
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Add the venue to our list
-                    const newVenue = {
-                        id: data.venue.id,
-                        name: data.venue.name,
-                        venue_type: data.venue.venue_type,
-                        description: data.venue.description,
-                        website_url: data.venue.website_url,
-                        image_url: data.venue.image_url,
-                        address: data.venue.address,
-                        opening_hours: data.venue.opening_hours,
-                        is_custom: true
-                    };
-
-                    allVenues.push(newVenue);
-                    selectedVenues.add(newVenue.id);
-                    
-                    // Update status
-                    statusVenues.textContent = allVenues.length;
-                    statusSelected.textContent = selectedVenues.size;
-                    
-                    // Display venues
-                    displayVenues(allVenues);
-                    
-                    // Clear form
-                    customVenueName.value = '';
-                    customVenueType.value = 'museum';
-                    
-                    // Enable scrape button
-                    scrapeButton.disabled = false;
-                    
-                    showNotification(data.message, 'success');
-                } else {
-                    throw new Error(data.error || 'Failed to add venue');
-                }
-            } catch (error) {
-                console.error('Error adding venue:', error);
-                showNotification(`Failed to add venue: ${error.message}`, 'error');
-            } finally {
-                // Reset button state
-                addVenueBtn.disabled = false;
-                addVenueBtn.innerHTML = '➕';
-            }
-        }
 
         // Handle scrape events button click
         async function handleScrapeEvents() {

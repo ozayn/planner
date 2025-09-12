@@ -420,6 +420,101 @@ def test_events():
     """Test page for debugging events"""
     return render_template('test_events.html')
 
+def update_json_with_new_venue(venue, city):
+    """Update venues.json with a newly added venue"""
+    import json
+    import os
+    from datetime import datetime
+    
+    # Check environment - skip JSON updates in production
+    environment = os.getenv('ENVIRONMENT', 'development').lower()
+    if environment == 'production':
+        print(f"🏭 Production mode: Skipping JSON update for venue '{venue.name}'")
+        print(f"📝 Venue addition logged for later processing")
+        # Log the addition for potential batch processing
+        logger.info(f"Venue added in production: {venue.name} (ID: {venue.id}) in {city.name}")
+        return
+    
+    # Development mode - proceed with JSON update
+    print(f"🔧 Development mode: Updating venues.json for venue '{venue.name}'")
+    
+    # Define path to venues.json
+    venues_json_path = os.path.join(os.path.dirname(__file__), 'data', 'venues.json')
+    
+    # Check if venues.json exists
+    if not os.path.exists(venues_json_path):
+        print(f"Warning: venues.json file not found at {venues_json_path}")
+        return
+    
+    # Work with venues.json
+    json_file_path = venues_json_path
+    
+    try:
+        # Load existing JSON
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Find the city in the JSON
+        city_found = False
+        for city_id, city_data in data['cities'].items():
+            if city_data['name'] == city.name:
+                city_found = True
+                
+                # Check if venue already exists
+                existing_venue_names = [v['name'] for v in city_data['venues']]
+                if venue.name in existing_venue_names:
+                    print(f"Venue '{venue.name}' already exists in JSON for {city.name}")
+                    return
+                
+                # Create venue entry for JSON
+                venue_entry = {
+                    "name": venue.name,
+                    "venue_type": venue.venue_type or "Museum",
+                    "address": venue.address or "",
+                    "opening_hours": venue.opening_hours or "",
+                    "phone_number": venue.phone_number or "",
+                    "email": venue.email or "",
+                    "description": venue.description or "",
+                    "tour_info": venue.tour_info or "",
+                    "admission_fee": venue.admission_fee or "",
+                    "website_url": venue.website_url or "",
+                    "latitude": venue.latitude,
+                    "longitude": venue.longitude,
+                    "additional_info": venue.additional_info or "{}",
+                    "image_url": venue.image_url or "",
+                    "facebook_url": venue.facebook_url or "",
+                    "instagram_url": venue.instagram_url or "",
+                    "twitter_url": venue.twitter_url or "",
+                    "youtube_url": venue.youtube_url or "",
+                    "tiktok_url": venue.tiktok_url or "",
+                    "holiday_hours": venue.holiday_hours or ""
+                }
+                
+                # Add venue to city
+                city_data['venues'].append(venue_entry)
+                
+                # Update metadata
+                data['metadata']['total_venues'] = data['metadata']['total_venues'] + 1
+                data['metadata']['last_update'] = f"Added {venue.name} via admin interface"
+                data['metadata']['last_venue_addition'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                break
+        
+        if not city_found:
+            print(f"Warning: City '{city.name}' not found in JSON file")
+            return
+        
+        # Save updated JSON
+        with open(json_file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print(f"✅ Successfully updated venues.json with venue '{venue.name}'")
+        print(f"📁 Updated file: {venues_json_path}")
+        
+    except Exception as e:
+        print(f"Error updating JSON file: {e}")
+        raise
+
 @app.route('/')
 def index():
     """Main page with city selection and time filtering"""
@@ -526,17 +621,54 @@ def get_events():
 
 @app.route('/api/venues')
 def get_venues():
-    """Get venues for a specific city"""
+    """Get venues for a specific city and venue types"""
     city_id = request.args.get('city_id')
     venue_type = request.args.get('venue_type')
+    venue_types = request.args.get('venue_types')
     
     if not city_id:
         return jsonify({'error': 'City ID is required'}), 400
     
     query = Venue.query.filter(Venue.city_id == city_id)
     
+    # Filter out permanently closed venues
+    closed_keywords = ['permanently closed', 'currently closed', 'no longer open', 'permanently shut down']
+    for keyword in closed_keywords:
+        query = query.filter(
+            db.and_(
+                ~Venue.opening_hours.ilike(f'%{keyword}%'),
+                ~Venue.description.ilike(f'%{keyword}%')
+            )
+        )
+    
+    # Handle single venue type (backward compatibility, case-insensitive)
     if venue_type:
-        query = query.filter(Venue.venue_type == venue_type)
+        query = query.filter(
+            db.or_(
+                Venue.venue_type == venue_type,
+                Venue.venue_type == venue_type.lower(),
+                Venue.venue_type == venue_type.capitalize(),
+                Venue.venue_type == venue_type.title()
+            )
+        )
+    
+    # Handle multiple venue types (case-insensitive)
+    if venue_types:
+        venue_type_list = [vt.strip() for vt in venue_types.split(',') if vt.strip()]
+        if venue_type_list:
+            # Create case-insensitive filters for each venue type
+            filters = []
+            for venue_type in venue_type_list:
+                # Check both exact match and case-insensitive match
+                filters.append(
+                    db.or_(
+                        Venue.venue_type == venue_type,
+                        Venue.venue_type == venue_type.lower(),
+                        Venue.venue_type == venue_type.capitalize(),
+                        Venue.venue_type == venue_type.title()
+                    )
+                )
+            query = query.filter(db.or_(*filters))
     
     venues = query.all()
     return jsonify([venue.to_dict() for venue in venues])
@@ -1116,6 +1248,231 @@ def add_event():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/smart-search-venue', methods=['POST'])
+def smart_search_venue():
+    """Use AI to search for venue details and populate form"""
+    try:
+        data = request.get_json()
+        venue_name = data.get('venue_name', '').strip()
+        city_name = data.get('city_name', '').strip()
+        city_id = data.get('city_id')
+        
+        if not venue_name or not city_name or not city_id:
+            return jsonify({'error': 'Venue name, city name, and city ID are required'}), 400
+        
+        # Check if city exists
+        city = db.session.get(City, city_id)
+        if not city:
+            return jsonify({'error': 'City not found'}), 404
+        
+        # Use the existing LLM venue detail searcher
+        from scripts.fetch_venue_details import LLMVenueDetailSearcher
+        
+        # Construct full location string with country
+        location = city_name
+        if city.state:
+            location += f", {city.state}"
+        if city.country:
+            location += f", {city.country}"
+        
+        searcher = LLMVenueDetailSearcher(silent=True)
+        venue_details = searcher.search_venue_details(
+            venue_name=venue_name,
+            city=location,
+            silent=True
+        )
+        
+        if not venue_details or not venue_details.get('name'):
+            return jsonify({'error': 'Could not find venue details'}), 404
+        
+        # Get Google Maps image for the venue
+        from scripts.utils import get_google_maps_image
+        google_maps_api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+        
+        image_url = None
+        if google_maps_api_key:
+            try:
+                image_url = get_google_maps_image(
+                    venue_name=venue_details['name'],
+                    city=city_name,
+                    api_key=google_maps_api_key
+                )
+            except Exception as e:
+                print(f"Warning: Could not fetch Google Maps image: {e}")
+        
+        # Prepare the response with venue details
+        response_data = {
+            'success': True,
+            'venue_details': {
+                'name': venue_details.get('name', venue_name),
+                'venue_type': venue_details.get('venue_type', 'Museum'),
+                'address': venue_details.get('address', ''),
+                'opening_hours': venue_details.get('opening_hours', ''),
+                'admission_fee': venue_details.get('admission_fee', ''),
+                'website_url': venue_details.get('website_url', ''),
+                'phone_number': venue_details.get('phone_number', ''),
+                'email': venue_details.get('email', ''),
+                'description': venue_details.get('description', ''),
+                'image_url': image_url,
+                'latitude': venue_details.get('latitude'),
+                'longitude': venue_details.get('longitude'),
+                'facebook_url': venue_details.get('facebook_url', ''),
+                'instagram_url': venue_details.get('instagram_url', ''),
+                'twitter_url': venue_details.get('twitter_url', '')
+            },
+            'city_id': city_id,
+            'city_name': city_name
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        api_logger.error(f"Error in smart venue search: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/create-json-copy', methods=['POST'])
+def create_json_copy():
+    """Create a fresh copy of predefined_venues.json for safe editing"""
+    try:
+        import shutil
+        from datetime import datetime
+        
+        # Define paths
+        original_path = os.path.join(os.path.dirname(__file__), 'data', 'predefined_venues.json')
+        venues_path = os.path.join(os.path.dirname(__file__), 'data', 'venues.json')
+        
+        if not os.path.exists(original_path):
+            return jsonify({'error': 'Original predefined_venues.json not found'}), 404
+        
+        # Create venues.json
+        shutil.copy2(original_path, venues_path)
+        
+        return jsonify({
+            'success': True,
+            'message': f'✅ Created fresh venues.json from predefined_venues.json\n📁 Working file: {venues_path}\n📁 Original: {original_path}\n\nYou can now safely add venues without affecting the original file.',
+            'original_path': original_path,
+            'venues_path': venues_path
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/apply-json-copy', methods=['POST'])
+def apply_json_copy():
+    """Apply changes from copy back to original predefined_venues.json"""
+    try:
+        import shutil
+        from datetime import datetime
+        
+        # Define paths
+        original_path = os.path.join(os.path.dirname(__file__), 'data', 'predefined_venues.json')
+        venues_path = os.path.join(os.path.dirname(__file__), 'data', 'venues.json')
+        
+        if not os.path.exists(venues_path):
+            return jsonify({'error': 'venues.json not found. Create a copy first.'}), 404
+        
+        # Create backup of original
+        backup_path = f"{original_path}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        shutil.copy2(original_path, backup_path)
+        
+        # Apply venues.json to original
+        shutil.copy2(venues_path, original_path)
+        
+        return jsonify({
+            'success': True,
+            'message': f'✅ Applied venues.json changes to original file\n📁 Original: {original_path}\n📁 Backup: {backup_path}\n📁 Working file: {venues_path}\n\nThe original file has been updated with your changes.',
+            'original_path': original_path,
+            'backup_path': backup_path,
+            'venues_path': venues_path
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/export-venues', methods=['POST'])
+def export_venues_to_json():
+    """Export all venues from database to JSON file (for production use)"""
+    try:
+        import json
+        import os
+        from datetime import datetime
+        
+        print("🔄 Starting venues export from database...")
+        
+        # Get all venues with their cities
+        venues = Venue.query.all()
+        cities = City.query.all()
+        
+        # Create the JSON structure
+        export_data = {
+            "metadata": {
+                "version": "1.3",
+                "created": datetime.now().strftime("%Y-%m-%d"),
+                "description": "Exported venues from database",
+                "total_cities": len(cities),
+                "total_venues": len(venues),
+                "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "export_source": "database",
+                "environment": os.getenv('ENVIRONMENT', 'development')
+            },
+            "cities": {}
+        }
+        
+        # Group venues by city
+        for city in cities:
+            city_venues = [v for v in venues if v.city_id == city.id]
+            
+            export_data["cities"][str(city.id)] = {
+                "name": city.name,
+                "venues": []
+            }
+            
+            # Add venues for this city
+            for venue in city_venues:
+                venue_entry = {
+                    "name": venue.name,
+                    "venue_type": venue.venue_type or "museum",
+                    "address": venue.address or "",
+                    "opening_hours": venue.opening_hours or "",
+                    "holiday_hours": venue.holiday_hours or "",
+                    "phone_number": venue.phone_number or "",
+                    "email": venue.email or "",
+                    "description": venue.description or "",
+                    "tour_info": venue.tour_info or "",
+                    "admission_fee": venue.admission_fee or "",
+                    "website_url": venue.website_url or "",
+                    "latitude": venue.latitude,
+                    "longitude": venue.longitude,
+                    "image_url": venue.image_url or "",
+                    "instagram_url": venue.instagram_url or "",
+                    "facebook_url": venue.facebook_url or "",
+                    "twitter_url": venue.twitter_url or "",
+                    "youtube_url": venue.youtube_url or "",
+                    "tiktok_url": venue.tiktok_url or "",
+                    "additional_info": venue.additional_info or "{}"
+                }
+                export_data["cities"][str(city.id)]["venues"].append(venue_entry)
+        
+        # Save to file
+        export_path = os.path.join(os.path.dirname(__file__), 'data', 'venues_exported.json')
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump(export_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"✅ Successfully exported {len(venues)} venues to {export_path}")
+        
+        # Return the file as a download
+        from flask import send_file
+        return send_file(
+            export_path,
+            as_attachment=True,
+            download_name=f'venues_exported_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json',
+            mimetype='application/json'
+        )
+        
+    except Exception as e:
+        print(f"❌ Error exporting venues: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/add-venue', methods=['POST'])
 def add_venue():
     """Add a new venue"""
@@ -1157,10 +1514,129 @@ def add_venue():
         db.session.add(venue)
         db.session.commit()
         
+        # Automatically enhance venue with LLM and Google Maps data
+        enhancement_results = {
+            'llm_enhanced': False,
+            'google_maps_image': False,
+            'enhancement_errors': []
+        }
+        
+        try:
+            print(f"🤖 Automatically enhancing venue: {venue.name}")
+            
+            # Step 1: LLM Enhancement
+            try:
+                from scripts.utils import query_llm_for_venue_details
+                from scripts.fetch_venue_details import LLMVenueDetailSearcher
+                
+                print(f"🔍 Running LLM enhancement for {venue.name}...")
+                searcher = LLMVenueDetailSearcher(silent=True)
+                llm_details = searcher.search_venue_details(venue.name, f"{city.name}, {city.country}")
+                
+                if llm_details:
+                    # Update venue with LLM data
+                    venue.description = llm_details.get('description', venue.description)
+                    venue.address = llm_details.get('address', venue.address)
+                    venue.website_url = llm_details.get('website_url', venue.website_url)
+                    venue.phone_number = llm_details.get('phone_number', venue.phone_number)
+                    venue.email = llm_details.get('email', venue.email)
+                    venue.opening_hours = llm_details.get('opening_hours', venue.opening_hours)
+                    venue.holiday_hours = llm_details.get('holiday_hours', venue.holiday_hours)
+                    venue.admission_fee = llm_details.get('admission_fee', venue.admission_fee)
+                    venue.tour_info = llm_details.get('tour_info', venue.tour_info)
+                    venue.instagram_url = llm_details.get('instagram_url', venue.instagram_url)
+                    venue.facebook_url = llm_details.get('facebook_url', venue.facebook_url)
+                    venue.twitter_url = llm_details.get('twitter_url', venue.twitter_url)
+                    venue.youtube_url = llm_details.get('youtube_url', venue.youtube_url)
+                    venue.tiktok_url = llm_details.get('tiktok_url', venue.tiktok_url)
+                    
+                    # Handle coordinates
+                    if llm_details.get('latitude'):
+                        try:
+                            venue.latitude = float(llm_details['latitude'])
+                        except (ValueError, TypeError):
+                            pass
+                    if llm_details.get('longitude'):
+                        try:
+                            venue.longitude = float(llm_details['longitude'])
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Handle additional_info as JSON
+                    if llm_details.get('additional_info'):
+                        try:
+                            if isinstance(llm_details['additional_info'], str):
+                                import json
+                                venue.additional_info = json.loads(llm_details['additional_info'])
+                            else:
+                                venue.additional_info = llm_details['additional_info']
+                        except (json.JSONDecodeError, TypeError):
+                            venue.additional_info = llm_details['additional_info']
+                    
+                    enhancement_results['llm_enhanced'] = True
+                    print(f"✅ LLM enhancement completed for {venue.name}")
+                else:
+                    enhancement_results['enhancement_errors'].append("LLM enhancement failed")
+                    print(f"⚠️ LLM enhancement failed for {venue.name}")
+                    
+            except Exception as llm_error:
+                enhancement_results['enhancement_errors'].append(f"LLM error: {str(llm_error)}")
+                print(f"❌ LLM enhancement error: {llm_error}")
+            
+            # Step 2: Google Maps Image
+            try:
+                from scripts.utils import get_google_maps_image
+                
+                print(f"📸 Fetching Google Maps image for {venue.name}...")
+                image_url = get_google_maps_image(
+                    venue_name=venue.name,
+                    city=city.name,
+                    state=city.state,
+                    country=city.country
+                )
+                
+                if image_url:
+                    venue.image_url = image_url
+                    enhancement_results['google_maps_image'] = True
+                    print(f"✅ Google Maps image fetched for {venue.name}")
+                else:
+                    enhancement_results['enhancement_errors'].append("Google Maps image not found")
+                    print(f"⚠️ No Google Maps image found for {venue.name}")
+                    
+            except Exception as image_error:
+                enhancement_results['enhancement_errors'].append(f"Google Maps error: {str(image_error)}")
+                print(f"❌ Google Maps image error: {image_error}")
+            
+            # Commit enhanced venue data
+            db.session.commit()
+            print(f"💾 Enhanced venue data saved for {venue.name}")
+            
+        except Exception as enhancement_error:
+            enhancement_results['enhancement_errors'].append(f"Enhancement error: {str(enhancement_error)}")
+            print(f"❌ Venue enhancement failed: {enhancement_error}")
+            # Don't fail the entire operation if enhancement fails
+        
+        # Update the predefined_venues.json file with the enhanced venue
+        try:
+            update_json_with_new_venue(venue, city)
+        except Exception as json_error:
+            print(f"Warning: Could not update JSON file: {json_error}")
+            # Don't fail the entire operation if JSON update fails
+        
+        # Prepare response message
+        message = f'Venue "{name}" added successfully'
+        if enhancement_results['llm_enhanced']:
+            message += " with LLM enhancement"
+        if enhancement_results['google_maps_image']:
+            message += " and Google Maps image"
+        if enhancement_results['enhancement_errors']:
+            message += f" (warnings: {', '.join(enhancement_results['enhancement_errors'])})"
+        
         return jsonify({
             'success': True,
-            'message': f'Venue "{name}" added successfully',
-            'venue_id': venue.id
+            'message': message,
+            'venue_id': venue.id,
+            'enhancement_results': enhancement_results
         })
         
     except Exception as e:
