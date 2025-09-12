@@ -8,9 +8,11 @@ import os
 import sys
 import re
 import sqlite3
+import requests
 from typing import Optional, Dict, List, Tuple, Any
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 # Import centralized environment configuration
 from scripts.env_config import ensure_env_loaded, get_app_config, get_api_keys, get_available_llm_providers
 
@@ -1358,3 +1360,153 @@ def cities_are_same(city1: str, city2: str) -> bool:
 def venues_are_same(venue1: str, venue2: str) -> bool:
     """Convenience function to check if two venues are the same"""
     return are_texts_same(venue1, venue2, 'venue')
+
+# Google Maps API Functions
+
+def get_google_maps_image(venue_name: str, city: str = None, state: str = None, country: str = None, api_key: str = None) -> Optional[str]:
+    """
+    Fetch Google Maps first location image for a venue using Google Places API
+    
+    Args:
+        venue_name: Name of the venue
+        city: City name (optional)
+        state: State/province name (optional) 
+        country: Country name (optional)
+        api_key: Google Maps API key (optional, will use env var if not provided)
+    
+    Returns:
+        Google Maps image URL or None if not found
+    """
+    # Ensure environment is loaded
+    ensure_env_loaded()
+    
+    # Get API key
+    if not api_key:
+        api_keys = get_api_keys()
+        api_key = api_keys.get('GOOGLE_MAPS_API_KEY')
+    
+    if not api_key:
+        print("❌ GOOGLE_MAPS_API_KEY not found in environment variables")
+        print("   Please add GOOGLE_MAPS_API_KEY to your .env file or pass it as parameter")
+        return None
+    
+    try:
+        # Step 1: Build search query
+        search_query = venue_name
+        if city:
+            search_query += f" {city}"
+        if state:
+            search_query += f" {state}"
+        if country:
+            search_query += f" {country}"
+        
+        print(f"🔍 Searching Google Places for: {search_query}")
+        
+        # Step 2: Search for the place using Places API
+        places_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+        places_params = {
+            'query': search_query,
+            'key': api_key
+        }
+        
+        places_response = requests.get(places_url, params=places_params, timeout=10)
+        places_response.raise_for_status()
+        
+        places_data = places_response.json()
+        
+        if places_data.get('status') != 'OK' or not places_data.get('results'):
+            print(f"❌ No results found for {venue_name}")
+            return None
+        
+        # Get the first result
+        place = places_data['results'][0]
+        place_id = place['place_id']
+        place_name = place['name']
+        
+        print(f"✅ Found place: {place_name} (ID: {place_id})")
+        
+        # Step 3: Get place details including photos
+        details_url = "https://maps.googleapis.com/maps/api/place/details/json"
+        details_params = {
+            'place_id': place_id,
+            'fields': 'photos,name,formatted_address',
+            'key': api_key
+        }
+        
+        details_response = requests.get(details_url, params=details_params, timeout=10)
+        details_response.raise_for_status()
+        
+        details_data = details_response.json()
+        
+        if details_data.get('status') != 'OK':
+            print(f"❌ Could not get details for place {place_id}")
+            return None
+        
+        place_details = details_data['result']
+        
+        # Check if there are photos
+        if not place_details.get('photos'):
+            print(f"❌ No photos found for {place_name}")
+            return None
+        
+        # Get the first photo
+        first_photo = place_details['photos'][0]
+        photo_reference = first_photo['photo_reference']
+        
+        print(f"✅ Found photo reference: {photo_reference[:50]}...")
+        
+        # Step 4: Construct the image URL
+        image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo_reference}&key={api_key}"
+        
+        print(f"✅ Generated Google Maps image URL")
+        
+        return image_url
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request error: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ Error fetching Google Maps image: {e}")
+        return None
+
+def test_google_maps_image_url(image_url: str) -> bool:
+    """
+    Test if a Google Maps image URL is accessible
+    
+    Args:
+        image_url: The Google Maps image URL to test
+    
+    Returns:
+        True if accessible, False otherwise
+    """
+    if not image_url:
+        return False
+    
+    try:
+        response = requests.head(image_url, timeout=10)
+        return response.status_code == 200
+    except:
+        return False
+
+def get_google_maps_image_for_venue(venue_data: Dict[str, str], api_key: str = None) -> Optional[str]:
+    """
+    Convenience function to get Google Maps image for a venue dictionary
+    
+    Args:
+        venue_data: Dictionary containing venue information with keys:
+                   'name', 'city', 'state', 'country' (optional)
+        api_key: Google Maps API key (optional)
+    
+    Returns:
+        Google Maps image URL or None if not found
+    """
+    venue_name = venue_data.get('name', '')
+    city = venue_data.get('city', '')
+    state = venue_data.get('state', '')
+    country = venue_data.get('country', '')
+    
+    if not venue_name:
+        print("❌ Venue name is required")
+        return None
+    
+    return get_google_maps_image(venue_name, city, state, country, api_key)
