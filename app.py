@@ -888,17 +888,12 @@ def admin_cities():
             venue_count = Venue.query.filter_by(city_id=city.id).count()
             event_count = Event.query.filter_by(city_id=city.id).count()
             
-            cities_data.append({
-                'id': city.id,
-                'name': city.name,
-                'state': city.state,
-                'country': city.country,
-                'timezone': city.timezone,
-                'display_name': city.to_dict()['display_name'],
+            city_dict = city.to_dict()
+            city_dict.update({
                 'venue_count': venue_count,
-                'event_count': event_count,
-                'created_at': city.created_at.isoformat() if city.created_at else None
+                'event_count': event_count
             })
+            cities_data.append(city_dict)
         
         return jsonify(cities_data)
     except Exception as e:
@@ -928,18 +923,12 @@ def admin_events():
         events_data = []
         
         for event in events:
-            events_data.append({
-                'id': event.id,
-                'title': event.title,
-                'event_type': event.event_type,
-                'start_date': event.start_date.isoformat() if event.start_date else None,
-                'end_date': event.end_date.isoformat() if event.end_date else None,
-                'venue_id': event.venue_id,
-                'city_id': event.city_id,
+            event_dict = event.to_dict()
+            event_dict.update({
                 'venue_name': event.venue.name if event.venue else None,
-                'city_name': event.city.name if event.city else 'Unknown',
-                'created_at': event.created_at.isoformat() if event.created_at else None
+                'city_name': event.city.name if event.city else 'Unknown'
             })
+            events_data.append(event_dict)
         
         return jsonify(events_data)
     except Exception as e:

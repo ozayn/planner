@@ -1446,6 +1446,111 @@
             }
         }
         
+        // Sorting functionality for dynamic tables
+        function sortTable(tableId, field) {
+            // Determine which data array to sort based on table ID
+            let dataArray;
+            let filteredArray;
+            
+            switch(tableId) {
+                case 'citiesTable':
+                    dataArray = window.allCities;
+                    filteredArray = window.filteredCities;
+                    break;
+                case 'venuesTable':
+                    dataArray = window.allVenues;
+                    filteredArray = window.filteredVenues;
+                    break;
+                case 'eventsTable':
+                    dataArray = window.allEvents;
+                    filteredArray = window.filteredEvents;
+                    break;
+                case 'sourcesTable':
+                    dataArray = window.allSources;
+                    filteredArray = window.filteredSources;
+                    break;
+                default:
+                    console.error('Unknown table ID for sorting:', tableId);
+                    return;
+            }
+            
+            if (!dataArray || !filteredArray) {
+                console.error('Data arrays not available for sorting');
+                return;
+            }
+            
+            // Toggle sort direction (store in data attribute)
+            const table = document.querySelector(`#${tableId}`).closest('table');
+            const currentSort = table.dataset.currentSort;
+            const currentField = table.dataset.currentField;
+            
+            let ascending = true;
+            if (currentField === field && currentSort === 'asc') {
+                ascending = false;
+            }
+            
+            // Update table data attributes
+            table.dataset.currentField = field;
+            table.dataset.currentSort = ascending ? 'asc' : 'desc';
+            
+            // Sort the filtered data
+            filteredArray.sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                // Handle null/undefined values
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+                
+                // Handle different data types
+                if (typeof aVal === 'string' && typeof bVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                // Handle dates (ISO format)
+                if (field.includes('_at') || field.includes('_date')) {
+                    aVal = new Date(aVal);
+                    bVal = new Date(bVal);
+                }
+                
+                // Compare values
+                if (aVal < bVal) return ascending ? -1 : 1;
+                if (aVal > bVal) return ascending ? 1 : -1;
+                return 0;
+            });
+            
+            // Update the corresponding all data array to maintain consistency
+            const sortedIndices = filteredArray.map(item => dataArray.findIndex(original => original.id === item.id));
+            const newAllArray = sortedIndices.map(index => dataArray[index]);
+            Object.assign(dataArray, newAllArray);
+            
+            // Re-render the table
+            const tableType = tableId.replace('Table', '');
+            renderDynamicTable(tableId, filteredArray, tableType);
+            
+            // Update header arrows to show sort direction
+            updateSortArrows(table, field, ascending);
+        }
+        
+        function updateSortArrows(table, field, ascending) {
+            // Remove all arrows first
+            const headers = table.querySelectorAll('th');
+            headers.forEach(header => {
+                const text = header.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
+                header.textContent = text + ' ↕';
+            });
+            
+            // Add arrow to current field
+            const currentHeader = Array.from(headers).find(header => 
+                header.textContent.includes(field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
+            );
+            if (currentHeader) {
+                const text = currentHeader.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
+                currentHeader.textContent = text + (ascending ? ' ↑' : ' ↓');
+            }
+        }
+        
         // Dynamic table rendering system
         function renderDynamicTable(tableId, data, tableType = 'default') {
             const tableBody = document.getElementById(tableId);
@@ -1478,7 +1583,11 @@
                 orderedFields.forEach(field => {
                     const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
                     if (config.visible !== false) {
-                        headerRow += `<th>${config.label}</th>`;
+                        if (config.sortable !== false) {
+                            headerRow += `<th onclick="sortTable('${tableId}', '${field}')" style="cursor: pointer; user-select: none;" title="Click to sort">${config.label} ↕</th>`;
+                        } else {
+                            headerRow += `<th>${config.label}</th>`;
+                        }
                     }
                 });
                 
