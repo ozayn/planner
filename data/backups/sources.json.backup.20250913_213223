@@ -1,0 +1,33 @@
+{
+  "1": {
+    "name": "Washington",
+    "sources": [
+      {
+        "id": 1,
+        "name": "Test Source",
+        "handle": "@testsource",
+        "source_type": "instagram",
+        "url": "https://instagram.com/testsource",
+        "description": "Test source to verify timestamp columns",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "tour"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "daily",
+        "notes": "Test entry",
+        "scraping_pattern": "Test pattern",
+        "created_at": "2025-09-14T01:27:31.285293",
+        "updated_at": "2025-09-14T01:27:31.285297"
+      }
+    ]
+  }
+}

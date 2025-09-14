@@ -1,0 +1,275 @@
+{
+  "9": {
+    "name": "London",
+    "sources": [
+      {
+        "id": 7,
+        "name": "British Museum",
+        "handle": "@britishmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/britishmuseum/",
+        "description": "Official British Museum events and exhibitions",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official British Museum account - world's first national public museum",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907647",
+        "updated_at": "2025-09-14T00:40:08.907648"
+      },
+      {
+        "id": 6,
+        "name": "Tate",
+        "handle": "@tate",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tate/",
+        "description": "Official Tate galleries events and exhibitions",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Tate account - UK's national gallery of modern art",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907627",
+        "updated_at": "2025-09-14T00:40:08.907627"
+      }
+    ]
+  },
+  "3": {
+    "name": "Los Angeles",
+    "sources": [
+      {
+        "id": 4,
+        "name": "Los Angeles County Museum of Art",
+        "handle": "@lacma",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/lacma/",
+        "description": "Official LACMA events and exhibitions",
+        "city_id": 3,
+        "city_name": "Los Angeles",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official LACMA account - largest art museum in the western US",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907572",
+        "updated_at": "2025-09-14T00:40:08.907573"
+      },
+      {
+        "id": 5,
+        "name": "The Getty",
+        "handle": "@gettymuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/gettymuseum/",
+        "description": "Official Getty Museum events and exhibitions",
+        "city_id": 3,
+        "city_name": "Los Angeles",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Getty account - world's wealthiest art museum",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907591",
+        "updated_at": "2025-09-14T00:40:08.907592"
+      }
+    ]
+  },
+  "19": {
+    "name": "Madrid",
+    "sources": [
+      {
+        "id": 9,
+        "name": "Museo del Prado",
+        "handle": "@museoprado",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museoprado/",
+        "description": "Official Prado Museum events and exhibitions",
+        "city_id": 19,
+        "city_name": "Madrid",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Prado account - Spain's main national art museum",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907706",
+        "updated_at": "2025-09-14T00:40:08.907707"
+      }
+    ]
+  },
+  "2": {
+    "name": "New York",
+    "sources": [
+      {
+        "id": 2,
+        "name": "Metropolitan Museum of Art",
+        "handle": "@metmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/metmuseum/",
+        "description": "Official Met events and exhibitions",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Met account - one of the world's largest art museums",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907513",
+        "updated_at": "2025-09-14T00:40:08.907514"
+      },
+      {
+        "id": 3,
+        "name": "Museum of Modern Art",
+        "handle": "@themuseumofmodernart",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/themuseumofmodernart/",
+        "description": "Official MoMA events and exhibitions",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official MoMA account - world's leading modern art museum",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907546",
+        "updated_at": "2025-09-14T00:40:08.907546"
+      }
+    ]
+  },
+  "10": {
+    "name": "Paris",
+    "sources": [
+      {
+        "id": 8,
+        "name": "Musée du Louvre",
+        "handle": "@museelouvre",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museelouvre/",
+        "description": "Official Louvre events and exhibitions",
+        "city_id": 10,
+        "city_name": "Paris",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Louvre account - world's largest art museum",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907667",
+        "updated_at": "2025-09-14T00:40:08.907668"
+      }
+    ]
+  },
+  "1": {
+    "name": "Washington",
+    "sources": [
+      {
+        "id": 1,
+        "name": "Smithsonian",
+        "handle": "@smithsonian",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/smithsonian/",
+        "description": "Official Smithsonian events, exhibitions, and programs",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Smithsonian account - world's largest museum complex",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:40:08.907434",
+        "updated_at": "2025-09-14T00:40:08.907445"
+      }
+    ]
+  }
+}

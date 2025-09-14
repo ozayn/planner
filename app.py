@@ -429,7 +429,7 @@ class Source(db.Model):
             'city_name': self.city.name if self.city else None,
             'covers_multiple_cities': self.covers_multiple_cities,
             'covered_cities': self.covered_cities,
-            'event_types': self.event_types,
+            'event_types': self._parse_event_types(),
             'is_active': self.is_active,
             'last_checked': self.last_checked.isoformat() if self.last_checked else None,
             'last_event_found': self.last_event_found.isoformat() if self.last_event_found else None,
@@ -441,6 +441,23 @@ class Source(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    def _parse_event_types(self):
+        """Parse event_types field, handling both JSON and string formats"""
+        if not self.event_types:
+            return []
+        
+        try:
+            # Try to parse as JSON first
+            return json.loads(self.event_types)
+        except (json.JSONDecodeError, TypeError):
+            try:
+                # If JSON fails, try to parse as Python literal (single quotes)
+                import ast
+                return ast.literal_eval(self.event_types)
+            except (ValueError, SyntaxError):
+                # If all else fails, treat as comma-separated string
+                return [item.strip() for item in self.event_types.split(',') if item.strip()]
     
     def __repr__(self):
         return f"<Source {self.name} ({self.source_type})>"

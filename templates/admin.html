@@ -402,6 +402,117 @@
             color: #6b7280;
         }
 
+        /* Event type badges */
+        .badge-photowalk {
+            background: #f0f9ff;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-exhibition {
+            background: #fef7ff;
+            color: #9333ea;
+            border: 1px solid #e9d5ff;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-tour {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-festival {
+            background: #fff7ed;
+            color: #ea580c;
+            border: 1px solid #fed7aa;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-workshop {
+            background: #fefce8;
+            color: #ca8a04;
+            border: 1px solid #fde047;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-cultural {
+            background: #fdf4ff;
+            color: #c026d3;
+            border: 1px solid #f3e8ff;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-film {
+            background: #1f2937;
+            color: #f9fafb;
+            border: 1px solid #374151;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-art {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-language {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
+        .badge-default {
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+            margin: 0.125rem;
+        }
+
         /* Action Buttons */
         .edit-btn, .delete-btn {
             background: none;
@@ -1551,6 +1662,33 @@
             }
         }
         
+        function getEventTypeBadgeClass(eventType) {
+            // Return appropriate badge class based on event type
+            const type = eventType.toLowerCase();
+            
+            if (type.includes('photowalk') || type.includes('photo_walk')) {
+                return 'badge-photowalk';
+            } else if (type.includes('exhibition') || type.includes('gallery')) {
+                return 'badge-exhibition';
+            } else if (type.includes('tour')) {
+                return 'badge-tour';
+            } else if (type.includes('festival') || type.includes('event')) {
+                return 'badge-festival';
+            } else if (type.includes('workshop') || type.includes('class')) {
+                return 'badge-workshop';
+            } else if (type.includes('cultural') || type.includes('culture')) {
+                return 'badge-cultural';
+            } else if (type.includes('film') || type.includes('cinema')) {
+                return 'badge-film';
+            } else if (type.includes('art') || type.includes('creative')) {
+                return 'badge-art';
+            } else if (type.includes('language') || type.includes('french')) {
+                return 'badge-language';
+            } else {
+                return 'badge-default';
+            }
+        }
+        
         // Dynamic table rendering system
         function renderDynamicTable(tableId, data, tableType = 'default') {
             const tableBody = document.getElementById(tableId);
@@ -1825,15 +1963,35 @@
                     return `${value}/10`;
                 
                 case 'event_types':
-                    if (typeof value === 'string') {
+                    // Handle event types as array or string with improved styling
+                    if (Array.isArray(value)) {
+                        // Already an array from the API
+                        return value.map(type => {
+                            const cleanType = type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const badgeClass = getEventTypeBadgeClass(type);
+                            return `<span class="badge ${badgeClass}" title="${type}">${cleanType}</span>`;
+                        }).join(' ');
+                    } else if (value && typeof value === 'string') {
                         try {
+                            // Try to parse as JSON array
                             const types = JSON.parse(value);
-                            return Array.isArray(types) ? types.join(', ') : value;
+                            if (Array.isArray(types)) {
+                                return types.map(type => {
+                                    const cleanType = type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                    const badgeClass = getEventTypeBadgeClass(type);
+                                    return `<span class="badge ${badgeClass}" title="${type}">${cleanType}</span>`;
+                                }).join(' ');
+                            }
                         } catch (e) {
-                            return value;
+                            // If not JSON, treat as comma-separated
+                            return value.split(',').map(type => {
+                                const cleanType = type.trim().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                const badgeClass = getEventTypeBadgeClass(type.trim());
+                                return `<span class="badge ${badgeClass}" title="${type.trim()}">${cleanType}</span>`;
+                            }).join(' ');
                         }
                     }
-                    return value;
+                    return '';
                 
                 case 'created_at':
                 case 'updated_at':

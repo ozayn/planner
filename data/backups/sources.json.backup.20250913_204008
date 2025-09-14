@@ -1,0 +1,631 @@
+{
+  "6": {
+    "name": "Boston",
+    "sources": [
+      {
+        "id": 12,
+        "name": "Museum of Fine Arts Boston",
+        "handle": "@mfaboston",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/mfaboston/",
+        "description": "Official MFA Boston events and exhibitions",
+        "city_id": 6,
+        "city_name": "Boston",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official MFA Boston account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633623",
+        "updated_at": "2025-09-14T00:36:24.633623"
+      }
+    ]
+  },
+  "5": {
+    "name": "Chicago",
+    "sources": [
+      {
+        "id": 11,
+        "name": "Art Institute of Chicago",
+        "handle": "@artinstitutechi",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/artinstitutechi/",
+        "description": "Official Art Institute of Chicago events and exhibitions",
+        "city_id": 5,
+        "city_name": "Chicago",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Art Institute account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633601",
+        "updated_at": "2025-09-14T00:36:24.633602"
+      }
+    ]
+  },
+  "9": {
+    "name": "London",
+    "sources": [
+      {
+        "id": 14,
+        "name": "British Museum",
+        "handle": "@britishmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/britishmuseum/",
+        "description": "Official British Museum events and exhibitions",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official British Museum account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633665",
+        "updated_at": "2025-09-14T00:36:24.633665"
+      },
+      {
+        "id": 13,
+        "name": "Tate",
+        "handle": "@tate",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tate/",
+        "description": "Official Tate galleries events and exhibitions",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Tate account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633648",
+        "updated_at": "2025-09-14T00:36:24.633649"
+      },
+      {
+        "id": 15,
+        "name": "Time Out London",
+        "handle": "timeout.com/london",
+        "source_type": "website",
+        "url": "https://www.timeout.com/london",
+        "description": "Major London events and activities publication",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "performance",
+          "workshop",
+          "special_event"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Major London events publication - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633681",
+        "updated_at": "2025-09-14T00:36:24.633682"
+      }
+    ]
+  },
+  "3": {
+    "name": "Los Angeles",
+    "sources": [
+      {
+        "id": 7,
+        "name": "Los Angeles County Museum of Art",
+        "handle": "@lacma",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/lacma/",
+        "description": "Official LACMA events and exhibitions",
+        "city_id": 3,
+        "city_name": "Los Angeles",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official LACMA account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633529",
+        "updated_at": "2025-09-14T00:36:24.633530"
+      },
+      {
+        "id": 8,
+        "name": "The Getty",
+        "handle": "@gettymuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/gettymuseum/",
+        "description": "Official Getty Museum events and exhibitions",
+        "city_id": 3,
+        "city_name": "Los Angeles",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Getty account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633546",
+        "updated_at": "2025-09-14T00:36:24.633547"
+      }
+    ]
+  },
+  "19": {
+    "name": "Madrid",
+    "sources": [
+      {
+        "id": 21,
+        "name": "Museo del Prado",
+        "handle": "@museoprado",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museoprado/",
+        "description": "Official Prado Museum events and exhibitions",
+        "city_id": 19,
+        "city_name": "Madrid",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Prado account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633805",
+        "updated_at": "2025-09-14T00:36:24.633806"
+      }
+    ]
+  },
+  "2": {
+    "name": "New York",
+    "sources": [
+      {
+        "id": 4,
+        "name": "Metropolitan Museum of Art",
+        "handle": "@metmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/metmuseum/",
+        "description": "Official Met events and exhibitions",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Met account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633470",
+        "updated_at": "2025-09-14T00:36:24.633470"
+      },
+      {
+        "id": 5,
+        "name": "Museum of Modern Art",
+        "handle": "@themuseumofmodernart",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/themuseumofmodernart/",
+        "description": "Official MoMA events and exhibitions",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official MoMA account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633488",
+        "updated_at": "2025-09-14T00:36:24.633489"
+      },
+      {
+        "id": 6,
+        "name": "Time Out New York",
+        "handle": "timeout.com/newyork",
+        "source_type": "website",
+        "url": "https://www.timeout.com/newyork",
+        "description": "Major NYC events and activities publication",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "performance",
+          "workshop",
+          "special_event"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Major NYC events publication - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633507",
+        "updated_at": "2025-09-14T00:36:24.633508"
+      }
+    ]
+  },
+  "10": {
+    "name": "Paris",
+    "sources": [
+      {
+        "id": 17,
+        "name": "Centre Pompidou",
+        "handle": "@centrepompidou",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/centrepompidou/",
+        "description": "Official Centre Pompidou events and exhibitions",
+        "city_id": 10,
+        "city_name": "Paris",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Centre Pompidou account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633718",
+        "updated_at": "2025-09-14T00:36:24.633719"
+      },
+      {
+        "id": 16,
+        "name": "Musée du Louvre",
+        "handle": "@museelouvre",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museelouvre/",
+        "description": "Official Louvre events and exhibitions",
+        "city_id": 10,
+        "city_name": "Paris",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Louvre account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633702",
+        "updated_at": "2025-09-14T00:36:24.633703"
+      }
+    ]
+  },
+  "4": {
+    "name": "San Francisco",
+    "sources": [
+      {
+        "id": 9,
+        "name": "San Francisco Museum of Modern Art",
+        "handle": "@sfmoma",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/sfmoma/",
+        "description": "Official SFMOMA events and exhibitions",
+        "city_id": 4,
+        "city_name": "San Francisco",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official SFMOMA account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633566",
+        "updated_at": "2025-09-14T00:36:24.633566"
+      },
+      {
+        "id": 10,
+        "name": "de Young Museum",
+        "handle": "@deyoungmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/deyoungmuseum/",
+        "description": "Official de Young Museum events and exhibitions",
+        "city_id": 4,
+        "city_name": "San Francisco",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official de Young account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633582",
+        "updated_at": "2025-09-14T00:36:24.633583"
+      }
+    ]
+  },
+  "12": {
+    "name": "Sydney",
+    "sources": [
+      {
+        "id": 19,
+        "name": "Art Gallery of NSW",
+        "handle": "@artgallerynsw",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/artgallerynsw/",
+        "description": "Official Art Gallery of NSW events and exhibitions",
+        "city_id": 12,
+        "city_name": "Sydney",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official Art Gallery NSW account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633755",
+        "updated_at": "2025-09-14T00:36:24.633756"
+      }
+    ]
+  },
+  "11": {
+    "name": "Tokyo",
+    "sources": [
+      {
+        "id": 18,
+        "name": "Tokyo National Museum",
+        "handle": "@tokyo_national_museum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tokyo_national_museum/",
+        "description": "Official Tokyo National Museum events and exhibitions",
+        "city_id": 11,
+        "city_name": "Tokyo",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official Tokyo National Museum account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633737",
+        "updated_at": "2025-09-14T00:36:24.633737"
+      }
+    ]
+  },
+  "14": {
+    "name": "Toronto",
+    "sources": [
+      {
+        "id": 20,
+        "name": "Art Gallery of Ontario",
+        "handle": "@agotoronto",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/agotoronto/",
+        "description": "Official AGO events and exhibitions",
+        "city_id": 14,
+        "city_name": "Toronto",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official AGO account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633777",
+        "updated_at": "2025-09-14T00:36:24.633777"
+      }
+    ]
+  },
+  "1": {
+    "name": "Washington",
+    "sources": [
+      {
+        "id": 3,
+        "name": "DC Arts Events",
+        "handle": "dcarts.org",
+        "source_type": "website",
+        "url": "https://dcarts.org",
+        "description": "Official DC government arts and culture events calendar",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "performance",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official DC government arts calendar - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633443",
+        "updated_at": "2025-09-14T00:36:24.633444"
+      },
+      {
+        "id": 2,
+        "name": "National Gallery of Art",
+        "handle": "@ngadc",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/ngadc/",
+        "description": "Official National Gallery of Art events and exhibitions",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official NGA account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633411",
+        "updated_at": "2025-09-14T00:36:24.633412"
+      },
+      {
+        "id": 1,
+        "name": "Smithsonian",
+        "handle": "@smithsonian",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/smithsonian/",
+        "description": "Official Smithsonian events, exhibitions, and programs",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Smithsonian account - verified real",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:36:24.633336",
+        "updated_at": "2025-09-14T00:36:24.633348"
+      }
+    ]
+  }
+}

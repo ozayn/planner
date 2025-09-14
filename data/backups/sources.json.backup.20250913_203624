@@ -1,0 +1,1226 @@
+{
+  "17": {
+    "name": "Baltimore",
+    "sources": [
+      {
+        "id": 34,
+        "name": "Baltimore Photo Meetup",
+        "handle": "@baltimorephotomeetup",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/baltimorephotomeetup/",
+        "description": "Photography meetups and walks in Baltimore",
+        "city_id": 17,
+        "city_name": "Baltimore",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "meetup"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Baltimore photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.836304",
+        "updated_at": "2025-09-14T00:30:04.836305"
+      }
+    ]
+  },
+  "20": {
+    "name": "Berlin",
+    "sources": [
+      {
+        "id": 40,
+        "name": "Berlin Art Events",
+        "handle": "@berlinartevents",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/berlinartevents/",
+        "description": "Art events and exhibitions in Berlin",
+        "city_id": 20,
+        "city_name": "Berlin",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.5,
+        "posting_frequency": "weekly",
+        "notes": "Berlin art scene coverage",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.837814",
+        "updated_at": "2025-09-14T00:30:04.837814"
+      },
+      {
+        "id": 39,
+        "name": "Berlin Photo Meetup",
+        "handle": "@berlinphotomeetup",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/berlinphotomeetup/",
+        "description": "Photography meetups and walks in Berlin",
+        "city_id": 20,
+        "city_name": "Berlin",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "meetup"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Berlin photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.837596",
+        "updated_at": "2025-09-14T00:30:04.837597"
+      }
+    ]
+  },
+  "6": {
+    "name": "Boston",
+    "sources": [
+      {
+        "id": 16,
+        "name": "Boston Photography Group",
+        "handle": "@bostonphotography",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/bostonphotography/",
+        "description": "Photography walks and workshops in Boston",
+        "city_id": 6,
+        "city_name": "Boston",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Active Boston photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.831577",
+        "updated_at": "2025-09-14T00:30:04.831578"
+      },
+      {
+        "id": 17,
+        "name": "MFA Boston Events",
+        "handle": "@mfaboston",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/mfaboston/",
+        "description": "Events and exhibitions at Museum of Fine Arts Boston",
+        "city_id": 6,
+        "city_name": "Boston",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official MFA Boston account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.831790",
+        "updated_at": "2025-09-14T00:30:04.831791"
+      }
+    ]
+  },
+  "5": {
+    "name": "Chicago",
+    "sources": [
+      {
+        "id": 15,
+        "name": "Art Institute Chicago",
+        "handle": "@artinstitutechi",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/artinstitutechi/",
+        "description": "Events and exhibitions at Art Institute of Chicago",
+        "city_id": 5,
+        "city_name": "Chicago",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official Art Institute account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.831353",
+        "updated_at": "2025-09-14T00:30:04.831354"
+      },
+      {
+        "id": 14,
+        "name": "Chicago Photo Meetup",
+        "handle": "@chicagophotomeetup",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/chicagophotomeetup/",
+        "description": "Photography meetups and walks in Chicago",
+        "city_id": 5,
+        "city_name": "Chicago",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "meetup"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Local photography group",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.831116",
+        "updated_at": "2025-09-14T00:30:04.831117"
+      }
+    ]
+  },
+  "9": {
+    "name": "London",
+    "sources": [
+      {
+        "id": 20,
+        "name": "London Photo Walks",
+        "handle": "@londonphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/londonphotowalks/",
+        "description": "Photography walks and workshops in London",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.5,
+        "posting_frequency": "weekly",
+        "notes": "Very active London photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.832466",
+        "updated_at": "2025-09-14T00:30:04.832466"
+      },
+      {
+        "id": 21,
+        "name": "Tate Events",
+        "handle": "@tate",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tate/",
+        "description": "Events and exhibitions at Tate galleries",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Tate account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.832733",
+        "updated_at": "2025-09-14T00:30:04.832735"
+      },
+      {
+        "id": 22,
+        "name": "Time Out London",
+        "handle": "timeout.com/london",
+        "source_type": "website",
+        "url": "https://www.timeout.com/london",
+        "description": "Comprehensive London events and activities",
+        "city_id": 9,
+        "city_name": "London",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "performance",
+          "workshop",
+          "special_event"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Major London events publication",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.833102",
+        "updated_at": "2025-09-14T00:30:04.833103"
+      }
+    ]
+  },
+  "3": {
+    "name": "Los Angeles",
+    "sources": [
+      {
+        "id": 11,
+        "name": "LA Museums",
+        "handle": "@lamuseums",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/lamuseums/",
+        "description": "Events and exhibitions at LA area museums",
+        "city_id": 3,
+        "city_name": "Los Angeles",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.5,
+        "posting_frequency": "weekly",
+        "notes": "Collaborative museum events",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.830451",
+        "updated_at": "2025-09-14T00:30:04.830451"
+      },
+      {
+        "id": 10,
+        "name": "LA Photo Society",
+        "handle": "@laphotosociety",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/laphotosociety/",
+        "description": "Photography workshops and photowalks in LA",
+        "city_id": 3,
+        "city_name": "Los Angeles",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Local photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.830240",
+        "updated_at": "2025-09-14T00:30:04.830241"
+      }
+    ]
+  },
+  "19": {
+    "name": "Madrid",
+    "sources": [
+      {
+        "id": 37,
+        "name": "Madrid Photo Walks",
+        "handle": "@madridphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/madridphotowalks/",
+        "description": "Photography walks around Madrid",
+        "city_id": 19,
+        "city_name": "Madrid",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Madrid photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.837143",
+        "updated_at": "2025-09-14T00:30:04.837144"
+      },
+      {
+        "id": 38,
+        "name": "Museo del Prado",
+        "handle": "@museoprado",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museoprado/",
+        "description": "Events and exhibitions at Museo del Prado",
+        "city_id": 19,
+        "city_name": "Madrid",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Prado account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.837370",
+        "updated_at": "2025-09-14T00:30:04.837371"
+      }
+    ]
+  },
+  "8": {
+    "name": "Miami",
+    "sources": [
+      {
+        "id": 19,
+        "name": "Miami Art Events",
+        "handle": "@miamiartevents",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/miamiartevents/",
+        "description": "Art events and exhibitions in Miami",
+        "city_id": 8,
+        "city_name": "Miami",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "art_fair",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Miami art scene coverage",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.832242",
+        "updated_at": "2025-09-14T00:30:04.832243"
+      }
+    ]
+  },
+  "13": {
+    "name": "Montreal",
+    "sources": [
+      {
+        "id": 29,
+        "name": "Montreal Photo Meetup",
+        "handle": "@montrealphotomeetup",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/montrealphotomeetup/",
+        "description": "Photography meetups and walks in Montreal",
+        "city_id": 13,
+        "city_name": "Montreal",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "meetup"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Montreal photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.835073",
+        "updated_at": "2025-09-14T00:30:04.835074"
+      }
+    ]
+  },
+  "21": {
+    "name": "Munich",
+    "sources": [
+      {
+        "id": 41,
+        "name": "Munich Photo Walks",
+        "handle": "@munichphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/munichphotowalks/",
+        "description": "Photography walks around Munich",
+        "city_id": 21,
+        "city_name": "Munich",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Munich photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.838048",
+        "updated_at": "2025-09-14T00:30:04.838049"
+      }
+    ]
+  },
+  "2": {
+    "name": "New York",
+    "sources": [
+      {
+        "id": 8,
+        "name": "Museum Mile Events",
+        "handle": "@museummile",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museummile/",
+        "description": "Events and exhibitions along NYC's Museum Mile",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "special_event"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "weekly",
+        "notes": "Covers major NYC museums",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.829787",
+        "updated_at": "2025-09-14T00:30:04.829788"
+      },
+      {
+        "id": 7,
+        "name": "NYC Photo Walks",
+        "handle": "@nycphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/nycphotowalks/",
+        "description": "Photography walks and workshops across NYC boroughs",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Active photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.829556",
+        "updated_at": "2025-09-14T00:30:04.829556"
+      },
+      {
+        "id": 9,
+        "name": "Time Out New York",
+        "handle": "timeout.com/newyork",
+        "source_type": "website",
+        "url": "https://www.timeout.com/newyork",
+        "description": "Comprehensive NYC events and activities",
+        "city_id": 2,
+        "city_name": "New York",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "performance",
+          "workshop",
+          "special_event"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Major NYC events publication",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.830016",
+        "updated_at": "2025-09-14T00:30:04.830017"
+      }
+    ]
+  },
+  "10": {
+    "name": "Paris",
+    "sources": [
+      {
+        "id": 24,
+        "name": "Musée du Louvre",
+        "handle": "@museelouvre",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/museelouvre/",
+        "description": "Events and exhibitions at Louvre",
+        "city_id": 10,
+        "city_name": "Paris",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official Louvre account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.833830",
+        "updated_at": "2025-09-14T00:30:04.833831"
+      },
+      {
+        "id": 23,
+        "name": "Paris Photo Walks",
+        "handle": "@parisphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/parisphotowalks/",
+        "description": "Photography walks and workshops in Paris",
+        "city_id": 10,
+        "city_name": "Paris",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Paris photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.833522",
+        "updated_at": "2025-09-14T00:30:04.833523"
+      }
+    ]
+  },
+  "18": {
+    "name": "Philadelphia",
+    "sources": [
+      {
+        "id": 36,
+        "name": "Philadelphia Museum of Art",
+        "handle": "@philamuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/philamuseum/",
+        "description": "Events and exhibitions at Philadelphia Museum of Art",
+        "city_id": 18,
+        "city_name": "Philadelphia",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official PMA account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.836904",
+        "updated_at": "2025-09-14T00:30:04.836905"
+      },
+      {
+        "id": 35,
+        "name": "Philadelphia Photo Walks",
+        "handle": "@philadelphiaphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/philadelphiaphotowalks/",
+        "description": "Photography walks around Philadelphia",
+        "city_id": 18,
+        "city_name": "Philadelphia",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Philadelphia photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.836644",
+        "updated_at": "2025-09-14T00:30:04.836645"
+      }
+    ]
+  },
+  "22": {
+    "name": "Princeton",
+    "sources": [
+      {
+        "id": 3,
+        "name": "Morven Museum Events",
+        "handle": "@morvenmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/morvenmuseum/",
+        "description": "Morven Museum & Garden Instagram account for events and exhibitions",
+        "city_id": 22,
+        "city_name": "Princeton",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Museum events, garden tours, special exhibitions",
+        "scraping_pattern": "Check weekly for new exhibitions and special events",
+        "created_at": "2025-09-14T00:13:56.933375",
+        "updated_at": "2025-09-14T00:13:56.933376"
+      },
+      {
+        "id": 1,
+        "name": "Princeton Photography Club",
+        "handle": "@princetonphotoclub",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/princetonphotoclub/",
+        "description": "Local photography club that posts photowalks and photography events in Princeton",
+        "city_id": 22,
+        "city_name": "Princeton",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "tour"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Posts mostly on weekends, check stories for last-minute events",
+        "scraping_pattern": "Check posts and stories weekly, look for event announcements",
+        "created_at": "2025-09-14T00:13:56.931959",
+        "updated_at": "2025-09-14T00:13:56.931972"
+      },
+      {
+        "id": 42,
+        "name": "Princeton University Art Museum",
+        "handle": "@princetonartmuseum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/princetonartmuseum/",
+        "description": "Events and exhibitions at Princeton University Art Museum",
+        "city_id": 22,
+        "city_name": "Princeton",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "weekly",
+        "notes": "Official Princeton Art Museum account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.838414",
+        "updated_at": "2025-09-14T00:30:04.838415"
+      },
+      {
+        "id": 2,
+        "name": "Princeton University Events",
+        "handle": "princeton.edu/events",
+        "source_type": "website",
+        "url": "https://www.princeton.edu/events",
+        "description": "Official Princeton University events calendar",
+        "city_id": 22,
+        "city_name": "Princeton",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "tour",
+          "exhibition",
+          "festival"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official university source, very reliable",
+        "scraping_pattern": "Check daily, events are well-structured",
+        "created_at": "2025-09-14T00:13:56.933023",
+        "updated_at": "2025-09-14T00:13:56.933024"
+      }
+    ]
+  },
+  "4": {
+    "name": "San Francisco",
+    "sources": [
+      {
+        "id": 12,
+        "name": "SF Photo Walks",
+        "handle": "@sfphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/sfphotowalks/",
+        "description": "Photography walks around San Francisco",
+        "city_id": 4,
+        "city_name": "San Francisco",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Active SF photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.830663",
+        "updated_at": "2025-09-14T00:30:04.830664"
+      },
+      {
+        "id": 13,
+        "name": "SFMOMA Events",
+        "handle": "@sfmoma",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/sfmoma/",
+        "description": "Events and exhibitions at SFMOMA",
+        "city_id": 4,
+        "city_name": "San Francisco",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official SFMOMA account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.830881",
+        "updated_at": "2025-09-14T00:30:04.830881"
+      }
+    ]
+  },
+  "7": {
+    "name": "Seattle",
+    "sources": [
+      {
+        "id": 18,
+        "name": "Seattle Photo Walks",
+        "handle": "@seattlephotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/seattlephotowalks/",
+        "description": "Photography walks around Seattle",
+        "city_id": 7,
+        "city_name": "Seattle",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Local Seattle photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.832023",
+        "updated_at": "2025-09-14T00:30:04.832023"
+      }
+    ]
+  },
+  "12": {
+    "name": "Sydney",
+    "sources": [
+      {
+        "id": 28,
+        "name": "Art Gallery NSW",
+        "handle": "@artgallerynsw",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/artgallerynsw/",
+        "description": "Events and exhibitions at Art Gallery of NSW",
+        "city_id": 12,
+        "city_name": "Sydney",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official Art Gallery NSW account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.834842",
+        "updated_at": "2025-09-14T00:30:04.834843"
+      },
+      {
+        "id": 27,
+        "name": "Sydney Photo Walks",
+        "handle": "@sydneyphotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/sydneyphotowalks/",
+        "description": "Photography walks around Sydney",
+        "city_id": 12,
+        "city_name": "Sydney",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Sydney photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.834596",
+        "updated_at": "2025-09-14T00:30:04.834597"
+      }
+    ]
+  },
+  "16": {
+    "name": "Tehran",
+    "sources": [
+      {
+        "id": 33,
+        "name": "Tehran Art Events",
+        "handle": "@tehranartevents",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tehranartevents/",
+        "description": "Art events and exhibitions in Tehran",
+        "city_id": 16,
+        "city_name": "Tehran",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 7.5,
+        "posting_frequency": "weekly",
+        "notes": "Tehran art scene coverage",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.835986",
+        "updated_at": "2025-09-14T00:30:04.835986"
+      }
+    ]
+  },
+  "11": {
+    "name": "Tokyo",
+    "sources": [
+      {
+        "id": 26,
+        "name": "Tokyo National Museum",
+        "handle": "@tokyo_national_museum",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tokyo_national_museum/",
+        "description": "Events and exhibitions at Tokyo National Museum",
+        "city_id": 11,
+        "city_name": "Tokyo",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official Tokyo National Museum account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.834357",
+        "updated_at": "2025-09-14T00:30:04.834358"
+      },
+      {
+        "id": 25,
+        "name": "Tokyo Photo Meetup",
+        "handle": "@tokyophotomeetup",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/tokyophotomeetup/",
+        "description": "Photography meetups and walks in Tokyo",
+        "city_id": 11,
+        "city_name": "Tokyo",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "meetup"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Tokyo photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.834112",
+        "updated_at": "2025-09-14T00:30:04.834113"
+      }
+    ]
+  },
+  "14": {
+    "name": "Toronto",
+    "sources": [
+      {
+        "id": 31,
+        "name": "AGO Events",
+        "handle": "@agotoronto",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/agotoronto/",
+        "description": "Events and exhibitions at Art Gallery of Ontario",
+        "city_id": 14,
+        "city_name": "Toronto",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.0,
+        "posting_frequency": "daily",
+        "notes": "Official AGO account",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.835525",
+        "updated_at": "2025-09-14T00:30:04.835526"
+      },
+      {
+        "id": 30,
+        "name": "Toronto Photo Walks",
+        "handle": "@torontophotowalks",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/torontophotowalks/",
+        "description": "Photography walks around Toronto",
+        "city_id": 14,
+        "city_name": "Toronto",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Toronto photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.835301",
+        "updated_at": "2025-09-14T00:30:04.835301"
+      }
+    ]
+  },
+  "15": {
+    "name": "Vancouver",
+    "sources": [
+      {
+        "id": 32,
+        "name": "Vancouver Photo Society",
+        "handle": "@vancouverphotosociety",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/vancouverphotosociety/",
+        "description": "Photography workshops and walks in Vancouver",
+        "city_id": 15,
+        "city_name": "Vancouver",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "weekly",
+        "notes": "Vancouver photography community",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.835749",
+        "updated_at": "2025-09-14T00:30:04.835749"
+      }
+    ]
+  },
+  "1": {
+    "name": "Washington",
+    "sources": [
+      {
+        "id": 6,
+        "name": "DC Arts Events",
+        "handle": "dcarts.org",
+        "source_type": "website",
+        "url": "https://dcarts.org",
+        "description": "Comprehensive DC arts and culture events calendar",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "performance",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.0,
+        "posting_frequency": "daily",
+        "notes": "Official DC government arts calendar",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.829295",
+        "updated_at": "2025-09-14T00:30:04.829296"
+      },
+      {
+        "id": 5,
+        "name": "Smithsonian Events",
+        "handle": "@smithsonian",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/smithsonian/",
+        "description": "Official Smithsonian events, exhibitions, and programs",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "exhibition",
+          "tour",
+          "workshop"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 9.5,
+        "posting_frequency": "daily",
+        "notes": "Official source for all Smithsonian events",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.828988",
+        "updated_at": "2025-09-14T00:30:04.828990"
+      },
+      {
+        "id": 4,
+        "name": "Washington DC Photography Meetup",
+        "handle": "@dcphotomeetup",
+        "source_type": "instagram",
+        "url": "https://www.instagram.com/dcphotomeetup/",
+        "description": "Regular photography walks and workshops in DC area",
+        "city_id": 1,
+        "city_name": "Washington",
+        "covers_multiple_cities": false,
+        "covered_cities": null,
+        "event_types": [
+          "photowalk",
+          "workshop",
+          "meetup"
+        ],
+        "is_active": true,
+        "last_checked": "",
+        "last_event_found": "",
+        "events_found_count": 0,
+        "reliability_score": 8.5,
+        "posting_frequency": "weekly",
+        "notes": "Very active group with regular events",
+        "scraping_pattern": "",
+        "created_at": "2025-09-14T00:30:04.827855",
+        "updated_at": "2025-09-14T00:30:04.827868"
+      }
+    ]
+  }
+}

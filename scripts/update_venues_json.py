@@ -6,8 +6,13 @@ This function will be imported and used in other scripts
 
 import json
 import os
+import sys
 from pathlib import Path
 from datetime import datetime
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 def update_venues_json():
     """Update venues.json with current database venues"""
