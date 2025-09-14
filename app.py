@@ -1798,8 +1798,15 @@ def add_source():
         source_type = clean_text_field(data.get('source_type', ''))
         city_id = data.get('city_id')
         
-        if not name or not handle or not source_type or not city_id:
-            return jsonify({'error': 'Name, handle, source type, and city are required'}), 400
+        # Auto-generate name from handle if not provided
+        if not name and handle:
+            name = handle.replace('@', '').replace('_', ' ').replace('-', ' ').title()
+        
+        if not handle or not source_type or not city_id:
+            return jsonify({'error': 'Handle, source type, and city are required'}), 400
+        
+        if not name:
+            name = 'Source'  # Default fallback
         
         # Check if city exists
         city = db.session.get(City, city_id)

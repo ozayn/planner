@@ -1002,31 +1002,13 @@
             <form id="addSourceForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="sourceName">Source Name *</label>
-                        <input type="text" id="sourceName" required placeholder="e.g., Princeton Photography Club">
-                    </div>
-                    <div class="form-group">
-                        <label for="sourceHandle">Handle *</label>
-                        <input type="text" id="sourceHandle" required placeholder="e.g., @princetonphotoclub">
+                        <label for="sourceInput">Instagram Handle or Website URL *</label>
+                        <input type="text" id="sourceInput" required placeholder="e.g., @princetonphotoclub or https://example.com">
+                        <small style="color: #666; font-size: 0.8em; display: block; margin-top: 5px;">Just paste the Instagram handle (@username) or website URL - we'll detect the type and fill in the rest!</small>
                     </div>
                 </div>
                 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="sourceType">Source Type *</label>
-                        <select id="sourceType" required>
-                            <option value="">Select Type</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="website">Website</option>
-                            <option value="eventbrite">Eventbrite</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="meetup">Meetup</option>
-                            <option value="twitter">Twitter</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
                     <div class="form-group">
                         <label for="sourceCity">City *</label>
                         <select id="sourceCity" required>
@@ -1035,10 +1017,12 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="sourceUrl">URL</label>
-                    <input type="url" id="sourceUrl" placeholder="https://www.instagram.com/princetonphotoclub/">
-                </div>
+                <!-- Hidden fields that will be auto-filled -->
+                <input type="hidden" id="sourceName" value="">
+                <input type="hidden" id="sourceHandle" value="">
+                <input type="hidden" id="sourceType" value="">
+                <input type="hidden" id="sourceUrl" value="">
+                
                 
                 <div class="form-group">
                     <label for="sourceDescription">Description</label>
@@ -1307,66 +1291,8 @@
         
         // Render cities table dynamically
         function renderCitiesTable() {
-            const tableBody = document.getElementById('citiesTable');
-            if (!tableBody) return;
-            
-            if (!window.filteredCities || window.filteredCities.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="11" class="no-results">🔍 No cities match your filters</td></tr>';
-                return;
-            }
-            
-            // Get the first city to determine available fields dynamically
-            const sampleCity = window.filteredCities[0];
-            const availableFields = Object.keys(sampleCity);
-            
-            tableBody.innerHTML = window.filteredCities.map(city => {
-                let row = '<tr id="city-row-' + city.id + '">';
-                
-                // Always include ID
-                row += '<td>' + city.id + '</td>';
-                
-                // Include all available fields dynamically
-                if (availableFields.includes('name')) {
-                    row += '<td><strong>' + (city.name || 'N/A') + '</strong></td>';
-                }
-                if (availableFields.includes('state')) {
-                    row += '<td>' + (city.state || '') + '</td>';
-                }
-                if (availableFields.includes('country')) {
-                    row += '<td>' + (city.country || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('timezone')) {
-                    row += '<td>' + (city.timezone || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('display_name')) {
-                    row += '<td>' + (city.display_name || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('venue_count')) {
-                    const venueCount = city.venue_count || 0;
-                    const badgeClass = venueCount === 0 ? 'zero' : venueCount >= 5 ? 'high' : '';
-                    row += '<td><span class="badge ' + badgeClass + '">' + venueCount + '</span></td>';
-                }
-                if (availableFields.includes('event_count')) {
-                    const eventCount = city.event_count || 0;
-                    const badgeClass = eventCount === 0 ? 'zero' : eventCount >= 5 ? 'high' : '';
-                    row += '<td><span class="badge ' + badgeClass + '">' + eventCount + '</span></td>';
-                }
-                if (availableFields.includes('created_at')) {
-                    row += '<td>' + (city.created_at ? new Date(city.created_at).toLocaleDateString() : 'N/A') + '</td>';
-                }
-                if (availableFields.includes('updated_at')) {
-                    row += '<td>' + (city.updated_at ? new Date(city.updated_at).toLocaleDateString() : 'N/A') + '</td>';
-                }
-                
-                // Always include actions
-                row += '<td>' +
-                    '<button onclick="editCity(' + city.id + ')" class="edit-btn">✏️</button>' +
-                    '<button onclick="deleteCity(' + city.id + ')" class="delete-btn">🗑️</button>' +
-                '</td>';
-                
-                row += '</tr>';
-                return row;
-            }).join('');
+            const data = window.filteredCities || window.allCities || [];
+            renderDynamicTable('citiesTable', data, 'cities');
         }
         
         // Populate city filters
@@ -1520,78 +1446,39 @@
             }
         }
         
-        // Render venues table dynamically
-        function renderVenuesTable() {
-            const tableBody = document.getElementById('venuesTable');
+        // Dynamic table rendering system
+        function renderDynamicTable(tableId, data, tableType = 'default') {
+            const tableBody = document.getElementById(tableId);
             if (!tableBody) return;
             
-            if (!window.filteredVenues || window.filteredVenues.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="20" class="no-results">🔍 No venues match your filters</td></tr>';
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="100" class="no-results">🔍 No data found</td></tr>';
                 return;
             }
             
-            // Define the exact order of columns to ensure headers and data match
-            const columnOrder = [
-                'id',
-                'name', 
-                'venue_type',
-                'city_name',
-                'address',
-                'opening_hours',
-                'phone_number',
-                'email',
-                'website_url',
-                'image_url',
-                'latitude',
-                'longitude',
-                'facebook_url',
-                'instagram_url',
-                'twitter_url',
-                'holiday_hours',
-                'admission_fee',
-                'tour_info',
-                'description',
-                'additional_info',
-                'created_at',
-                'updated_at'
-            ];
+            // Get the first item to determine available fields dynamically
+            const sampleItem = data[0];
+            const availableFields = Object.keys(sampleItem);
             
-            // Get the first venue to determine available fields dynamically
-            const sampleVenue = window.filteredVenues[0];
-            const availableFields = Object.keys(sampleVenue);
+            // Define field display preferences (order, visibility, formatting)
+            const fieldConfig = getFieldConfig(tableType);
             
-            // Generate table headers in the defined order
-            const tableHead = document.querySelector('#venuesTable').closest('table').querySelector('thead tr');
+            // Filter and order fields based on configuration
+            const orderedFields = fieldConfig.order.filter(field => availableFields.includes(field));
+            
+            // Add any new fields not in the config (for future-proofing)
+            const newFields = availableFields.filter(field => !fieldConfig.order.includes(field));
+            orderedFields.push(...newFields);
+            
+            // Generate table headers
+            const tableHead = document.querySelector(`#${tableId}`).closest('table').querySelector('thead tr');
             if (tableHead) {
                 let headerRow = '';
                 
-                // Generate headers in the exact same order as data
-                columnOrder.forEach(field => {
-                    if (availableFields.includes(field)) {
-                        switch(field) {
-                            case 'id': headerRow += '<th>ID</th>'; break;
-                            case 'name': headerRow += '<th>Name</th>'; break;
-                            case 'venue_type': headerRow += '<th>Type</th>'; break;
-                            case 'city_name': headerRow += '<th>City</th>'; break;
-                            case 'address': headerRow += '<th>Address</th>'; break;
-                            case 'opening_hours': headerRow += '<th>Hours</th>'; break;
-                            case 'phone_number': headerRow += '<th>Phone</th>'; break;
-                            case 'email': headerRow += '<th>Email</th>'; break;
-                            case 'website_url': headerRow += '<th>Website</th>'; break;
-                            case 'image_url': headerRow += '<th>Image</th>'; break;
-                            case 'latitude': headerRow += '<th>Latitude</th>'; break;
-                            case 'longitude': headerRow += '<th>Longitude</th>'; break;
-                            case 'facebook_url': headerRow += '<th>Facebook</th>'; break;
-                            case 'instagram_url': headerRow += '<th>Instagram</th>'; break;
-                            case 'twitter_url': headerRow += '<th>Twitter</th>'; break;
-                            case 'holiday_hours': headerRow += '<th>Holiday Hours</th>'; break;
-                            case 'admission_fee': headerRow += '<th>Admission</th>'; break;
-                            case 'tour_info': headerRow += '<th>Tour Info</th>'; break;
-                            case 'description': headerRow += '<th>Description</th>'; break;
-                            case 'additional_info': headerRow += '<th>Additional Info</th>'; break;
-                            case 'created_at': headerRow += '<th>Created</th>'; break;
-                            case 'updated_at': headerRow += '<th>Updated</th>'; break;
-                        }
+                orderedFields.forEach(field => {
+                    const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
+                    if (config.visible !== false) {
+                        headerRow += `<th>${config.label}</th>`;
                     }
                 });
                 
@@ -1601,115 +1488,302 @@
                 tableHead.innerHTML = headerRow;
             }
             
-            // Generate data rows in the exact same order as headers
-            tableBody.innerHTML = window.filteredVenues.map(venue => {
-                let row = '<tr id="venue-row-' + venue.id + '">';
+            // Generate data rows
+            tableBody.innerHTML = data.map(item => {
+                let row = `<tr id="${tableType}-row-${item.id}">`;
                 
-                // Generate data cells in the exact same order as headers
-                columnOrder.forEach(field => {
-                    if (availableFields.includes(field)) {
-                        switch(field) {
-                            case 'id':
-                                row += '<td>' + venue.id + '</td>';
-                                break;
-                            case 'name':
-                                row += '<td><strong>' + (venue.name || 'N/A') + '</strong></td>';
-                                break;
-                            case 'venue_type':
-                                row += '<td><span class="badge">' + (venue.venue_type || 'N/A') + '</span></td>';
-                                break;
-                            case 'city_name':
-                                row += '<td>' + (venue.city_name || 'N/A') + '</td>';
-                                break;
-                            case 'address':
-                                row += '<td>' + (venue.address || 'N/A') + '</td>';
-                                break;
-                            case 'opening_hours':
-                                row += '<td>' + (venue.opening_hours || 'N/A') + '</td>';
-                                break;
-                            case 'phone_number':
-                                row += '<td>' + (venue.phone_number || 'N/A') + '</td>';
-                                break;
-                            case 'email':
-                                row += '<td>' + (venue.email || 'N/A') + '</td>';
-                                break;
-                            case 'website_url':
-                                row += '<td>' + (venue.website_url ? '<a href="' + venue.website_url + '" target="_blank">Website</a>' : 'N/A') + '</td>';
-                                break;
-                            case 'image_url':
-                                row += '<td>' + (venue.image_url ? '<a href="' + venue.image_url + '" target="_blank">View</a>' : 'N/A') + '</td>';
-                                break;
-                            case 'latitude':
-                                row += '<td>' + (venue.latitude || 'N/A') + '</td>';
-                                break;
-                            case 'longitude':
-                                row += '<td>' + (venue.longitude || 'N/A') + '</td>';
-                                break;
-                            case 'facebook_url':
-                                if (venue.facebook_url && venue.facebook_url !== 'N/A') {
-                                    row += '<td><a href="' + venue.facebook_url + '" target="_blank" style="color: #1877F2; text-decoration: none;">Facebook</a></td>';
-                                } else {
-                                    row += '<td>N/A</td>';
-                                }
-                                break;
-                            case 'instagram_url':
-                                if (venue.instagram_url && venue.instagram_url !== 'N/A') {
-                                    // Convert Instagram handle to clickable link
-                                    let instagramHandle = venue.instagram_url;
-                                    if (instagramHandle.startsWith('@')) {
-                                        instagramHandle = instagramHandle.substring(1);
-                                    }
-                                    row += '<td><a href="https://www.instagram.com/' + instagramHandle + '" target="_blank" style="color: #E4405F; text-decoration: none;">@' + instagramHandle + '</a></td>';
-                                } else {
-                                    row += '<td>N/A</td>';
-                                }
-                                break;
-                            case 'twitter_url':
-                                if (venue.twitter_url && venue.twitter_url !== 'N/A') {
-                                    // Convert Twitter handle to clickable link
-                                    let twitterHandle = venue.twitter_url;
-                                    if (twitterHandle.startsWith('@')) {
-                                        twitterHandle = twitterHandle.substring(1);
-                                    }
-                                    row += '<td><a href="https://www.twitter.com/' + twitterHandle + '" target="_blank" style="color: #1DA1F2; text-decoration: none;">@' + twitterHandle + '</a></td>';
-                                } else {
-                                    row += '<td>N/A</td>';
-                                }
-                                break;
-                            case 'holiday_hours':
-                                row += '<td>' + (venue.holiday_hours || 'N/A') + '</td>';
-                                break;
-                            case 'admission_fee':
-                                row += '<td>' + (venue.admission_fee || 'N/A') + '</td>';
-                                break;
-                            case 'tour_info':
-                                row += '<td>' + (venue.tour_info || 'N/A') + '</td>';
-                                break;
-                            case 'description':
-                                row += '<td>' + (venue.description || 'N/A') + '</td>';
-                                break;
-                            case 'additional_info':
-                                row += '<td>' + (venue.additional_info ? 'Yes' : 'N/A') + '</td>';
-                                break;
-                            case 'created_at':
-                                row += '<td>' + (venue.created_at ? new Date(venue.created_at).toLocaleDateString() : 'N/A') + '</td>';
-                                break;
-                            case 'updated_at':
-                                row += '<td>' + (venue.updated_at ? new Date(venue.updated_at).toLocaleDateString() : 'N/A') + '</td>';
-                                break;
-                        }
+                orderedFields.forEach(field => {
+                    const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
+                    if (config.visible !== false) {
+                        const value = formatFieldValue(field, item[field], config);
+                        row += `<td>${value}</td>`;
                     }
                 });
                 
-                // Always include actions
-                row += '<td>' +
-                    '<button onclick="editVenue(' + venue.id + ')" class="edit-btn">✏️</button>' +
-                    '<button onclick="deleteVenue(' + venue.id + ')" class="delete-btn">🗑️</button>' +
-                '</td>';
+                // Add actions column
+                row += `<td>${generateActionButtons(item.id, tableType)}</td>`;
                 
                 row += '</tr>';
                 return row;
             }).join('');
+        }
+        
+        // Field configuration for different table types
+        function getFieldConfig(tableType) {
+            const configs = {
+                venues: {
+                    order: ['id', 'name', 'venue_type', 'city_name', 'address', 'opening_hours', 'phone_number', 'email', 'website_url', 'image_url', 'latitude', 'longitude', 'facebook_url', 'instagram_url', 'twitter_url', 'youtube_url', 'tiktok_url', 'holiday_hours', 'admission_fee', 'tour_info', 'description', 'additional_info', 'created_at', 'updated_at'],
+                    fields: {
+                        id: { label: 'ID', visible: true, sortable: true },
+                        name: { label: 'Name', visible: true, sortable: true },
+                        venue_type: { label: 'Type', visible: true, sortable: true },
+                        city_name: { label: 'City', visible: true, sortable: true },
+                        address: { label: 'Address', visible: true, sortable: true },
+                        opening_hours: { label: 'Hours', visible: true, sortable: false },
+                        phone_number: { label: 'Phone', visible: true, sortable: false },
+                        email: { label: 'Email', visible: true, sortable: false },
+                        website_url: { label: 'Website', visible: true, sortable: false },
+                        image_url: { label: 'Image', visible: true, sortable: false },
+                        latitude: { label: 'Latitude', visible: true, sortable: true },
+                        longitude: { label: 'Longitude', visible: true, sortable: true },
+                        facebook_url: { label: 'Facebook', visible: true, sortable: false },
+                        instagram_url: { label: 'Instagram', visible: true, sortable: false },
+                        twitter_url: { label: 'Twitter', visible: true, sortable: false },
+                        youtube_url: { label: 'YouTube', visible: true, sortable: false },
+                        tiktok_url: { label: 'TikTok', visible: true, sortable: false },
+                        holiday_hours: { label: 'Holiday Hours', visible: true, sortable: false },
+                        admission_fee: { label: 'Admission', visible: true, sortable: false },
+                        tour_info: { label: 'Tour Info', visible: true, sortable: false },
+                        description: { label: 'Description', visible: true, sortable: false },
+                        additional_info: { label: 'Additional Info', visible: true, sortable: false },
+                        created_at: { label: 'Created', visible: true, sortable: true },
+                        updated_at: { label: 'Updated', visible: true, sortable: true }
+                    }
+                },
+                sources: {
+                    order: ['id', 'name', 'handle', 'source_type', 'city_name', 'event_types', 'reliability_score', 'posting_frequency', 'is_active', 'events_found_count', 'last_checked', 'created_at', 'updated_at'],
+                    fields: {
+                        id: { label: 'ID', visible: true, sortable: true },
+                        name: { label: 'Name', visible: true, sortable: true },
+                        handle: { label: 'Handle', visible: true, sortable: true },
+                        source_type: { label: 'Type', visible: true, sortable: true },
+                        city_name: { label: 'City', visible: true, sortable: true },
+                        event_types: { label: 'Event Types', visible: true, sortable: false },
+                        reliability_score: { label: 'Reliability', visible: true, sortable: true },
+                        posting_frequency: { label: 'Frequency', visible: true, sortable: true },
+                        is_active: { label: 'Active', visible: true, sortable: true },
+                        events_found_count: { label: 'Events Found', visible: true, sortable: true },
+                        last_checked: { label: 'Last Checked', visible: true, sortable: true },
+                        created_at: { label: 'Created', visible: true, sortable: true },
+                        updated_at: { label: 'Updated', visible: true, sortable: true }
+                    }
+                },
+                events: {
+                    order: ['id', 'title', 'description', 'start_date', 'start_time', 'end_date', 'end_time', 'event_type', 'venue_name', 'city_name', 'created_at', 'updated_at'],
+                    fields: {
+                        id: { label: 'ID', visible: true, sortable: true },
+                        title: { label: 'Title', visible: true, sortable: true },
+                        description: { label: 'Description', visible: true, sortable: false },
+                        start_date: { label: 'Start Date', visible: true, sortable: true },
+                        start_time: { label: 'Start Time', visible: true, sortable: true },
+                        end_date: { label: 'End Date', visible: true, sortable: true },
+                        end_time: { label: 'End Time', visible: true, sortable: true },
+                        event_type: { label: 'Type', visible: true, sortable: true },
+                        venue_name: { label: 'Venue', visible: true, sortable: true },
+                        city_name: { label: 'City', visible: true, sortable: true },
+                        created_at: { label: 'Created', visible: true, sortable: true },
+                        updated_at: { label: 'Updated', visible: true, sortable: true }
+                    }
+                },
+                cities: {
+                    order: ['id', 'name', 'state', 'country', 'display_name', 'timezone', 'venue_count', 'event_count', 'created_at', 'updated_at'],
+                    fields: {
+                        id: { label: 'ID', visible: true, sortable: true },
+                        name: { label: 'Name', visible: true, sortable: true },
+                        state: { label: 'State', visible: true, sortable: true },
+                        country: { label: 'Country', visible: true, sortable: true },
+                        display_name: { label: 'Display Name', visible: true, sortable: true },
+                        timezone: { label: 'Timezone', visible: true, sortable: true },
+                        venue_count: { label: 'Venues', visible: true, sortable: true },
+                        event_count: { label: 'Events', visible: true, sortable: true },
+                        created_at: { label: 'Created', visible: true, sortable: true },
+                        updated_at: { label: 'Updated', visible: true, sortable: true }
+                    }
+                }
+            };
+            
+            return configs[tableType] || {
+                order: ['id'],
+                fields: { id: { label: 'ID', visible: true } }
+            };
+        }
+        
+        // Format field names for unknown fields
+        function formatFieldName(fieldName) {
+            return fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        // Format field values based on field type and configuration
+        function formatFieldValue(fieldName, value, config = {}) {
+            if (value === null || value === undefined || value === '') {
+                return 'N/A';
+            }
+            
+            // Special formatting for specific fields
+            switch (fieldName) {
+                case 'website_url':
+                case 'url':
+                    return `<a href="${value}" target="_blank" style="color: #1976d2; text-decoration: none;">${value}</a>`;
+                
+                case 'youtube_url':
+                    // Handle both full URLs and channel names
+                    if (value.startsWith('@')) {
+                        // It's already a channel handle like @username
+                        const channel = value.substring(1); // Remove @
+                        return `<a href="https://www.youtube.com/@${channel}" target="_blank" style="color: #FF0000; text-decoration: none;">${value}</a>`;
+                    } else if (value.includes('youtube.com')) {
+                        // It's a full URL - extract the meaningful part
+                        const channelMatch = value.match(/youtube\.com\/(?:c\/|user\/|@)?([^\/\?]+)/);
+                        if (channelMatch) {
+                            const channel = channelMatch[1];
+                            // Clean up the channel name for display
+                            const displayName = channel.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            return `<a href="${value}" target="_blank" style="color: #FF0000; text-decoration: none;">${displayName}</a>`;
+                        }
+                    }
+                    return `<a href="${value}" target="_blank" style="color: #FF0000; text-decoration: none;">YouTube</a>`;
+                
+                case 'tiktok_url':
+                    // Handle both full URLs and usernames
+                    if (value.startsWith('@')) {
+                        // It's already a username like @username
+                        const username = value.substring(1); // Remove @
+                        return `<a href="https://www.tiktok.com/@${username}" target="_blank" style="color: #000000; text-decoration: none;">${value}</a>`;
+                    } else if (value.includes('tiktok.com')) {
+                        // It's a full URL
+                        const tiktokMatch = value.match(/tiktok\.com\/@([^\/\?]+)/);
+                        if (tiktokMatch) {
+                            const username = tiktokMatch[1];
+                            return `<a href="${value}" target="_blank" style="color: #000000; text-decoration: none;">@${username}</a>`;
+                        }
+                    }
+                    return `<a href="${value}" target="_blank" style="color: #000000; text-decoration: none;">TikTok</a>`;
+                
+                case 'facebook_url':
+                    // Extract page name from Facebook URL
+                    const facebookMatch = value.match(/facebook\.com\/([^\/\?]+)/);
+                    if (facebookMatch) {
+                        const pageName = facebookMatch[1];
+                        return `<a href="${value}" target="_blank" style="color: #1877F2; text-decoration: none;">${pageName}</a>`;
+                    }
+                    return `<a href="${value}" target="_blank" style="color: #1877F2; text-decoration: none;">Facebook</a>`;
+                
+                case 'instagram_url':
+                    // Handle both full URLs and @handles
+                    if (value.startsWith('@')) {
+                        // It's already a handle like @username
+                        const handle = value.substring(1); // Remove @
+                        return `<a href="https://www.instagram.com/${handle}/" target="_blank" style="color: #E4405F; text-decoration: none;">${value}</a>`;
+                    } else if (value.includes('instagram.com')) {
+                        // It's a full URL
+                        const instagramMatch = value.match(/instagram\.com\/([^\/\?]+)/);
+                        if (instagramMatch) {
+                            const handle = instagramMatch[1];
+                            return `<a href="https://www.instagram.com/${handle}/" target="_blank" style="color: #E4405F; text-decoration: none;">@${handle}</a>`;
+                        }
+                    }
+                    return `<a href="${value}" target="_blank" style="color: #E4405F; text-decoration: none;">Instagram</a>`;
+                
+                case 'twitter_url':
+                    // Handle both full URLs and @handles
+                    if (value.startsWith('@')) {
+                        // It's already a handle like @username
+                        const handle = value.substring(1); // Remove @
+                        return `<a href="https://twitter.com/${handle}" target="_blank" style="color: #1DA1F2; text-decoration: none;">${value}</a>`;
+                    } else if (value.includes('twitter.com')) {
+                        // It's a full URL
+                        const twitterMatch = value.match(/twitter\.com\/([^\/\?]+)/);
+                        if (twitterMatch) {
+                            const handle = twitterMatch[1];
+                            return `<a href="https://twitter.com/${handle}" target="_blank" style="color: #1DA1F2; text-decoration: none;">@${handle}</a>`;
+                        }
+                    }
+                    return `<a href="${value}" target="_blank" style="color: #1DA1F2; text-decoration: none;">Twitter</a>`;
+                
+                case 'image_url':
+                    return `<a href="${value}" target="_blank" style="color: #1976d2; text-decoration: none;">View</a>`;
+                
+                case 'handle':
+                    if (value.startsWith('@') && value.includes('instagram')) {
+                        const handle = value.replace('@', '');
+                        return `<a href="https://www.instagram.com/${handle}" target="_blank" style="color: #E4405F; text-decoration: none;">${value}</a>`;
+                    }
+                    return value;
+                
+                case 'source_type':
+                    return `<span class="badge badge-${value}">${value}</span>`;
+                
+                case 'venue_type':
+                    return `<span class="badge">${value}</span>`;
+                
+                case 'event_type':
+                    return `<span class="badge badge-event">${value}</span>`;
+                
+                case 'is_active':
+                    return value ? '✅' : '❌';
+                
+                case 'reliability_score':
+                    return `${value}/10`;
+                
+                case 'event_types':
+                    if (typeof value === 'string') {
+                        try {
+                            const types = JSON.parse(value);
+                            return Array.isArray(types) ? types.join(', ') : value;
+                        } catch (e) {
+                            return value;
+                        }
+                    }
+                    return value;
+                
+                case 'created_at':
+                case 'updated_at':
+                case 'last_checked':
+                case 'start_date':
+                case 'end_date':
+                    try {
+                        return new Date(value).toLocaleDateString();
+                    } catch (e) {
+                        return value;
+                    }
+                
+                case 'start_time':
+                case 'end_time':
+                    try {
+                        return new Date(`2000-01-01T${value}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } catch (e) {
+                        return value;
+                    }
+                
+                case 'description':
+                case 'tour_info':
+                case 'additional_info':
+                    if (value.length > 100) {
+                        return `<span title="${value}">${value.substring(0, 100)}...</span>`;
+                    }
+                    return value;
+                
+                case 'venue_count':
+                case 'event_count':
+                    const count = parseInt(value) || 0;
+                    const badgeClass = count === 0 ? 'badge-zero' : count >= 5 ? 'badge-high' : 'badge';
+                    return `<span class="badge ${badgeClass}">${count}</span>`;
+                
+                default:
+                    return value;
+            }
+        }
+        
+        // Generate action buttons based on table type
+        function generateActionButtons(id, tableType) {
+            switch (tableType) {
+                case 'venues':
+                    return `<button onclick="editVenue(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteVenue(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                case 'sources':
+                    return `<button onclick="editSource(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteSource(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                case 'events':
+                    return `<button onclick="editEvent(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteEvent(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                case 'cities':
+                    return `<button onclick="editCity(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteCity(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                default:
+                    return `<button onclick="editItem(${id})" class="btn btn-sm btn-secondary">✏️</button>`;
+            }
+        }
+        
+        // Render venues table using dynamic system
+        function renderVenuesTable() {
+            const data = window.filteredVenues || window.allVenues || [];
+            renderDynamicTable('venuesTable', data, 'venues');
         }
         
         // Populate venue filters
@@ -2337,61 +2411,9 @@
             }
         }
         
-        // Render events table dynamically
         function renderEventsTable() {
-            const tableBody = document.getElementById('eventsTable');
-            if (!tableBody) return;
-            
-            if (!window.filteredEvents || window.filteredEvents.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="10" class="no-results">🔍 No events found</td></tr>';
-                return;
-            }
-            
-            // Get the first event to determine available fields dynamically
-            const sampleEvent = window.filteredEvents[0];
-            const availableFields = Object.keys(sampleEvent);
-            
-            tableBody.innerHTML = window.filteredEvents.map(event => {
-                let row = '<tr id="event-row-' + event.id + '">';
-                
-                // Always include ID
-                row += '<td>' + event.id + '</td>';
-                
-                // Include all available fields dynamically
-                if (availableFields.includes('title')) {
-                    row += '<td><strong>' + (event.title || 'N/A') + '</strong></td>';
-                }
-                if (availableFields.includes('event_type')) {
-                    row += '<td>' + (event.event_type || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('venue_name')) {
-                    row += '<td>' + (event.venue_name || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('start_date')) {
-                    row += '<td>' + (event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A') + '</td>';
-                }
-                if (availableFields.includes('start_time')) {
-                    row += '<td>' + (event.start_time || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('end_time')) {
-                    row += '<td>' + (event.end_time || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('description')) {
-                    row += '<td>' + (event.description || 'N/A') + '</td>';
-                }
-                if (availableFields.includes('created_at')) {
-                    row += '<td>' + (event.created_at ? new Date(event.created_at).toLocaleDateString() : 'N/A') + '</td>';
-                }
-                
-                // Always include actions
-                row += '<td>' +
-                    '<button onclick="editEvent(' + event.id + ')" class="edit-btn">✏️</button>' +
-                    '<button onclick="deleteEvent(' + event.id + ')" class="delete-btn">🗑️</button>' +
-                '</td>';
-                
-                row += '</tr>';
-                return row;
-            }).join('');
+            const data = window.filteredEvents || window.allEvents || [];
+            renderDynamicTable('eventsTable', data, 'events');
         }
         
         function editEvent(id) {
@@ -2599,6 +2621,22 @@
             const eventVenueFilter = document.getElementById('eventVenueFilter');
             if (eventVenueFilter) {
                 eventVenueFilter.addEventListener('change', applyEventFilters);
+            }
+            
+            // Add source filter event listeners for real-time filtering
+            const sourceSearch = document.getElementById('sourceSearch');
+            if (sourceSearch) {
+                sourceSearch.addEventListener('input', applySourceFilters);
+            }
+            
+            const sourceTypeFilter = document.getElementById('sourceTypeFilter');
+            if (sourceTypeFilter) {
+                sourceTypeFilter.addEventListener('change', applySourceFilters);
+            }
+            
+            const sourceCityFilter = document.getElementById('sourceCityFilter');
+            if (sourceCityFilter) {
+                sourceCityFilter.addEventListener('change', applySourceFilters);
             }
         });
         
@@ -2855,47 +2893,8 @@
         }
         
         function renderSourcesTable() {
-            const tableBody = document.getElementById('sourcesTable');
-            if (!tableBody) return;
-            
-            if (!allSources || allSources.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="12" class="loading">No sources found</td></tr>';
-                return;
-            }
-            
-            tableBody.innerHTML = allSources.map(source => {
-                // Make handle clickable for Instagram sources
-                let handleDisplay = source.handle;
-                if (source.source_type === 'instagram' && source.handle) {
-                    let instagramHandle = source.handle;
-                    if (instagramHandle.startsWith('@')) {
-                        instagramHandle = instagramHandle.substring(1);
-                    }
-                    handleDisplay = `<a href="https://www.instagram.com/${instagramHandle}" target="_blank" style="color: #E4405F; text-decoration: none;">@${instagramHandle}</a>`;
-                } else if (source.source_type === 'website' && source.url) {
-                    handleDisplay = `<a href="${source.url}" target="_blank" style="color: #1976d2; text-decoration: none;">${source.handle}</a>`;
-                }
-                
-                return `
-                    <tr>
-                        <td>${source.id}</td>
-                        <td>${source.name}</td>
-                        <td>${handleDisplay}</td>
-                        <td><span class="badge badge-${source.source_type}">${source.source_type}</span></td>
-                        <td>${source.city_name || 'Unknown'}</td>
-                        <td>${source.event_types ? JSON.parse(source.event_types).join(', ') : ''}</td>
-                        <td>${source.reliability_score || 0}/10</td>
-                        <td>${source.posting_frequency || 'Unknown'}</td>
-                        <td>${source.is_active ? '✅' : '❌'}</td>
-                        <td>${source.events_found_count || 0}</td>
-                        <td>${source.last_checked ? new Date(source.last_checked).toLocaleDateString() : 'Never'}</td>
-                        <td>
-                            <button onclick="editSource(${source.id})" class="btn btn-sm btn-secondary">✏️</button>
-                            <button onclick="deleteSource(${source.id})" class="btn btn-sm btn-danger">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            const data = window.filteredSources || allSources || [];
+            renderDynamicTable('sourcesTable', data, 'sources');
         }
         
         function editSource(id) {
@@ -2950,7 +2949,7 @@
             const typeFilter = document.getElementById('sourceTypeFilter').value;
             const cityFilter = document.getElementById('sourceCityFilter').value;
             
-            let filteredSources = allSources.filter(source => {
+            window.filteredSources = allSources.filter(source => {
                 const matchesSearch = !searchTerm || 
                     source.name.toLowerCase().includes(searchTerm) ||
                     source.handle.toLowerCase().includes(searchTerm) ||
@@ -2962,12 +2961,6 @@
                 return matchesSearch && matchesType && matchesCity;
             });
             
-            // Temporarily replace allSources for rendering
-            const originalSources = allSources;
-            allSources = filteredSources;
-            renderSourcesTable();
-            allSources = originalSources;
-            
             // Update filter summary
             const summary = document.getElementById('sourceFilterSummary');
             if (summary) {
@@ -2977,15 +2970,20 @@
                 if (cityFilter) activeFilters.push(`City: ${document.getElementById('sourceCityFilter').selectedOptions[0]?.text || cityFilter}`);
                 
                 summary.textContent = activeFilters.length > 0 ? 
-                    `Showing ${filteredSources.length} of ${originalSources.length} sources (${activeFilters.join(', ')})` : 
-                    `Showing all ${originalSources.length} sources`;
+                    `Showing ${window.filteredSources.length} of ${allSources.length} sources (${activeFilters.join(', ')})` : 
+                    `Showing all ${allSources.length} sources`;
             }
+            
+            renderSourcesTable();
         }
         
         function clearSourceFilters() {
             document.getElementById('sourceSearch').value = '';
             document.getElementById('sourceTypeFilter').value = '';
             document.getElementById('sourceCityFilter').value = '';
+            
+            // Reset filtered sources to show all
+            window.filteredSources = null;
             renderSourcesTable();
             
             const summary = document.getElementById('sourceFilterSummary');
@@ -3036,12 +3034,20 @@
                 }
                 
                 // Get unique cities from sources
-                const cities = [...new Set(allSources.map(source => ({ id: source.city_id, name: source.city_name })))];
+                const cityMap = new Map();
+                allSources.forEach(source => {
+                    if (source.city_id && source.city_name) {
+                        cityMap.set(source.city_id, source.city_name);
+                    }
+                });
                 
-                cities.forEach(city => {
+                // Sort cities by name for better UX
+                const sortedCities = Array.from(cityMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+                
+                sortedCities.forEach(([cityId, cityName]) => {
                     const option = document.createElement('option');
-                    option.value = city.id;
-                    option.textContent = city.name;
+                    option.value = cityId;
+                    option.textContent = cityName;
                     cityFilter.appendChild(option);
                 });
             }
@@ -3051,21 +3057,73 @@
         document.getElementById('addSourceForm').addEventListener('submit', handleAddSource);
         document.getElementById('editSourceForm').addEventListener('submit', handleEditSource);
         
+        function detectSourceType(input) {
+            // Detect if input is Instagram handle or website URL
+            if (input.startsWith('@')) {
+                return {
+                    type: 'instagram',
+                    handle: input,
+                    url: `https://www.instagram.com/${input.substring(1)}/`,
+                    name: input.substring(1).replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                };
+            } else if (input.includes('instagram.com')) {
+                // Extract handle from Instagram URL
+                const match = input.match(/instagram\.com\/([^\/\?]+)/);
+                if (match) {
+                    const handle = `@${match[1]}`;
+                    return {
+                        type: 'instagram',
+                        handle: handle,
+                        url: input,
+                        name: match[1].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    };
+                }
+            } else if (input.startsWith('http://') || input.startsWith('https://')) {
+                // Website URL
+                const domain = new URL(input).hostname;
+                return {
+                    type: 'website',
+                    handle: domain,
+                    url: input,
+                    name: domain.replace('www.', '').split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                };
+            } else {
+                // Assume it's a handle without @
+                return {
+                    type: 'instagram',
+                    handle: `@${input}`,
+                    url: `https://www.instagram.com/${input}/`,
+                    name: input.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                };
+            }
+        }
+
         async function handleAddSource(event) {
             event.preventDefault();
             
+            const sourceInput = document.getElementById('sourceInput').value.trim();
+            const cityId = parseInt(document.getElementById('sourceCity').value);
+            
+            if (!sourceInput || !cityId) {
+                alert('Please enter a source handle/URL and select a city');
+                return;
+            }
+            
+            // Detect source type and auto-fill fields
+            const detected = detectSourceType(sourceInput);
+            
             const formData = {
-                name: document.getElementById('sourceName').value.trim(),
-                handle: document.getElementById('sourceHandle').value.trim(),
-                source_type: document.getElementById('sourceType').value,
-                city_id: parseInt(document.getElementById('sourceCity').value),
-                url: document.getElementById('sourceUrl').value.trim(),
-                description: document.getElementById('sourceDescription').value.trim(),
-                reliability_score: parseFloat(document.getElementById('sourceReliability').value),
-                posting_frequency: document.getElementById('sourceFrequency').value,
+                name: detected.name,
+                handle: detected.handle,
+                source_type: detected.type,
+                city_id: cityId,
+                url: detected.url,
+                description: document.getElementById('sourceDescription').value.trim() || '',
+                reliability_score: parseFloat(document.getElementById('sourceReliability').value) || 7.0,
+                posting_frequency: document.getElementById('sourceFrequency').value || 'weekly',
                 event_types: JSON.stringify(document.getElementById('sourceEventTypes').value.split(',').map(t => t.trim()).filter(t => t)),
-                notes: document.getElementById('sourceNotes').value.trim(),
-                scraping_pattern: document.getElementById('sourceScrapingPattern').value.trim(),
+                notes: document.getElementById('sourceNotes').value.trim() || '',
+                scraping_pattern: document.getElementById('sourceScrapingPattern').value.trim() || '',
                 is_active: document.getElementById('sourceActive').checked
             };
             
