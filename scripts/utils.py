@@ -1042,9 +1042,9 @@ def query_llm_for_venues(city_name: str, country: str = None, event_type: str = 
     
     return result
 
-def query_llm_for_venue_details(venue_name: str, city: str = None) -> Dict[str, Any]:
+def query_llm_for_venue_details(venue_name: str, city: str = None, country: str = None) -> Dict[str, Any]:
     """Query LLM specifically for detailed venue information using dynamic prompts"""
-    prompt = DynamicPromptGenerator.generate_venue_details_prompt(venue_name, city)
+    prompt = DynamicPromptGenerator.generate_venue_details_prompt(venue_name, city, country)
     
     return query_llm(prompt, max_tokens=3000)
 

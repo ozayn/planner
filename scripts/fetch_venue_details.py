@@ -61,7 +61,15 @@ class LLMVenueDetailSearcher:
             print(f"🔍 Searching LLM for details about {venue_name}...")
         
         try:
-            result = query_llm_for_venue_details(venue_name, city)
+            # Extract country from city if it contains country info
+            country = None
+            if city and ',' in city:
+                parts = city.split(',')
+                if len(parts) > 1:
+                    country = parts[-1].strip()
+                    city = parts[0].strip()
+            
+            result = query_llm_for_venue_details(venue_name, city, country)
             
             if result['success']:
                 return self._parse_llm_response(result['response'])
@@ -82,12 +90,33 @@ class LLMVenueDetailSearcher:
             if not response or not response.strip():
                 return {}
             
-            # Try to parse as JSON
-            if isinstance(response, str):
-                import json
-                data = json.loads(response)
+            # Clean up the response content
+            content = response.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```json'):
+                content = content[7:]  # Remove ```json
+            elif content.startswith('```'):
+                content = content[3:]   # Remove ```
+            
+            if content.endswith('```'):
+                content = content[:-3]  # Remove trailing ```
+            
+            # Try to find JSON object in the content
+            start_idx = content.find('{')
+            end_idx = content.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                json_content = content[start_idx:end_idx + 1]
             else:
-                data = response
+                json_content = content
+            
+            # Try to parse as JSON
+            if isinstance(json_content, str):
+                import json
+                data = json.loads(json_content.strip())
+            else:
+                data = json_content
             
             # Convert to the expected format
             result = {}
@@ -131,12 +160,15 @@ class LLMVenueDetailSearcher:
             
             # Parse JSON response
             try:
-                # Remove markdown code blocks if present
+                # Clean up the response content
                 content = content.strip()
+                
+                # Remove markdown code blocks if present
                 if content.startswith('```json'):
                     content = content[7:]  # Remove ```json
-                if content.startswith('```'):
+                elif content.startswith('```'):
                     content = content[3:]   # Remove ```
+                
                 if content.endswith('```'):
                     content = content[:-3]  # Remove trailing ```
                 
@@ -149,7 +181,15 @@ class LLMVenueDetailSearcher:
                 else:
                     json_content = content
                 
+                # Parse the JSON
                 details = json.loads(json_content.strip())
+                
+                # Validate that we got meaningful data
+                if not details.get('name'):
+                    if not silent:
+                        print(f"❌ No venue name found in response")
+                    return self._get_fallback_details(venue_name, city)
+                
                 if not silent:
                     print(f"✅ Found comprehensive details via Groq")
                 return details

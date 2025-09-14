@@ -163,11 +163,12 @@ def add_city():
         db.session.add(city)
         db.session.commit()
         
-        # Sync the new city to predefined JSON
+        # Update cities.json
         try:
-            sync_cities_to_predefined_json()
-        except Exception as sync_error:
-            print(f"⚠️ Warning: Could not sync city to predefined JSON: {sync_error}")
+            from scripts.update_cities_json import update_cities_json
+            update_cities_json()
+        except Exception as cities_json_error:
+            print(f"⚠️ Warning: Could not update cities.json: {cities_json_error}")
         
         return jsonify({
             'success': True, 
@@ -374,6 +375,75 @@ class Event(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+class Source(db.Model):
+    """Sources for events (Instagram accounts, websites, etc.)"""
+    __tablename__ = 'sources'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)  # "Princeton Photography Club"
+    handle = db.Column(db.String(100), nullable=False)  # "@princetonphotoclub" or "princetonphotoclub.com"
+    source_type = db.Column(db.String(50), nullable=False)  # 'instagram', 'website', 'eventbrite', 'facebook'
+    url = db.Column(db.String(500))  # Full URL to the source
+    description = db.Column(db.Text)  # Description of what this source posts
+    
+    # Coverage
+    city_id = db.Column(db.Integer, db.ForeignKey('cities.id', ondelete='CASCADE'))  # Primary city
+    covers_multiple_cities = db.Column(db.Boolean, default=False)  # Does it cover multiple cities?
+    covered_cities = db.Column(db.Text)  # JSON string of city IDs if covers multiple
+    
+    # Event types this source typically posts
+    event_types = db.Column(db.Text)  # JSON string: ["photowalk", "tour", "exhibition"]
+    
+    # Status and tracking
+    is_active = db.Column(db.Boolean, default=True)  # Is this source still active?
+    last_checked = db.Column(db.DateTime)  # When did we last check this source?
+    last_event_found = db.Column(db.DateTime)  # When did we last find an event from this source?
+    events_found_count = db.Column(db.Integer, default=0)  # How many events have we found from this source?
+    
+    # Reliability metrics
+    reliability_score = db.Column(db.Float, default=5.0)  # 1-10 scale
+    posting_frequency = db.Column(db.String(50))  # 'daily', 'weekly', 'monthly', 'irregular'
+    
+    # Notes and patterns
+    notes = db.Column(db.Text)  # Special instructions, patterns, etc.
+    scraping_pattern = db.Column(db.Text)  # Any specific scraping patterns or rules
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    city = db.relationship('City', backref='sources')
+    
+    def to_dict(self):
+        """Convert source to dictionary"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'handle': self.handle,
+            'source_type': self.source_type,
+            'url': self.url,
+            'description': self.description,
+            'city_id': self.city_id,
+            'city_name': self.city.name if self.city else None,
+            'covers_multiple_cities': self.covers_multiple_cities,
+            'covered_cities': self.covered_cities,
+            'event_types': self.event_types,
+            'is_active': self.is_active,
+            'last_checked': self.last_checked.isoformat() if self.last_checked else None,
+            'last_event_found': self.last_event_found.isoformat() if self.last_event_found else None,
+            'events_found_count': self.events_found_count,
+            'reliability_score': self.reliability_score,
+            'posting_frequency': self.posting_frequency,
+            'notes': self.notes,
+            'scraping_pattern': self.scraping_pattern,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __repr__(self):
+        return f"<Source {self.name} ({self.source_type})>"
 
 # Import and register generic CRUD endpoints after all models are defined
 try:
@@ -795,11 +865,13 @@ def admin_stats():
         cities_count = City.query.count()
         venues_count = Venue.query.count()
         events_count = Event.query.count()
+        sources_count = Source.query.count()
         
         return jsonify({
             'cities': cities_count,
             'venues': venues_count,
-            'events': events_count
+            'events': events_count,
+            'sources': sources_count
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1016,6 +1088,13 @@ def update_city(city_id):
         
         db.session.commit()
         
+        # Update cities.json
+        try:
+            from scripts.update_cities_json import update_cities_json
+            update_cities_json()
+        except Exception as cities_json_error:
+            print(f"⚠️ Warning: Could not update cities.json: {cities_json_error}")
+        
         return jsonify({
             'success': True,
             'message': f'City "{city.name}" updated successfully',
@@ -1071,6 +1150,13 @@ def delete_city(city_id):
         # Delete the city
         db.session.delete(city)
         db.session.commit()
+        
+        # Update cities.json
+        try:
+            from scripts.update_cities_json import update_cities_json
+            update_cities_json()
+        except Exception as cities_json_error:
+            print(f"⚠️ Warning: Could not update cities.json: {cities_json_error}")
         
         return jsonify({
             'success': True,
@@ -1237,6 +1323,13 @@ def add_event():
         
         db.session.add(event)
         db.session.commit()
+        
+        # Update events.json
+        try:
+            from scripts.update_events_json import update_events_json
+            update_events_json()
+        except Exception as events_json_error:
+            print(f"⚠️ Warning: Could not update events.json: {events_json_error}")
         
         return jsonify({
             'success': True,
@@ -1683,6 +1776,176 @@ def clear_venues():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# Source Management Endpoints
+@app.route('/api/admin/sources')
+def admin_sources():
+    """Get all sources for admin"""
+    try:
+        sources = Source.query.join(City).order_by(City.name, Source.name).all()
+        return jsonify([source.to_dict() for source in sources])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/add-source', methods=['POST'])
+def add_source():
+    """Add a new event source"""
+    try:
+        data = request.get_json()
+        
+        # Get required fields
+        name = clean_text_field(data.get('name', ''))
+        handle = clean_text_field(data.get('handle', ''))
+        source_type = clean_text_field(data.get('source_type', ''))
+        city_id = data.get('city_id')
+        
+        if not name or not handle or not source_type or not city_id:
+            return jsonify({'error': 'Name, handle, source type, and city are required'}), 400
+        
+        # Check if city exists
+        city = db.session.get(City, city_id)
+        if not city:
+            return jsonify({'error': 'City not found'}), 404
+        
+        # Check for duplicates
+        existing_source = Source.query.filter(
+            Source.handle == handle,
+            Source.city_id == city_id
+        ).first()
+        
+        if existing_source:
+            return jsonify({'error': f'Source with handle "{handle}" already exists in this city'}), 400
+        
+        # Create new source
+        source = Source(
+            name=name,
+            handle=handle,
+            source_type=source_type,
+            url=clean_url_field(data.get('url', '')),
+            description=clean_text_field(data.get('description', '')),
+            city_id=city_id,
+            covers_multiple_cities=data.get('covers_multiple_cities', False),
+            covered_cities=data.get('covered_cities', ''),
+            event_types=data.get('event_types', ''),
+            is_active=data.get('is_active', True),
+            reliability_score=data.get('reliability_score', 5.0),
+            posting_frequency=clean_text_field(data.get('posting_frequency', '')),
+            notes=clean_text_field(data.get('notes', '')),
+            scraping_pattern=clean_text_field(data.get('scraping_pattern', ''))
+        )
+        
+        db.session.add(source)
+        db.session.commit()
+        
+        # Update sources.json
+        try:
+            from scripts.update_sources_json import update_sources_json
+            update_sources_json()
+        except Exception as sources_json_error:
+            print(f"⚠️ Warning: Could not update sources.json: {sources_json_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Source "{name}" added successfully',
+            'source_id': source.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/edit-source', methods=['POST'])
+def edit_source():
+    """Edit an existing source"""
+    try:
+        data = request.get_json()
+        source_id = data.get('id')
+        
+        if not source_id:
+            return jsonify({'error': 'Source ID is required'}), 400
+        
+        # Get the source
+        source = db.session.get(Source, source_id)
+        if not source:
+            return jsonify({'error': 'Source not found'}), 404
+        
+        # Update fields
+        if 'name' in data:
+            source.name = clean_text_field(data['name'])
+        if 'handle' in data:
+            source.handle = clean_text_field(data['handle'])
+        if 'source_type' in data:
+            source.source_type = clean_text_field(data['source_type'])
+        if 'url' in data:
+            source.url = clean_url_field(data['url'])
+        if 'description' in data:
+            source.description = clean_text_field(data['description'])
+        if 'city_id' in data:
+            source.city_id = data['city_id']
+        if 'covers_multiple_cities' in data:
+            source.covers_multiple_cities = data['covers_multiple_cities']
+        if 'covered_cities' in data:
+            source.covered_cities = data['covered_cities']
+        if 'event_types' in data:
+            source.event_types = data['event_types']
+        if 'is_active' in data:
+            source.is_active = data['is_active']
+        if 'reliability_score' in data:
+            source.reliability_score = data['reliability_score']
+        if 'posting_frequency' in data:
+            source.posting_frequency = clean_text_field(data['posting_frequency'])
+        if 'notes' in data:
+            source.notes = clean_text_field(data['notes'])
+        if 'scraping_pattern' in data:
+            source.scraping_pattern = clean_text_field(data['scraping_pattern'])
+        
+        source.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Update sources.json
+        try:
+            from scripts.update_sources_json import update_sources_json
+            update_sources_json()
+        except Exception as sources_json_error:
+            print(f"⚠️ Warning: Could not update sources.json: {sources_json_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Source "{source.name}" updated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/delete-source/<int:source_id>', methods=['DELETE'])
+def delete_source(source_id):
+    """Delete a source"""
+    try:
+        source = db.session.get(Source, source_id)
+        if not source:
+            return jsonify({'error': 'Source not found'}), 404
+        
+        source_name = source.name
+        db.session.delete(source)
+        db.session.commit()
+        
+        # Update sources.json
+        try:
+            from scripts.update_sources_json import update_sources_json
+            update_sources_json()
+        except Exception as sources_json_error:
+            print(f"⚠️ Warning: Could not update sources.json: {sources_json_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Source "{source_name}" deleted successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/edit-city', methods=['POST'])
 def edit_city():
     """Edit city details"""
@@ -1725,6 +1988,13 @@ def edit_city():
             city.timezone = clean_text_field(data['timezone'])
         
         db.session.commit()
+        
+        # Update cities.json
+        try:
+            from scripts.update_cities_json import update_cities_json
+            update_cities_json()
+        except Exception as cities_json_error:
+            print(f"⚠️ Warning: Could not update cities.json: {cities_json_error}")
         
         return jsonify({
             'success': True,

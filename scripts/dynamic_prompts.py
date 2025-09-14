@@ -15,93 +15,115 @@ class DynamicPromptGenerator:
     """Generates dynamic prompts based on database models"""
     
     @staticmethod
+    def get_model_fields(model_class) -> List[str]:
+        """Dynamically get all fields from any SQLAlchemy model"""
+        try:
+            fields = []
+            for column in model_class.__table__.columns:
+                fields.append(column.name)
+            return sorted(fields)
+        except Exception as e:
+            print(f"Warning: Could not get fields from {model_class.__name__}: {e}")
+            return []
+    
+    @staticmethod
     def get_venue_fields() -> List[str]:
-        """Get all venue fields from the Venue model"""
-        # Define venue fields without importing from app to avoid circular imports
-        return [
-            'id', 'name', 'venue_type', 'description', 'address', 'latitude', 'longitude', 
-            'website_url', 'phone', 'email', 'hours', 'price_range', 'rating', 
-            'amenities', 'accessibility', 'parking', 'public_transport', 
-            'special_features', 'capacity', 'age_restrictions', 'dress_code', 
-            'booking_info', 'cancellation_policy', 'city_id', 'created_at', 'updated_at'
-        ]
+        """Get venue fields dynamically from Venue model"""
+        try:
+            from app import Venue
+            return DynamicPromptGenerator.get_model_fields(Venue)
+        except ImportError:
+            print("Warning: Could not import Venue model")
+            return []
     
     @staticmethod
     def get_event_fields() -> List[str]:
-        """Get all event fields from the Event model"""
-        # Define event fields without importing from app to avoid circular imports
-        return [
-            'id', 'title', 'description', 'start_date', 'end_date', 'start_time', 
-            'end_time', 'duration', 'price', 'language', 'max_participants', 
-            'difficulty_level', 'equipment_needed', 'age_restrictions', 'dress_code', 
-            'booking_info', 'cancellation_policy', 'organizer', 'special_requirements',
-            'start_location', 'end_location', 'venue_id', 'city_id', 'start_latitude',
-            'start_longitude', 'end_latitude', 'end_longitude', 'tour_type',
-            'exhibition_location', 'curator', 'admission_price', 'festival_type',
-            'multiple_locations', 'event_type', 'created_at', 'updated_at'
-        ]
+        """Get event fields dynamically from Event model"""
+        try:
+            from app import Event
+            return DynamicPromptGenerator.get_model_fields(Event)
+        except ImportError:
+            print("Warning: Could not import Event model")
+            return []
     
     @staticmethod
     def get_city_fields() -> List[str]:
-        """Get all city fields from the City model"""
-        # Define city fields without importing from app to avoid circular imports
-        return ['id', 'name', 'state', 'country', 'timezone', 'created_at', 'updated_at']
+        """Get city fields dynamically from City model"""
+        try:
+            from app import City
+            return DynamicPromptGenerator.get_model_fields(City)
+        except ImportError:
+            print("Warning: Could not import City model")
+            return []
+    
+    @staticmethod
+    def generate_field_description(field_name: str, column_info: dict = None) -> str:
+        """Generate dynamic field description based on field name and type"""
+        # Basic field name to description mapping
+        descriptions = {
+            'id': 'Unique identifier',
+            'name': 'Full official name',
+            'venue_type': 'Type of venue (museum, gallery, cultural_center, etc.)',
+            'event_type': 'Type of event (tour, exhibition, festival, etc.)',
+            'description': 'Detailed description',
+            'address': 'Complete street address',
+            'website_url': 'Official website URL',
+            'image_url': 'Image URL (leave empty, will be filled by Google Maps)',
+            'instagram_url': 'Instagram handle (e.g., @museumname)',
+            'facebook_url': 'Facebook page URL',
+            'twitter_url': 'Twitter handle (e.g., @museumname)',
+            'youtube_url': 'YouTube channel URL',
+            'tiktok_url': 'TikTok handle (e.g., @museumname)',
+            'phone_number': 'Contact phone number',
+            'email': 'Contact email address',
+            'opening_hours': 'Operating hours (e.g., Mon-Fri: 9AM-5PM)',
+            'holiday_hours': 'Holiday hours or special hours',
+            'tour_info': 'Tour information and details',
+            'admission_fee': 'Admission fee (e.g., Free, $15, $10-20)',
+            'additional_info': 'Additional venue information (JSON format)',
+            'latitude': 'Latitude coordinate',
+            'longitude': 'Longitude coordinate',
+            'city_id': 'City identifier',
+            'venue_id': 'Venue identifier',
+            'start_date': 'Event start date',
+            'end_date': 'Event end date',
+            'start_time': 'Event start time',
+            'end_time': 'Event end time',
+            'created_at': 'Creation timestamp',
+            'updated_at': 'Last update timestamp'
+        }
+        
+        # Return specific description if available, otherwise generate from field name
+        if field_name in descriptions:
+            return descriptions[field_name]
+        else:
+            # Generate description from field name
+            return field_name.replace('_', ' ').title()
+    
+    @staticmethod
+    def generate_field_descriptions(fields: List[str], exclude_fields: List[str] = None) -> List[str]:
+        """Generate descriptions for a list of fields"""
+        if exclude_fields is None:
+            exclude_fields = ['id', 'created_at', 'updated_at']
+        
+        field_descriptions = []
+        for field in fields:
+            if field not in exclude_fields:
+                description = DynamicPromptGenerator.generate_field_description(field)
+                field_descriptions.append(f"- {field}: {description}")
+        
+        return field_descriptions
     
     @staticmethod
     def generate_venue_discovery_prompt(city_name: str, country: str = None, event_type: str = 'tours', max_venues: int = 6) -> str:
         """Generate dynamic venue discovery prompt"""
         venue_fields = DynamicPromptGenerator.get_venue_fields()
         
-        # Create field descriptions
-        field_descriptions = []
-        for field in venue_fields:
-            # Skip system fields
-            if field in ['id', 'city_id', 'created_at', 'updated_at']:
-                continue
-                
-            if field == 'name':
-                field_descriptions.append(f"- {field}: Full official name of the venue")
-            elif field == 'venue_type':
-                field_descriptions.append(f"- {field}: Type of venue (museum, gallery, cultural_center, etc.)")
-            elif field == 'description':
-                field_descriptions.append(f"- {field}: Brief description of the venue and its offerings")
-            elif field == 'address':
-                field_descriptions.append(f"- {field}: Complete street address")
-            elif field == 'website_url':
-                field_descriptions.append(f"- {field}: Official website URL")
-            elif field == 'phone':
-                field_descriptions.append(f"- {field}: Contact phone number")
-            elif field == 'email':
-                field_descriptions.append(f"- {field}: Contact email address")
-            elif field == 'hours':
-                field_descriptions.append(f"- {field}: Operating hours")
-            elif field == 'price_range':
-                field_descriptions.append(f"- {field}: Price range (e.g., '$10-25', 'Free', '$$')")
-            elif field == 'rating':
-                field_descriptions.append(f"- {field}: Average rating (1-5 stars)")
-            elif field == 'amenities':
-                field_descriptions.append(f"- {field}: List of amenities")
-            elif field == 'accessibility':
-                field_descriptions.append(f"- {field}: Accessibility information")
-            elif field == 'parking':
-                field_descriptions.append(f"- {field}: Parking availability")
-            elif field == 'public_transport':
-                field_descriptions.append(f"- {field}: Public transport access")
-            elif field == 'special_features':
-                field_descriptions.append(f"- {field}: Special features or highlights")
-            elif field == 'capacity':
-                field_descriptions.append(f"- {field}: Venue capacity")
-            elif field == 'age_restrictions':
-                field_descriptions.append(f"- {field}: Age restrictions")
-            elif field == 'dress_code':
-                field_descriptions.append(f"- {field}: Dress code requirements")
-            elif field == 'booking_info':
-                field_descriptions.append(f"- {field}: Booking information")
-            elif field == 'cancellation_policy':
-                field_descriptions.append(f"- {field}: Cancellation policy")
-            else:
-                field_descriptions.append(f"- {field}: {field.replace('_', ' ').title()}")
-        
+        # Generate field descriptions dynamically
+        field_descriptions = DynamicPromptGenerator.generate_field_descriptions(
+            venue_fields, 
+            exclude_fields=['id', 'city_id', 'created_at', 'updated_at']
+        )
         fields_text = '\n'.join(field_descriptions)
         
         # Create location context with full details
@@ -118,67 +140,38 @@ Return as JSON array. Focus on venues that actually offer {event_type}.
 Include the full location details: city name, state/province/equivalent, and country in the address field."""
     
     @staticmethod
-    def generate_venue_details_prompt(venue_name: str, city: str = None) -> str:
-        """Generate dynamic venue details prompt"""
-        venue_fields = DynamicPromptGenerator.get_venue_fields()
+    def generate_venue_details_prompt(venue_name: str, city: str = None, country: str = None) -> str:
+        """Generate simple, direct venue details prompt"""
+        location = city or 'any city'
+        if country:
+            location += f", {country}"
         
-        # Create field descriptions
-        field_descriptions = []
-        for field in venue_fields:
-            if field in ['id', 'created_at', 'updated_at']:
-                continue  # Skip system fields
-            
-            if field == 'name':
-                field_descriptions.append(f"- {field}: Full official name of the venue")
-            elif field == 'venue_type':
-                field_descriptions.append(f"- {field}: Type of venue")
-            elif field == 'description':
-                field_descriptions.append(f"- {field}: Detailed description")
-            elif field == 'address':
-                field_descriptions.append(f"- {field}: Full address")
-            elif field == 'website_url':
-                field_descriptions.append(f"- {field}: Official website URL")
-            elif field == 'phone':
-                field_descriptions.append(f"- {field}: Contact phone number")
-            elif field == 'email':
-                field_descriptions.append(f"- {field}: Contact email")
-            elif field == 'hours':
-                field_descriptions.append(f"- {field}: Operating hours")
-            elif field == 'price_range':
-                field_descriptions.append(f"- {field}: Price range")
-            elif field == 'rating':
-                field_descriptions.append(f"- {field}: Average rating (1-5 stars)")
-            elif field == 'amenities':
-                field_descriptions.append(f"- {field}: List of amenities")
-            elif field == 'accessibility':
-                field_descriptions.append(f"- {field}: Accessibility information")
-            elif field == 'parking':
-                field_descriptions.append(f"- {field}: Parking availability")
-            elif field == 'public_transport':
-                field_descriptions.append(f"- {field}: Public transport access")
-            elif field == 'special_features':
-                field_descriptions.append(f"- {field}: Special features")
-            elif field == 'capacity':
-                field_descriptions.append(f"- {field}: Venue capacity")
-            elif field == 'age_restrictions':
-                field_descriptions.append(f"- {field}: Age restrictions")
-            elif field == 'dress_code':
-                field_descriptions.append(f"- {field}: Dress code requirements")
-            elif field == 'booking_info':
-                field_descriptions.append(f"- {field}: Booking information")
-            elif field == 'cancellation_policy':
-                field_descriptions.append(f"- {field}: Cancellation policy")
-            else:
-                field_descriptions.append(f"- {field}: {field.replace('_', ' ').title()}")
-        
-        fields_text = '\n'.join(field_descriptions)
-        
-        return f"""Provide comprehensive details for the venue "{venue_name}" in {city or 'any city'}.
+        return f"""Find CURRENT and ACCURATE information about "{venue_name}" in {location}.
 
-Include:
-{fields_text}
+IMPORTANT: For admission_fee, provide the CURRENT 2024-2025 pricing. Many museums have changed from free to paid admission in recent years. Check the most recent information.
 
-Return as JSON object with these exact field names."""
+Return ONLY a JSON object with these fields:
+- name: Official name
+- address: Full street address
+- venue_type: Type (museum, gallery, cultural_center, etc.)
+- description: Brief description
+- website_url: Official website
+- phone_number: Contact phone
+- email: Contact email
+- opening_hours: Operating hours
+- admission_fee: CURRENT admission cost (e.g., "Free", "$20", "$15-25", "$20 adults, $15 seniors, free under 18")
+- latitude: Latitude coordinate
+- longitude: Longitude coordinate
+- instagram_url: Instagram handle (e.g., "@venue")
+- facebook_url: Facebook page URL
+- twitter_url: Twitter handle (e.g., "@venue")
+- youtube_url: YouTube channel URL
+- tiktok_url: TikTok handle (e.g., "@venue")
+- tour_info: Tour information
+- holiday_hours: Holiday hours
+- additional_info: Additional details (JSON object)
+
+Return ONLY valid JSON, no other text."""
     
     @staticmethod
     def generate_event_details_prompt(event_name: str, venue_name: str = None, city: str = None) -> str:
