@@ -183,12 +183,17 @@ def add_city():
         return jsonify({'error': str(e)}), 500
 
 # Database configuration
-db_dir = os.path.expanduser('~/.local/share/planner')
-os.makedirs(db_dir, exist_ok=True)
-db_path = os.path.join(db_dir, 'events.db')
+# Use Railway's DATABASE_URL if available, otherwise use local SQLite
+if os.getenv('DATABASE_URL'):
+    # Production database (Railway PostgreSQL)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+else:
+    # Development database (local SQLite)
+    db_dir = os.path.expanduser('~/.local/share/planner')
+    os.makedirs(db_dir, exist_ok=True)
+    db_path = os.path.join(db_dir, 'events.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
-# Set the database URI explicitly
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -2629,5 +2634,8 @@ if __name__ == '__main__':
         
         # Generic CRUD endpoints are already registered at import time
     
-    # Run on port 5001 to avoid port 5000
-    app.run(debug=True, port=5001)
+    # Get port from environment (Railway provides PORT), default to 5001 for local
+    port = int(os.getenv('PORT', 5001))
+    debug = os.getenv('FLASK_ENV') != 'production'
+    
+    app.run(debug=debug, port=port, host='0.0.0.0')
