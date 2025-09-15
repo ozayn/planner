@@ -1243,10 +1243,20 @@
             eventsContainer.innerHTML = dateHeader + events.map(event => createEventCard(event)).join('');
         }
 
+        // Helper function to get image URL (backend handles API key injection)
+        function getImageUrl(imageData) {
+            if (!imageData) {
+                return 'https://via.placeholder.com/350x150/667eea/ffffff?text=Event+Image';
+            }
+            
+            // Backend now handles photo data conversion to full URLs with API keys
+            return imageData;
+        }
+
         // Create event card
         function createEventCard(event) {
             const isSelected = selectedEvents.has(event.id);
-            const imageUrl = event.image_url || 'https://via.placeholder.com/350x150/667eea/ffffff?text=Event+Image';
+            const imageUrl = getImageUrl(event.image_url);
             
             return `
                 <div class="event-card ${isSelected ? 'selected' : ''}" data-event-id="${event.id}">

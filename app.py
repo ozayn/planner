@@ -343,6 +343,13 @@ class Event(db.Model):
     
     def to_dict(self):
         """Convert event to dictionary with all relevant fields"""
+        # Handle image_url - convert photo data to full URL with API key
+        image_url = self.image_url
+        if image_url and isinstance(image_url, dict) and 'photo_reference' in image_url:
+            # Convert photo data to full URL with API key
+            api_key = os.getenv('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY')
+            image_url = f"{image_url['base_url']}?maxwidth={image_url['maxwidth']}&photoreference={image_url['photo_reference']}&key={api_key}"
+        
         return {
             'id': self.id,
             'title': self.title,
@@ -351,7 +358,7 @@ class Event(db.Model):
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'start_time': self.start_time.strftime('%H:%M') if self.start_time else None,
             'end_time': self.end_time.strftime('%H:%M') if self.end_time else None,
-            'image_url': self.image_url,
+            'image_url': image_url,
             'url': self.url,
             'is_selected': self.is_selected,
             'event_type': self.event_type,
