@@ -1,0 +1,382 @@
+#!/usr/bin/env python3
+"""
+Comprehensive Data Management Script
+Handles loading, updating, and syncing JSON data with database
+Consolidates functionality from multiple obsolete scripts
+"""
+
+import json
+import sys
+import os
+from pathlib import Path
+from datetime import datetime
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+# Import Flask app and models
+from app import app, db, Venue, City
+
+def load_cities_from_json():
+    """Load cities from cities.json into database"""
+    print("🏙️ Loading cities from cities.json...")
+    print("=" * 60)
+    
+    cities_file = Path("data/cities.json")
+    if not cities_file.exists():
+        print("❌ cities.json not found")
+        return False
+        
+    with open(cities_file, 'r') as f:
+        data = json.load(f)
+    
+    print(f"📊 Found {data['metadata']['total_cities']} cities")
+    print("=" * 60)
+    
+    with app.app_context():
+        try:
+            # Clear existing cities
+            print("🧹 Clearing existing cities...")
+            City.query.delete()
+            db.session.commit()
+            print("✅ Existing cities cleared")
+            
+            total_cities_added = 0
+            
+            for city_id, city_data in data['cities'].items():
+                city_name = city_data['name']
+                print(f"  Adding city: {city_name}")
+                
+                # Create city object with correct ID
+                city = City(
+                    id=int(city_id),  # Use the JSON city ID
+                    name=city_name,
+                    state=city_data.get('state', ''),
+                    country=city_data.get('country', ''),
+                    timezone=city_data.get('timezone', ''),
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                
+                # Add to database
+                db.session.add(city)
+                total_cities_added += 1
+                print(f"    ✅ Added to database (ID: {city_id})")
+            
+            # Commit all changes
+            print(f"\n💾 Committing {total_cities_added} cities to database...")
+            db.session.commit()
+            print("✅ All cities committed successfully!")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error loading cities: {e}")
+            db.session.rollback()
+            return False
+
+def load_venues_from_json():
+    """Load venues from venues.json into database"""
+    print("\n🏛️ Loading venues from venues.json...")
+    print("=" * 60)
+    
+    venues_file = Path("data/venues.json")
+    if not venues_file.exists():
+        print("❌ venues.json not found")
+        return False
+        
+    with open(venues_file, 'r') as f:
+        data = json.load(f)
+    
+    # Count total venues
+    total_venues = sum(len(city_data['venues']) for city_data in data.values() if isinstance(city_data, dict) and 'venues' in city_data)
+    total_cities = len([k for k, v in data.items() if isinstance(v, dict) and 'venues' in v])
+    
+    print(f"📊 Found {total_venues} venues across {total_cities} cities")
+    print("=" * 60)
+    
+    with app.app_context():
+        try:
+            # Clear existing venues
+            print("🧹 Clearing existing venues...")
+            Venue.query.delete()
+            db.session.commit()
+            print("✅ Existing venues cleared")
+            
+            # Process each city
+            total_venues_added = 0
+            
+            for city_id, city_data in data.items():
+                if not isinstance(city_data, dict) or 'venues' not in city_data:
+                    continue
+                    
+                city_name = city_data['name']
+                venues = city_data['venues']
+                
+                print(f"\n🏙️ Processing {city_name} ({len(venues)} venues)...")
+                print("-" * 50)
+                
+                # Get city from database
+                city = City.query.get(int(city_id))
+                if not city:
+                    print(f"      ⚠️  City '{city_name}' (ID: {city_id}) not found in database, skipping...")
+                    continue
+                
+                for i, venue_data in enumerate(venues):
+                    venue_name = venue_data['name']
+                    print(f"  [{i+1}/{len(venues)}] Adding venue: {venue_name}")
+                    
+                    # Create venue object
+                    venue = Venue(
+                        name=venue_name,
+                        venue_type=venue_data.get('venue_type', 'museum'),
+                        description=venue_data.get('description', ''),
+                        address=venue_data.get('address', ''),
+                        opening_hours=venue_data.get('opening_hours', ''),
+                        phone_number=venue_data.get('phone_number', ''),
+                        email=venue_data.get('email', ''),
+                        tour_info=venue_data.get('tour_info', ''),
+                        admission_fee=venue_data.get('admission_fee', ''),
+                        website_url=venue_data.get('website_url', ''),
+                        image_url=venue_data.get('image_url', ''),
+                        latitude=venue_data.get('latitude'),
+                        longitude=venue_data.get('longitude'),
+                        facebook_url=venue_data.get('facebook_url', ''),
+                        instagram_url=venue_data.get('instagram_url', ''),
+                        twitter_url=venue_data.get('twitter_url', ''),
+                        youtube_url=venue_data.get('youtube_url', ''),
+                        tiktok_url=venue_data.get('tiktok_url', ''),
+                        holiday_hours=venue_data.get('holiday_hours', ''),
+                        additional_info=venue_data.get('additional_info', ''),
+                        city_id=int(city_id),  # Use the correct city ID
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    # Add to database
+                    db.session.add(venue)
+                    total_venues_added += 1
+                    print(f"      ✅ Added to database (city_id: {city_id})")
+            
+            # Commit all changes
+            print(f"\n💾 Committing {total_venues_added} venues to database...")
+            db.session.commit()
+            print("✅ All venues committed successfully!")
+            
+            # Verify the data
+            print(f"\n🔍 Verifying data...")
+            venue_count = Venue.query.count()
+            city_count = City.query.count()
+            print(f"   Total cities in database: {city_count}")
+            print(f"   Total venues in database: {venue_count}")
+            
+            if venue_count == total_venues_added:
+                print("✅ Data verification successful!")
+            else:
+                print("⚠️ Data verification failed - count mismatch")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error loading venues: {e}")
+            db.session.rollback()
+            return False
+
+def export_cities_to_json():
+    """Export cities from database to cities.json"""
+    print("\n📤 Exporting cities from database to cities.json...")
+    print("=" * 60)
+    
+    with app.app_context():
+        try:
+            # Get all cities from database
+            cities = City.query.order_by(City.id).all()
+            
+            print(f"📊 Found {len(cities)} cities in database")
+            print("=" * 60)
+            
+            # Create the JSON structure
+            cities_data = {}
+            
+            for city in cities:
+                city_data = {
+                    "name": city.name,
+                    "state": city.state,
+                    "country": city.country,
+                    "timezone": city.timezone
+                }
+                
+                # Use city ID as key (convert to string for JSON compatibility)
+                cities_data[str(city.id)] = city_data
+                print(f"  Exported: {city.name} (ID: {city.id})")
+            
+            # Create the final JSON structure with metadata
+            final_data = {
+                "metadata": {
+                    "version": "1.0",
+                    "created": datetime.now().strftime("%Y-%m-%d"),
+                    "description": "Cities exported from database - always most updated version",
+                    "total_cities": len(cities),
+                    "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                },
+                "cities": cities_data
+            }
+            
+            # Create backup of existing cities.json if it exists
+            cities_file = Path("data/cities.json")
+            if cities_file.exists():
+                backup_file = f"data/backups/cities.json.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                cities_file.rename(backup_file)
+                print(f"📦 Created backup: {backup_file}")
+            
+            # Write the new cities.json
+            with open(cities_file, 'w') as f:
+                json.dump(final_data, f, indent=2)
+            
+            print(f"✅ Successfully exported {len(cities)} cities to cities.json")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error exporting cities: {e}")
+            return False
+
+def export_venues_to_json():
+    """Export venues from database to venues.json"""
+    print("\n📤 Exporting venues from database to venues.json...")
+    print("=" * 60)
+    
+    with app.app_context():
+        try:
+            # Get all venues from database with their cities
+            venues = Venue.query.join(City).order_by(City.id, Venue.name).all()
+            
+            print(f"📊 Found {len(venues)} venues in database")
+            print("=" * 60)
+            
+            # Create the JSON structure (same format as current venues.json)
+            venues_data = {}
+            
+            # Group venues by city
+            for venue in venues:
+                city_id = str(venue.city_id)
+                
+                if city_id not in venues_data:
+                    venues_data[city_id] = {
+                        "name": venue.city.name,
+                        "venues": []
+                    }
+                
+                # Create venue entry
+                venue_entry = {
+                    "name": venue.name,
+                    "venue_type": venue.venue_type or "museum",
+                    "address": venue.address or "",
+                    "opening_hours": venue.opening_hours or "",
+                    "phone_number": venue.phone_number or "",
+                    "email": venue.email or "",
+                    "description": venue.description or "",
+                    "tour_info": venue.tour_info or "",
+                    "admission_fee": venue.admission_fee or "",
+                    "website_url": venue.website_url or "",
+                    "latitude": venue.latitude,
+                    "longitude": venue.longitude,
+                    "image_url": venue.image_url or "",
+                    "instagram_url": venue.instagram_url or "",
+                    "facebook_url": venue.facebook_url or "",
+                    "twitter_url": venue.twitter_url or "",
+                    "youtube_url": venue.youtube_url or "",
+                    "tiktok_url": venue.tiktok_url or "",
+                    "holiday_hours": venue.holiday_hours or "",
+                    "additional_info": venue.additional_info or ""
+                }
+                
+                venues_data[city_id]["venues"].append(venue_entry)
+            
+            # Create backup of existing venues.json if it exists
+            venues_file = Path("data/venues.json")
+            if venues_file.exists():
+                backup_file = f"data/backups/venues.json.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                venues_file.rename(backup_file)
+                print(f"📦 Created backup: {backup_file}")
+            
+            # Write the new venues.json
+            with open(venues_file, 'w') as f:
+                json.dump(venues_data, f, indent=2)
+            
+            print(f"✅ Successfully exported {len(venues)} venues to venues.json")
+            print(f"   Cities with venues: {len(venues_data)}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error exporting venues: {e}")
+            return False
+
+def load_all_data():
+    """Load all data from JSON files into database"""
+    print("🚀 Starting comprehensive data loading...")
+    print("=" * 60)
+    
+    # Load cities first
+    if not load_cities_from_json():
+        return False
+    
+    # Then load venues
+    if not load_venues_from_json():
+        return False
+    
+    print("\n🎉 All data loaded successfully!")
+    return True
+
+def sync_all_data():
+    """Sync all data from database to JSON files"""
+    print("🔄 Starting comprehensive data sync...")
+    print("=" * 60)
+    
+    # Export cities
+    if not export_cities_to_json():
+        return False
+    
+    # Export venues
+    if not export_venues_to_json():
+        return False
+    
+    print("\n🎉 All data synced successfully!")
+    return True
+
+def main():
+    """Main function with command line interface"""
+    if len(sys.argv) < 2:
+        print("Usage: python data_manager.py <command>")
+        print("Commands:")
+        print("  load        - Load all data from JSON files to database")
+        print("  sync        - Sync all data from database to JSON files")
+        print("  load-cities - Load only cities from JSON to database")
+        print("  load-venues - Load only venues from JSON to database")
+        print("  export-cities - Export only cities from database to JSON")
+        print("  export-venues - Export only venues from database to JSON")
+        return
+    
+    command = sys.argv[1].lower()
+    
+    if command == "load":
+        success = load_all_data()
+    elif command == "sync":
+        success = sync_all_data()
+    elif command == "load-cities":
+        success = load_cities_from_json()
+    elif command == "load-venues":
+        success = load_venues_from_json()
+    elif command == "export-cities":
+        success = export_cities_to_json()
+    elif command == "export-venues":
+        success = export_venues_to_json()
+    else:
+        print(f"❌ Unknown command: {command}")
+        return
+    
+    if not success:
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

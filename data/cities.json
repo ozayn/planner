@@ -1,71 +1,17 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-09-13",
+    "created": "2025-09-15",
     "description": "Cities exported from database - always most updated version",
     "total_cities": 22,
-    "last_updated": "2025-09-13 19:02:22"
+    "last_updated": "2025-09-15 11:34:06"
   },
   "cities": {
-    "17": {
-      "name": "Baltimore",
-      "state": "Maryland",
+    "1": {
+      "name": "Washington",
+      "state": "District of Columbia",
       "country": "United States",
       "timezone": "America/New_York"
-    },
-    "20": {
-      "name": "Berlin",
-      "state": "Berlin",
-      "country": "Germany",
-      "timezone": "Europe/Paris"
-    },
-    "6": {
-      "name": "Boston",
-      "state": "Massachusetts",
-      "country": "United States",
-      "timezone": "America/New_York"
-    },
-    "5": {
-      "name": "Chicago",
-      "state": "Illinois",
-      "country": "United States",
-      "timezone": "America/Chicago"
-    },
-    "9": {
-      "name": "London",
-      "state": "England",
-      "country": "United Kingdom",
-      "timezone": "Europe/London"
-    },
-    "3": {
-      "name": "Los Angeles",
-      "state": "California",
-      "country": "United States",
-      "timezone": "America/Los_Angeles"
-    },
-    "19": {
-      "name": "Madrid",
-      "state": null,
-      "country": "Spain",
-      "timezone": "Europe/Paris"
-    },
-    "8": {
-      "name": "Miami",
-      "state": "Florida",
-      "country": "United States",
-      "timezone": "America/New_York"
-    },
-    "13": {
-      "name": "Montreal",
-      "state": "Quebec",
-      "country": "Canada",
-      "timezone": "America/New_York"
-    },
-    "21": {
-      "name": "Munich",
-      "state": "Bayern",
-      "country": "Germany",
-      "timezone": "Europe/Paris"
     },
     "2": {
       "name": "New York",
@@ -73,23 +19,11 @@
       "country": "United States",
       "timezone": "America/New_York"
     },
-    "10": {
-      "name": "Paris",
-      "state": "Île-de-France",
-      "country": "France",
-      "timezone": "Europe/Paris"
-    },
-    "18": {
-      "name": "Philadelphia",
-      "state": "Pennsylvania",
+    "3": {
+      "name": "Los Angeles",
+      "state": "California",
       "country": "United States",
-      "timezone": "America/New_York"
-    },
-    "22": {
-      "name": "Princeton",
-      "state": "New Jersey",
-      "country": "United States",
-      "timezone": "America/New_York"
+      "timezone": "America/Los_Angeles"
     },
     "4": {
       "name": "San Francisco",
@@ -97,11 +31,47 @@
       "country": "United States",
       "timezone": "America/Los_Angeles"
     },
+    "5": {
+      "name": "Chicago",
+      "state": "Illinois",
+      "country": "United States",
+      "timezone": "America/Chicago"
+    },
+    "6": {
+      "name": "Boston",
+      "state": "Massachusetts",
+      "country": "United States",
+      "timezone": "America/New_York"
+    },
     "7": {
       "name": "Seattle",
       "state": "Washington",
       "country": "United States",
       "timezone": "America/Los_Angeles"
+    },
+    "8": {
+      "name": "Miami",
+      "state": "Florida",
+      "country": "United States",
+      "timezone": "America/New_York"
+    },
+    "9": {
+      "name": "London",
+      "state": "England",
+      "country": "United Kingdom",
+      "timezone": "Europe/London"
+    },
+    "10": {
+      "name": "Paris",
+      "state": "\u00cele-de-France",
+      "country": "France",
+      "timezone": "Europe/Paris"
+    },
+    "11": {
+      "name": "Tokyo",
+      "state": "Tokyo",
+      "country": "Japan",
+      "timezone": "Asia/Tokyo"
     },
     "12": {
       "name": "Sydney",
@@ -109,17 +79,11 @@
       "country": "Australia",
       "timezone": "Australia/Sydney"
     },
-    "16": {
-      "name": "Tehran",
-      "state": null,
-      "country": "Iran",
-      "timezone": "Asia/Tehran"
-    },
-    "11": {
-      "name": "Tokyo",
-      "state": "Tokyo",
-      "country": "Japan",
-      "timezone": "Asia/Tokyo"
+    "13": {
+      "name": "Montreal",
+      "state": "Quebec",
+      "country": "Canada",
+      "timezone": "America/New_York"
     },
     "14": {
       "name": "Toronto",
@@ -133,9 +97,45 @@
       "country": "Canada",
       "timezone": "America/Los_Angeles"
     },
-    "1": {
-      "name": "Washington",
-      "state": "District of Columbia",
+    "16": {
+      "name": "Tehran",
+      "state": null,
+      "country": "Iran",
+      "timezone": "Asia/Tehran"
+    },
+    "17": {
+      "name": "Baltimore",
+      "state": "Maryland",
+      "country": "United States",
+      "timezone": "America/New_York"
+    },
+    "18": {
+      "name": "Philadelphia",
+      "state": "Pennsylvania",
+      "country": "United States",
+      "timezone": "America/New_York"
+    },
+    "19": {
+      "name": "Madrid",
+      "state": null,
+      "country": "Spain",
+      "timezone": "Europe/Paris"
+    },
+    "20": {
+      "name": "Berlin",
+      "state": "Berlin",
+      "country": "Germany",
+      "timezone": "Europe/Paris"
+    },
+    "21": {
+      "name": "Munich",
+      "state": "Bayern",
+      "country": "Germany",
+      "timezone": "Europe/Paris"
+    },
+    "22": {
+      "name": "Princeton",
+      "state": "New Jersey",
       "country": "United States",
       "timezone": "America/New_York"
     }

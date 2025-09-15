@@ -19,7 +19,7 @@ def add_national_portrait_gallery():
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     
     # Load the predefined venues JSON
-    json_file_path = '/Users/oz/Dropbox/2025/planner/data/predefined_venues.json'
+    json_file_path = '/Users/oz/Dropbox/2025/planner/data/venues.json'
     
     try:
         with open(json_file_path, 'r', encoding='utf-8') as f:

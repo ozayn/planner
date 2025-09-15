@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to update all venue images in predefined_venues.json using Google Maps API
+Script to update all venue images in venues.json using Google Maps API
 Replaces placeholder images with real Google Maps images
 """
 
@@ -17,19 +17,19 @@ from scripts.utils import get_google_maps_image_for_venue
 
 def update_all_venue_images():
     """
-    Update all venue images in predefined_venues.json with Google Maps images
+    Update all venue images in venues.json with Google Maps images
     """
     # Your API key
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     
     # Load the predefined venues JSON
-    json_file_path = '/Users/oz/Dropbox/2025/planner/data/predefined_venues.json'
+    json_file_path = '/Users/oz/Dropbox/2025/planner/data/venues.json'
     
     try:
         with open(json_file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        print(f"📊 Loaded {data['metadata']['total_venues']} venues from predefined_venues.json")
+        print(f"📊 Loaded venues from venues.json")
         print(f"🏙️ Processing {data['metadata']['total_cities']} cities")
         print("=" * 60)
         
@@ -117,7 +117,7 @@ def update_all_venue_images():
         print(f"   ⏭️  Skipped (already had images): {skipped_count}")
         print(f"   ❌ Failed: {failed_count}")
         print(f"   💰 Estimated API cost: ${(updated_count * 0.056):.2f}")
-        print("\n✅ Updated predefined_venues.json with Google Maps images!")
+        print("\n✅ Updated venues.json with Google Maps images!")
         
         return {
             'success': True,
