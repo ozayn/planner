@@ -277,11 +277,11 @@ class Venue(db.Model):
                         # Generate public Google Maps URL using venue name and coordinates
                         venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
                         if venue_name and self.latitude and self.longitude:
-                            image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.latitude},{self.longitude},17z"
+                            image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
                         elif venue_name:
                             image_url = f"https://www.google.com/maps/search/{venue_name}"
                         elif self.latitude and self.longitude:
-                            image_url = f"https://www.google.com/maps/search/{self.latitude},{self.longitude}"
+                            image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
                         else:
                             image_url = "https://www.google.com/maps"
                 except (json.JSONDecodeError, TypeError):
@@ -291,11 +291,11 @@ class Venue(db.Model):
                 # Generate public Google Maps URL using venue name and coordinates
                 venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
                 if venue_name and self.latitude and self.longitude:
-                    image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.latitude},{self.longitude},17z"
+                    image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
                 elif venue_name:
                     image_url = f"https://www.google.com/maps/search/{venue_name}"
                 elif self.latitude and self.longitude:
-                    image_url = f"https://www.google.com/maps/search/{self.latitude},{self.longitude}"
+                    image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
                 else:
                     image_url = "https://www.google.com/maps"
         
@@ -384,13 +384,13 @@ class Event(db.Model):
             if self.start_location and self.start_location.strip():
                 location_name = self.start_location.replace(' ', '+')
                 if self.start_latitude and self.start_longitude:
-                    image_url = f"https://www.google.com/maps/place/{location_name}/@{self.start_latitude},{self.start_longitude},17z"
+                    image_url = f"https://www.google.com/maps?q={self.start_latitude},{self.start_longitude}"
                 else:
                     image_url = f"https://www.google.com/maps/search/{location_name}"
             elif self.venue and self.venue.name and self.venue.name.strip():
                 venue_name = self.venue.name.replace(' ', '+')
                 if self.venue.latitude and self.venue.longitude:
-                    image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.venue.latitude},{self.venue.longitude},17z"
+                    image_url = f"https://www.google.com/maps?q={self.venue.latitude},{self.venue.longitude}"
                 else:
                     image_url = f"https://www.google.com/maps/search/{venue_name}"
             elif self.title and self.title.strip():
