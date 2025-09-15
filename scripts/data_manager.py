@@ -18,6 +18,56 @@ sys.path.insert(0, project_root)
 # Import Flask app and models
 from app import app, db, Venue, City, Source
 
+def sanitize_json_file_for_backup(source_file, backup_file):
+    """
+    Create a sanitized backup of a JSON file, removing API keys and sensitive data
+    
+    Args:
+        source_file: Path to source JSON file
+        backup_file: Path to backup JSON file
+    """
+    try:
+        # Read the source file
+        with open(source_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Sanitize the data recursively
+        sanitized_data = sanitize_data_recursive(data)
+        
+        # Write the sanitized backup
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            json.dump(sanitized_data, f, indent=2, ensure_ascii=False)
+            
+    except Exception as e:
+        print(f"❌ Error creating sanitized backup: {e}")
+        # Fallback: just copy the file without sanitization
+        import shutil
+        shutil.copy2(source_file, backup_file)
+
+def sanitize_data_recursive(data):
+    """
+    Recursively sanitize data by replacing API keys with placeholders
+    
+    Args:
+        data: Data structure to sanitize (dict, list, or string)
+    
+    Returns:
+        Sanitized data structure
+    """
+    if isinstance(data, dict):
+        return {key: sanitize_data_recursive(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_data_recursive(item) for item in data]
+    elif isinstance(data, str):
+        # Replace Google Maps API keys with placeholders
+        import re
+        # Pattern to match Google Maps API keys in URLs
+        api_key_pattern = r'key=AIza[a-zA-Z0-9_-]{35}'
+        sanitized = re.sub(api_key_pattern, 'key=YOUR_GOOGLE_MAPS_API_KEY', data)
+        return sanitized
+    else:
+        return data
+
 def load_cities_from_json():
     """Load cities from cities.json into database"""
     print("🏙️ Loading cities from cities.json...")
@@ -346,8 +396,10 @@ def export_cities_to_json():
             cities_file = Path("data/cities.json")
             if cities_file.exists():
                 backup_file = f"data/backups/cities.json.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                cities_file.rename(backup_file)
-                print(f"📦 Created backup: {backup_file}")
+                
+                # Sanitize API keys before creating backup
+                sanitize_json_file_for_backup(cities_file, backup_file)
+                print(f"📦 Created sanitized backup: {backup_file}")
             
             # Write the new cities.json
             with open(cities_file, 'w') as f:
@@ -416,12 +468,15 @@ def export_venues_to_json():
             venues_file = Path("data/venues.json")
             if venues_file.exists():
                 backup_file = f"data/backups/venues.json.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                venues_file.rename(backup_file)
-                print(f"📦 Created backup: {backup_file}")
+                
+                # Sanitize API keys before creating backup
+                sanitize_json_file_for_backup(venues_file, backup_file)
+                print(f"📦 Created sanitized backup: {backup_file}")
             
-            # Write the new venues.json
+            # Write the new venues.json (sanitized)
+            sanitized_venues_data = sanitize_data_recursive(venues_data)
             with open(venues_file, 'w') as f:
-                json.dump(venues_data, f, indent=2)
+                json.dump(sanitized_venues_data, f, indent=2)
             
             print(f"✅ Successfully exported {len(venues)} venues to venues.json")
             print(f"   Cities with venues: {len(venues_data)}")

@@ -99,12 +99,17 @@ def get_google_maps_image(venue_name, address=None, city=None, state=None):
         
         print(f"✅ Found photo reference: {photo_reference}")
         
-        # Step 3: Construct the image URL
-        image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo_reference}&key={google_maps_key}"
+        # Step 3: Return the photo reference instead of full URL
+        # The API key should be injected at runtime, not stored in the database
+        photo_data = {
+            'photo_reference': photo_reference,
+            'maxwidth': 800,
+            'base_url': 'https://maps.googleapis.com/maps/api/place/photo'
+        }
         
-        print(f"✅ Generated image URL: {image_url}")
+        print(f"✅ Generated photo data: {photo_data}")
         
-        return image_url
+        return photo_data
         
     except requests.exceptions.RequestException as e:
         print(f"❌ Request error: {e}")
@@ -113,14 +118,21 @@ def get_google_maps_image(venue_name, address=None, city=None, state=None):
         print(f"❌ Error fetching Google Maps image: {e}")
         return None
 
-def test_image_url(image_url):
+def test_image_url(photo_data):
     """
-    Test if the image URL is accessible
+    Test if the photo data can be used to construct a working image URL
     """
-    if not image_url:
+    if not photo_data or not isinstance(photo_data, dict):
         return False
     
     try:
+        # Construct the full URL for testing
+        google_maps_key = os.getenv('GOOGLE_MAPS_API_KEY')
+        if not google_maps_key:
+            return False
+            
+        image_url = f"{photo_data['base_url']}?maxwidth={photo_data['maxwidth']}&photoreference={photo_data['photo_reference']}&key={google_maps_key}"
+        
         response = requests.head(image_url, timeout=10)
         return response.status_code == 200
     except:
@@ -139,24 +151,25 @@ def main():
     print(f"📍 Address: {address}")
     print()
     
-    # Fetch the image URL
-    image_url = get_google_maps_image(venue_name, address, city, state)
+    # Fetch the photo data
+    photo_data = get_google_maps_image(venue_name, address, city, state)
     
-    if image_url:
+    if photo_data:
         print()
-        print("🧪 Testing image URL accessibility...")
+        print("🧪 Testing photo data accessibility...")
         
-        if test_image_url(image_url):
-            print("✅ Image URL is accessible!")
+        if test_image_url(photo_data):
+            print("✅ Photo data is valid!")
             print()
-            print("📸 Google Maps Image URL:")
-            print(image_url)
+            print("📸 Google Maps Photo Data:")
+            print(json.dumps(photo_data, indent=2))
             print()
-            print("🔗 You can use this URL to update the venue's image_url field")
+            print("🔗 You can store this photo_data in the venue's image_url field")
+            print("   The API key will be injected at runtime when displaying images")
         else:
-            print("❌ Image URL is not accessible")
+            print("❌ Photo data is not valid")
     else:
-        print("❌ Could not fetch Google Maps image")
+        print("❌ Could not fetch Google Maps photo data")
 
 if __name__ == "__main__":
     main()
