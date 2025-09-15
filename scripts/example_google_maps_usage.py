@@ -15,7 +15,7 @@ def example_usage():
     """Example of how to use the Google Maps image fetching utility"""
     
     # Your API key
-    api_key = "AIzaSyBJ0v90GfvkWSIjzceNk2uPbwdmlrDxkYw"
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     
     print("📸 Google Maps Image Fetching Examples")
     print("=" * 40)

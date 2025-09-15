@@ -15,7 +15,7 @@ def test_google_maps_utils():
     """Test the Google Maps image fetching utilities"""
     
     # Your API key
-    api_key = "AIzaSyBJ0v90GfvkWSIjzceNk2uPbwdmlrDxkYw"
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     
     print("🧪 Testing Google Maps Image Fetching Utilities")
     print("=" * 50)

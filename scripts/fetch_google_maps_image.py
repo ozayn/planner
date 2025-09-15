@@ -34,7 +34,7 @@ def get_google_maps_image(venue_name, address=None, city=None, state=None):
     api_keys = get_api_keys()
     
     # Use the provided API key directly
-    google_maps_key = "AIzaSyBJ0v90GfvkWSIjzceNk2uPbwdmlrDxkYw"
+    google_maps_key = os.getenv('GOOGLE_MAPS_API_KEY')
     
     try:
         # Step 1: Search for the place using Places API

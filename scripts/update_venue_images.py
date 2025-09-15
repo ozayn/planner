@@ -16,7 +16,7 @@ def get_correct_venue_images():
     """Get correct image URLs for all venues"""
     return {
         # Los Angeles
-        "Getty Center": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=ChIJN1t_tDeuwoARxVM8Wb_3Jj8&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dOWWgUjqUfUzU0",
+        "Getty Center": f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=ChIJN1t_tDeuwoARxVM8Wb_3Jj8&key={os.getenv('GOOGLE_MAPS_API_KEY')}",
         "Los Angeles County Museum of Art (LACMA)": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/LACMA_Wilshire_Boulevard_2016.jpg/800px-LACMA_Wilshire_Boulevard_2016.jpg",
         "Griffith Observatory": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Griffith_Observatory_2013.jpg/800px-Griffith_Observatory_2013.jpg",
         "Hollywood Walk of Fame": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Hollywood_Walk_of_Fame_2012.jpg/800px-Hollywood_Walk_of_Fame_2012.jpg",

@@ -16,7 +16,7 @@ def add_national_portrait_gallery():
     """Add National Portrait Gallery to Washington DC venues"""
     
     # Your API key
-    api_key = "AIzaSyBJ0v90GfvkWSIjzceNk2uPbwdmlrDxkYw"
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     
     # Load the predefined venues JSON
     json_file_path = '/Users/oz/Dropbox/2025/planner/data/predefined_venues.json'
