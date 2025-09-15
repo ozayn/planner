@@ -265,6 +265,32 @@ class Venue(db.Model):
     events = db.relationship('Event', backref='venue', lazy=True)
     
     def to_dict(self):
+        # Handle image_url - convert photo data to public Google Maps URL (no API key required)
+        image_url = self.image_url
+        if image_url:
+            # Try to parse as JSON if it's a string containing photo data
+            if isinstance(image_url, str):
+                try:
+                    import json
+                    photo_data = json.loads(image_url)
+                    if isinstance(photo_data, dict) and 'photo_reference' in photo_data:
+                        # Generate public Google Maps URL using venue name and coordinates
+                        venue_name = self.name.replace(' ', '+')
+                        if self.latitude and self.longitude:
+                            image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.latitude},{self.longitude},17z"
+                        else:
+                            image_url = f"https://www.google.com/maps/search/{venue_name}"
+                except (json.JSONDecodeError, TypeError):
+                    # If it's not valid JSON, keep as string (might be a regular URL)
+                    pass
+            elif isinstance(image_url, dict) and 'photo_reference' in image_url:
+                # Generate public Google Maps URL using venue name and coordinates
+                venue_name = self.name.replace(' ', '+')
+                if self.latitude and self.longitude:
+                    image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.latitude},{self.longitude},17z"
+                else:
+                    image_url = f"https://www.google.com/maps/search/{venue_name}"
+        
         return {
             'id': self.id,
             'name': self.name,
@@ -272,7 +298,7 @@ class Venue(db.Model):
             'address': self.address,
             'latitude': self.latitude,
             'longitude': self.longitude,
-            'image_url': self.image_url,
+            'image_url': image_url,
             'instagram_url': self.instagram_url,
             'facebook_url': self.facebook_url,
             'twitter_url': self.twitter_url,
@@ -343,12 +369,25 @@ class Event(db.Model):
     
     def to_dict(self):
         """Convert event to dictionary with all relevant fields"""
-        # Handle image_url - convert photo data to full URL with API key
+        # Handle image_url - convert photo data to public Google Maps URL (no API key required)
         image_url = self.image_url
         if image_url and isinstance(image_url, dict) and 'photo_reference' in image_url:
-            # Convert photo data to full URL with API key
-            api_key = os.getenv('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY')
-            image_url = f"{image_url['base_url']}?maxwidth={image_url['maxwidth']}&photoreference={image_url['photo_reference']}&key={api_key}"
+            # Generate public Google Maps URL using event location
+            if self.start_location:
+                location_name = self.start_location.replace(' ', '+')
+                if self.start_latitude and self.start_longitude:
+                    image_url = f"https://www.google.com/maps/place/{location_name}/@{self.start_latitude},{self.start_longitude},17z"
+                else:
+                    image_url = f"https://www.google.com/maps/search/{location_name}"
+            elif self.venue and self.venue.name:
+                venue_name = self.venue.name.replace(' ', '+')
+                if self.venue.latitude and self.venue.longitude:
+                    image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.venue.latitude},{self.venue.longitude},17z"
+                else:
+                    image_url = f"https://www.google.com/maps/search/{venue_name}"
+            else:
+                # Fallback to a generic search
+                image_url = f"https://www.google.com/maps/search/{self.title.replace(' ', '+')}"
         
         return {
             'id': self.id,

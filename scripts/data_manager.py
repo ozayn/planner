@@ -131,6 +131,8 @@ def load_venues_from_json():
     print("\n🏛️ Loading venues from venues.json...")
     print("=" * 60)
     
+    import json  # Import at function level
+    
     venues_file = Path("data/venues.json")
     if not venues_file.exists():
         print("❌ venues.json not found")
@@ -178,6 +180,15 @@ def load_venues_from_json():
                     print(f"  [{i+1}/{len(venues)}] Adding venue: {venue_name}")
                     
                     # Create venue object
+                    # Handle image_url - convert photo data to JSON string for database storage
+                    image_url_data = venue_data.get('image_url', '')
+                    if isinstance(image_url_data, dict):
+                        # Convert photo data to JSON string for database storage
+                        image_url = json.dumps(image_url_data)
+                    else:
+                        # Keep as string if it's already a string
+                        image_url = image_url_data
+                    
                     venue = Venue(
                         name=venue_name,
                         venue_type=venue_data.get('venue_type', 'museum'),
@@ -189,7 +200,7 @@ def load_venues_from_json():
                         tour_info=venue_data.get('tour_info', ''),
                         admission_fee=venue_data.get('admission_fee', ''),
                         website_url=venue_data.get('website_url', ''),
-                        image_url=venue_data.get('image_url', ''),
+                        image_url=image_url,
                         latitude=venue_data.get('latitude'),
                         longitude=venue_data.get('longitude'),
                         facebook_url=venue_data.get('facebook_url', ''),
