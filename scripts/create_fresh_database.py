@@ -34,9 +34,9 @@ def create_fresh_database():
     os.makedirs('instance', exist_ok=True)
     
     # Set the database path explicitly to match app.py
-    db_dir = os.path.expanduser('~/.local/share/planner')
-    os.makedirs(db_dir, exist_ok=True)
-    db_path = os.path.join(db_dir, 'events.db')
+    # Use project directory instead of system directory
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'instance', 'events.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     
     # Create fresh database

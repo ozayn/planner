@@ -188,10 +188,9 @@ if os.getenv('DATABASE_URL'):
     # Production database (Railway PostgreSQL)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 else:
-    # Development database (local SQLite)
-    db_dir = os.path.expanduser('~/.local/share/planner')
-    os.makedirs(db_dir, exist_ok=True)
-    db_path = os.path.join(db_dir, 'events.db')
+    # Development database (local SQLite) - use project directory
+    db_path = os.path.join(os.path.dirname(__file__), 'instance', 'events.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -2632,7 +2631,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         
-        # Generic CRUD endpoints are already registered at import time
+    # Generic CRUD endpoints are already registered at import time
     
     # Get port from environment (Railway provides PORT), default to 5001 for local
     port = int(os.getenv('PORT', 5001))

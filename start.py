@@ -80,7 +80,8 @@ def install_dependencies():
 
 def ensure_database_directory():
     """Ensure database directory exists with proper permissions"""
-    db_dir = Path.home() / ".local" / "share" / "planner"
+    # Use project directory instead of system directory
+    db_dir = Path("instance")
     db_dir.mkdir(parents=True, exist_ok=True)
     
     # Fix permissions
@@ -92,7 +93,7 @@ def ensure_database_directory():
     except Exception as e:
         print(f"⚠️  Permission fix warning: {e}")
     
-    print(f"✅ Database directory ready: {db_dir}")
+    print(f"✅ Database directory ready: {db_dir.absolute()}")
     return True
 
 def ensure_cities_data():
@@ -110,10 +111,10 @@ def ensure_cities_data():
                 print(f"✅ Cities already loaded ({existing_cities} cities)")
                 return True
             
-            # Load predefined cities
-            cities_file = Path("data/predefined_cities.json")
+            # Load cities from JSON file
+            cities_file = Path("data/cities.json")
             if not cities_file.exists():
-                print("❌ Predefined cities file not found")
+                print("❌ Cities file not found")
                 return False
             
             with open(cities_file, 'r') as f:

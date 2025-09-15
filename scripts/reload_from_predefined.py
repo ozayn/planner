@@ -37,10 +37,10 @@ def clear_all_tables():
         print("   ✅ All tables cleared")
 
 def reload_cities_from_json():
-    """Reload cities from predefined_cities.json"""
-    print("\n📥 Reloading cities from predefined_cities.json...")
+    """Reload cities from cities.json"""
+    print("\n📥 Reloading cities from cities.json...")
     
-    json_file = 'data/predefined_cities.json'
+    json_file = 'data/cities.json'
     
     if not os.path.exists(json_file):
         print(f"   ❌ Error: {json_file} not found")

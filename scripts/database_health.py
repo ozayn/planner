@@ -20,21 +20,20 @@ class DatabaseHealthChecker:
     def __init__(self):
         self.db_path = self._get_database_path()
         self.expected_tables = {
-            'cities': ['id', 'name', 'state', 'country', 'timezone', 'created_at'],
+            'cities': ['id', 'name', 'state', 'country', 'timezone', 'created_at', 'updated_at'],
             'venues': ['id', 'name', 'venue_type', 'address', 'latitude', 'longitude', 
                       'image_url', 'instagram_url', 'facebook_url', 'twitter_url', 
                       'youtube_url', 'tiktok_url', 'opening_hours', 'holiday_hours', 
-                      'phone_number', 'email', 'website_url', 'description', 'city_id', 'created_at'],
+                      'phone_number', 'email', 'website_url', 'description', 'city_id', 
+                      'created_at', 'updated_at', 'additional_info', 'tour_info'],
             'events': ['id', 'title', 'description', 'start_date', 'end_date', 
                       'start_time', 'end_time', 'image_url', 'url', 'is_selected', 
-                      'created_at', 'event_type'],
-            'tours': ['id', 'venue_id', 'meeting_location', 'tour_type', 
-                     'max_participants', 'price', 'language'],
-            'exhibitions': ['id', 'venue_id', 'exhibition_location', 'curator', 'admission_price'],
-            'festivals': ['id', 'city_id', 'festival_type', 'multiple_locations'],
-            'photowalks': ['id', 'city_id', 'start_location', 'end_location', 
-                          'start_latitude', 'start_longitude', 'end_latitude', 
-                          'end_longitude', 'difficulty_level', 'equipment_needed', 'organizer']
+                      'created_at', 'updated_at', 'event_type', 'venue_id', 'city_id',
+                      'price', 'admission_price', 'tour_type', 'max_participants', 
+                      'language', 'meeting_location', 'exhibition_location', 'curator',
+                      'festival_type', 'multiple_locations', 'start_location', 'end_location',
+                      'start_latitude', 'start_longitude', 'end_latitude', 'end_longitude',
+                      'difficulty_level', 'equipment_needed', 'organizer']
         }
     
     def _get_database_path(self) -> str:

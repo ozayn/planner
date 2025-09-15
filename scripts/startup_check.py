@@ -20,7 +20,13 @@ class StartupValidator:
     """Comprehensive startup validation system"""
     
     def __init__(self):
-        self.db_path = os.path.expanduser('~/.local/share/planner/events.db')
+        # Use the same database path logic as app.py
+        if os.getenv('DATABASE_URL'):
+            # Production database
+            self.db_path = os.getenv('DATABASE_URL').replace('sqlite:///', '')
+        else:
+            # Development database - use project directory
+            self.db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'instance', 'events.db')
         self.app_url = 'http://localhost:5001'
         self.issues = []
         self.warnings = []

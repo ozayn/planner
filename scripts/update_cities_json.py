@@ -18,7 +18,7 @@ def update_cities_json():
             # Get all cities from database
             cities = City.query.order_by(City.name).all()
             
-            # Create the JSON structure (same as predefined_cities.json)
+            # Create the JSON structure (same as cities.json)
             cities_data = {}
             
             for city in cities:

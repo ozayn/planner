@@ -447,7 +447,12 @@ class DatabaseConfig:
     """Database configuration constants"""
     
     # Database path
-    DB_PATH = os.path.expanduser('~/.local/share/planner/events.db')
+    # Use the same database path logic as app.py
+    if os.getenv('DATABASE_URL'):
+        DB_PATH = os.getenv('DATABASE_URL').replace('sqlite:///', '')
+    else:
+        # Development database - use project directory
+        DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'instance', 'events.db')
     
     # Table names
     CITIES_TABLE = 'cities'

@@ -45,7 +45,7 @@ class AutomatedVenueDiscovery:
     
     def __init__(self):
         self.project_root = Path(__file__).parent.parent
-        self.cities_file = self.project_root / "data" / "predefined_cities.json"
+        self.cities_file = self.project_root / "data" / "cities.json"
         self.venues_file = self.project_root / "data" / "predefined_venues.json"
         
     def load_cities_data(self) -> Optional[Dict]:
