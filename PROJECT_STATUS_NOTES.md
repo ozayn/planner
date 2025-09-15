@@ -39,6 +39,13 @@
 - **Automatic backup creation** during sync operations
 - **Data verification** after loading operations
 
+### 5. Project Cleanup ✅
+- **Removed 59 outdated scripts** (moved to archive)
+- **Removed 12 outdated documentation files** (moved to archive)
+- **Reduced scripts from 65 to 8** (87% reduction)
+- **Clean, focused project structure** with only essential files
+- **Archived files preserved** for reference if needed
+
 ## 🚀 CURRENT WORKING COMMANDS
 
 ### Data Management
@@ -82,6 +89,18 @@ source venv/bin/activate && python app.py
 - **Updated**: All scripts now reference `venues.json` instead of `predefined_venues.json`
 - **Created**: `scripts/data_manager.py` (comprehensive data management)
 - **Created**: `scripts/fix_city_id_consistency.py` (ID consistency tool)
+- **Archived**: 59 outdated scripts moved to `archive/outdated_scripts/`
+- **Archived**: 12 outdated docs moved to `archive/outdated_docs/`
+
+## 📁 REMAINING SCRIPTS (8 total)
+- **`data_manager.py`** - Main comprehensive data management script
+- **`fix_city_id_consistency.py`** - City ID consistency tool
+- **`update_all_venue_images.py`** - Updates venue images with Google Maps
+- **`fetch_google_maps_image.py`** - Google Maps image fetching utility
+- **`fetch_venue_details.py`** - Venue details fetching utility
+- **`example_google_maps_usage.py`** - Usage examples for Google Maps
+- **`database_health.py`** - Database health checking
+- **`utils.py`** - Common utilities and helper functions
 
 ## 🔑 ENVIRONMENT SETUP
 - **Virtual Environment**: `venv/` (activated)

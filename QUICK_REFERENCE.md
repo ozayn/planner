@@ -14,6 +14,7 @@ python app.py
 - **Events**: 0 (ready)
 - **Port**: 5001
 - **Database**: `instance/events.db`
+- **Scripts**: 8 (cleaned up from 65)
 
 ## 🔧 KEY COMMANDS
 ```bash
