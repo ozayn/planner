@@ -277,13 +277,40 @@ class Venue(db.Model):
                         # Generate public Google Maps URL using venue name and coordinates
                         venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
                         if venue_name and self.latitude and self.longitude:
-                            image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+                            # Generate SVG placeholder with venue name
+                            venue_display_name = venue_name.replace('+', ' ')
+                            svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
+</svg>'''
+                            import base64
+                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
                         elif venue_name:
-                            image_url = f"https://www.google.com/maps/search/{venue_name}"
+                            venue_display_name = venue_name.replace('+', ' ')
+                            svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
+</svg>'''
+                            import base64
+                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
                         elif self.latitude and self.longitude:
-                            image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+                            svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
+</svg>'''
+                            import base64
+                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
                         else:
-                            image_url = "https://www.google.com/maps"
+                            svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
+</svg>'''
+                            import base64
+                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
                 except (json.JSONDecodeError, TypeError):
                     # If it's not valid JSON, keep as string (might be a regular URL)
                     pass
@@ -291,13 +318,40 @@ class Venue(db.Model):
                 # Generate public Google Maps URL using venue name and coordinates
                 venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
                 if venue_name and self.latitude and self.longitude:
-                    image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+                    # Generate SVG placeholder with venue name
+                    venue_display_name = venue_name.replace('+', ' ')
+                    svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
+</svg>'''
+                    import base64
+                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
                 elif venue_name:
-                    image_url = f"https://www.google.com/maps/search/{venue_name}"
+                    venue_display_name = venue_name.replace('+', ' ')
+                    svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
+</svg>'''
+                    import base64
+                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
                 elif self.latitude and self.longitude:
-                    image_url = f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+                    svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
+</svg>'''
+                    import base64
+                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
                 else:
-                    image_url = "https://www.google.com/maps"
+                    svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#667eea"/>
+  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
+</svg>'''
+                    import base64
+                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
         
         return {
             'id': self.id,
@@ -384,22 +438,22 @@ class Event(db.Model):
             if self.start_location and self.start_location.strip():
                 location_name = self.start_location.replace(' ', '+')
                 if self.start_latitude and self.start_longitude:
-                    image_url = f"https://www.google.com/maps?q={self.start_latitude},{self.start_longitude}"
+                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={location_name.replace('+', '+')}"
                 else:
-                    image_url = f"https://www.google.com/maps/search/{location_name}"
+                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={location_name.replace('+', '+')}"
             elif self.venue and self.venue.name and self.venue.name.strip():
                 venue_name = self.venue.name.replace(' ', '+')
                 if self.venue.latitude and self.venue.longitude:
-                    image_url = f"https://www.google.com/maps?q={self.venue.latitude},{self.venue.longitude}"
+                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_name.replace('+', '+')}"
                 else:
-                    image_url = f"https://www.google.com/maps/search/{venue_name}"
+                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_name.replace('+', '+')}"
             elif self.title and self.title.strip():
                 # Fallback to a generic search
                 title_name = self.title.replace(' ', '+')
-                image_url = f"https://www.google.com/maps/search/{title_name}"
+                image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={title_name.replace('+', '+')}"
             else:
                 # Ultimate fallback
-                image_url = "https://www.google.com/maps"
+                image_url = "https://via.placeholder.com/400x300/667eea/ffffff?text=Event"
         
         return {
             'id': self.id,
