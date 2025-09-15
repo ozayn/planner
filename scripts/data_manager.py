@@ -16,7 +16,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Import Flask app and models
-from app import app, db, Venue, City
+from app import app, db, Venue, City, Source
 
 def load_cities_from_json():
     """Load cities from cities.json into database"""
@@ -183,6 +183,125 @@ def load_venues_from_json():
             db.session.rollback()
             return False
 
+def load_sources_from_json():
+    """Load sources from sources.json into database"""
+    print("\n📰 Loading sources from sources.json...")
+    print("=" * 60)
+    
+    sources_file = Path("data/sources.json")
+    if not sources_file.exists():
+        print("❌ sources.json not found")
+        return False
+        
+    with open(sources_file, 'r') as f:
+        data = json.load(f)
+    
+    # Count total sources
+    total_sources = sum(len(city_data['sources']) for city_data in data.values() if isinstance(city_data, dict) and 'sources' in city_data)
+    total_cities = len([k for k, v in data.items() if isinstance(v, dict) and 'sources' in v])
+    
+    print(f"📊 Found {total_sources} sources across {total_cities} cities")
+    print("=" * 60)
+    
+    with app.app_context():
+        try:
+            # Clear existing sources
+            print("🧹 Clearing existing sources...")
+            Source.query.delete()
+            db.session.commit()
+            print("✅ Existing sources cleared")
+            
+            # Process each city
+            total_sources_added = 0
+            
+            for city_id, city_data in data.items():
+                if not isinstance(city_data, dict) or 'sources' not in city_data:
+                    continue
+                    
+                city_name = city_data['name']
+                sources = city_data['sources']
+                
+                print(f"\n🏙️ Processing {city_name} ({len(sources)} sources)...")
+                print("-" * 50)
+                
+                # Get city from database
+                city = City.query.get(int(city_id))
+                if not city:
+                    print(f"      ⚠️  City '{city_name}' (ID: {city_id}) not found in database, skipping...")
+                    continue
+                
+                for i, source_data in enumerate(sources):
+                    source_name = source_data['name']
+                    print(f"  [{i+1}/{len(sources)}] Adding source: {source_name}")
+                    
+                    # Handle datetime fields properly
+                    last_checked = source_data.get('last_checked')
+                    if last_checked == '' or last_checked is None:
+                        last_checked = None
+                    
+                    last_event_found = source_data.get('last_event_found')
+                    if last_event_found == '' or last_event_found is None:
+                        last_event_found = None
+                    
+                    # Handle list fields (convert to JSON string for SQLite)
+                    event_types = source_data.get('event_types', [])
+                    if isinstance(event_types, list):
+                        event_types = json.dumps(event_types)
+                    
+                    covered_cities = source_data.get('covered_cities')
+                    if isinstance(covered_cities, list):
+                        covered_cities = json.dumps(covered_cities)
+                    
+                    # Create source object
+                    source = Source(
+                        name=source_name,
+                        handle=source_data.get('handle', ''),
+                        source_type=source_data.get('source_type', 'website'),
+                        url=source_data.get('url', ''),
+                        description=source_data.get('description', ''),
+                        city_id=int(city_id),
+                        covers_multiple_cities=source_data.get('covers_multiple_cities', False),
+                        covered_cities=covered_cities,
+                        event_types=event_types,
+                        is_active=source_data.get('is_active', True),
+                        last_checked=last_checked,
+                        last_event_found=last_event_found,
+                        events_found_count=source_data.get('events_found_count', 0),
+                        reliability_score=source_data.get('reliability_score', 0.0),
+                        posting_frequency=source_data.get('posting_frequency', ''),
+                        notes=source_data.get('notes', ''),
+                        scraping_pattern=source_data.get('scraping_pattern', ''),
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    # Add to database
+                    db.session.add(source)
+                    total_sources_added += 1
+                    print(f"      ✅ Added to database (city_id: {city_id})")
+            
+            # Commit all changes
+            print(f"\n💾 Committing {total_sources_added} sources to database...")
+            db.session.commit()
+            print("✅ All sources committed successfully!")
+            
+            # Verify the data
+            print(f"\n🔍 Verifying sources data...")
+            source_count = Source.query.count()
+            print(f"   Total sources in database: {source_count}")
+            
+            if source_count == total_sources_added:
+                print("✅ Sources data verification successful!")
+            else:
+                print("⚠️ Sources data verification failed - count mismatch")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error loading sources: {e}")
+            db.session.rollback()
+            return False
+
 def export_cities_to_json():
     """Export cities from database to cities.json"""
     print("\n📤 Exporting cities from database to cities.json...")
@@ -325,6 +444,10 @@ def load_all_data():
     if not load_venues_from_json():
         return False
     
+    # Then load sources
+    if not load_sources_from_json():
+        return False
+    
     print("\n🎉 All data loaded successfully!")
     return True
 
@@ -353,6 +476,7 @@ def main():
         print("  sync        - Sync all data from database to JSON files")
         print("  load-cities - Load only cities from JSON to database")
         print("  load-venues - Load only venues from JSON to database")
+        print("  load-sources - Load only sources from JSON to database")
         print("  export-cities - Export only cities from database to JSON")
         print("  export-venues - Export only venues from database to JSON")
         return
@@ -367,6 +491,8 @@ def main():
         success = load_cities_from_json()
     elif command == "load-venues":
         success = load_venues_from_json()
+    elif command == "load-sources":
+        success = load_sources_from_json()
     elif command == "export-cities":
         success = export_cities_to_json()
     elif command == "export-venues":
