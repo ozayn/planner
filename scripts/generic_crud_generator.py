@@ -12,7 +12,7 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def create_generic_crud_endpoints(app, db, City, Venue, Event):
+def register_generic_crud_endpoints(app, db, City, Venue, Event):
     """Create generic CRUD endpoints for all models"""
     
     # Define models and their configurations

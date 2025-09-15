@@ -265,93 +265,45 @@ class Venue(db.Model):
     events = db.relationship('Event', backref='venue', lazy=True)
     
     def to_dict(self):
-        # Handle image_url - convert photo data to public Google Maps URL (no API key required)
+        # Handle image_url - use secure image proxy endpoint
         image_url = self.image_url
         if image_url:
-            # Try to parse as JSON if it's a string containing photo data
-            if isinstance(image_url, str):
+            # If it's a photo reference string (long string without http), use our secure proxy
+            if isinstance(image_url, str) and len(image_url) > 50 and not image_url.startswith('http'):
+                # Use our secure image proxy endpoint
+                image_url = f"/api/image/{image_url}"
+            elif isinstance(image_url, str) and 'maps.googleapis.com' in image_url:
+                # Extract photo reference from existing Google Maps URL
+                import re
+                pattern = r'photoreference=([^&]+)'
+                match = re.search(pattern, image_url)
+                if match:
+                    photo_ref = match.group(1)
+                    image_url = f"/api/image/{photo_ref}"
+            elif isinstance(image_url, str):
+                # Try to parse as JSON if it's a string containing photo data
                 try:
                     import json
                     photo_data = json.loads(image_url)
                     if isinstance(photo_data, dict) and 'photo_reference' in photo_data:
-                        # Generate public Google Maps URL using venue name and coordinates
-                        venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
-                        if venue_name and self.latitude and self.longitude:
-                            # Generate SVG placeholder with venue name
-                            venue_display_name = venue_name.replace('+', ' ')
-                            svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
-</svg>'''
-                            import base64
-                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
-                        elif venue_name:
-                            venue_display_name = venue_name.replace('+', ' ')
-                            svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
-</svg>'''
-                            import base64
-                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
-                        elif self.latitude and self.longitude:
-                            svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
-</svg>'''
-                            import base64
-                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
-                        else:
-                            svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
-</svg>'''
-                            import base64
-                            svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                            image_url = f"data:image/svg+xml;base64,{svg_b64}"
+                        photo_ref = photo_data['photo_reference']
+                        image_url = f"/api/image/{photo_ref}"
                 except (json.JSONDecodeError, TypeError):
                     # If it's not valid JSON, keep as string (might be a regular URL)
                     pass
             elif isinstance(image_url, dict) and 'photo_reference' in image_url:
-                # Generate public Google Maps URL using venue name and coordinates
-                venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
-                if venue_name and self.latitude and self.longitude:
-                    # Generate SVG placeholder with venue name
-                    venue_display_name = venue_name.replace('+', ' ')
-                    svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
-</svg>'''
-                    import base64
-                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
-                elif venue_name:
-                    venue_display_name = venue_name.replace('+', ' ')
-                    svg_content = f'''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">{venue_display_name}</text>
-</svg>'''
-                    import base64
-                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
-                elif self.latitude and self.longitude:
-                    svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
-</svg>'''
-                    import base64
-                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
-                else:
-                    svg_content = '''<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="300" fill="#667eea"/>
-  <text x="200" y="150" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Venue</text>
-</svg>'''
-                    import base64
-                    svg_b64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-                    image_url = f"data:image/svg+xml;base64,{svg_b64}"
+                photo_ref = image_url['photo_reference']
+                image_url = f"/api/image/{photo_ref}"
+        
+        # Generate Google Maps link for navigation
+        maps_link = ""
+        if self.latitude and self.longitude:
+            maps_link = f"https://www.google.com/maps/@{self.latitude},{self.longitude},17z"
+        elif self.name and self.name.strip():
+            venue_name = self.name.replace(' ', '+')
+            maps_link = f"https://www.google.com/maps/search/{venue_name}"
+        else:
+            maps_link = "https://www.google.com/maps"
         
         return {
             'id': self.id,
@@ -361,6 +313,7 @@ class Venue(db.Model):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'image_url': image_url,
+            'maps_link': maps_link,  # Add clickable Google Maps link
             'instagram_url': self.instagram_url,
             'facebook_url': self.facebook_url,
             'twitter_url': self.twitter_url,
@@ -455,6 +408,21 @@ class Event(db.Model):
                 # Ultimate fallback
                 image_url = "https://via.placeholder.com/400x300/667eea/ffffff?text=Event"
         
+        # Generate Google Maps link for navigation
+        maps_link = ""
+        if self.start_latitude and self.start_longitude:
+            maps_link = f"https://www.google.com/maps/@{self.start_latitude},{self.start_longitude},17z"
+        elif self.start_location and self.start_location.strip():
+            location_name = self.start_location.replace(' ', '+')
+            maps_link = f"https://www.google.com/maps/search/{location_name}"
+        elif self.venue and self.venue.latitude and self.venue.longitude:
+            maps_link = f"https://www.google.com/maps/@{self.venue.latitude},{self.venue.longitude},17z"
+        elif self.venue and self.venue.name and self.venue.name.strip():
+            venue_name = self.venue.name.replace(' ', '+')
+            maps_link = f"https://www.google.com/maps/search/{venue_name}"
+        else:
+            maps_link = "https://www.google.com/maps"
+        
         return {
             'id': self.id,
             'title': self.title,
@@ -464,6 +432,7 @@ class Event(db.Model):
             'start_time': self.start_time.strftime('%H:%M') if self.start_time else None,
             'end_time': self.end_time.strftime('%H:%M') if self.end_time else None,
             'image_url': image_url,
+            'maps_link': maps_link,  # Add clickable Google Maps link
             'url': self.url,
             'is_selected': self.is_selected,
             'event_type': self.event_type,
@@ -875,6 +844,38 @@ def get_venues():
     
     venues = query.all()
     return jsonify([venue.to_dict() for venue in venues])
+
+@app.route('/api/image/<photo_reference>')
+def get_venue_image(photo_reference):
+    """Secure image proxy endpoint that adds API key server-side"""
+    try:
+        google_maps_api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+        
+        if not google_maps_api_key:
+            return jsonify({'error': 'Google Maps API key not configured'}), 500
+        
+        # Construct the Google Maps photo URL with API key
+        image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo_reference}&key={google_maps_api_key}"
+        
+        # Fetch the image from Google Maps
+        import requests
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+        
+        # Return the image with proper headers
+        from flask import Response
+        return Response(
+            response.content,
+            mimetype='image/jpeg',
+            headers={
+                'Cache-Control': 'public, max-age=3600',  # Cache for 1 hour
+                'Content-Type': 'image/jpeg'
+            }
+        )
+        
+    except Exception as e:
+        app_logger.error(f"Error fetching image for photo reference {photo_reference}: {e}")
+        return jsonify({'error': 'Failed to fetch image'}), 500
 
 @app.route('/api/scrape-progress')
 def get_scraping_progress():
