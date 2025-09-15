@@ -275,21 +275,29 @@ class Venue(db.Model):
                     photo_data = json.loads(image_url)
                     if isinstance(photo_data, dict) and 'photo_reference' in photo_data:
                         # Generate public Google Maps URL using venue name and coordinates
-                        venue_name = self.name.replace(' ', '+')
-                        if self.latitude and self.longitude:
+                        venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
+                        if venue_name and self.latitude and self.longitude:
                             image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.latitude},{self.longitude},17z"
-                        else:
+                        elif venue_name:
                             image_url = f"https://www.google.com/maps/search/{venue_name}"
+                        elif self.latitude and self.longitude:
+                            image_url = f"https://www.google.com/maps/search/{self.latitude},{self.longitude}"
+                        else:
+                            image_url = "https://www.google.com/maps"
                 except (json.JSONDecodeError, TypeError):
                     # If it's not valid JSON, keep as string (might be a regular URL)
                     pass
             elif isinstance(image_url, dict) and 'photo_reference' in image_url:
                 # Generate public Google Maps URL using venue name and coordinates
-                venue_name = self.name.replace(' ', '+')
-                if self.latitude and self.longitude:
+                venue_name = self.name.replace(' ', '+') if self.name and self.name.strip() else ''
+                if venue_name and self.latitude and self.longitude:
                     image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.latitude},{self.longitude},17z"
-                else:
+                elif venue_name:
                     image_url = f"https://www.google.com/maps/search/{venue_name}"
+                elif self.latitude and self.longitude:
+                    image_url = f"https://www.google.com/maps/search/{self.latitude},{self.longitude}"
+                else:
+                    image_url = "https://www.google.com/maps"
         
         return {
             'id': self.id,
@@ -373,21 +381,25 @@ class Event(db.Model):
         image_url = self.image_url
         if image_url and isinstance(image_url, dict) and 'photo_reference' in image_url:
             # Generate public Google Maps URL using event location
-            if self.start_location:
+            if self.start_location and self.start_location.strip():
                 location_name = self.start_location.replace(' ', '+')
                 if self.start_latitude and self.start_longitude:
                     image_url = f"https://www.google.com/maps/place/{location_name}/@{self.start_latitude},{self.start_longitude},17z"
                 else:
                     image_url = f"https://www.google.com/maps/search/{location_name}"
-            elif self.venue and self.venue.name:
+            elif self.venue and self.venue.name and self.venue.name.strip():
                 venue_name = self.venue.name.replace(' ', '+')
                 if self.venue.latitude and self.venue.longitude:
                     image_url = f"https://www.google.com/maps/place/{venue_name}/@{self.venue.latitude},{self.venue.longitude},17z"
                 else:
                     image_url = f"https://www.google.com/maps/search/{venue_name}"
-            else:
+            elif self.title and self.title.strip():
                 # Fallback to a generic search
-                image_url = f"https://www.google.com/maps/search/{self.title.replace(' ', '+')}"
+                title_name = self.title.replace(' ', '+')
+                image_url = f"https://www.google.com/maps/search/{title_name}"
+            else:
+                # Ultimate fallback
+                image_url = "https://www.google.com/maps"
         
         return {
             'id': self.id,
