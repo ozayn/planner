@@ -4,13 +4,14 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 
 ## ✨ Features
 
-- **🌍 Global Cities**: Support for major cities worldwide (DC, NYC, London, LA, etc.)
-- **⏰ Smart Filtering**: Today, tomorrow, this week, this month
-- **🎯 Event Types**: Tours, venues, exhibitions, festivals, photowalks
-- **📅 Calendar Integration**: Add events to Google Calendar with timezone support
+- **🌍 Global Cities**: Support for 22 major cities worldwide with 147+ venues
+- **🏛️ Venue Management**: Comprehensive venue database with images, hours, and details
+- **📰 Event Sources**: 36+ event sources for Washington DC with smart scraping
 - **🎨 Minimal Design**: Pastel colors, artistic fonts, icon-based UI
-- **📱 Mobile App**: React Native app with consistent design
-- **🕷️ Smart Scraping**: Generic scraping system for museums and events
+- **🔧 Admin Interface**: Full CRUD operations for cities, venues, and sources
+- **🛡️ Bulletproof Setup**: Automated restart script with dependency management
+- **🤖 LLM Integration**: Multiple AI providers (Groq, OpenAI, Anthropic, etc.)
+- **📊 Data Management**: JSON-based data with database synchronization
 
 ## 🚀 Quick Start
 
@@ -18,24 +19,24 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 
 ```bash
 # Clone and setup
-git clone <repository-url>
+git clone https://github.com/ozayn/planner.git
 cd planner
 
 # 🔥 ALWAYS RUN THIS FIRST!
 source venv/bin/activate
 
-# Create virtual environment
+# Create virtual environment (if not exists)
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Setup environment
-cp env_example.txt .env
+# Setup environment (create .env file)
+# Add your API keys to .env file
 
 # Initialize database
-python scripts/seed_data.py
+python scripts/data_manager.py load
 
 # Start the app
 python app.py
@@ -75,12 +76,13 @@ Visit: `http://localhost:5001`
 
 ## 🛠️ Technical Stack
 
-- **Backend**: Python Flask
-- **Database**: SQLAlchemy (SQLite)
-- **Scraping**: BeautifulSoup, Selenium
-- **Calendar**: Google Calendar API
-- **Web Frontend**: HTML/CSS/JavaScript with artistic fonts
-- **Mobile**: React Native
+- **Backend**: Python Flask with SQLAlchemy
+- **Database**: SQLite with comprehensive schema
+- **Frontend**: HTML/CSS/JavaScript with minimal design
+- **AI Integration**: Multiple LLM providers (Groq, OpenAI, Anthropic, Cohere, Google, Mistral)
+- **Data Management**: JSON files with database synchronization
+- **Admin Interface**: Dynamic CRUD operations
+- **Deployment**: Railway-ready with Procfile
 - **Design**: Pastel colors, minimal UI, icon-based interactions
 
 ## 🚀 Quick Start
@@ -105,7 +107,7 @@ cp env_example.txt .env
 
 3. **Initialize Database**
 ```bash
-python scripts/seed_data.py
+python scripts/data_manager.py load
 ```
 
 4. **Run the App**
@@ -123,71 +125,55 @@ http://localhost:5001
 ```
 planner/
 ├── app.py                 # Main Flask application
-├── config/                # Configuration and models
-│   ├── __init__.py
-│   ├── models.py          # Database models (legacy)
-│   ├── settings.py        # App configuration
-│   ├── calendar_service.py # Google Calendar integration
-│   └── scraper.py         # Web scraping utilities
+├── data/                  # JSON data files
+│   ├── cities.json        # Predefined cities
+│   ├── venues.json        # Predefined venues
+│   └── sources.json       # Event sources
 ├── scripts/               # Utility scripts
-│   ├── __init__.py
-│   └── seed_data.py       # Database seeding
-├── tests/                 # Test suite
-│   ├── __init__.py
-│   └── test_app.py        # Unit tests
+│   ├── data_manager.py    # Database management
+│   ├── utils.py           # Core utilities
+│   ├── env_config.py      # Environment configuration
+│   └── enhanced_llm_fallback.py # LLM integration
 ├── templates/             # HTML templates
-│   └── index.html         # Main web interface
-├── static/                # Static assets
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── mobile/                # React Native mobile app
-│   ├── App.js
-│   ├── package.json
-│   └── README.md
+│   ├── index.html         # Main web interface
+│   ├── admin.html         # Admin interface
+│   └── debug.html         # Debug interface
+├── docs/                  # Documentation
+│   ├── API_DOCUMENTATION.md
+│   ├── ARCHITECTURE.md
+│   └── DATABASE_SCHEMA.md
+├── archive/               # Archived files
+│   ├── outdated_scripts/  # Old scripts
+│   └── outdated_docs/     # Old documentation
 ├── requirements.txt       # Production dependencies
-├── requirements-dev.txt   # Development dependencies
-├── setup.py              # Automated setup script
+├── restart.sh            # Bulletproof restart script
+├── setup_github.sh       # GitHub setup script
 └── README.md             # This file
-```
-
-## 📱 Mobile App Setup
-
-```bash
-cd mobile
-npm install
-npm start
-# Then run on device/emulator
-npm run android  # or npm run ios
 ```
 
 ## ⚙️ Configuration
 
 ### Environment Variables (.env)
 ```bash
-# Database
-DATABASE_URL=sqlite:///Users/oz/.local/share/planner/events.db
+# LLM API Keys (optional - app works without them)
+GROQ_API_KEY=your_groq_api_key
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+COHERE_API_KEY=your_cohere_api_key
+GOOGLE_API_KEY=your_google_api_key
+MISTRAL_API_KEY=your_mistral_api_key
 
-# Flask
+# Google Maps (optional)
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Flask Configuration
 FLASK_ENV=development
 FLASK_DEBUG=True
+SECRET_KEY=your_secret_key
 
-# Google Calendar API
-GOOGLE_CALENDAR_CREDENTIALS_PATH=credentials.json
-GOOGLE_CALENDAR_TOKEN_PATH=token.json
-
-# App
-APP_PORT=5001
-APP_HOST=0.0.0.0
+# Database
+DATABASE_URL=sqlite:///instance/events.db
 ```
-
-### Google Calendar Setup
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable Google Calendar API
-4. Create credentials (OAuth 2.0)
-5. Download credentials.json
-6. Place in project root
 
 ## 🎨 Design System
 
@@ -225,16 +211,29 @@ The app uses a comprehensive database schema supporting:
 
 ## 🌐 Supported Cities
 
-Currently seeded with:
-- Washington, DC
-- New York, NY
-- Baltimore, MD
-- Philadelphia, PA
-- London, UK
-- Los Angeles, CA
-- Paris, France
-- Tokyo, Japan
-- Sydney, Australia
+Currently seeded with 22 cities including:
+- Washington, DC (38 venues, 36 sources)
+- New York, NY (10 venues)
+- Los Angeles, CA (5 venues)
+- San Francisco, CA (5 venues)
+- Chicago, IL (5 venues)
+- Boston, MA (5 venues)
+- Seattle, WA (5 venues)
+- Miami, FL (5 venues)
+- London, UK (10 venues)
+- Paris, France (10 venues)
+- Tokyo, Japan (5 venues)
+- Sydney, Australia (5 venues)
+- Montreal, Canada (5 venues)
+- Toronto, Canada (5 venues)
+- Vancouver, Canada (5 venues)
+- Tehran, Iran (5 venues)
+- Baltimore, MD (5 venues)
+- Philadelphia, PA (5 venues)
+- Madrid, Spain (5 venues)
+- Berlin, Germany (5 venues)
+- Munich, Germany (5 venues)
+- Princeton, NJ (9 venues)
 
 ## 🏗️ Professional Structure
 
@@ -251,10 +250,11 @@ This project follows professional Python development practices:
 ## 🔧 Troubleshooting
 
 ### Common Issues
-- **Port 5000 in use**: Change `APP_PORT` in `.env` to 5001
-- **Database errors**: Delete `~/.local/share/planner/events.db` and run `python scripts/seed_data.py`
+- **Port 5000 in use**: App runs on port 5001 by default
+- **Database errors**: Run `python scripts/data_manager.py load` to reload data
 - **Python not found**: Use `python3` instead of `python`
-- **Dependencies not found**: Make sure virtual environment is activated
+- **Dependencies not found**: Make sure virtual environment is activated with `source venv/bin/activate`
+- **API key errors**: Add your API keys to `.env` file (GROQ_API_KEY, OPENAI_API_KEY, etc.)
 
 ### Getting Help
 - Check [SETUP.md](SETUP.md) for detailed instructions
