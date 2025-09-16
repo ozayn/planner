@@ -1605,9 +1605,150 @@ def apply_json_copy():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/export-cities', methods=['POST'])
+def export_cities_to_json():
+    """Export all cities from database to JSON file (matches cities.json format)"""
+    try:
+        import json
+        import os
+        from datetime import datetime
+        
+        print("🔄 Starting cities export from database...")
+        
+        # Get all cities
+        cities = City.query.order_by(City.id).all()
+        
+        # Create the JSON structure (matches cities.json format)
+        export_data = {
+            "metadata": {
+                "version": "1.0",
+                "created": datetime.now().strftime("%Y-%m-%d"),
+                "description": "Cities exported from database - always most updated version",
+                "total_cities": len(cities),
+                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "export_source": "database",
+                "environment": os.getenv('ENVIRONMENT', 'development')
+            },
+            "cities": {}
+        }
+        
+        # Add cities to export data
+        for city in cities:
+            export_data["cities"][str(city.id)] = {
+                "name": city.name,
+                "state": city.state or "",
+                "country": city.country,
+                "timezone": city.timezone or "UTC"
+            }
+        
+        # Save to file
+        export_path = os.path.join(os.path.dirname(__file__), 'data', 'exports', 'cities_exported.json')
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump(export_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"✅ Successfully exported {len(cities)} cities to {export_path}")
+        
+        # Return the file as a download
+        from flask import send_file
+        return send_file(
+            export_path,
+            as_attachment=True,
+            download_name=f'cities_exported_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json',
+            mimetype='application/json'
+        )
+        
+    except Exception as e:
+        print(f"❌ Error exporting cities: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/export-sources', methods=['POST'])
+def export_sources_to_json():
+    """Export all sources from database to JSON file (matches sources.json format)"""
+    try:
+        import json
+        import os
+        from datetime import datetime
+        
+        print("🔄 Starting sources export from database...")
+        
+        # Get all sources with their cities
+        sources = Source.query.all()
+        cities = City.query.all()
+        
+        # Create the JSON structure (matches sources.json format)
+        export_data = {}
+        
+        # Group sources by city
+        for city in cities:
+            city_sources = [s for s in sources if s.city_id == city.id]
+            
+            if city_sources:  # Only add cities that have sources
+                export_data[str(city.id)] = {
+                    "name": city.name,
+                    "sources": []
+                }
+                
+                # Add sources for this city
+                for source in city_sources:
+                    # Parse JSON fields back to lists
+                    event_types = []
+                    if source.event_types:
+                        try:
+                            event_types = json.loads(source.event_types)
+                        except:
+                            event_types = []
+                    
+                    covered_cities = []
+                    if source.covered_cities:
+                        try:
+                            covered_cities = json.loads(source.covered_cities)
+                        except:
+                            covered_cities = []
+                    
+                    source_entry = {
+                        "name": source.name,
+                        "handle": source.handle or "",
+                        "source_type": source.source_type or "website",
+                        "url": source.url or "",
+                        "description": source.description or "",
+                        "city_id": source.city_id,
+                        "covers_multiple_cities": source.covers_multiple_cities or False,
+                        "covered_cities": covered_cities,
+                        "event_types": event_types,
+                        "is_active": source.is_active,
+                        "last_checked": source.last_checked.isoformat() if source.last_checked else None,
+                        "last_event_found": source.last_event_found.isoformat() if source.last_event_found else None,
+                        "events_found_count": source.events_found_count or 0,
+                        "reliability_score": float(source.reliability_score) if source.reliability_score else 0.0,
+                        "posting_frequency": source.posting_frequency or "",
+                        "notes": source.notes or "",
+                        "scraping_pattern": source.scraping_pattern or ""
+                    }
+                    export_data[str(city.id)]["sources"].append(source_entry)
+        
+        # Save to file
+        export_path = os.path.join(os.path.dirname(__file__), 'data', 'exports', 'sources_exported.json')
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump(export_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"✅ Successfully exported {len(sources)} sources to {export_path}")
+        
+        # Return the file as a download
+        from flask import send_file
+        return send_file(
+            export_path,
+            as_attachment=True,
+            download_name=f'sources_exported_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json',
+            mimetype='application/json'
+        )
+        
+    except Exception as e:
+        print(f"❌ Error exporting sources: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/export-venues', methods=['POST'])
 def export_venues_to_json():
-    """Export all venues from database to JSON file (for production use)"""
+    """Export all venues from database to JSON file (matches venues.json format)"""
     try:
         import json
         import os
@@ -1619,58 +1760,47 @@ def export_venues_to_json():
         venues = Venue.query.all()
         cities = City.query.all()
         
-        # Create the JSON structure
-        export_data = {
-            "metadata": {
-                "version": "1.3",
-                "created": datetime.now().strftime("%Y-%m-%d"),
-                "description": "Exported venues from database",
-                "total_cities": len(cities),
-                "total_venues": len(venues),
-                "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "export_source": "database",
-                "environment": os.getenv('ENVIRONMENT', 'development')
-            },
-            "cities": {}
-        }
+        # Create the JSON structure (matches venues.json format)
+        export_data = {}
         
         # Group venues by city
         for city in cities:
             city_venues = [v for v in venues if v.city_id == city.id]
             
-            export_data["cities"][str(city.id)] = {
-                "name": city.name,
-                "venues": []
-            }
-            
-            # Add venues for this city
-            for venue in city_venues:
-                venue_entry = {
-                    "name": venue.name,
-                    "venue_type": venue.venue_type or "museum",
-                    "address": venue.address or "",
-                    "opening_hours": venue.opening_hours or "",
-                    "holiday_hours": venue.holiday_hours or "",
-                    "phone_number": venue.phone_number or "",
-                    "email": venue.email or "",
-                    "description": venue.description or "",
-                    "tour_info": venue.tour_info or "",
-                    "admission_fee": venue.admission_fee or "",
-                    "website_url": venue.website_url or "",
-                    "latitude": venue.latitude,
-                    "longitude": venue.longitude,
-                    "image_url": venue.image_url or "",
-                    "instagram_url": venue.instagram_url or "",
-                    "facebook_url": venue.facebook_url or "",
-                    "twitter_url": venue.twitter_url or "",
-                    "youtube_url": venue.youtube_url or "",
-                    "tiktok_url": venue.tiktok_url or "",
-                    "additional_info": venue.additional_info or "{}"
+            if city_venues:  # Only add cities that have venues
+                export_data[str(city.id)] = {
+                    "name": city.name,
+                    "venues": []
                 }
-                export_data["cities"][str(city.id)]["venues"].append(venue_entry)
+                
+                # Add venues for this city
+                for venue in city_venues:
+                    venue_entry = {
+                        "name": venue.name,
+                        "venue_type": venue.venue_type or "museum",
+                        "address": venue.address or "",
+                        "opening_hours": venue.opening_hours or "",
+                        "holiday_hours": venue.holiday_hours or "",
+                        "phone_number": venue.phone_number or "",
+                        "email": venue.email or "",
+                        "description": venue.description or "",
+                        "tour_info": venue.tour_info or "",
+                        "admission_fee": venue.admission_fee or "",
+                        "website_url": venue.website_url or "",
+                        "latitude": venue.latitude,
+                        "longitude": venue.longitude,
+                        "image_url": venue.image_url or "",
+                        "instagram_url": venue.instagram_url or "",
+                        "facebook_url": venue.facebook_url or "",
+                        "twitter_url": venue.twitter_url or "",
+                        "youtube_url": venue.youtube_url or "",
+                        "tiktok_url": venue.tiktok_url or "",
+                        "additional_info": venue.additional_info or ""
+                    }
+                    export_data[str(city.id)]["venues"].append(venue_entry)
         
         # Save to file
-        export_path = os.path.join(os.path.dirname(__file__), 'data', 'venues_exported.json')
+        export_path = os.path.join(os.path.dirname(__file__), 'data', 'exports', 'venues_exported.json')
         with open(export_path, 'w', encoding='utf-8') as f:
             json.dump(export_data, f, indent=2, ensure_ascii=False)
         

@@ -734,6 +734,7 @@
                     <button onclick="applyCityFilters()" class="filter-button">🔍 Filter</button>
                     <button onclick="clearCityFilters()" class="clear-filters">🗑️ Clear</button>
                     <button onclick="openAddCityModal()" class="add-button">➕ Add City</button>
+                    <button onclick="exportCitiesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
                         </div>
 
                 <div id="cityFilterSummary" class="filter-summary"></div>
@@ -881,6 +882,7 @@
                     <button onclick="applySourceFilters()" class="filter-button">🔍 Filter</button>
                     <button onclick="clearSourceFilters()" class="clear-filters">🗑️ Clear</button>
                     <button onclick="openAddSourceModal()" class="add-button">➕ Add Source</button>
+                    <button onclick="exportSourcesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
                 </div>
 
                 <div id="sourceFilterSummary" class="filter-summary"></div>
@@ -2563,6 +2565,98 @@
                     const filename = contentDisposition ? 
                         contentDisposition.split('filename=')[1].replace(/"/g, '') : 
                         'venues_exported.json';
+                    
+                    // Create blob and download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    alert('✅ Export successful! File downloaded.');
+                } else {
+                    const result = await response.json();
+                    alert('❌ Export failed: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('❌ Export error: ' + error.message);
+            }
+        }
+
+        async function exportCitiesFromDatabase() {
+            const confirmed = confirm('Export Cities from Database\n\n' +
+                'This will download all cities from the database as a JSON file.\n' +
+                'Matches the cities.json format for easy replacement.\n\n' +
+                'Continue?');
+            
+            if (!confirmed) return;
+            
+            try {
+                console.log('Starting cities export...');
+                
+                const response = await fetch('/api/admin/export-cities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    // Get the filename from the response headers
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    const filename = contentDisposition ? 
+                        contentDisposition.split('filename=')[1].replace(/"/g, '') : 
+                        'cities_exported.json';
+                    
+                    // Create blob and download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    alert('✅ Export successful! File downloaded.');
+                } else {
+                    const result = await response.json();
+                    alert('❌ Export failed: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('❌ Export error: ' + error.message);
+            }
+        }
+
+        async function exportSourcesFromDatabase() {
+            const confirmed = confirm('Export Sources from Database\n\n' +
+                'This will download all sources from the database as a JSON file.\n' +
+                'Matches the sources.json format for easy replacement.\n\n' +
+                'Continue?');
+            
+            if (!confirmed) return;
+            
+            try {
+                console.log('Starting sources export...');
+                
+                const response = await fetch('/api/admin/export-sources', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    // Get the filename from the response headers
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    const filename = contentDisposition ? 
+                        contentDisposition.split('filename=')[1].replace(/"/g, '') : 
+                        'sources_exported.json';
                     
                     // Create blob and download
                     const blob = await response.blob();
