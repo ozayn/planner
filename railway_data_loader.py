@@ -231,6 +231,16 @@ def main():
     print("Loading JSON data into Railway database...")
     print("=" * 50)
     
+    # Create database tables first
+    print("🔧 Creating database tables...")
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Database tables created successfully")
+        except Exception as e:
+            print(f"❌ Error creating database tables: {e}")
+            return 1
+    
     # Load cities first
     if not load_cities_data():
         print("❌ Failed to load cities!")
