@@ -1044,7 +1044,79 @@ def trigger_scraping():
             'details': str(e)
         }), 500
 
+# OAuth Routes
+@app.route('/auth/login')
+def auth_login():
+    """Initiate Google OAuth login"""
+    if not GOOGLE_OAUTH_AVAILABLE:
+        return redirect('/admin')  # Skip auth if not configured
+    
+    # For local development, redirect directly to admin
+    is_local = (request.host.startswith('localhost') or 
+               request.host.startswith('127.0.0.1') or
+               request.host.startswith('10.'))
+    
+    if is_local:
+        return redirect('/admin')
+    
+    try:
+        # Create flow with proper configuration
+        flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
+        flow.redirect_uri = request.url_root + 'auth/callback'
+        
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true'
+        )
+        
+        session['state'] = state
+        return redirect(authorization_url)
+    except Exception as e:
+        print(f"OAuth login error: {e}")
+        return f"OAuth error: {e}", 500
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle Google OAuth callback"""
+    if not GOOGLE_OAUTH_AVAILABLE:
+        return redirect('/admin')
+    
+    try:
+        flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES, state=session['state'])
+        flow.redirect_uri = request.url_root + 'auth/callback'
+        
+        authorization_response = request.url
+        flow.fetch_token(authorization_response=authorization_response)
+        
+        credentials = flow.credentials
+        service = build('oauth2', 'v2', credentials=credentials)
+        user_info = service.userinfo().get().execute()
+        
+        email = user_info.get('email')
+        name = user_info.get('name')
+        
+        if not is_admin_email(email):
+            return f"Access denied for {email}. Contact administrator.", 403
+        
+        # Store user info in session
+        session['user_email'] = email
+        session['user_name'] = name
+        session['credentials'] = credentials.to_json()
+        
+        return redirect('/admin')
+        
+    except Exception as e:
+        print(f"OAuth callback error: {e}")
+        return f"OAuth callback error: {e}", 500
+
+@app.route('/auth/logout')
+def auth_logout():
+    """Logout user"""
+    session.clear()
+    return redirect('/')
+
 @app.route('/admin')
+@login_required
 def admin():
     """Admin interface"""
     return render_template('admin.html')
