@@ -594,8 +594,12 @@ def login_required(f):
     """Decorator to require Google OAuth login for admin routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # For local development, bypass OAuth if running on localhost
-        if request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+        # For local development only, bypass OAuth if running on localhost
+        is_local = (request.host.startswith('localhost') or 
+                   request.host.startswith('127.0.0.1') or
+                   request.host.startswith('10.'))
+        
+        if is_local:
             print("DEBUG: Local development detected, bypassing OAuth")
             return f(*args, **kwargs)
         
