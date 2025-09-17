@@ -694,8 +694,23 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏛️ Event Planner Admin Dashboard</h1>
-            <p>Complete management interface for Cities and Venues</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🏛️ Event Planner Admin Dashboard</h1>
+                    <p>Complete management interface for Cities and Venues</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        👤 {{ session.user_name or session.user_email or 'Local Development' }}
+                    </div>
+                    <div style="color: #f39c12; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                        🔧 Local Dev Mode (OAuth Bypassed)
+                    </div>
+                    <a href="/auth/logout" style="color: #e74c3c; text-decoration: none; font-size: 0.9rem;">
+                        🚪 Logout
+                    </a>
+                </div>
+            </div>
         </div>
 
         <div class="nav">

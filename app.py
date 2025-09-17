@@ -4,6 +4,18 @@ import json
 import re
 import logging
 from datetime import datetime, timedelta, date
+from functools import wraps
+
+# Google OAuth imports
+try:
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import Flow
+    from googleapiclient.discovery import build
+    GOOGLE_OAUTH_AVAILABLE = True
+except ImportError:
+    print("⚠️  Warning: Google OAuth libraries not found. Admin authentication will be disabled.")
+    GOOGLE_OAUTH_AVAILABLE = False
 
 # Try to import dotenv with fallback
 try:
@@ -26,7 +38,7 @@ except ImportError:
 
 # Import Flask components
 try:
-    from flask import Flask, render_template, request, jsonify
+    from flask import Flask, render_template, request, jsonify, session, redirect
     from flask_cors import CORS
     from flask_sqlalchemy import SQLAlchemy
     from flask_wtf.csrf import CSRFProtect
@@ -100,6 +112,30 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-pro
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour
 csrf = CSRFProtect(app)
+
+# Google OAuth Configuration
+if GOOGLE_OAUTH_AVAILABLE:
+    GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+    ADMIN_EMAILS = os.getenv('ADMIN_EMAILS', '').split(',')
+    
+    # OAuth scopes
+    SCOPES = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
+    
+    # OAuth flow configuration
+    CLIENT_CONFIG = {
+        "web": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": []
+        }
+    }
+else:
+    GOOGLE_CLIENT_ID = None
+    GOOGLE_CLIENT_SECRET = None
+    ADMIN_EMAILS = []
 
 # Exempt admin API endpoints from CSRF protection
 @csrf.exempt
@@ -546,6 +582,38 @@ class Source(db.Model):
     
     def __repr__(self):
         return f"<Source {self.name} ({self.source_type})>"
+
+# OAuth Helper Functions
+def is_admin_email(email):
+    """Check if email is in admin whitelist"""
+    if not GOOGLE_OAUTH_AVAILABLE or not ADMIN_EMAILS:
+        return True  # Allow access if OAuth not configured
+    return email.strip().lower() in [admin.strip().lower() for admin in ADMIN_EMAILS if admin.strip()]
+
+def login_required(f):
+    """Decorator to require Google OAuth login for admin routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # For local development, bypass OAuth if running on localhost
+        if request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+            print("DEBUG: Local development detected, bypassing OAuth")
+            return f(*args, **kwargs)
+        
+        if not GOOGLE_OAUTH_AVAILABLE:
+            return f(*args, **kwargs)  # Allow access if OAuth not configured
+        
+        # Check if user is logged in
+        if 'user_email' not in session:
+            return redirect('/auth/login')
+        
+        # Check if user is admin
+        if not is_admin_email(session['user_email']):
+            return render_template('unauthorized.html', 
+                                 user_email=session['user_email'],
+                                 admin_emails=ADMIN_EMAILS), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Import and register generic CRUD endpoints after all models are defined
 try:
