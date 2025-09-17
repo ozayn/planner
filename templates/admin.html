@@ -702,8 +702,8 @@
             <button onclick="showSection('overview')" class="nav-btn active" id="nav-overview">📊 Overview</button>
             <button onclick="showSection('cities')" class="nav-btn" id="nav-cities">🏙️ Cities</button>
             <button onclick="showSection('venues')" class="nav-btn" id="nav-venues">🏛️ Venues</button>
-            <button onclick="showSection('events')" class="nav-btn" id="nav-events">🎭 Events</button>
             <button onclick="showSection('sources')" class="nav-btn" id="nav-sources">📱 Sources</button>
+            <button onclick="showSection('events')" class="nav-btn" id="nav-events">🎭 Events</button>
         </div>
 
         <div class="content">
@@ -1307,21 +1307,21 @@
                 const stats = await response.json();
                 
                 statsGrid.innerHTML = 
-                    '<div class="stat-card">' +
+                    '<div class="stat-card" onclick="showSection(\'cities\')" style="cursor: pointer;">' +
                         '<h3>' + stats.cities + '</h3>' +
                         '<p>🏙️ Cities</p>' +
                     '</div>' +
-                    '<div class="stat-card">' +
+                    '<div class="stat-card" onclick="showSection(\'venues\')" style="cursor: pointer;">' +
                         '<h3>' + stats.venues + '</h3>' +
                         '<p>🏛️ Venues</p>' +
                     '</div>' +
-                    '<div class="stat-card">' +
-                        '<h3>' + stats.events + '</h3>' +
-                        '<p>🎭 Events</p>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
+                    '<div class="stat-card" onclick="showSection(\'sources\')" style="cursor: pointer;">' +
                         '<h3>' + (stats.sources || 0) + '</h3>' +
                         '<p>📱 Sources</p>' +
+                    '</div>' +
+                    '<div class="stat-card" onclick="showSection(\'events\')" style="cursor: pointer;">' +
+                        '<h3>' + stats.events + '</h3>' +
+                        '<p>🎭 Events</p>' +
                     '</div>';
                 
                 console.log('Statistics loaded successfully');
