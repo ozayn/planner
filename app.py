@@ -1103,7 +1103,11 @@ def auth_callback():
         
         flow.redirect_uri = base_url + 'auth/callback'
         
+        # Handle Railway proxy HTTPS issue
         authorization_response = request.url
+        if 'railway.app' in request.host or 'ozayn.com' in request.host:
+            authorization_response = authorization_response.replace('http://', 'https://')
+        
         flow.fetch_token(authorization_response=authorization_response)
         
         credentials = flow.credentials
