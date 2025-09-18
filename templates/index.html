@@ -886,14 +886,19 @@
                 const cities = await response.json();
                 console.log('Cities loaded:', cities.length);
                 
+                // Sort cities alphabetically by display name
+                const sortedCities = cities.sort((a, b) => {
+                    return a.display_name.localeCompare(b.display_name);
+                });
+                
                 citySelect.innerHTML = '<option value="">Select a city...</option>';
-                cities.forEach(city => {
+                sortedCities.forEach(city => {
                     const option = document.createElement('option');
                     option.value = city.id;
                     option.textContent = city.display_name;
                     citySelect.appendChild(option);
                 });
-                console.log('Cities added to dropdown');
+                console.log('Cities added to dropdown (sorted alphabetically)');
             } catch (error) {
                 console.error('Error loading cities:', error);
                 showNotification('Error loading cities', 'error');

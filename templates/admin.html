@@ -2416,12 +2416,19 @@
                 return;
             }
             
+            // Sort cities alphabetically by display name
+            const sortedCities = window.allCities.sort((a, b) => {
+                const nameA = `${a.name}, ${a.country}`;
+                const nameB = `${b.name}, ${b.country}`;
+                return nameA.localeCompare(nameB);
+            });
+            
             citySelect.innerHTML = '<option value="">Select City</option>';
-            window.allCities.forEach(city => {
+            sortedCities.forEach(city => {
                 citySelect.innerHTML += `<option value="${city.id}">${city.name}, ${city.country}</option>`;
             });
             
-            console.log(`Populated city dropdown with ${window.allCities.length} cities`);
+            console.log(`Populated city dropdown with ${window.allCities.length} cities (sorted alphabetically)`);
         }
         
         async function smartSearchVenue() {
@@ -3403,6 +3410,13 @@
             fetch('/api/admin/cities')
                 .then(response => response.json())
                 .then(cities => {
+                    // Sort cities alphabetically by display name
+                    const sortedCities = cities.sort((a, b) => {
+                        const nameA = a.state ? `${a.name}, ${a.state}` : `${a.name}, ${a.country}`;
+                        const nameB = b.state ? `${b.name}, ${b.state}` : `${b.name}, ${b.country}`;
+                        return nameA.localeCompare(nameB);
+                    });
+                    
                     const citySelects = ['sourceCity', 'editSourceCity'];
                     citySelects.forEach(selectId => {
                         const select = document.getElementById(selectId);
@@ -3412,7 +3426,7 @@
                                 select.removeChild(select.lastChild);
                             }
                             
-                            cities.forEach(city => {
+                            sortedCities.forEach(city => {
                                 const option = document.createElement('option');
                                 option.value = city.id;
                                 option.textContent = city.display_name || `${city.name}, ${city.country}`;
