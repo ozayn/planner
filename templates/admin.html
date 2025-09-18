@@ -2068,7 +2068,7 @@
                 case 'venues':
                     return `<button onclick="editVenue(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteVenue(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
                 case 'sources':
-                    return `<button onclick="editSource(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteSource(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                    return `<button onclick="refreshSource(${id})" class="btn btn-sm btn-primary" title="Refresh source information">🔄</button> <button onclick="editSource(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteSource(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
                 case 'events':
                     return `<button onclick="editEvent(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteEvent(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
                 case 'cities':
@@ -3297,6 +3297,69 @@
             renderDynamicTable('sourcesTable', data, 'sources');
         }
         
+        async function refreshSource(id) {
+            const source = allSources.find(s => s.id == id);
+            if (!source) {
+                alert('Source not found');
+                return;
+            }
+            
+            const confirmed = confirm(`Refresh information for "${source.name}"?\n\nThis will fetch updated information from the source and update the database.`);
+            if (!confirmed) return;
+            
+            try {
+                // Show loading state
+                const refreshBtn = document.querySelector(`button[onclick="refreshSource(${id})"]`);
+                const originalText = refreshBtn.innerHTML;
+                refreshBtn.innerHTML = '⏳';
+                refreshBtn.disabled = true;
+                
+                // Detect source type and fetch updated info
+                const detected = detectSourceType(source.url || source.handle);
+                
+                // Prepare update data
+                const updateData = {
+                    name: detected.name,
+                    description: detected.description,
+                    url: detected.url,
+                    last_checked: new Date().toISOString(),
+                    // Keep existing data that can't be auto-detected
+                    reliability_score: source.reliability_score,
+                    posting_frequency: source.posting_frequency,
+                    event_types: source.event_types,
+                    notes: source.notes,
+                    scraping_pattern: source.scraping_pattern,
+                    is_active: source.is_active
+                };
+                
+                // Send update request
+                const response = await fetch(`/api/admin/sources/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (response.ok) {
+                    alert('✅ Source information refreshed successfully!');
+                    await loadSources(); // Reload the sources table
+                } else {
+                    const result = await response.json();
+                    alert('❌ Failed to refresh source: ' + (result.error || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                console.error('Refresh source error:', error);
+                alert('❌ Error refreshing source: ' + error.message);
+            } finally {
+                // Reset button state
+                const refreshBtn = document.querySelector(`button[onclick="refreshSource(${id})"]`);
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = originalText;
+                    refreshBtn.disabled = false;
+                }
+            }
+        }
+
         function editSource(id) {
             const source = allSources.find(s => s.id == id);
             if (!source) {

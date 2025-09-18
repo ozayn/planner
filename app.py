@@ -2304,6 +2304,49 @@ def add_source():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/sources/<int:source_id>', methods=['PUT'])
+@login_required
+def update_source(source_id):
+    """Update a source with refreshed information"""
+    try:
+        source = Source.query.get_or_404(source_id)
+        data = request.get_json()
+        
+        # Update source fields
+        if 'name' in data:
+            source.name = data['name']
+        if 'description' in data:
+            source.description = data['description']
+        if 'url' in data:
+            source.url = data['url']
+        if 'last_checked' in data:
+            from datetime import datetime
+            source.last_checked = datetime.fromisoformat(data['last_checked'].replace('Z', '+00:00'))
+        
+        # Update other fields if provided
+        for field in ['reliability_score', 'posting_frequency', 'event_types', 'notes', 'scraping_pattern', 'is_active']:
+            if field in data:
+                setattr(source, field, data[field])
+        
+        source.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Source "{source.name}" updated successfully',
+            'source': {
+                'id': source.id,
+                'name': source.name,
+                'description': source.description,
+                'url': source.url,
+                'last_checked': source.last_checked.isoformat() if source.last_checked else None
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/edit-source', methods=['POST'])
 def edit_source():
     """Edit an existing source"""
