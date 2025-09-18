@@ -612,8 +612,11 @@ def login_required(f):
         if not GOOGLE_OAUTH_AVAILABLE:
             return f(*args, **kwargs)  # Allow access if OAuth not configured
         
-        # Check if user is logged in
-        if 'user_email' not in session:
+        # Check if user is logged in (more strict validation)
+        if ('user_email' not in session or 
+            not session.get('user_email') or 
+            'credentials' not in session):
+            print("DEBUG: No valid session found, redirecting to login")
             return redirect('/auth/login')
         
         # Check if user is admin
@@ -622,6 +625,7 @@ def login_required(f):
                                  user_email=session['user_email'],
                                  admin_emails=ADMIN_EMAILS), 403
         
+        print(f"DEBUG: Authenticated user: {session['user_email']}")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -1134,14 +1138,35 @@ def auth_callback():
 @app.route('/auth/logout')
 def auth_logout():
     """Logout user"""
+    # Clear all session data
     session.clear()
-    return redirect('/')
+    
+    # For production environments, also clear any OAuth-specific session data
+    if 'credentials' in session:
+        del session['credentials']
+    if 'user_email' in session:
+        del session['user_email']
+    if 'user_name' in session:
+        del session['user_name']
+    if 'state' in session:
+        del session['state']
+    
+    # Force session to be saved
+    session.permanent = False
+    
+    # Create response with cache control headers to prevent caching
+    response = redirect('/')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 @app.route('/admin')
 @login_required
 def admin():
     """Admin interface"""
-    return render_template('admin.html')
+    return render_template('admin.html', session=session)
 
 @app.route('/test-admin')
 def test_admin():

@@ -707,13 +707,13 @@
                     <div style="color: #f39c12; font-size: 0.8rem; margin-bottom: 0.5rem;">
                         🔧 Local Dev Mode (OAuth Bypassed)
                     </div>
-                    {% elif session.user_email %}
+                    {% elif session and session.user_email %}
                     <div style="color: #27ae60; font-size: 0.8rem; margin-bottom: 0.5rem;">
                         🔐 Authenticated via Google OAuth
                     </div>
                     {% else %}
                     <div style="color: #e74c3c; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                        🔐 OAuth Required
+                        🔐 Production Mode
                     </div>
                     {% endif %}
                     <a href="/auth/logout" style="color: #e74c3c; text-decoration: none; font-size: 0.9rem;">
@@ -1141,8 +1141,12 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sourceInput">Instagram Handle or Website URL *</label>
-                        <input type="text" id="sourceInput" required placeholder="e.g., @princetonphotoclub or https://example.com">
+                        <input type="text" id="sourceInput" required placeholder="e.g., @princetonphotoclub or https://example.com" onblur="previewSourceDetails()">
                         <small style="color: #666; font-size: 0.8em; display: block; margin-top: 5px;">Just paste the Instagram handle (@username) or website URL - we'll detect the type and fill in the rest!</small>
+                        <div id="sourcePreview" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; display: none;">
+                            <strong>Auto-detected:</strong>
+                            <div id="previewDetails"></div>
+                        </div>
                     </div>
                 </div>
                 
@@ -3393,6 +3397,37 @@
             loadCitiesForSourceModal();
             document.getElementById('addSourceModal').style.display = 'block';
             document.getElementById('addSourceForm').reset();
+            // Hide preview when opening modal
+            document.getElementById('sourcePreview').style.display = 'none';
+        }
+        
+        function previewSourceDetails() {
+            const input = document.getElementById('sourceInput').value.trim();
+            const preview = document.getElementById('sourcePreview');
+            const previewDetails = document.getElementById('previewDetails');
+            
+            if (!input) {
+                preview.style.display = 'none';
+                return;
+            }
+            
+            // Detect source type and show preview
+            const detected = detectSourceType(input);
+            
+            previewDetails.innerHTML = `
+                <div style="margin: 5px 0;"><strong>Name:</strong> ${detected.name}</div>
+                <div style="margin: 5px 0;"><strong>Handle:</strong> ${detected.handle}</div>
+                <div style="margin: 5px 0;"><strong>Type:</strong> ${detected.type}</div>
+                <div style="margin: 5px 0;"><strong>URL:</strong> <a href="${detected.url}" target="_blank">${detected.url}</a></div>
+            `;
+            
+            preview.style.display = 'block';
+            
+            // Auto-fill hidden fields
+            document.getElementById('sourceName').value = detected.name;
+            document.getElementById('sourceHandle').value = detected.handle;
+            document.getElementById('sourceType').value = detected.type;
+            document.getElementById('sourceUrl').value = detected.url;
         }
         
         // Function to refresh all city dropdowns when a new city is added
@@ -3472,34 +3507,76 @@
         document.getElementById('editSourceForm').addEventListener('submit', handleEditSource);
         
         function detectSourceType(input) {
-            // Detect if input is Instagram handle or website URL
+            // Enhanced source type detection with better auto-filling
             if (input.startsWith('@')) {
+                // Instagram handle
+                const username = input.substring(1);
                 return {
                     type: 'instagram',
                     handle: input,
-                    url: `https://www.instagram.com/${input.substring(1)}/`,
-                    name: input.substring(1).replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    url: `https://www.instagram.com/${username}/`,
+                    name: username.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    description: `Instagram account for ${username.replace(/[-_]/g, ' ')}`
                 };
             } else if (input.includes('instagram.com')) {
-                // Extract handle from Instagram URL
+                // Instagram URL
                 const match = input.match(/instagram\.com\/([^\/\?]+)/);
                 if (match) {
-                    const handle = `@${match[1]}`;
+                    const username = match[1];
+                    const handle = `@${username}`;
                     return {
                         type: 'instagram',
                         handle: handle,
                         url: input,
-                        name: match[1].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                        name: username.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                        description: `Instagram account for ${username.replace(/[-_]/g, ' ')}`
+                    };
+                }
+            } else if (input.includes('facebook.com')) {
+                // Facebook page
+                const match = input.match(/facebook\.com\/([^\/\?]+)/);
+                if (match) {
+                    const pageName = match[1];
+                    return {
+                        type: 'facebook',
+                        handle: pageName,
+                        url: input,
+                        name: pageName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                        description: `Facebook page for ${pageName.replace(/[-_]/g, ' ')}`
+                    };
+                }
+            } else if (input.includes('eventbrite.com')) {
+                // Eventbrite organizer
+                return {
+                    type: 'eventbrite',
+                    handle: 'eventbrite',
+                    url: input,
+                    name: 'Eventbrite Organizer',
+                    description: 'Eventbrite event organizer page'
+                };
+            } else if (input.includes('meetup.com')) {
+                // Meetup group
+                const match = input.match(/meetup\.com\/([^\/\?]+)/);
+                if (match) {
+                    const groupName = match[1];
+                    return {
+                        type: 'meetup',
+                        handle: groupName,
+                        url: input,
+                        name: groupName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                        description: `Meetup group: ${groupName.replace(/[-_]/g, ' ')}`
                     };
                 }
             } else if (input.startsWith('http://') || input.startsWith('https://')) {
                 // Website URL
                 const domain = new URL(input).hostname;
+                const siteName = domain.replace('www.', '').split('.')[0];
                 return {
                     type: 'website',
                     handle: domain,
                     url: input,
-                    name: domain.replace('www.', '').split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    name: siteName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    description: `Website: ${domain}`
                 };
             } else {
                 // Assume it's a handle without @
@@ -3532,7 +3609,7 @@
                 source_type: detected.type,
                 city_id: cityId,
                 url: detected.url,
-                description: document.getElementById('sourceDescription').value.trim() || '',
+                description: document.getElementById('sourceDescription').value.trim() || detected.description || '',
                 reliability_score: parseFloat(document.getElementById('sourceReliability').value) || 7.0,
                 posting_frequency: document.getElementById('sourceFrequency').value || 'weekly',
                 event_types: JSON.stringify(document.getElementById('sourceEventTypes').value.split(',').map(t => t.trim()).filter(t => t)),
