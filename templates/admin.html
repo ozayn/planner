@@ -3066,6 +3066,9 @@
                     // Reload cities data
                     await loadCities();
                     
+                    // Refresh all city dropdowns in other sections
+                    refreshAllCityDropdowns();
+                    
                 } else {
                     console.error('Error adding city:', result);
                     alert('Error adding city: ' + (result.error || 'Unknown error'));
@@ -3383,6 +3386,17 @@
             loadCitiesForSourceModal();
             document.getElementById('addSourceModal').style.display = 'block';
             document.getElementById('addSourceForm').reset();
+        }
+        
+        // Function to refresh all city dropdowns when a new city is added
+        function refreshAllCityDropdowns() {
+            // Refresh source modal dropdown
+            loadCitiesForSourceModal();
+            
+            // Refresh source filter dropdown (will be populated when sources are reloaded)
+            if (window.allSources) {
+                populateSourceFilters();
+            }
         }
         
         function loadCitiesForSourceModal() {
