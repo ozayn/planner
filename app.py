@@ -1062,7 +1062,13 @@ def auth_login():
     try:
         # Create flow with proper configuration
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
-        flow.redirect_uri = request.url_root + 'auth/callback'
+        
+        # Force HTTPS for Railway deployment
+        base_url = request.url_root
+        if 'railway.app' in request.host or 'ozayn.com' in request.host:
+            base_url = base_url.replace('http://', 'https://')
+        
+        flow.redirect_uri = base_url + 'auth/callback'
         
         authorization_url, state = flow.authorization_url(
             access_type='offline',
@@ -1083,7 +1089,13 @@ def auth_callback():
     
     try:
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES, state=session['state'])
-        flow.redirect_uri = request.url_root + 'auth/callback'
+        
+        # Force HTTPS for Railway deployment
+        base_url = request.url_root
+        if 'railway.app' in request.host or 'ozayn.com' in request.host:
+            base_url = base_url.replace('http://', 'https://')
+        
+        flow.redirect_uri = base_url + 'auth/callback'
         
         authorization_response = request.url
         flow.fetch_token(authorization_response=authorization_response)
