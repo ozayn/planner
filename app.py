@@ -12,6 +12,12 @@ try:
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import Flow
     from googleapiclient.discovery import build
+    
+    # Configure OAuth for Railway's proxy environment
+    import os
+    if 'RAILWAY_ENVIRONMENT' in os.environ:
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    
     GOOGLE_OAUTH_AVAILABLE = True
 except ImportError:
     print("⚠️  Warning: Google OAuth libraries not found. Admin authentication will be disabled.")
