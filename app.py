@@ -125,8 +125,8 @@ if GOOGLE_OAUTH_AVAILABLE:
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
     ADMIN_EMAILS = os.getenv('ADMIN_EMAILS', '').split(',')
     
-    # OAuth scopes
-    SCOPES = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
+    # OAuth scopes (include openid which Google adds automatically)
+    SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
     
     # OAuth flow configuration
     CLIENT_CONFIG = {
