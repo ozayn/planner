@@ -786,6 +786,30 @@ def get_cities():
     cities = City.query.all()
     return jsonify([city.to_dict() for city in cities])
 
+@app.route('/api/stats')
+def get_public_stats():
+    """Get public statistics for the main page"""
+    try:
+        cities_count = City.query.count()
+        venues_count = Venue.query.count()
+        sources_count = Source.query.count()
+        events_count = Event.query.count()
+        
+        return jsonify({
+            'cities': cities_count,
+            'venues': venues_count,
+            'sources': sources_count,
+            'events': events_count
+        })
+    except Exception as e:
+        print(f"Error getting public stats: {e}")
+        return jsonify({
+            'cities': 0,
+            'venues': 0,
+            'sources': 0,
+            'events': 0
+        }), 500
+
 @app.route('/api/events')
 def get_events():
     """Get events for a specific city and time range"""

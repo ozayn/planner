@@ -695,6 +695,20 @@
     <div class="container">
         <div class="header">
             <h1>🎯 Smart Event Planner</h1>
+            <p style="margin: 12px 0 16px 0; color: #6b7280; font-size: 1rem;">Discover curated events across multiple cities with AI-powered recommendations</p>
+            <div style="margin-top: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+                <div class="stats-display" style="display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; font-size: 0.9rem; color: #0f172a;">
+                    <span><strong>🏙️ 23 Cities</strong></span>
+                    <span><strong>🏛️ 149 Venues</strong></span>
+                    <span><strong>📡 37 Sources</strong></span>
+                    <span><strong>🗓️ 0 Events</strong></span>
+                    <span><strong>🔄 Bidirectional Sync</strong></span>
+                    <span><strong>🚀 PostgreSQL Ready</strong></span>
+                </div>
+                <div style="text-align: center; margin-top: 8px; font-size: 0.8rem; color: #64748b;">
+                    Enhanced with real-time data synchronization • AI-powered event discovery • Production-ready platform
+                </div>
+            </div>
         </div>
 
         <div class="main-content">
@@ -875,6 +889,7 @@
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             loadCities();
+            loadRealTimeStats();
             setupEventListeners();
         });
 
@@ -902,6 +917,33 @@
             } catch (error) {
                 console.error('Error loading cities:', error);
                 showNotification('Error loading cities', 'error');
+            }
+        }
+
+        // Load real-time statistics from API
+        async function loadRealTimeStats() {
+            try {
+                console.log('Loading real-time statistics...');
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                // Update the stats display in the header
+                const statsContainer = document.querySelector('.header .stats-display');
+                if (statsContainer) {
+                    statsContainer.innerHTML = `
+                        <span><strong>🏙️ ${stats.cities || 0} Cities</strong></span>
+                        <span><strong>🏛️ ${stats.venues || 0} Venues</strong></span>
+                        <span><strong>📡 ${stats.sources || 0} Sources</strong></span>
+                        <span><strong>🗓️ ${stats.events || 0} Events</strong></span>
+                        <span><strong>🔄 Bidirectional Sync</strong></span>
+                        <span><strong>🚀 PostgreSQL Ready</strong></span>
+                    `;
+                }
+                
+                console.log('Real-time statistics loaded:', stats);
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+                // Keep the static values if API fails
             }
         }
 
