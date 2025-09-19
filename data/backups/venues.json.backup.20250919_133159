@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-09-19",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 149,
-    "last_updated": "2025-09-19 13:31:59"
+    "total_venues": 148,
+    "last_updated": "2025-09-19 13:29:12"
   },
   "venues": {
     "1": {
@@ -2665,29 +2665,11 @@
       "email": "usbg@usbg.gov",
       "website_url": "https://www.usbg.gov/",
       "admission_fee": "Free",
-      "image_url": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=AciIO2fSMF40NXV5b_jVRmw_sQFLubl4ygsRyn3RfkB9FmhVdQKE6viIiZsRKludMhL0Ji4nxuVF7MozmGU_msGMMGAJbq0715NlOepacjhl6fV6R1e2sjWE0--PBc9O_fRWlHs9YfNC8YI5uKiBiTCBVoDoTbW8kEotaFeuo2XdGcgMfBNPyFssY8hU1vRYaGcSFdvwy33w8XHVCix_O1APpDUtYjEWc9aPjGj-9ygNrkRTvY-IucM8AnUHEOO2sMvPMOO6JSpA75Pt-AgDFQP079lZut3u0qkEhwNz757g-p-ZL-ocl8kKhcTO_xCkXiwr4sUHq4xZQWsio-iTow3_ODugRTl5nZm6-hkyUS7glccp8i6hmhu0gXbnnoeiSd1Nyv_CNU9gPZT9XBVp5PybZLiN2jfQJkGEhYhSxBx02kG5rg&key=YOUR_GOOGLE_MAPS_API_KEY",
+      "image_url": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=AciIO2fSMF40NXV5b_jVRmw_sQFLubl4ygsRyn3RfkB9FmhVdQKE6viIiZsRKludMhL0Ji4nxuVF7MozmGU_msGMMGAJbq0715NlOepacjhl6fV6R1e2sjWE0--PBc9O_fRWlHs9YfNC8YI5uKiBiTCBVoDoTbW8kEotaFeuo2XdGcgMfBNPyFssY8hU1vRYaGcSFdvwy33w8XHVCix_O1APpDUtYjEWc9aPjGj-9ygNrkRTvY-IucM8AnUHEOO2sMvPMOO6JSpA75Pt-AgDFQP079lZut3u0qkEhwNz757g-p-ZL-ocl8kKhcTO_xCkXiwr4sUHq4xZQWsio-iTow3_ODugRTl5nZm6-hkyUS7glccp8i6hmhu0gXbnnoeiSd1Nyv_CNU9gPZT9XBVp5PybZLiN2jfQJkGEhYhSxBx02kG5rg&key=AIzaSyA2BznyabAtGh_rGd7Bm4pHTIk0Y2x6V4A",
       "latitude": 38.8883,
       "longitude": -77.0128,
       "created_at": "2025-09-19T17:26:11.127194",
       "updated_at": "2025-09-19T17:26:13.201560"
-    },
-    "149": {
-      "name": "9:30 Club",
-      "venue_type": "Concert Hall",
-      "address": "815 V St NW, Washington, DC 20001",
-      "city_id": 1,
-      "city_name": "Washington",
-      "description": "Legendary music venue in Washington DC, known for hosting intimate concerts by major artists and emerging acts. Features a standing room floor and balcony seating with excellent acoustics.",
-      "opening_hours": "Hours vary by event - typically 7:00 PM - 11:00 PM on show nights",
-      "phone_number": "(202) 265-0930",
-      "email": "info@930.com",
-      "website_url": "https://www.930.com",
-      "admission_fee": "Varies by event - typically $20-$60",
-      "image_url": "",
-      "latitude": 38.9185,
-      "longitude": -77.0239,
-      "created_at": "2025-09-19T17:31:54.792005",
-      "updated_at": "2025-09-19T17:31:54.792008"
     }
   }
 }
