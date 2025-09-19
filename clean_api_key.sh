@@ -7,7 +7,7 @@ echo "🧹 Cleaning API key from git history..."
 cat > /tmp/clean_api_key.sh << 'EOF'
 #!/bin/bash
 if [ -f data/venues.json ]; then
-    sed -i.bak 's/key=AIzaSyBJ0v90GfvkWSIjzceNk2uPbwdmlrDxkYw/key=YOUR_GOOGLE_MAPS_API_KEY/g' data/venues.json
+    sed -i.bak 's/key=YOUR_ACTUAL_API_KEY/key=YOUR_GOOGLE_MAPS_API_KEY/g' data/venues.json
     rm -f data/venues.json.bak
 fi
 EOF

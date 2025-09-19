@@ -63,9 +63,11 @@ instance/
 ehthumbs.db
 Thumbs.db
 
-# Logs
+# Logs - NEVER commit logs as they may contain API keys
 *.log
 logs/
+*.log.*
+log/
 
 # Node.js (for mobile app)
 node_modules/
@@ -119,3 +121,26 @@ dmypy.json
 
 # Exported files
 data/exports/
+
+# Security - API Keys and Secrets
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+*.secret
+*.private
+
+# Temporary files with potential secrets
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup files that might contain secrets
+*.backup
+*.bak
+*.old
+data/backups/
+backups/
