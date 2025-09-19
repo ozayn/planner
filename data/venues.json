@@ -4,7 +4,7 @@
     "created": "2025-09-19",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 149,
-    "last_updated": "2025-09-19 13:31:59"
+    "last_updated": "2025-09-19 14:13:30"
   },
   "venues": {
     "1": {
@@ -2669,7 +2669,7 @@
       "latitude": 38.8883,
       "longitude": -77.0128,
       "created_at": "2025-09-19T17:26:11.127194",
-      "updated_at": "2025-09-19T17:26:13.201560"
+      "updated_at": "2025-09-19T18:13:24.253792"
     },
     "149": {
       "name": "9:30 Club",
