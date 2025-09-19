@@ -58,3 +58,4 @@ git status | grep -v ".env"
 
 ---
 **Remember: Once committed to git, credentials exist in history forever!**
+

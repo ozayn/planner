@@ -707,13 +707,13 @@
                     <div style="color: #f39c12; font-size: 0.8rem; margin-bottom: 0.5rem;">
                         🔧 Local Dev Mode (OAuth Bypassed)
                     </div>
-                    {% elif session and session.user_email %}
+                    {% elif session.user_email %}
                     <div style="color: #27ae60; font-size: 0.8rem; margin-bottom: 0.5rem;">
                         🔐 Authenticated via Google OAuth
                     </div>
                     {% else %}
                     <div style="color: #e74c3c; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                        🔐 Production Mode
+                        🔐 OAuth Required
                     </div>
                     {% endif %}
                     <a href="/auth/logout" style="color: #e74c3c; text-decoration: none; font-size: 0.9rem;">
@@ -1043,49 +1043,13 @@
                     <label for="editVenueType">Venue Type *</label>
                     <select id="editVenueType" required>
                         <option value="">Select Type</option>
-                        <option value="Museum">Museum</option>
-                        <option value="Science Museum">Science Museum</option>
-                        <option value="Gallery">Gallery</option>
-                        <option value="Theater">Theater</option>
-                        <option value="Performing Arts Center">Performing Arts Center</option>
-                        <option value="Concert Hall">Concert Hall</option>
-                        <option value="Park">Park</option>
-                        <option value="Botanical Garden">Botanical Garden</option>
-                        <option value="Library">Library</option>
-                        <option value="Historic Site">Historic Site</option>
-                        <option value="Historic District">Historic District</option>
-                        <option value="Historic Trail">Historic Trail</option>
-                        <option value="Monument">Monument</option>
-                        <option value="Memorial">Memorial</option>
-                        <option value="Landmark">Landmark</option>
-                        <option value="Cultural Center">Cultural Center</option>
-                        <option value="Arts Center">Arts Center</option>
-                        <option value="Community Center">Community Center</option>
-                        <option value="Convention Center">Convention Center</option>
-                        <option value="Exhibition Hall">Exhibition Hall</option>
-                        <option value="Auditorium">Auditorium</option>
-                        <option value="Stadium">Stadium</option>
-                        <option value="Arena">Arena</option>
-                        <option value="Market">Market</option>
-                        <option value="Shopping District">Shopping District</option>
-                        <option value="Art District">Art District</option>
-                        <option value="Government Building">Government Building</option>
-                        <option value="Observation Tower">Observation Tower</option>
-                        <option value="Observation Deck">Observation Deck</option>
-                        <option value="Observatory">Observatory</option>
-                        <option value="Aquarium">Aquarium</option>
-                        <option value="Zoo">Zoo</option>
-                        <option value="Cathedral">Cathedral</option>
-                        <option value="Church">Church</option>
-                        <option value="Temple">Temple</option>
-                        <option value="Shrine">Shrine</option>
-                        <option value="Bridge">Bridge</option>
-                        <option value="Castle">Castle</option>
-                        <option value="Palace">Palace</option>
-                        <option value="Beach">Beach</option>
-                        <option value="Waterfront">Waterfront</option>
-                        <option value="Waterway">Waterway</option>
-                        <option value="Avenue">Avenue</option>
+                        <option value="museum">Museum</option>
+                        <option value="gallery">Gallery</option>
+                        <option value="theater">Theater</option>
+                        <option value="concert_hall">Concert Hall</option>
+                        <option value="park">Park</option>
+                        <option value="landmark">Landmark</option>
+                        <option value="cultural_center">Cultural Center</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
@@ -1177,12 +1141,8 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sourceInput">Instagram Handle or Website URL *</label>
-                        <input type="text" id="sourceInput" required placeholder="e.g., @princetonphotoclub or https://example.com" onblur="previewSourceDetails()">
+                        <input type="text" id="sourceInput" required placeholder="e.g., @princetonphotoclub or https://example.com">
                         <small style="color: #666; font-size: 0.8em; display: block; margin-top: 5px;">Just paste the Instagram handle (@username) or website URL - we'll detect the type and fill in the rest!</small>
-                        <div id="sourcePreview" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; display: none;">
-                            <strong>Auto-detected:</strong>
-                            <div id="previewDetails"></div>
-                        </div>
                     </div>
                 </div>
                 
@@ -1547,26 +1507,12 @@
                 return;
             }
             
-            // Dynamic field mapping for city edit form
-            const fieldMapping = {
-                'id': 'editCityId',
-                'name': 'editCityName',
-                'state': 'editCityState',
-                'country': 'editCityCountry',
-                'timezone': 'editCityTimezone'
-            };
-            
-            // Populate edit form dynamically
-            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
-                const element = document.getElementById(formField);
-                if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = city[dataField] || false;
-                    } else {
-                        element.value = city[dataField] || '';
-                    }
-                }
-            });
+            // Populate the edit form
+            document.getElementById('editCityId').value = city.id;
+            document.getElementById('editCityName').value = city.name;
+            document.getElementById('editCityState').value = city.state || '';
+            document.getElementById('editCityCountry').value = city.country;
+            document.getElementById('editCityTimezone').value = city.timezone || '';
             
             // Show the modal
             document.getElementById('editCityModal').style.display = 'block';
@@ -2118,7 +2064,7 @@
                 case 'venues':
                     return `<button onclick="editVenue(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteVenue(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
                 case 'sources':
-                    return `<button onclick="refreshSource(${id})" class="btn btn-sm btn-primary" title="Refresh source information">🔄</button> <button onclick="editSource(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteSource(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                    return `<button onclick="editSource(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteSource(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
                 case 'events':
                     return `<button onclick="editEvent(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="deleteEvent(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
                 case 'cities':
@@ -2273,49 +2219,13 @@
                     required: true,
                     options: [
                         { value: '', text: 'Select Type' },
-                        { value: 'Museum', text: 'Museum' },
-                        { value: 'Science Museum', text: 'Science Museum' },
-                        { value: 'Gallery', text: 'Gallery' },
-                        { value: 'Theater', text: 'Theater' },
-                        { value: 'Performing Arts Center', text: 'Performing Arts Center' },
-                        { value: 'Concert Hall', text: 'Concert Hall' },
-                        { value: 'Park', text: 'Park' },
-                        { value: 'Botanical Garden', text: 'Botanical Garden' },
-                        { value: 'Library', text: 'Library' },
-                        { value: 'Historic Site', text: 'Historic Site' },
-                        { value: 'Historic District', text: 'Historic District' },
-                        { value: 'Historic Trail', text: 'Historic Trail' },
-                        { value: 'Monument', text: 'Monument' },
-                        { value: 'Memorial', text: 'Memorial' },
-                        { value: 'Landmark', text: 'Landmark' },
-                        { value: 'Cultural Center', text: 'Cultural Center' },
-                        { value: 'Arts Center', text: 'Arts Center' },
-                        { value: 'Community Center', text: 'Community Center' },
-                        { value: 'Convention Center', text: 'Convention Center' },
-                        { value: 'Exhibition Hall', text: 'Exhibition Hall' },
-                        { value: 'Auditorium', text: 'Auditorium' },
-                        { value: 'Stadium', text: 'Stadium' },
-                        { value: 'Arena', text: 'Arena' },
-                        { value: 'Market', text: 'Market' },
-                        { value: 'Shopping District', text: 'Shopping District' },
-                        { value: 'Art District', text: 'Art District' },
-                        { value: 'Government Building', text: 'Government Building' },
-                        { value: 'Observation Tower', text: 'Observation Tower' },
-                        { value: 'Observation Deck', text: 'Observation Deck' },
-                        { value: 'Observatory', text: 'Observatory' },
-                        { value: 'Aquarium', text: 'Aquarium' },
-                        { value: 'Zoo', text: 'Zoo' },
-                        { value: 'Cathedral', text: 'Cathedral' },
-                        { value: 'Church', text: 'Church' },
-                        { value: 'Temple', text: 'Temple' },
-                        { value: 'Shrine', text: 'Shrine' },
-                        { value: 'Bridge', text: 'Bridge' },
-                        { value: 'Castle', text: 'Castle' },
-                        { value: 'Palace', text: 'Palace' },
-                        { value: 'Beach', text: 'Beach' },
-                        { value: 'Waterfront', text: 'Waterfront' },
-                        { value: 'Waterway', text: 'Waterway' },
-                        { value: 'Avenue', text: 'Avenue' },
+                        { value: 'museum', text: 'Museum' },
+                        { value: 'gallery', text: 'Gallery' },
+                        { value: 'theater', text: 'Theater' },
+                        { value: 'concert_hall', text: 'Concert Hall' },
+                        { value: 'park', text: 'Park' },
+                        { value: 'landmark', text: 'Landmark' },
+                        { value: 'cultural_center', text: 'Cultural Center' },
                         { value: 'other', text: 'Other' }
                     ]
                 },
@@ -2506,19 +2416,12 @@
                 return;
             }
             
-            // Sort cities alphabetically by display name
-            const sortedCities = window.allCities.sort((a, b) => {
-                const nameA = `${a.name}, ${a.country}`;
-                const nameB = `${b.name}, ${b.country}`;
-                return nameA.localeCompare(nameB);
-            });
-            
             citySelect.innerHTML = '<option value="">Select City</option>';
-            sortedCities.forEach(city => {
+            window.allCities.forEach(city => {
                 citySelect.innerHTML += `<option value="${city.id}">${city.name}, ${city.country}</option>`;
             });
             
-            console.log(`Populated city dropdown with ${window.allCities.length} cities (sorted alphabetically)`);
+            console.log(`Populated city dropdown with ${window.allCities.length} cities`);
         }
         
         async function smartSearchVenue() {
@@ -2811,34 +2714,38 @@
                 return;
             }
             
-            // Dynamic field mapping for venue edit form
-            const fieldMapping = {
-                'id': 'editVenueId',
-                'name': 'editVenueName',
-                'venue_type': 'editVenueType',
-                'address': 'editVenueAddress',
-                'description': 'editVenueDescription',
-                'opening_hours': 'editVenueHours',
-                'phone_number': 'editVenuePhone',
-                'email': 'editVenueEmail',
-                'website_url': 'editVenueWebsite',
-                'admission_fee': 'editVenueAdmission'
+            // Create edit form data
+            const editData = {
+                id: venue.id,
+                name: prompt('Edit venue name:', venue.name) || venue.name,
+                venue_type: prompt('Edit venue type:', venue.venue_type || '') || venue.venue_type,
+                address: prompt('Edit address:', venue.address || '') || venue.address,
+                description: prompt('Edit description:', venue.description || '') || venue.description,
+                opening_hours: prompt('Edit opening hours:', venue.opening_hours || '') || venue.opening_hours,
+                phone_number: prompt('Edit phone:', venue.phone_number || '') || venue.phone_number,
+                email: prompt('Edit email:', venue.email || '') || venue.email,
+                website_url: prompt('Edit website:', venue.website_url || '') || venue.website_url,
+                admission_fee: prompt('Edit admission fee:', venue.admission_fee || '') || venue.admission_fee
             };
             
-            // Populate edit form dynamically
-            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
-                const element = document.getElementById(formField);
-                if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = venue[dataField] || false;
-                    } else {
-                        element.value = venue[dataField] || '';
-                    }
+            // Send update request
+            fetch('/api/admin/edit-venue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Venue updated successfully!');
+                    loadVenues(); // Reload data
+                } else {
+                    alert('Error: ' + result.error);
                 }
+            })
+            .catch(error => {
+                alert('Error updating venue: ' + error.message);
             });
-            
-            // Show the modal
-            document.getElementById('editVenueModal').style.display = 'block';
         }
         
         function deleteVenue(id) {
@@ -2903,31 +2810,35 @@
                 return;
             }
             
-            // Dynamic field mapping for event edit form
-            const fieldMapping = {
-                'id': 'editEventId',
-                'title': 'editEventTitle',
-                'description': 'editEventDescription',
-                'start_date': 'editEventStartDate',
-                'start_time': 'editEventStartTime',
-                'end_time': 'editEventEndTime',
-                'event_type': 'editEventType'
+            // Create edit form data
+            const editData = {
+                id: event.id,
+                title: prompt('Edit event title:', event.title) || event.title,
+                description: prompt('Edit description:', event.description || '') || event.description,
+                start_date: prompt('Edit start date (YYYY-MM-DD):', event.start_date) || event.start_date,
+                start_time: prompt('Edit start time (HH:MM):', event.start_time || '') || event.start_time,
+                end_time: prompt('Edit end time (HH:MM):', event.end_time || '') || event.end_time,
+                event_type: prompt('Edit event type:', event.event_type || '') || event.event_type
             };
             
-            // Populate edit form dynamically
-            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
-                const element = document.getElementById(formField);
-                if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = event[dataField] || false;
-                    } else {
-                        element.value = event[dataField] || '';
-                    }
+            // Send update request
+            fetch('/api/admin/edit-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Event updated successfully!');
+                    loadEvents(); // Reload data
+                } else {
+                    alert('Error: ' + result.error);
                 }
+            })
+            .catch(error => {
+                alert('Error updating event: ' + error.message);
             });
-            
-            // Show the modal
-            document.getElementById('editEventModal').style.display = 'block';
         }
         
         function deleteEvent(id) {
@@ -3155,9 +3066,6 @@
                     // Reload cities data
                     await loadCities();
                     
-                    // Refresh all city dropdowns in other sections
-                    refreshAllCityDropdowns();
-                    
                 } else {
                     console.error('Error adding city:', result);
                     alert('Error adding city: ' + (result.error || 'Unknown error'));
@@ -3375,69 +3283,6 @@
             renderDynamicTable('sourcesTable', data, 'sources');
         }
         
-        async function refreshSource(id) {
-            const source = allSources.find(s => s.id == id);
-            if (!source) {
-                alert('Source not found');
-                return;
-            }
-            
-            const confirmed = confirm(`Refresh information for "${source.name}"?\n\nThis will fetch updated information from the source and update the database.`);
-            if (!confirmed) return;
-            
-            try {
-                // Show loading state
-                const refreshBtn = document.querySelector(`button[onclick="refreshSource(${id})"]`);
-                const originalText = refreshBtn.innerHTML;
-                refreshBtn.innerHTML = '⏳';
-                refreshBtn.disabled = true;
-                
-                // Detect source type and fetch updated info
-                const detected = detectSourceType(source.url || source.handle);
-                
-                // Prepare update data
-                const updateData = {
-                    name: detected.name,
-                    description: detected.description,
-                    url: detected.url,
-                    last_checked: new Date().toISOString(),
-                    // Keep existing data that can't be auto-detected
-                    reliability_score: source.reliability_score,
-                    posting_frequency: source.posting_frequency,
-                    event_types: source.event_types,
-                    notes: source.notes,
-                    scraping_pattern: source.scraping_pattern,
-                    is_active: source.is_active
-                };
-                
-                // Send update request
-                const response = await fetch(`/api/admin/sources/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
-                });
-                
-                if (response.ok) {
-                    alert('✅ Source information refreshed successfully!');
-                    await loadSources(); // Reload the sources table
-                } else {
-                    const result = await response.json();
-                    alert('❌ Failed to refresh source: ' + (result.error || 'Unknown error'));
-                }
-                
-            } catch (error) {
-                console.error('Refresh source error:', error);
-                alert('❌ Error refreshing source: ' + error.message);
-            } finally {
-                // Reset button state
-                const refreshBtn = document.querySelector(`button[onclick="refreshSource(${id})"]`);
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = originalText;
-                    refreshBtn.disabled = false;
-                }
-            }
-        }
-
         function editSource(id) {
             const source = allSources.find(s => s.id == id);
             if (!source) {
@@ -3445,49 +3290,21 @@
                 return;
             }
             
-            // Dynamic field mapping for source edit form
-            const fieldMapping = {
-                'id': 'editSourceId',
-                'name': 'editSourceName',
-                'handle': 'editSourceHandle',
-                'source_type': 'editSourceType',
-                'city_id': 'editSourceCity',
-                'url': 'editSourceUrl',
-                'description': 'editSourceDescription',
-                'reliability_score': 'editSourceReliability',
-                'posting_frequency': 'editSourceFrequency',
-                'notes': 'editSourceNotes',
-                'scraping_pattern': 'editSourceScrapingPattern',
-                'is_active': 'editSourceActive'
-            };
+            // Populate edit form
+            document.getElementById('editSourceId').value = source.id;
+            document.getElementById('editSourceName').value = source.name;
+            document.getElementById('editSourceHandle').value = source.handle;
+            document.getElementById('editSourceType').value = source.source_type;
+            document.getElementById('editSourceCity').value = source.city_id;
+            document.getElementById('editSourceUrl').value = source.url || '';
+            document.getElementById('editSourceDescription').value = source.description || '';
+            document.getElementById('editSourceReliability').value = source.reliability_score || 5;
+            document.getElementById('editSourceFrequency').value = source.posting_frequency || '';
+            document.getElementById('editSourceEventTypes').value = source.event_types ? JSON.parse(source.event_types).join(', ') : '';
+            document.getElementById('editSourceNotes').value = source.notes || '';
+            document.getElementById('editSourceScrapingPattern').value = source.scraping_pattern || '';
+            document.getElementById('editSourceActive').checked = source.is_active;
             
-            // Populate edit form dynamically
-            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
-                const element = document.getElementById(formField);
-                if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = source[dataField] || false;
-                    } else {
-                        element.value = source[dataField] || '';
-                    }
-                }
-            });
-            
-            // Handle special case for event_types (JSON array to comma-separated string)
-            const eventTypesElement = document.getElementById('editSourceEventTypes');
-            if (eventTypesElement && source.event_types) {
-                try {
-                    const eventTypes = JSON.parse(source.event_types);
-                    eventTypesElement.value = Array.isArray(eventTypes) ? eventTypes.join(', ') : '';
-                } catch (e) {
-                    eventTypesElement.value = '';
-                }
-            }
-            
-            // Ensure city dropdown is populated before showing modal
-            loadCitiesForSourceModal();
-            
-            // Show the modal
             document.getElementById('editSourceModal').style.display = 'block';
         }
         
@@ -3566,61 +3383,12 @@
             loadCitiesForSourceModal();
             document.getElementById('addSourceModal').style.display = 'block';
             document.getElementById('addSourceForm').reset();
-            // Hide preview when opening modal
-            document.getElementById('sourcePreview').style.display = 'none';
-        }
-        
-        function previewSourceDetails() {
-            const input = document.getElementById('sourceInput').value.trim();
-            const preview = document.getElementById('sourcePreview');
-            const previewDetails = document.getElementById('previewDetails');
-            
-            if (!input) {
-                preview.style.display = 'none';
-                return;
-            }
-            
-            // Detect source type and show preview
-            const detected = detectSourceType(input);
-            
-            previewDetails.innerHTML = `
-                <div style="margin: 5px 0;"><strong>Name:</strong> ${detected.name}</div>
-                <div style="margin: 5px 0;"><strong>Handle:</strong> ${detected.handle}</div>
-                <div style="margin: 5px 0;"><strong>Type:</strong> ${detected.type}</div>
-                <div style="margin: 5px 0;"><strong>URL:</strong> <a href="${detected.url}" target="_blank">${detected.url}</a></div>
-            `;
-            
-            preview.style.display = 'block';
-            
-            // Auto-fill hidden fields
-            document.getElementById('sourceName').value = detected.name;
-            document.getElementById('sourceHandle').value = detected.handle;
-            document.getElementById('sourceType').value = detected.type;
-            document.getElementById('sourceUrl').value = detected.url;
-        }
-        
-        // Function to refresh all city dropdowns when a new city is added
-        function refreshAllCityDropdowns() {
-            // Refresh source modal dropdown
-            loadCitiesForSourceModal();
-            
-            // Refresh source filter dropdown (will be populated when sources are reloaded)
-            if (window.allSources) {
-                populateSourceFilters();
-            }
         }
         
         function loadCitiesForSourceModal() {
             fetch('/api/admin/cities')
                 .then(response => response.json())
                 .then(cities => {
-                    // Sort cities alphabetically by display name
-                    const sortedCities = cities.sort((a, b) => {
-                        const nameA = a.state ? `${a.name}, ${a.state}` : `${a.name}, ${a.country}`;
-                        const nameB = b.state ? `${b.name}, ${b.state}` : `${b.name}, ${b.country}`;
-                        return nameA.localeCompare(nameB);
-                    });
-                    
                     const citySelects = ['sourceCity', 'editSourceCity'];
                     citySelects.forEach(selectId => {
                         const select = document.getElementById(selectId);
@@ -3630,7 +3398,7 @@
                                 select.removeChild(select.lastChild);
                             }
                             
-                            sortedCities.forEach(city => {
+                            cities.forEach(city => {
                                 const option = document.createElement('option');
                                 option.value = city.id;
                                 option.textContent = city.display_name || `${city.name}, ${city.country}`;
@@ -3676,76 +3444,34 @@
         document.getElementById('editSourceForm').addEventListener('submit', handleEditSource);
         
         function detectSourceType(input) {
-            // Enhanced source type detection with better auto-filling
+            // Detect if input is Instagram handle or website URL
             if (input.startsWith('@')) {
-                // Instagram handle
-                const username = input.substring(1);
                 return {
                     type: 'instagram',
                     handle: input,
-                    url: `https://www.instagram.com/${username}/`,
-                    name: username.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                    description: `Instagram account for ${username.replace(/[-_]/g, ' ')}`
+                    url: `https://www.instagram.com/${input.substring(1)}/`,
+                    name: input.substring(1).replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
                 };
             } else if (input.includes('instagram.com')) {
-                // Instagram URL
+                // Extract handle from Instagram URL
                 const match = input.match(/instagram\.com\/([^\/\?]+)/);
                 if (match) {
-                    const username = match[1];
-                    const handle = `@${username}`;
+                    const handle = `@${match[1]}`;
                     return {
                         type: 'instagram',
                         handle: handle,
                         url: input,
-                        name: username.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                        description: `Instagram account for ${username.replace(/[-_]/g, ' ')}`
-                    };
-                }
-            } else if (input.includes('facebook.com')) {
-                // Facebook page
-                const match = input.match(/facebook\.com\/([^\/\?]+)/);
-                if (match) {
-                    const pageName = match[1];
-                    return {
-                        type: 'facebook',
-                        handle: pageName,
-                        url: input,
-                        name: pageName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                        description: `Facebook page for ${pageName.replace(/[-_]/g, ' ')}`
-                    };
-                }
-            } else if (input.includes('eventbrite.com')) {
-                // Eventbrite organizer
-                return {
-                    type: 'eventbrite',
-                    handle: 'eventbrite',
-                    url: input,
-                    name: 'Eventbrite Organizer',
-                    description: 'Eventbrite event organizer page'
-                };
-            } else if (input.includes('meetup.com')) {
-                // Meetup group
-                const match = input.match(/meetup\.com\/([^\/\?]+)/);
-                if (match) {
-                    const groupName = match[1];
-                    return {
-                        type: 'meetup',
-                        handle: groupName,
-                        url: input,
-                        name: groupName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                        description: `Meetup group: ${groupName.replace(/[-_]/g, ' ')}`
+                        name: match[1].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
                     };
                 }
             } else if (input.startsWith('http://') || input.startsWith('https://')) {
                 // Website URL
                 const domain = new URL(input).hostname;
-                const siteName = domain.replace('www.', '').split('.')[0];
                 return {
                     type: 'website',
                     handle: domain,
                     url: input,
-                    name: siteName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                    description: `Website: ${domain}`
+                    name: domain.replace('www.', '').split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
                 };
             } else {
                 // Assume it's a handle without @
@@ -3778,7 +3504,7 @@
                 source_type: detected.type,
                 city_id: cityId,
                 url: detected.url,
-                description: document.getElementById('sourceDescription').value.trim() || detected.description || '',
+                description: document.getElementById('sourceDescription').value.trim() || '',
                 reliability_score: parseFloat(document.getElementById('sourceReliability').value) || 7.0,
                 posting_frequency: document.getElementById('sourceFrequency').value || 'weekly',
                 event_types: JSON.stringify(document.getElementById('sourceEventTypes').value.split(',').map(t => t.trim()).filter(t => t)),
