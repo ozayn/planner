@@ -310,10 +310,22 @@ class Venue(db.Model):
         # Handle image_url - use secure image proxy endpoint
         image_url = self.image_url
         if image_url:
-            # If it's a photo reference string (long string without http), use our secure proxy
-            if isinstance(image_url, str) and len(image_url) > 50 and not image_url.startswith('http'):
-                # Use our secure image proxy endpoint
-                image_url = f"/api/image/{image_url}"
+            # First check if it's a dict with photo_reference
+            if isinstance(image_url, dict) and 'photo_reference' in image_url:
+                photo_ref = image_url['photo_reference']
+                image_url = f"/api/image/{photo_ref}"
+            elif isinstance(image_url, str) and image_url.startswith('{'):
+                # Try to parse as JSON if it's a string starting with {
+                try:
+                    import json
+                    photo_data = json.loads(image_url)
+                    if isinstance(photo_data, dict) and 'photo_reference' in photo_data:
+                        photo_ref = photo_data['photo_reference']
+                        image_url = f"/api/image/{photo_ref}"
+                except (json.JSONDecodeError, TypeError):
+                    # If it's not valid JSON, treat as raw photo reference
+                    if len(image_url) > 50 and not image_url.startswith('http'):
+                        image_url = f"/api/image/{image_url}"
             elif isinstance(image_url, str) and 'maps.googleapis.com' in image_url:
                 # Extract photo reference from existing Google Maps URL
                 import re
@@ -322,20 +334,9 @@ class Venue(db.Model):
                 if match:
                     photo_ref = match.group(1)
                     image_url = f"/api/image/{photo_ref}"
-            elif isinstance(image_url, str):
-                # Try to parse as JSON if it's a string containing photo data
-                try:
-                    import json
-                    photo_data = json.loads(image_url)
-                    if isinstance(photo_data, dict) and 'photo_reference' in photo_data:
-                        photo_ref = photo_data['photo_reference']
-                        image_url = f"/api/image/{photo_ref}"
-                except (json.JSONDecodeError, TypeError):
-                    # If it's not valid JSON, keep as string (might be a regular URL)
-                    pass
-            elif isinstance(image_url, dict) and 'photo_reference' in image_url:
-                photo_ref = image_url['photo_reference']
-                image_url = f"/api/image/{photo_ref}"
+            elif isinstance(image_url, str) and len(image_url) > 50 and not image_url.startswith('http'):
+                # Raw photo reference string
+                image_url = f"/api/image/{image_url}"
         
         # Generate Google Maps link for navigation
         maps_link = ""
