@@ -1707,12 +1707,41 @@ def smart_search_venue():
             except Exception as e:
                 print(f"Warning: Could not fetch Google Maps image: {e}")
         
+        # Validate and normalize venue_type to match our dropdown options
+        llm_venue_type = venue_details.get('venue_type', 'Museum')
+        allowed_venue_types = [
+            'Museum', 'Science Museum', 'Gallery', 'Theater', 'Performing Arts Center', 
+            'Concert Hall', 'Park', 'Botanical Garden', 'Library', 'Historic Site', 
+            'Historic District', 'Historic Trail', 'Monument', 'Memorial', 'Landmark', 
+            'Cultural Center', 'Arts Center', 'Community Center', 'Convention Center', 
+            'Exhibition Hall', 'Auditorium', 'Stadium', 'Arena', 'Market', 
+            'Shopping District', 'Art District', 'Government Building', 'Observation Tower', 
+            'Observation Deck', 'Observatory', 'Aquarium', 'Zoo', 'Cathedral', 
+            'Church', 'Temple', 'Shrine', 'Bridge', 'Castle', 'Palace', 'Beach', 
+            'Waterfront', 'Waterway', 'Avenue', 'other'
+        ]
+        
+        # Normalize venue type - check for exact match first
+        if llm_venue_type in allowed_venue_types:
+            validated_venue_type = llm_venue_type
+        else:
+            # Try case-insensitive match
+            llm_lower = llm_venue_type.lower()
+            for allowed_type in allowed_venue_types:
+                if llm_lower == allowed_type.lower():
+                    validated_venue_type = allowed_type
+                    break
+            else:
+                # If no match found, use 'other' as fallback
+                validated_venue_type = 'other'
+                print(f"Warning: LLM returned unknown venue_type '{llm_venue_type}', using 'other'")
+
         # Prepare the response with venue details
         response_data = {
             'success': True,
             'venue_details': {
                 'name': venue_details.get('name', venue_name),
-                'venue_type': venue_details.get('venue_type', 'Museum'),
+                'venue_type': validated_venue_type,
                 'address': venue_details.get('address', ''),
                 'opening_hours': venue_details.get('opening_hours', ''),
                 'admission_fee': venue_details.get('admission_fee', ''),
@@ -2348,6 +2377,7 @@ def update_source(source_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-source', methods=['POST'])
+@login_required
 def edit_source():
     """Edit an existing source"""
     try:
@@ -2441,6 +2471,7 @@ def delete_source(source_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-city', methods=['POST'])
+@login_required
 def edit_city():
     """Edit city details"""
     try:
@@ -2500,6 +2531,7 @@ def edit_city():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-venue', methods=['POST'])
+@login_required
 def edit_venue():
     """Edit venue details"""
     try:
@@ -2579,6 +2611,7 @@ def edit_venue():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-event', methods=['POST'])
+@login_required
 def edit_event():
     """Edit event details"""
     try:

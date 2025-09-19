@@ -63,7 +63,7 @@ class DynamicPromptGenerator:
         descriptions = {
             'id': 'Unique identifier',
             'name': 'Full official name',
-            'venue_type': 'Type of venue (museum, gallery, cultural_center, etc.)',
+            'venue_type': 'Type of venue - MUST match one of these EXACT values: Museum, Science Museum, Gallery, Theater, Performing Arts Center, Concert Hall, Park, Botanical Garden, Library, Historic Site, Historic District, Historic Trail, Monument, Memorial, Landmark, Cultural Center, Arts Center, Community Center, Convention Center, Exhibition Hall, Auditorium, Stadium, Arena, Market, Shopping District, Art District, Government Building, Observation Tower, Observation Deck, Observatory, Aquarium, Zoo, Cathedral, Church, Temple, Shrine, Bridge, Castle, Palace, Beach, Waterfront, Waterway, Avenue, or Other',
             'event_type': 'Type of event (tour, exhibition, festival, etc.)',
             'description': 'Detailed description',
             'address': 'Complete street address',
@@ -153,7 +153,7 @@ IMPORTANT: For admission_fee, provide the CURRENT 2024-2025 pricing. Many museum
 Return ONLY a JSON object with these fields:
 - name: Official name
 - address: Full street address
-- venue_type: Type (museum, gallery, cultural_center, etc.)
+- venue_type: Type - MUST be one of these EXACT values: Museum, Science Museum, Gallery, Theater, Performing Arts Center, Concert Hall, Park, Botanical Garden, Library, Historic Site, Historic District, Historic Trail, Monument, Memorial, Landmark, Cultural Center, Arts Center, Community Center, Convention Center, Exhibition Hall, Auditorium, Stadium, Arena, Market, Shopping District, Art District, Government Building, Observation Tower, Observation Deck, Observatory, Aquarium, Zoo, Cathedral, Church, Temple, Shrine, Bridge, Castle, Palace, Beach, Waterfront, Waterway, Avenue, or Other. Choose the MOST APPROPRIATE type from this list.
 - description: Brief description
 - website_url: Official website
 - phone_number: Contact phone

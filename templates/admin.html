@@ -1043,13 +1043,49 @@
                     <label for="editVenueType">Venue Type *</label>
                     <select id="editVenueType" required>
                         <option value="">Select Type</option>
-                        <option value="museum">Museum</option>
-                        <option value="gallery">Gallery</option>
-                        <option value="theater">Theater</option>
-                        <option value="concert_hall">Concert Hall</option>
-                        <option value="park">Park</option>
-                        <option value="landmark">Landmark</option>
-                        <option value="cultural_center">Cultural Center</option>
+                        <option value="Museum">Museum</option>
+                        <option value="Science Museum">Science Museum</option>
+                        <option value="Gallery">Gallery</option>
+                        <option value="Theater">Theater</option>
+                        <option value="Performing Arts Center">Performing Arts Center</option>
+                        <option value="Concert Hall">Concert Hall</option>
+                        <option value="Park">Park</option>
+                        <option value="Botanical Garden">Botanical Garden</option>
+                        <option value="Library">Library</option>
+                        <option value="Historic Site">Historic Site</option>
+                        <option value="Historic District">Historic District</option>
+                        <option value="Historic Trail">Historic Trail</option>
+                        <option value="Monument">Monument</option>
+                        <option value="Memorial">Memorial</option>
+                        <option value="Landmark">Landmark</option>
+                        <option value="Cultural Center">Cultural Center</option>
+                        <option value="Arts Center">Arts Center</option>
+                        <option value="Community Center">Community Center</option>
+                        <option value="Convention Center">Convention Center</option>
+                        <option value="Exhibition Hall">Exhibition Hall</option>
+                        <option value="Auditorium">Auditorium</option>
+                        <option value="Stadium">Stadium</option>
+                        <option value="Arena">Arena</option>
+                        <option value="Market">Market</option>
+                        <option value="Shopping District">Shopping District</option>
+                        <option value="Art District">Art District</option>
+                        <option value="Government Building">Government Building</option>
+                        <option value="Observation Tower">Observation Tower</option>
+                        <option value="Observation Deck">Observation Deck</option>
+                        <option value="Observatory">Observatory</option>
+                        <option value="Aquarium">Aquarium</option>
+                        <option value="Zoo">Zoo</option>
+                        <option value="Cathedral">Cathedral</option>
+                        <option value="Church">Church</option>
+                        <option value="Temple">Temple</option>
+                        <option value="Shrine">Shrine</option>
+                        <option value="Bridge">Bridge</option>
+                        <option value="Castle">Castle</option>
+                        <option value="Palace">Palace</option>
+                        <option value="Beach">Beach</option>
+                        <option value="Waterfront">Waterfront</option>
+                        <option value="Waterway">Waterway</option>
+                        <option value="Avenue">Avenue</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
@@ -1511,12 +1547,26 @@
                 return;
             }
             
-            // Populate the edit form
-            document.getElementById('editCityId').value = city.id;
-            document.getElementById('editCityName').value = city.name;
-            document.getElementById('editCityState').value = city.state || '';
-            document.getElementById('editCityCountry').value = city.country;
-            document.getElementById('editCityTimezone').value = city.timezone || '';
+            // Dynamic field mapping for city edit form
+            const fieldMapping = {
+                'id': 'editCityId',
+                'name': 'editCityName',
+                'state': 'editCityState',
+                'country': 'editCityCountry',
+                'timezone': 'editCityTimezone'
+            };
+            
+            // Populate edit form dynamically
+            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
+                const element = document.getElementById(formField);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = city[dataField] || false;
+                    } else {
+                        element.value = city[dataField] || '';
+                    }
+                }
+            });
             
             // Show the modal
             document.getElementById('editCityModal').style.display = 'block';
@@ -2223,13 +2273,49 @@
                     required: true,
                     options: [
                         { value: '', text: 'Select Type' },
-                        { value: 'museum', text: 'Museum' },
-                        { value: 'gallery', text: 'Gallery' },
-                        { value: 'theater', text: 'Theater' },
-                        { value: 'concert_hall', text: 'Concert Hall' },
-                        { value: 'park', text: 'Park' },
-                        { value: 'landmark', text: 'Landmark' },
-                        { value: 'cultural_center', text: 'Cultural Center' },
+                        { value: 'Museum', text: 'Museum' },
+                        { value: 'Science Museum', text: 'Science Museum' },
+                        { value: 'Gallery', text: 'Gallery' },
+                        { value: 'Theater', text: 'Theater' },
+                        { value: 'Performing Arts Center', text: 'Performing Arts Center' },
+                        { value: 'Concert Hall', text: 'Concert Hall' },
+                        { value: 'Park', text: 'Park' },
+                        { value: 'Botanical Garden', text: 'Botanical Garden' },
+                        { value: 'Library', text: 'Library' },
+                        { value: 'Historic Site', text: 'Historic Site' },
+                        { value: 'Historic District', text: 'Historic District' },
+                        { value: 'Historic Trail', text: 'Historic Trail' },
+                        { value: 'Monument', text: 'Monument' },
+                        { value: 'Memorial', text: 'Memorial' },
+                        { value: 'Landmark', text: 'Landmark' },
+                        { value: 'Cultural Center', text: 'Cultural Center' },
+                        { value: 'Arts Center', text: 'Arts Center' },
+                        { value: 'Community Center', text: 'Community Center' },
+                        { value: 'Convention Center', text: 'Convention Center' },
+                        { value: 'Exhibition Hall', text: 'Exhibition Hall' },
+                        { value: 'Auditorium', text: 'Auditorium' },
+                        { value: 'Stadium', text: 'Stadium' },
+                        { value: 'Arena', text: 'Arena' },
+                        { value: 'Market', text: 'Market' },
+                        { value: 'Shopping District', text: 'Shopping District' },
+                        { value: 'Art District', text: 'Art District' },
+                        { value: 'Government Building', text: 'Government Building' },
+                        { value: 'Observation Tower', text: 'Observation Tower' },
+                        { value: 'Observation Deck', text: 'Observation Deck' },
+                        { value: 'Observatory', text: 'Observatory' },
+                        { value: 'Aquarium', text: 'Aquarium' },
+                        { value: 'Zoo', text: 'Zoo' },
+                        { value: 'Cathedral', text: 'Cathedral' },
+                        { value: 'Church', text: 'Church' },
+                        { value: 'Temple', text: 'Temple' },
+                        { value: 'Shrine', text: 'Shrine' },
+                        { value: 'Bridge', text: 'Bridge' },
+                        { value: 'Castle', text: 'Castle' },
+                        { value: 'Palace', text: 'Palace' },
+                        { value: 'Beach', text: 'Beach' },
+                        { value: 'Waterfront', text: 'Waterfront' },
+                        { value: 'Waterway', text: 'Waterway' },
+                        { value: 'Avenue', text: 'Avenue' },
                         { value: 'other', text: 'Other' }
                     ]
                 },
@@ -2725,38 +2811,34 @@
                 return;
             }
             
-            // Create edit form data
-            const editData = {
-                id: venue.id,
-                name: prompt('Edit venue name:', venue.name) || venue.name,
-                venue_type: prompt('Edit venue type:', venue.venue_type || '') || venue.venue_type,
-                address: prompt('Edit address:', venue.address || '') || venue.address,
-                description: prompt('Edit description:', venue.description || '') || venue.description,
-                opening_hours: prompt('Edit opening hours:', venue.opening_hours || '') || venue.opening_hours,
-                phone_number: prompt('Edit phone:', venue.phone_number || '') || venue.phone_number,
-                email: prompt('Edit email:', venue.email || '') || venue.email,
-                website_url: prompt('Edit website:', venue.website_url || '') || venue.website_url,
-                admission_fee: prompt('Edit admission fee:', venue.admission_fee || '') || venue.admission_fee
+            // Dynamic field mapping for venue edit form
+            const fieldMapping = {
+                'id': 'editVenueId',
+                'name': 'editVenueName',
+                'venue_type': 'editVenueType',
+                'address': 'editVenueAddress',
+                'description': 'editVenueDescription',
+                'opening_hours': 'editVenueHours',
+                'phone_number': 'editVenuePhone',
+                'email': 'editVenueEmail',
+                'website_url': 'editVenueWebsite',
+                'admission_fee': 'editVenueAdmission'
             };
             
-            // Send update request
-            fetch('/api/admin/edit-venue', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editData)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    alert('Venue updated successfully!');
-                    loadVenues(); // Reload data
-                } else {
-                    alert('Error: ' + result.error);
+            // Populate edit form dynamically
+            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
+                const element = document.getElementById(formField);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = venue[dataField] || false;
+                    } else {
+                        element.value = venue[dataField] || '';
+                    }
                 }
-            })
-            .catch(error => {
-                alert('Error updating venue: ' + error.message);
             });
+            
+            // Show the modal
+            document.getElementById('editVenueModal').style.display = 'block';
         }
         
         function deleteVenue(id) {
@@ -2821,35 +2903,31 @@
                 return;
             }
             
-            // Create edit form data
-            const editData = {
-                id: event.id,
-                title: prompt('Edit event title:', event.title) || event.title,
-                description: prompt('Edit description:', event.description || '') || event.description,
-                start_date: prompt('Edit start date (YYYY-MM-DD):', event.start_date) || event.start_date,
-                start_time: prompt('Edit start time (HH:MM):', event.start_time || '') || event.start_time,
-                end_time: prompt('Edit end time (HH:MM):', event.end_time || '') || event.end_time,
-                event_type: prompt('Edit event type:', event.event_type || '') || event.event_type
+            // Dynamic field mapping for event edit form
+            const fieldMapping = {
+                'id': 'editEventId',
+                'title': 'editEventTitle',
+                'description': 'editEventDescription',
+                'start_date': 'editEventStartDate',
+                'start_time': 'editEventStartTime',
+                'end_time': 'editEventEndTime',
+                'event_type': 'editEventType'
             };
             
-            // Send update request
-            fetch('/api/admin/edit-event', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editData)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    alert('Event updated successfully!');
-                    loadEvents(); // Reload data
-                } else {
-                    alert('Error: ' + result.error);
+            // Populate edit form dynamically
+            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
+                const element = document.getElementById(formField);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = event[dataField] || false;
+                    } else {
+                        element.value = event[dataField] || '';
+                    }
                 }
-            })
-            .catch(error => {
-                alert('Error updating event: ' + error.message);
             });
+            
+            // Show the modal
+            document.getElementById('editEventModal').style.display = 'block';
         }
         
         function deleteEvent(id) {
@@ -3367,21 +3445,49 @@
                 return;
             }
             
-            // Populate edit form
-            document.getElementById('editSourceId').value = source.id;
-            document.getElementById('editSourceName').value = source.name;
-            document.getElementById('editSourceHandle').value = source.handle;
-            document.getElementById('editSourceType').value = source.source_type;
-            document.getElementById('editSourceCity').value = source.city_id;
-            document.getElementById('editSourceUrl').value = source.url || '';
-            document.getElementById('editSourceDescription').value = source.description || '';
-            document.getElementById('editSourceReliability').value = source.reliability_score || 5;
-            document.getElementById('editSourceFrequency').value = source.posting_frequency || '';
-            document.getElementById('editSourceEventTypes').value = source.event_types ? JSON.parse(source.event_types).join(', ') : '';
-            document.getElementById('editSourceNotes').value = source.notes || '';
-            document.getElementById('editSourceScrapingPattern').value = source.scraping_pattern || '';
-            document.getElementById('editSourceActive').checked = source.is_active;
+            // Dynamic field mapping for source edit form
+            const fieldMapping = {
+                'id': 'editSourceId',
+                'name': 'editSourceName',
+                'handle': 'editSourceHandle',
+                'source_type': 'editSourceType',
+                'city_id': 'editSourceCity',
+                'url': 'editSourceUrl',
+                'description': 'editSourceDescription',
+                'reliability_score': 'editSourceReliability',
+                'posting_frequency': 'editSourceFrequency',
+                'notes': 'editSourceNotes',
+                'scraping_pattern': 'editSourceScrapingPattern',
+                'is_active': 'editSourceActive'
+            };
             
+            // Populate edit form dynamically
+            Object.entries(fieldMapping).forEach(([dataField, formField]) => {
+                const element = document.getElementById(formField);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = source[dataField] || false;
+                    } else {
+                        element.value = source[dataField] || '';
+                    }
+                }
+            });
+            
+            // Handle special case for event_types (JSON array to comma-separated string)
+            const eventTypesElement = document.getElementById('editSourceEventTypes');
+            if (eventTypesElement && source.event_types) {
+                try {
+                    const eventTypes = JSON.parse(source.event_types);
+                    eventTypesElement.value = Array.isArray(eventTypes) ? eventTypes.join(', ') : '';
+                } catch (e) {
+                    eventTypesElement.value = '';
+                }
+            }
+            
+            // Ensure city dropdown is populated before showing modal
+            loadCitiesForSourceModal();
+            
+            // Show the modal
             document.getElementById('editSourceModal').style.display = 'block';
         }
         
