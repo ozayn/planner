@@ -170,6 +170,38 @@
             margin-top: 8px;
         }
 
+        .price-filter-btn {
+            flex: 1;
+            padding: 4px 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .price-filter-btn:hover {
+            color: #6b7280;
+            border-color: #d1d5db;
+            background: #f9fafb;
+        }
+
+        .price-filter-btn.active {
+            border-color: #9ca3af;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .price-filter-btn .count {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-left: 4px;
+        }
+
         .checkbox-label {
             display: flex;
             align-items: center;
@@ -219,6 +251,29 @@
             cursor: not-allowed !important;
             transform: none !important;
             box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .clear-button {
+            flex: 0 0 auto;
+            padding: 4px 8px;
+            background: transparent;
+            color: #9ca3af;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .clear-button:hover {
+            color: #6b7280;
+            border-color: #d1d5db;
+            background: #f9fafb;
+        }
+
+        .discover-button {
+            flex: 1;
         }
 
 
@@ -734,52 +789,71 @@
                 </div>
 
                 <div class="form-group">
+                    <label>🗓️ When:</label>
+                    <select id="dateRangeSelect">
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="this_week" selected>This Week</option>
+                        <option value="next_week">Next Week</option>
+                        <option value="this_month">This Month</option>
+                        <option value="next_month">Next Month</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="customDateGroup" style="display: none;">
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="date" id="startDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <input type="date" id="endDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>Venue Types:</label>
                     <div class="venue-type-checkboxes">
                         <label class="checkbox-label">
                             <input type="checkbox" id="venueTypeMuseum" value="museum" checked>
-                            Museum
+                            Museums (62)
                         </label>
                         <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeGallery" value="gallery" checked>
-                            Gallery
+                            <input type="checkbox" id="venueTypeHistoric" value="historic_site,memorial,monument" checked>
+                            Historic & Monuments (32)
                         </label>
                         <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeCultural" value="cultural_center" checked>
-                            Cultural Center
+                            <input type="checkbox" id="venueTypeArts" value="arts_center,theater,concert_hall" checked>
+                            Arts & Culture (7)
                         </label>
                         <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeHistoric" value="historic_site" checked>
-                            Historic Site
+                            <input type="checkbox" id="venueTypeParks" value="park,garden,zoo,aquarium,beach" checked>
+                            Parks & Nature (12)
                         </label>
                         <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeOther" value="other" checked>
-                            Other
+                            <input type="checkbox" id="venueTypeOther" value="landmark,observation,government,library,market,religious_site,shopping,stadium,arts_district,waterfront" checked>
+                            Other Attractions (36)
                         </label>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Price Filter:</label>
-                    <div class="price-filter-checkboxes">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="priceFilterAll" value="all" checked>
-                            All Venues
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="priceFilterFree" value="free">
-                            🆓 Free Only
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="priceFilterPaid" value="paid">
-                            💰 Paid Only
-                        </label>
+                    <label>Price:</label>
+                    <div class="price-filter-buttons" style="display: flex; gap: 6px; margin-top: 8px;">
+                        <button type="button" class="price-filter-btn active" data-filter="free" title="Free venues only">
+                            🆓 <span class="count" id="countFree"></span>
+                        </button>
+                        <button type="button" class="price-filter-btn active" data-filter="paid" title="Paid venues only">
+                            💰 <span class="count" id="countPaid"></span>
+                        </button>
                     </div>
                 </div>
 
-                <button id="loadVenuesButton" class="discover-button" title="Load Available Venues">
-                    📋
-                </button>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button id="clearFiltersButton" class="clear-button" title="Reset All Filters">
+                        🔄 Reset
+                    </button>
+                    <button id="loadVenuesButton" class="discover-button" title="Load Available Venues">
+                        📋 Load Venues
+                    </button>
+                </div>
 
 
                 <!-- Progress Section -->
@@ -958,8 +1032,14 @@
             citySelect.addEventListener('change', updateStatus);
             eventTypeSelect.addEventListener('change', updateStatus);
             
-            // Add price filter event listeners
-            setupPriceFilterListeners();
+            // Add enhanced filter event listeners
+            setupEnhancedFilterListeners();
+            
+            // Add clear filters button
+            document.getElementById('clearFiltersButton').addEventListener('click', clearAllFilters);
+            
+            // Add date range filter listener
+            document.getElementById('dateRangeSelect').addEventListener('change', handleDateRangeChange);
         }
 
         // Update status display
@@ -975,42 +1055,188 @@
         function getSelectedVenueTypes() {
             const venueTypeCheckboxes = [
                 'venueTypeMuseum',
-                'venueTypeGallery', 
-                'venueTypeCultural',
-                'venueTypeHistoric',
+                'venueTypeHistoric', 
+                'venueTypeArts',
+                'venueTypeParks',
                 'venueTypeOther'
             ];
             
-            return venueTypeCheckboxes
-                .map(id => document.getElementById(id))
-                .filter(checkbox => checkbox.checked)
-                .map(checkbox => checkbox.value);
+            const selectedTypes = [];
+            
+            venueTypeCheckboxes.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox && checkbox.checked) {
+                    // Split comma-separated values and add to array
+                    const types = checkbox.value.split(',');
+                    selectedTypes.push(...types);
+                }
+            });
+            
+            return selectedTypes;
         }
 
-        // Setup price filter event listeners
-        function setupPriceFilterListeners() {
-            const priceFilters = ['priceFilterAll', 'priceFilterFree', 'priceFilterPaid'];
-            
-            priceFilters.forEach(filterId => {
-                document.getElementById(filterId).addEventListener('change', function() {
-                    if (this.checked) {
-                        // Uncheck other price filters
-                        priceFilters.forEach(otherId => {
-                            if (otherId !== filterId) {
-                                document.getElementById(otherId).checked = false;
-                            }
-                        });
+        // Setup enhanced filter event listeners
+        function setupEnhancedFilterListeners() {
+            // Price filter buttons (allow multiple selections)
+            const priceFilterBtns = document.querySelectorAll('.price-filter-btn');
+            priceFilterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Toggle active class on clicked button
+                    this.classList.toggle('active');
+                    
+                    // Ensure at least one is always selected
+                    const activeBtns = document.querySelectorAll('.price-filter-btn.active');
+                    if (activeBtns.length === 0) {
+                        // If none selected, select both (default state)
+                        priceFilterBtns.forEach(b => b.classList.add('active'));
+                    }
+                    
+                    // Update venue counts if venues are loaded
+                    if (allVenues.length > 0) {
+                        updateVenueCounts();
+                        filterAndDisplayVenues();
+                    }
+                });
+            });
+
+            // Venue type checkboxes
+            const venueTypeCheckboxes = document.querySelectorAll('.venue-type-checkboxes input[type="checkbox"]');
+            venueTypeCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (allVenues.length > 0) {
+                        updateVenueCounts();
+                        filterAndDisplayVenues();
                     }
                 });
             });
         }
 
-        // Get selected price filter
-        function getSelectedPriceFilter() {
-            if (document.getElementById('priceFilterAll').checked) return 'all';
-            if (document.getElementById('priceFilterFree').checked) return 'free';
-            if (document.getElementById('priceFilterPaid').checked) return 'paid';
-            return 'all'; // Default to all
+        // Get selected price filters (can be multiple)
+        function getSelectedPriceFilters() {
+            const activeBtns = document.querySelectorAll('.price-filter-btn.active');
+            return Array.from(activeBtns).map(btn => btn.dataset.filter);
+        }
+
+        // Update venue counts in filter buttons
+        function updateVenueCounts() {
+            if (!allVenues || allVenues.length === 0) return;
+            
+            const selectedVenueTypes = getSelectedVenueTypes();
+            const filteredByType = allVenues.filter(venue => 
+                selectedVenueTypes.includes(venue.venue_type)
+            );
+            
+            const freeVenues = filteredByType.filter(venue => isVenueFree(venue));
+            const paidVenues = filteredByType.filter(venue => !isVenueFree(venue));
+            
+            document.getElementById('countFree').textContent = freeVenues.length > 0 ? freeVenues.length : '';
+            document.getElementById('countPaid').textContent = paidVenues.length > 0 ? paidVenues.length : '';
+        }
+
+        // Filter and display venues based on current filters
+        function filterAndDisplayVenues() {
+            if (!allVenues || allVenues.length === 0) return;
+            
+            const selectedVenueTypes = getSelectedVenueTypes();
+            const priceFilters = getSelectedPriceFilters();
+            
+            let filteredVenues = allVenues.filter(venue => 
+                selectedVenueTypes.includes(venue.venue_type)
+            );
+            
+            // Apply price filter - include venues that match any selected price type
+            if (priceFilters.length > 0 && priceFilters.length < 2) {
+                // Only filter if not all price types are selected
+                filteredVenues = filteredVenues.filter(venue => {
+                    const isFree = isVenueFree(venue);
+                    return (priceFilters.includes('free') && isFree) || 
+                           (priceFilters.includes('paid') && !isFree);
+                });
+            }
+            // If both free and paid are selected (or none), show all venues (no price filtering)
+            
+            // Update selected venues
+            selectedVenues.clear();
+            filteredVenues.forEach(venue => selectedVenues.add(venue.id));
+            
+            // Update status and display
+            statusVenues.textContent = filteredVenues.length;
+            statusSelected.textContent = selectedVenues.size;
+            displayVenues(filteredVenues);
+        }
+
+        // Clear all filters and reset to defaults
+        function clearAllFilters() {
+            // Reset city selection
+            citySelect.value = '';
+            
+            // Reset event type to tours
+            eventTypeSelect.value = 'tour';
+            
+            // Reset date range to this week
+            document.getElementById('dateRangeSelect').value = 'this_week';
+            document.getElementById('customDateGroup').style.display = 'none';
+            
+            // Reset venue type checkboxes (all checked)
+            const venueTypeCheckboxes = document.querySelectorAll('.venue-type-checkboxes input[type="checkbox"]');
+            venueTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
+            
+            // Reset price filter to both selected (default)
+            document.querySelectorAll('.price-filter-btn').forEach(btn => btn.classList.add('active'));
+            
+            // Clear venues and events
+            allVenues = [];
+            allEvents = [];
+            selectedVenues.clear();
+            selectedEvents.clear();
+            
+            // Reset displays
+            venuesContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <h3>Ready to Load Venues!</h3>
+                    <p>Select a city and event type, then click "Load Available Venues" to see all venues in our database that offer the events you're looking for.</p>
+                </div>
+            `;
+            
+            eventsContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🗓️</div>
+                    <h3>No Events Yet</h3>
+                    <p>Discover venues first, then scrape events from the selected venues.</p>
+                </div>
+            `;
+            
+            // Update status
+            updateStatus();
+            updateProgress(0, 'Ready to discover venues...');
+            
+            // Reset button states
+            loadVenuesButton.disabled = false;
+            scrapeButton.disabled = true;
+            exportSelectedBtn.disabled = true;
+            exportAllBtn.disabled = true;
+            
+            showNotification('Filters cleared and reset to defaults', 'success');
+        }
+
+        // Handle date range selection
+        function handleDateRangeChange() {
+            const dateRange = document.getElementById('dateRangeSelect').value;
+            const customDateGroup = document.getElementById('customDateGroup');
+            
+            if (dateRange === 'custom') {
+                customDateGroup.style.display = 'block';
+                // Set default dates (today to next week)
+                const today = new Date();
+                const nextWeek = new Date(today);
+                nextWeek.setDate(today.getDate() + 7);
+                
+                document.getElementById('startDate').value = today.toISOString().split('T')[0];
+                document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
+            } else {
+                customDateGroup.style.display = 'none';
+            }
         }
 
         // Handle load venues button click
@@ -1050,30 +1276,18 @@
                 const venues = await response.json();
                 updateProgress(80, 'Processing venues...');
 
-                // Apply price filter
-                const priceFilter = getSelectedPriceFilter();
-                let filteredVenues = venues || [];
-                
-                if (priceFilter !== 'all') {
-                    filteredVenues = venues.filter(venue => {
-                        const isFree = isVenueFree(venue);
-                        return priceFilter === 'free' ? isFree : !isFree;
-                    });
-                }
+                // Store all venues (no initial price filtering needed)
+                // The filterAndDisplayVenues function will handle all filtering
 
-                // Load and display venues
-                allVenues = filteredVenues;
+                // Store all venues and update counts
+                allVenues = venues || [];
                 selectedVenues.clear();
                 
-                // Select all venues by default
-                allVenues.forEach(venue => selectedVenues.add(venue.id));
+                // Update venue counts in filter buttons
+                updateVenueCounts();
                 
-                // Update status
-                statusVenues.textContent = allVenues.length;
-                statusSelected.textContent = selectedVenues.size;
-                
-                // Display venues
-                displayVenues(allVenues);
+                // Apply current filters and display
+                filterAndDisplayVenues();
                 
                 // Enable scrape button
                 scrapeButton.disabled = allVenues.length === 0;
