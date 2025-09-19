@@ -88,61 +88,53 @@ def load_venues_data():
                 print(f"✅ Venues already loaded ({existing_venues} venues)")
                 return True
             
+            venues_data = data.get('venues', {})
+            if not venues_data:
+                print("❌ No venues data found in JSON file")
+                return False
+            
             venues_added = 0
-            for city_id, city_data in data.items():
-                if not isinstance(city_data, dict) or 'venues' not in city_data:
+            for venue_id, venue_data in venues_data.items():
+                try:
+                    # Handle image_url - keep as string if it's already processed
+                    image_url = venue_data.get('image_url', '')
+                    if isinstance(image_url, dict):
+                        # If it's still a photo reference dict, convert to placeholder
+                        image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
+                    
+                    # Create new venue
+                    venue = Venue(
+                        id=int(venue_id),  # Use the JSON venue ID
+                        name=venue_data.get('name', ''),
+                        venue_type=venue_data.get('venue_type', 'museum'),
+                        address=venue_data.get('address', ''),
+                        latitude=venue_data.get('latitude'),
+                        longitude=venue_data.get('longitude'),
+                        image_url=image_url,
+                        instagram_url=venue_data.get('instagram_url', ''),
+                        facebook_url=venue_data.get('facebook_url', ''),
+                        twitter_url=venue_data.get('twitter_url', ''),
+                        youtube_url=venue_data.get('youtube_url', ''),
+                        tiktok_url=venue_data.get('tiktok_url', ''),
+                        website_url=venue_data.get('website_url', ''),
+                        description=venue_data.get('description', ''),
+                        city_id=venue_data.get('city_id', 1),
+                        opening_hours=venue_data.get('opening_hours', ''),
+                        holiday_hours=venue_data.get('holiday_hours', ''),
+                        phone_number=venue_data.get('phone_number', ''),
+                        email=venue_data.get('email', ''),
+                        tour_info=venue_data.get('tour_info', ''),
+                        admission_fee=venue_data.get('admission_fee', ''),
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    db.session.add(venue)
+                    venues_added += 1
+                    
+                except Exception as e:
+                    print(f"    ⚠️  Error adding venue {venue_data.get('name', 'Unknown')}: {e}")
                     continue
-                
-                city_name = city_data.get('name', 'Unknown')
-                venues = city_data.get('venues', [])
-                
-                print(f"  📍 Processing {city_name} ({len(venues)} venues)")
-                
-                for venue_data in venues:
-                    try:
-                        # Handle image_url - convert photo reference to Google Maps URL
-                        image_url = None
-                        if venue_data.get('image_url'):
-                            if isinstance(venue_data['image_url'], dict):
-                                photo_ref = venue_data['image_url'].get('photo_reference')
-                                if photo_ref:
-                                    # Note: In Railway, we'll need to add the API key
-                                    image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference={photo_ref}"
-                            else:
-                                image_url = venue_data['image_url']
-                        
-                        # Create new venue
-                        venue = Venue(
-                            name=venue_data.get('name', ''),
-                            venue_type=venue_data.get('venue_type', 'museum'),
-                            address=venue_data.get('address', ''),
-                            latitude=venue_data.get('latitude'),
-                            longitude=venue_data.get('longitude'),
-                            image_url=image_url,
-                            instagram_url=venue_data.get('instagram_url', ''),
-                            facebook_url=venue_data.get('facebook_url', ''),
-                            twitter_url=venue_data.get('twitter_url', ''),
-                            youtube_url=venue_data.get('youtube_url', ''),
-                            tiktok_url=venue_data.get('tiktok_url', ''),
-                            website_url=venue_data.get('website_url', ''),
-                            description=venue_data.get('description', ''),
-                            city_id=int(city_id),
-                            opening_hours=venue_data.get('opening_hours', ''),
-                            holiday_hours=venue_data.get('holiday_hours', ''),
-                            phone_number=venue_data.get('phone_number', ''),
-                            email=venue_data.get('email', ''),
-                            tour_info=venue_data.get('tour_info', ''),
-                            admission_fee=venue_data.get('admission_fee', ''),
-                            created_at=datetime.utcnow(),
-                            updated_at=datetime.utcnow()
-                        )
-                        
-                        db.session.add(venue)
-                        venues_added += 1
-                        
-                    except Exception as e:
-                        print(f"    ⚠️  Error adding venue {venue_data.get('name', 'Unknown')}: {e}")
-                        continue
             
             db.session.commit()
             print(f"✅ Successfully loaded {venues_added} venues for Railway")
@@ -172,49 +164,46 @@ def load_sources_data():
                 print(f"✅ Sources already loaded ({existing_sources} sources)")
                 return True
             
+            sources_data = data.get('sources', {})
+            if not sources_data:
+                print("❌ No sources data found in JSON file")
+                return False
+            
             sources_added = 0
-            for city_id, city_data in data.items():
-                if not isinstance(city_data, dict) or 'sources' not in city_data:
+            for source_id, source_data in sources_data.items():
+                try:
+                    # Handle list fields (convert to JSON string for database)
+                    event_types = source_data.get('event_types', [])
+                    if isinstance(event_types, list):
+                        event_types = json.dumps(event_types)
+                    
+                    covered_cities = source_data.get('covered_cities')
+                    if isinstance(covered_cities, list):
+                        covered_cities = json.dumps(covered_cities)
+                    
+                    # Create new source
+                    source = Source(
+                        id=int(source_id),  # Use the JSON source ID
+                        name=source_data.get('name', ''),
+                        handle=source_data.get('handle', ''),
+                        source_type=source_data.get('source_type', 'website'),
+                        url=source_data.get('url', ''),
+                        description=source_data.get('description', ''),
+                        city_id=source_data.get('city_id', 1),
+                        covers_multiple_cities=source_data.get('covers_multiple_cities', False),
+                        covered_cities=covered_cities,
+                        event_types=event_types,
+                        is_active=source_data.get('is_active', True),
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    db.session.add(source)
+                    sources_added += 1
+                    
+                except Exception as e:
+                    print(f"    ⚠️  Error adding source {source_data.get('name', 'Unknown')}: {e}")
                     continue
-                
-                city_name = city_data.get('name', 'Unknown')
-                sources = city_data.get('sources', [])
-                
-                print(f"  📍 Processing {city_name} ({len(sources)} sources)")
-                
-                for source_data in sources:
-                    try:
-                        # Handle list fields (convert to JSON string for database)
-                        event_types = source_data.get('event_types', [])
-                        if isinstance(event_types, list):
-                            event_types = json.dumps(event_types)
-                        
-                        covered_cities = source_data.get('covered_cities')
-                        if isinstance(covered_cities, list):
-                            covered_cities = json.dumps(covered_cities)
-                        
-                        # Create new source
-                        source = Source(
-                            name=source_data.get('name', ''),
-                            handle=source_data.get('handle', ''),
-                            source_type=source_data.get('source_type', 'website'),
-                            url=source_data.get('url', ''),
-                            description=source_data.get('description', ''),
-                            city_id=int(city_id),
-                            covers_multiple_cities=source_data.get('covers_multiple_cities', False),
-                            covered_cities=covered_cities,
-                            event_types=event_types,
-                            is_active=source_data.get('is_active', True),
-                            created_at=datetime.utcnow(),
-                            updated_at=datetime.utcnow()
-                        )
-                        
-                        db.session.add(source)
-                        sources_added += 1
-                        
-                    except Exception as e:
-                        print(f"    ⚠️  Error adding source {source_data.get('name', 'Unknown')}: {e}")
-                        continue
             
             db.session.commit()
             print(f"✅ Successfully loaded {sources_added} sources for Railway")
