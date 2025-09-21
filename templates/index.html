@@ -9,7 +9,7 @@
     <title>Planner</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Cache bust: v2.2 - Enhanced UI/UX - 2025-01-21 */
+        /* Cache bust: v2.3 - Fixed date filtering - 2025-09-21 */
         * {
             margin: 0;
             padding: 0;
@@ -403,6 +403,35 @@
             text-overflow: ellipsis;
         }
 
+        .panel-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .panel-tab {
+            padding: 8px 16px;
+            border: 1px solid rgba(0,0,0,0.23);
+            border-radius: 4px;
+            background: transparent;
+            color: rgba(0,0,0,0.6);
+            font-size: 0.9rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .panel-tab:hover {
+            color: rgba(0,0,0,0.87);
+            border-color: rgba(25, 118, 210, 0.3);
+            background: rgba(25, 118, 210, 0.08);
+        }
+
+        .panel-tab.active {
+            background: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+
         .scrape-button {
             padding: 8px 12px !important;
             background: #ff8c42 !important;
@@ -550,6 +579,82 @@
         .venue-links a:hover {
             color: #1976d2;
             background: rgba(25, 118, 210, 0.08);
+        }
+
+        .sources-container {
+            margin-top: 8px;
+        }
+
+        .sources-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(0,0,0,0.23);
+            border-radius: 6px;
+            padding: 8px;
+            background: #ffffff;
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .source-item:hover {
+            background: rgba(0,0,0,0.04);
+        }
+
+        .source-item input[type="checkbox"] {
+            margin-right: 8px;
+            accent-color: #ff8c42;
+        }
+
+        .source-info {
+            flex: 1;
+        }
+
+        .source-name {
+            font-weight: 500;
+            color: #2d3748;
+            font-size: 0.9rem;
+        }
+
+        .source-handle {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+
+        .source-type {
+            color: #ff8c42;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .source-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .source-control-btn {
+            padding: 6px 12px;
+            border: 1px solid rgba(255, 140, 66, 0.2);
+            background: rgba(255, 140, 66, 0.1);
+            color: #ff8c42;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .source-control-btn:hover {
+            background: rgba(255, 140, 66, 0.15);
+            border-color: rgba(255, 140, 66, 0.3);
         }
 
         .events-panel {
@@ -919,6 +1024,80 @@
                             Other Attractions
                         </label>
                     </div>
+                    <div class="venue-controls" style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button type="button" id="selectAllVenues" class="source-control-btn">Select All</button>
+                        <button type="button" id="deselectAllVenues" class="source-control-btn">Deselect All</button>
+                    </div>
+                </div>
+
+                <!-- Source Platform Types -->
+                <div class="form-group">
+                    <label>📱 Source Platforms:</label>
+                    <div class="venue-type-checkboxes">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="platformTypeInstagram" value="instagram" checked>
+                            Instagram
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="platformTypeFacebook" value="facebook" checked>
+                            Facebook
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="platformTypeWebsite" value="website" checked>
+                            Websites
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="platformTypeMeetup" value="meetup" checked>
+                            Meetup
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="platformTypeEventbrite" value="eventbrite" checked>
+                            Eventbrite
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="platformTypeOther" value="twitter,tiktok,youtube,newsletter" checked>
+                            Other Platforms
+                        </label>
+                    </div>
+                    <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button type="button" id="selectAllPlatforms" class="source-control-btn">Select All</button>
+                        <button type="button" id="deselectAllPlatforms" class="source-control-btn">Deselect All</button>
+                    </div>
+                </div>
+
+                <!-- Source Content Types -->
+                <div class="form-group">
+                    <label>🎯 Source Content Types:</label>
+                    <div class="venue-type-checkboxes">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="contentTypeArts" value="art_exhibitions,cultural_events,gallery_openings,artist_showcases,visual_arts" checked>
+                            Arts & Culture
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="contentTypeMusic" value="music,concerts,theater,dance,performances" checked>
+                            Music & Performance
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="contentTypePhoto" value="photography,photography_workshops,photography_education,street_photography,photowalks,art_walks" checked>
+                            Photography
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="contentTypeEvents" value="festivals,community_events,free_events,local_news" checked>
+                            Events & Festivals
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="contentTypeFood" value="food_events,culinary,restaurants" checked>
+                            Food & Dining
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="contentTypeOther" value="nightlife,political_events,lectures,workshops,language_classes,film_screenings,family_events,outdoor_events" checked>
+                            Other Content
+                        </label>
+                    </div>
+                    <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button type="button" id="selectAllContent" class="source-control-btn">Select All</button>
+                        <button type="button" id="deselectAllContent" class="source-control-btn">Deselect All</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -937,8 +1116,8 @@
                     <button id="clearFiltersButton" class="clear-button" title="Reset All Filters">
                         🔄 Reset
                     </button>
-                    <button id="loadVenuesButton" class="discover-button" title="Load Available Venues">
-                        📋 Load Venues
+                    <button id="loadVenuesButton" class="discover-button" title="Discover Available Items">
+                        🔍 Discover
                     </button>
                 </div>
 
@@ -975,6 +1154,22 @@
                             <input type="date" id="endDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
                         </div>
                     </div>
+
+                    <!-- Sources Selection (for non-venue events) -->
+                    <div id="sourcesSelection" style="display: none;">
+                        <div class="form-group">
+                            <label>📱 Event Sources:</label>
+                            <div class="sources-container">
+                                <div id="sourcesList" class="sources-list">
+                                    <!-- Sources will be loaded here -->
+                                </div>
+                                <div class="source-controls">
+                                    <button type="button" id="selectAllSources" class="source-control-btn">Select All</button>
+                                    <button type="button" id="deselectAllSources" class="source-control-btn">Deselect All</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
 
@@ -983,7 +1178,7 @@
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
-                    <div class="progress-text" id="progressText">Ready to discover venues...</div>
+                    <div class="progress-text" id="progressText">Ready to discover...</div>
                 </div>
 
                 <!-- Status Section -->
@@ -997,8 +1192,28 @@
                         <span class="status-value" id="statusEventType">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Venues Found:</span>
-                        <span class="status-value" id="statusVenues">-</span>
+                        <span class="status-label">Date Range:</span>
+                        <span class="status-value" id="statusDateRange">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Venue Types:</span>
+                        <span class="status-value" id="statusVenueTypes">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Source Platforms:</span>
+                        <span class="status-value" id="statusPlatforms">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Content Types:</span>
+                        <span class="status-value" id="statusContentTypes">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Price Filter:</span>
+                        <span class="status-value" id="statusPriceFilter">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Items Found:</span>
+                        <span class="status-value" id="statusItemsFound">-</span>
                     </div>
                     <div class="status-item">
                         <span class="status-label">Selected:</span>
@@ -1007,20 +1222,23 @@
                 </div>
             </div>
 
-            <!-- Venues Panel -->
+            <!-- Venues & Sources Panel -->
             <div class="venues-panel">
                 <div class="venues-header">
-                    <h2>🏛️</h2>
-                    <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Venues">
+                    <div class="panel-tabs">
+                        <button id="venuesTab" class="panel-tab active" data-panel="venues">🏛️ Venues</button>
+                        <button id="sourcesTab" class="panel-tab" data-panel="sources">📱 Sources</button>
+                    </div>
+                    <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Items">
                         🚀
                     </button>
                 </div>
 
                 <div id="venuesContainer">
                     <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <h3>Ready to Load Venues!</h3>
-                        <p>Select a city and event type, then click "Load Available Venues" to see all venues in our database that offer the events you're looking for.</p>
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>Ready to Discover!</h3>
+                        <p>Select a city and configure your filters, then click "Discover" to find venues and sources that match your preferences.</p>
                     </div>
                 </div>
             </div>
@@ -1059,14 +1277,21 @@
         let selectedVenues = new Set();
         let allEvents = [];
         let selectedEvents = new Set();
+        let allSources = [];
+        let selectedSources = new Set();
         let currentCity = null;
         let currentEventType = null;
+        let currentPanel = 'venues'; // Track which panel is active
 
         // DOM elements
         const citySelect = document.getElementById('citySelect');
         const eventTypeSelect = document.getElementById('eventTypeSelect');
         const eventTypeSelectStep2 = document.getElementById('eventTypeSelectStep2');
         const eventPlanningSelection = document.getElementById('eventPlanningSelection');
+        const sourcesSelection = document.getElementById('sourcesSelection');
+        const sourcesList = document.getElementById('sourcesList');
+        const sourcesSelectionEarly = document.getElementById('sourcesSelectionEarly');
+        const sourcesListEarly = document.getElementById('sourcesListEarly');
         const loadVenuesButton = document.getElementById('loadVenuesButton');
         const scrapeButton = document.getElementById('scrapeButton');
         const progressFill = document.getElementById('progressFill');
@@ -1081,14 +1306,47 @@
         // Status elements
         const statusCity = document.getElementById('statusCity');
         const statusEventType = document.getElementById('statusEventType');
-        const statusVenues = document.getElementById('statusVenues');
+        const statusDateRange = document.getElementById('statusDateRange');
+        const statusVenueTypes = document.getElementById('statusVenueTypes');
+        const statusPlatforms = document.getElementById('statusPlatforms');
+        const statusContentTypes = document.getElementById('statusContentTypes');
+        const statusPriceFilter = document.getElementById('statusPriceFilter');
+        const statusItemsFound = document.getElementById('statusItemsFound');
         const statusSelected = document.getElementById('statusSelected');
+
+        // Switch between venues and sources panel
+        function switchPanel(panelType) {
+            currentPanel = panelType;
+            
+            // Update tab active states
+            document.getElementById('venuesTab').classList.toggle('active', panelType === 'venues');
+            document.getElementById('sourcesTab').classList.toggle('active', panelType === 'sources');
+            
+            // Update scrape button text
+            const scrapeButton = document.getElementById('scrapeButton');
+            scrapeButton.title = panelType === 'venues' ? 'Scrape Selected Venues' : 'Scrape Selected Sources';
+            
+            // Show appropriate content based on current data
+            if (panelType === 'venues') {
+                displayVenues(allVenues);
+            } else {
+                displaySources(allSources);
+            }
+        }
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             loadCities();
             loadRealTimeStats();
             setupEventListeners();
+            
+            // Initially hide source type controls until city is selected
+            const platformLabel = document.querySelector('label[for="platformTypeInstagram"]');
+            const contentLabel = document.querySelector('label[for="contentTypeArts"]');
+            const platformGroup = platformLabel ? platformLabel.closest('.form-group') : null;
+            const contentGroup = contentLabel ? contentLabel.closest('.form-group') : null;
+            if (platformGroup) platformGroup.style.display = 'none';
+            if (contentGroup) contentGroup.style.display = 'none';
         });
 
         // Load cities from API
@@ -1145,6 +1403,31 @@
             }
         }
 
+        // Setup source type filter event listeners
+        function setupSourceTypeFilterListeners() {
+            // Platform type checkboxes
+            const platformTypeCheckboxes = document.querySelectorAll('[id^="platformType"]');
+            platformTypeCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (allSources.length > 0 && currentPanel === 'sources') {
+                        displaySources(allSources);
+                    }
+                    updateStatus();
+                });
+            });
+
+            // Content type checkboxes
+            const contentTypeCheckboxes = document.querySelectorAll('[id^="contentType"]');
+            contentTypeCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (allSources.length > 0 && currentPanel === 'sources') {
+                        displaySources(allSources);
+                    }
+                    updateStatus();
+                });
+            });
+        }
+
         // Setup event listeners
         function setupEventListeners() {
             loadVenuesButton.addEventListener('click', handleLoadVenues);
@@ -1153,18 +1436,77 @@
             exportAllBtn.addEventListener('click', exportAllEvents);
             
             // Update status when selections change
-            citySelect.addEventListener('change', updateStatus);
+            citySelect.addEventListener('change', function() {
+                updateStatus();
+                handleCitySelection();
+            });
             eventTypeSelect.addEventListener('change', updateStatus);
             eventTypeSelectStep2.addEventListener('change', updateStatus);
             
             // Add enhanced filter event listeners
             setupEnhancedFilterListeners();
             
+            // Add source type filter listeners
+            setupSourceTypeFilterListeners();
+            
             // Add clear filters button
             document.getElementById('clearFiltersButton').addEventListener('click', clearAllFilters);
             
             // Add date range filter listener
             document.getElementById('dateRangeSelect').addEventListener('change', handleDateRangeChange);
+            
+            // Add event type change listener to show/hide sources
+            eventTypeSelectStep2.addEventListener('change', handleEventTypeChange);
+            
+            // Add source control listeners
+            document.getElementById('selectAllSources').addEventListener('click', selectAllSources);
+            document.getElementById('deselectAllSources').addEventListener('click', deselectAllSources);
+            
+            // Add venue control listeners
+            document.getElementById('selectAllVenues').addEventListener('click', selectAllVenueTypes);
+            document.getElementById('deselectAllVenues').addEventListener('click', deselectAllVenueTypes);
+            
+            // Add platform type control listeners
+            document.getElementById('selectAllPlatforms').addEventListener('click', selectAllPlatformTypes);
+            document.getElementById('deselectAllPlatforms').addEventListener('click', deselectAllPlatformTypes);
+            
+            // Add content type control listeners
+            document.getElementById('selectAllContent').addEventListener('click', selectAllContentTypes);
+            document.getElementById('deselectAllContent').addEventListener('click', deselectAllContentTypes);
+            
+            // Add panel tab listeners
+            document.getElementById('venuesTab').addEventListener('click', () => switchPanel('venues'));
+            document.getElementById('sourcesTab').addEventListener('click', () => switchPanel('sources'));
+        }
+
+        // Handle city selection - show/hide source type controls and load sources
+        async function handleCitySelection() {
+            const cityId = citySelect.value;
+            const platformLabel = document.querySelector('label[for="platformTypeInstagram"]');
+            const contentLabel = document.querySelector('label[for="contentTypeArts"]');
+            
+            const platformGroup = platformLabel ? platformLabel.closest('.form-group') : null;
+            const contentGroup = contentLabel ? contentLabel.closest('.form-group') : null;
+            
+            if (cityId) {
+                // Show source type controls when city is selected
+                if (platformGroup) platformGroup.style.display = 'block';
+                if (contentGroup) contentGroup.style.display = 'block';
+                
+                // Load sources for this city
+                await loadSourcesForCity(cityId);
+            } else {
+                // Hide source type controls when no city selected
+                if (platformGroup) platformGroup.style.display = 'none';
+                if (contentGroup) contentGroup.style.display = 'none';
+                allSources = [];
+                selectedSources.clear();
+                
+                // Clear sources display if on sources tab
+                if (currentPanel === 'sources') {
+                    displaySources([]);
+                }
+            }
         }
 
         // Update status display
@@ -1172,8 +1514,52 @@
             currentCity = citySelect.options[citySelect.selectedIndex]?.textContent || '-';
             currentEventType = eventTypeSelectStep2.value || eventTypeSelect.value || '-';
             
+            // Basic info
             statusCity.textContent = currentCity;
             statusEventType.textContent = currentEventType;
+            
+            // Date range
+            const dateRange = document.getElementById('dateRangeSelect').value;
+            const dateRangeText = {
+                'today': 'Today',
+                'tomorrow': 'Tomorrow', 
+                'this_week': 'This Week',
+                'next_week': 'Next Week',
+                'this_month': 'This Month',
+                'next_month': 'Next Month',
+                'custom': 'Custom Range'
+            };
+            statusDateRange.textContent = dateRangeText[dateRange] || '-';
+            
+            // Venue types
+            const selectedVenueTypes = getSelectedVenueTypes();
+            statusVenueTypes.textContent = selectedVenueTypes.length > 0 ? `${selectedVenueTypes.length} types` : '-';
+            
+            // Platform types
+            const selectedPlatformTypes = getSelectedPlatformTypes();
+            statusPlatforms.textContent = selectedPlatformTypes.length > 0 ? `${selectedPlatformTypes.length} platforms` : '-';
+            
+            // Content types  
+            const selectedContentTypes = getSelectedContentTypes();
+            statusContentTypes.textContent = selectedContentTypes.length > 0 ? `${selectedContentTypes.length} content types` : '-';
+            
+            // Price filter
+            const selectedPriceFilters = getSelectedPriceFilters();
+            if (selectedPriceFilters.length === 2) {
+                statusPriceFilter.textContent = 'Free & Paid';
+            } else if (selectedPriceFilters.includes('free')) {
+                statusPriceFilter.textContent = 'Free Only';
+            } else if (selectedPriceFilters.includes('paid')) {
+                statusPriceFilter.textContent = 'Paid Only';
+            } else {
+                statusPriceFilter.textContent = '-';
+            }
+            
+            // Items found (will be updated when venues/sources are loaded)
+            statusItemsFound.textContent = allVenues.length > 0 ? `${allVenues.length} items` : '-';
+            
+            // Selected count
+            statusSelected.textContent = selectedVenues.size > 0 ? selectedVenues.size : '-';
         }
 
         // Get selected venue types
@@ -1286,7 +1672,7 @@
             filteredVenues.forEach(venue => selectedVenues.add(venue.id));
             
             // Update status and display
-            statusVenues.textContent = filteredVenues.length;
+            statusItemsFound.textContent = filteredVenues.length > 0 ? `${filteredVenues.length} items` : '-';
             statusSelected.textContent = selectedVenues.size;
             displayVenues(filteredVenues);
             
@@ -1298,6 +1684,14 @@
         function clearAllFilters() {
             // Reset city selection
             citySelect.value = '';
+            
+            // Hide source type controls
+            const platformLabel = document.querySelector('label[for="platformTypeInstagram"]');
+            const contentLabel = document.querySelector('label[for="contentTypeArts"]');
+            const platformGroup = platformLabel ? platformLabel.closest('.form-group') : null;
+            const contentGroup = contentLabel ? contentLabel.closest('.form-group') : null;
+            if (platformGroup) platformGroup.style.display = 'none';
+            if (contentGroup) contentGroup.style.display = 'none';
             
             // Reset event type selections
             eventTypeSelect.value = 'tour';
@@ -1312,14 +1706,24 @@
             const venueTypeCheckboxes = document.querySelectorAll('.venue-type-checkboxes input[type="checkbox"]');
             venueTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
             
+            // Reset platform type checkboxes (all checked)
+            const platformTypeCheckboxes = document.querySelectorAll('[id^="platformType"] input[type="checkbox"]');
+            platformTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
+            
+            // Reset content type checkboxes (all checked)
+            const contentTypeCheckboxes = document.querySelectorAll('[id^="contentType"] input[type="checkbox"]');
+            contentTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
+            
             // Reset price filter to both selected (default)
             document.querySelectorAll('.price-filter-btn').forEach(btn => btn.classList.add('active'));
             
-            // Clear venues and events
+            // Clear venues, events, and sources
             allVenues = [];
             allEvents = [];
+            allSources = [];
             selectedVenues.clear();
             selectedEvents.clear();
+            selectedSources.clear();
             
             // Reset displays
             venuesContainer.innerHTML = `
@@ -1340,7 +1744,7 @@
             
             // Update status
             updateStatus();
-            updateProgress(0, 'Ready to discover venues...');
+            updateProgress(0, 'Ready to discover...');
             
             // Reset button states
             loadVenuesButton.disabled = false;
@@ -1349,6 +1753,506 @@
             exportAllBtn.disabled = true;
             
             showNotification('Filters cleared and reset to defaults', 'success');
+        }
+
+        // Handle event type change to show/hide sources selection
+        function handleEventTypeChange() {
+            const eventType = eventTypeSelectStep2.value;
+            const sourcesSelection = document.getElementById('sourcesSelection');
+            
+            // Show sources for non-venue-dependent events
+            if (eventType === 'photowalk' || eventType === 'festival') {
+                sourcesSelection.style.display = 'block';
+                loadSources();
+            } else {
+                sourcesSelection.style.display = 'none';
+                selectedSources.clear();
+            }
+        }
+
+        // Load sources for the selected city
+        async function loadSources() {
+            const cityId = citySelect.value;
+            if (!cityId) return;
+
+            try {
+                const response = await fetch(`/api/sources?city_id=${cityId}`);
+                const sources = await response.json();
+                
+                allSources = sources || [];
+                displaySources(allSources);
+                
+            } catch (error) {
+                console.error('Error loading sources:', error);
+                showNotification('Failed to load sources', 'error');
+            }
+        }
+
+        // Display sources
+        function displaySources(sources) {
+            sourcesList.innerHTML = '';
+            
+            sources.forEach(source => {
+                const sourceItem = document.createElement('div');
+                sourceItem.className = 'source-item';
+                sourceItem.innerHTML = `
+                    <input type="checkbox" id="source_${source.id}" value="${source.id}">
+                    <div class="source-info">
+                        <div class="source-name">${source.name}</div>
+                        <div class="source-handle">${source.handle || source.url}</div>
+                        <div class="source-type">${source.source_type}</div>
+                    </div>
+                `;
+                
+                // Add event listener
+                const checkbox = sourceItem.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedSources.add(source.id);
+                    } else {
+                        selectedSources.delete(source.id);
+                    }
+                    updateStatus();
+                });
+                
+                sourcesList.appendChild(sourceItem);
+            });
+            
+            // Auto-select all sources by default
+            selectAllSources();
+        }
+
+        // Select all sources
+        function selectAllSources() {
+            selectedSources.clear();
+            allSources.forEach(source => {
+                selectedSources.add(source.id);
+                const checkbox = document.getElementById(`source_${source.id}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            updateStatus();
+        }
+
+        // Deselect all sources
+        function deselectAllSources() {
+            selectedSources.clear();
+            allSources.forEach(source => {
+                const checkbox = document.getElementById(`source_${source.id}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            updateStatus();
+        }
+
+        // Select all venue types
+        function selectAllVenueTypes() {
+            const venueTypeIds = [
+                'venueTypeMuseum',
+                'venueTypeHistoric', 
+                'venueTypeArts',
+                'venueTypeParks',
+                'venueTypeEmbassy',
+                'venueTypeOther'
+            ];
+            
+            venueTypeIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+            
+            if (allVenues.length > 0) {
+                updateVenueCounts();
+                filterAndDisplayVenues();
+            }
+        }
+
+        // Deselect all venue types
+        function deselectAllVenueTypes() {
+            const venueTypeIds = [
+                'venueTypeMuseum',
+                'venueTypeHistoric', 
+                'venueTypeArts',
+                'venueTypeParks',
+                'venueTypeEmbassy',
+                'venueTypeOther'
+            ];
+            
+            venueTypeIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            });
+            
+            if (allVenues.length > 0) {
+                updateVenueCounts();
+                filterAndDisplayVenues();
+            }
+        }
+
+        // Load sources early (when city is selected)
+        async function loadSourcesEarly(cityId) {
+            try {
+                const response = await fetch(`/api/sources?city_id=${cityId}`);
+                const sources = await response.json();
+                
+                allSources = sources || [];
+                displaySourcesEarly(allSources);
+                
+            } catch (error) {
+                console.error('Error loading sources early:', error);
+                showNotification('Failed to load sources', 'error');
+            }
+        }
+
+        // Display sources early
+        function displaySourcesEarly(sources) {
+            sourcesListEarly.innerHTML = '';
+            
+            sources.forEach(source => {
+                const sourceItem = document.createElement('div');
+                sourceItem.className = 'source-item';
+                sourceItem.innerHTML = `
+                    <input type="checkbox" id="source_early_${source.id}" value="${source.id}">
+                    <div class="source-info">
+                        <div class="source-name">${source.name}</div>
+                        <div class="source-handle">${source.handle || source.url}</div>
+                        <div class="source-type">${source.source_type}</div>
+                    </div>
+                `;
+                
+                // Add event listener
+                const checkbox = sourceItem.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedSources.add(source.id);
+                    } else {
+                        selectedSources.delete(source.id);
+                    }
+                    updateStatus();
+                });
+                
+                sourcesListEarly.appendChild(sourceItem);
+            });
+            
+            // Auto-select all sources by default
+            selectAllSourcesEarly();
+        }
+
+        // Select all sources early
+        function selectAllSourcesEarly() {
+            selectedSources.clear();
+            allSources.forEach(source => {
+                selectedSources.add(source.id);
+                const checkbox = document.getElementById(`source_early_${source.id}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            updateStatus();
+        }
+
+        // Select all platform types
+        function selectAllPlatformTypes() {
+            const platformTypeIds = [
+                'platformTypeInstagram',
+                'platformTypeFacebook',
+                'platformTypeWebsite',
+                'platformTypeMeetup',
+                'platformTypeEventbrite',
+                'platformTypeOther'
+            ];
+            
+            platformTypeIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+            
+            // Re-filter sources if on sources panel
+            if (allSources.length > 0 && currentPanel === 'sources') {
+                displaySources(allSources);
+            }
+            updateStatus();
+        }
+
+        // Deselect all platform types
+        function deselectAllPlatformTypes() {
+            const platformTypeIds = [
+                'platformTypeInstagram',
+                'platformTypeFacebook',
+                'platformTypeWebsite',
+                'platformTypeMeetup',
+                'platformTypeEventbrite',
+                'platformTypeOther'
+            ];
+            
+            platformTypeIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            });
+            
+            // Re-filter sources if on sources panel
+            if (allSources.length > 0 && currentPanel === 'sources') {
+                displaySources(allSources);
+            }
+            updateStatus();
+        }
+
+        // Select all content types
+        function selectAllContentTypes() {
+            const contentTypeIds = [
+                'contentTypeArts',
+                'contentTypeMusic',
+                'contentTypePhoto',
+                'contentTypeEvents',
+                'contentTypeFood',
+                'contentTypeOther'
+            ];
+            
+            contentTypeIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+            
+            // Re-filter sources if on sources panel
+            if (allSources.length > 0 && currentPanel === 'sources') {
+                displaySources(allSources);
+            }
+            updateStatus();
+        }
+
+        // Deselect all content types
+        function deselectAllContentTypes() {
+            const contentTypeIds = [
+                'contentTypeArts',
+                'contentTypeMusic',
+                'contentTypePhoto',
+                'contentTypeEvents',
+                'contentTypeFood',
+                'contentTypeOther'
+            ];
+            
+            contentTypeIds.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            });
+            
+            // Re-filter sources if on sources panel
+            if (allSources.length > 0 && currentPanel === 'sources') {
+                displaySources(allSources);
+            }
+            updateStatus();
+        }
+
+        // Get selected platform types
+        function getSelectedPlatformTypes() {
+            const platformCheckboxes = [
+                'platformTypeInstagram',
+                'platformTypeFacebook', 
+                'platformTypeWebsite',
+                'platformTypeMeetup',
+                'platformTypeEventbrite',
+                'platformTypeOther'
+            ];
+            
+            const selectedTypes = [];
+            
+            platformCheckboxes.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox && checkbox.checked) {
+                    const types = checkbox.value.split(',');
+                    selectedTypes.push(...types);
+                }
+            });
+            
+            return selectedTypes;
+        }
+
+        // Get selected content types
+        function getSelectedContentTypes() {
+            const contentCheckboxes = [
+                'contentTypeArts',
+                'contentTypeMusic', 
+                'contentTypePhoto',
+                'contentTypeEvents',
+                'contentTypeFood',
+                'contentTypeOther'
+            ];
+            
+            const selectedTypes = [];
+            
+            contentCheckboxes.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox && checkbox.checked) {
+                    const types = checkbox.value.split(',');
+                    selectedTypes.push(...types);
+                }
+            });
+            
+            return selectedTypes;
+        }
+
+        // Load sources for the selected city
+        async function loadSourcesForCity(cityId) {
+            try {
+                const response = await fetch(`/api/sources?city_id=${cityId}`);
+                const sources = await response.json();
+                
+                allSources = sources || [];
+                
+                // Auto-select all sources by default
+                selectedSources.clear();
+                allSources.forEach(source => selectedSources.add(source.id));
+                
+                // If we're on the sources tab, display them
+                if (currentPanel === 'sources') {
+                    displaySources(allSources);
+                }
+                
+                console.log(`Loaded ${allSources.length} sources for city ${cityId}`);
+                
+            } catch (error) {
+                console.error('Error loading sources:', error);
+                showNotification('Failed to load sources', 'error');
+            }
+        }
+
+        // Display sources in the middle panel
+        function displaySources(sources) {
+            // Apply filtering based on selected platform and content types
+            const filteredSources = filterSources(sources);
+            
+            if (filteredSources.length === 0) {
+                venuesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📱</div>
+                        <h3>No Sources Match Filters</h3>
+                        <p>No sources found for ${currentCity} that match your selected platform and content type filters. Try adjusting your filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            venuesContainer.innerHTML = filteredSources.map(source => createSourceCard(source)).join('');
+            
+            // Update status
+            statusItemsFound.textContent = `${filteredSources.length} items`;
+        }
+
+        // Filter sources based on platform and content type selections
+        function filterSources(sources) {
+            const selectedPlatformTypes = getSelectedPlatformTypes();
+            const selectedContentTypes = getSelectedContentTypes();
+            
+            return sources.filter(source => {
+                // Filter by platform type
+                const platformMatch = selectedPlatformTypes.length === 0 || 
+                                    selectedPlatformTypes.includes(source.source_type);
+                
+                if (!platformMatch) return false;
+                
+                // Filter by content type
+                if (selectedContentTypes.length === 0) return true;
+                
+                // Parse source event types
+                let sourceEventTypes = [];
+                try {
+                    if (typeof source.event_types === 'string') {
+                        sourceEventTypes = JSON.parse(source.event_types);
+                    } else if (Array.isArray(source.event_types)) {
+                        sourceEventTypes = source.event_types;
+                    }
+                } catch (e) {
+                    sourceEventTypes = [];
+                }
+                
+                // Check if any of the source's event types match selected content types
+                const contentMatch = sourceEventTypes.some(eventType => 
+                    selectedContentTypes.includes(eventType)
+                );
+                
+                return contentMatch;
+            });
+        }
+
+        // Create source card
+        function createSourceCard(source) {
+            const isSelected = selectedSources.has(source.id);
+            
+            // Parse event types if it's a JSON string
+            let eventTypes = [];
+            try {
+                if (typeof source.event_types === 'string') {
+                    eventTypes = JSON.parse(source.event_types);
+                } else if (Array.isArray(source.event_types)) {
+                    eventTypes = source.event_types;
+                }
+            } catch (e) {
+                eventTypes = [];
+            }
+            
+            // Format source type for display
+            const sourceTypeFormatted = source.source_type ? source.source_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+            
+            // Get platform icon
+            const platformIcon = {
+                'instagram': '📸',
+                'facebook': '📘', 
+                'website': '🌐',
+                'meetup': '👥',
+                'eventbrite': '🎫',
+                'twitter': '🐦',
+                'tiktok': '🎵',
+                'youtube': '📺'
+            };
+            const icon = platformIcon[source.source_type] || '📱';
+            
+            return `
+                <div class="venue-card ${isSelected ? 'selected' : ''}" data-source-id="${source.id}">
+                    <div class="venue-header">
+                        <div class="venue-title">${source.name}</div>
+                        <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
+                               onchange="toggleSourceSelection(${source.id})">
+                    </div>
+                    <div class="venue-info">
+                        <div class="venue-type">${icon} ${sourceTypeFormatted}</div>
+                        ${source.handle ? `<div class="venue-address">${source.handle}</div>` : ''}
+                        ${eventTypes.length > 0 ? `<div class="venue-address">${eventTypes.slice(0, 3).join(', ')}${eventTypes.length > 3 ? '...' : ''}</div>` : ''}
+                    </div>
+                    <div class="venue-footer">
+                        <div class="venue-price free">Source</div>
+                        <div class="venue-links">
+                            ${source.url ? `<a href="${source.url}" target="_blank" title="Visit Source">🔗</a>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle source selection
+        function toggleSourceSelection(sourceId) {
+            if (selectedSources.has(sourceId)) {
+                selectedSources.delete(sourceId);
+            } else {
+                selectedSources.add(sourceId);
+            }
+            
+            // Update UI
+            const sourceCard = document.querySelector(`[data-source-id="${sourceId}"]`);
+            sourceCard.classList.toggle('selected');
+            
+            // Update status
+            statusSelected.textContent = selectedSources.size > 0 ? selectedSources.size : '-';
+            
+            // Update scrape button
+            scrapeButton.disabled = selectedSources.size === 0;
         }
 
         // Handle date range selection
@@ -1368,6 +2272,25 @@
             } else {
                 customDateGroup.style.display = 'none';
             }
+            
+            // Reload events if we have a valid selection (regardless of current events)
+            if (citySelect.value && eventTypeSelectStep2.value) {
+                const cityId = citySelect.value;
+                const eventType = eventTypeSelectStep2.value;
+                
+                console.log(`Date range changed to: ${dateRange}`);
+                console.log(`Reloading events for city: ${cityId}, type: ${eventType}, dateRange: ${dateRange}`);
+                console.log(`Current allEvents length: ${allEvents ? allEvents.length : 'undefined'}`);
+                
+                // Show loading state
+                updateProgress(50, 'Updating events for new date range...');
+                
+                // Reload events with new date range
+                loadEvents(cityId, dateRange, eventType);
+            } else {
+                console.log('Cannot reload events - missing city or event type selection');
+                console.log(`citySelect.value: ${citySelect.value}, eventTypeSelectStep2.value: ${eventTypeSelectStep2.value}`);
+            }
         }
 
         // Handle load venues button click
@@ -1379,10 +2302,15 @@
                 return;
             }
 
-            // Get selected venue types
+            // Get selected venue types (optional for sources-only discovery)
             const selectedVenueTypes = getSelectedVenueTypes();
-            if (selectedVenueTypes.length === 0) {
-                showNotification('Please select at least one venue type', 'error');
+            
+            // Check if we have venues OR sources to discover
+            const hasVenueTypes = selectedVenueTypes.length > 0;
+            const hasSources = allSources.length > 0; // Sources are loaded when city is selected
+            
+            if (!hasVenueTypes && !hasSources) {
+                showNotification('Please select at least one venue type or ensure sources are available', 'error');
                 return;
             }
 
@@ -1392,19 +2320,25 @@
             updateProgress(10, 'Loading available venues...');
 
             try {
-                // Load existing venues from database
-                updateProgress(50, 'Loading venues...');
+                let venues = [];
                 
-                // Build API URL with selected venue types
-                const venueTypesParam = selectedVenueTypes.join(',');
-                const response = await fetch(`/api/venues?city_id=${cityId}&venue_types=${venueTypesParam}`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to load venues');
-                }
+                // Load venues only if venue types are selected
+                if (hasVenueTypes) {
+                    updateProgress(50, 'Loading venues...');
+                    
+                    // Build API URL with selected venue types
+                    const venueTypesParam = selectedVenueTypes.join(',');
+                    const response = await fetch(`/api/venues?city_id=${cityId}&venue_types=${venueTypesParam}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to load venues');
+                    }
 
-                const venues = await response.json();
-                updateProgress(80, 'Processing venues...');
+                    venues = await response.json();
+                    updateProgress(80, 'Processing venues...');
+                } else {
+                    updateProgress(80, 'Skipping venues - focusing on sources...');
+                }
 
                 // Store all venues and update counts
                 allVenues = venues || [];
@@ -1422,11 +2356,22 @@
                 // Show event planning selection after venues are loaded
                 eventPlanningSelection.style.display = 'block';
                 
-                // Enable scrape button since venues are auto-selected
-                scrapeButton.disabled = selectedVenues.size === 0;
+                // Enable scrape button if we have venues OR sources selected
+                const hasSelectedItems = selectedVenues.size > 0 || selectedSources.size > 0;
+                scrapeButton.disabled = !hasSelectedItems;
                 
-                updateProgress(100, 'Complete! Loaded ' + allVenues.length + ' venues');
-                showNotification(`Loaded ${allVenues.length} available venues! All venues selected by default - deselect any you don't want.`, 'success');
+                const totalItems = allVenues.length + allSources.length;
+                updateProgress(100, `Complete! Found ${totalItems} items`);
+                
+                if (allVenues.length > 0 && allSources.length > 0) {
+                    showNotification(`Found ${allVenues.length} venues and ${allSources.length} sources! Switch between tabs to view each type.`, 'success');
+                } else if (allVenues.length > 0) {
+                    showNotification(`Loaded ${allVenues.length} available venues! All venues selected by default - deselect any you don't want.`, 'success');
+                } else if (allSources.length > 0) {
+                    showNotification(`Found ${allSources.length} sources! Click the "Sources" tab to view them.`, 'success');
+                } else {
+                    showNotification('No venues or sources found for the selected criteria.', 'info');
+                }
 
             } catch (error) {
                 console.error('Venue loading error:', error);
@@ -1537,7 +2482,7 @@
         async function handleScrapeEvents() {
             const cityId = citySelect.value;
             const eventType = eventTypeSelectStep2.value;
-            const timeRange = 'this_week'; // Default time range
+            const timeRange = document.getElementById('dateRangeSelect').value;
 
             if (selectedVenues.size === 0) {
                 showNotification('Please select at least one venue', 'error');
@@ -1549,6 +2494,28 @@
                 return;
             }
 
+            // Handle custom date range
+            let customStartDate = null;
+            let customEndDate = null;
+            
+            if (timeRange === 'custom') {
+                customStartDate = document.getElementById('startDate').value;
+                customEndDate = document.getElementById('endDate').value;
+                
+                if (!customStartDate || !customEndDate) {
+                    showNotification('Please select both start and end dates for custom range', 'error');
+                    return;
+                }
+                
+                // Validate date range
+                const start = new Date(customStartDate);
+                const end = new Date(customEndDate);
+                if (start >= end) {
+                    showNotification('End date must be after start date', 'error');
+                    return;
+                }
+            }
+
             // Update UI
             scrapeButton.disabled = true;
             scrapeButton.innerHTML = '<span class="loading-spinner"></span> Scraping events...';
@@ -1558,17 +2525,30 @@
                 // Step 1: Scrape events from selected venues
                 updateProgress(30, 'Scraping events from ' + selectedVenues.size + ' venues...');
                 
+                const requestBody = {
+                    city_id: parseInt(cityId),
+                    event_type: eventType,
+                    time_range: timeRange,
+                    venue_ids: Array.from(selectedVenues)
+                };
+                
+                // Add sources for non-venue-dependent events
+                if (selectedSources.size > 0) {
+                    requestBody.source_ids = Array.from(selectedSources);
+                }
+                
+                // Add custom dates if custom range is selected
+                if (timeRange === 'custom') {
+                    requestBody.custom_start_date = customStartDate;
+                    requestBody.custom_end_date = customEndDate;
+                }
+                
                 const response = await fetch('/api/scrape', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        city_id: parseInt(cityId),
-                        event_type: eventType,
-                        time_range: timeRange,
-                        venue_ids: Array.from(selectedVenues)
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
@@ -1600,17 +2580,37 @@
                 const params = new URLSearchParams({
                     city_id: cityId,
                     time_range: timeRange,
-                    event_type: eventType
+                    event_type: eventType,
+                    _t: Date.now() // Cache busting
                 });
 
-                const response = await fetch(`/api/events?${params}`);
+                // Add custom dates if custom range is selected
+                if (timeRange === 'custom') {
+                    const customStartDate = document.getElementById('startDate').value;
+                    const customEndDate = document.getElementById('endDate').value;
+                    
+                    if (customStartDate && customEndDate) {
+                        params.append('custom_start_date', customStartDate);
+                        params.append('custom_end_date', customEndDate);
+                    }
+                }
+
+                const apiUrl = `/api/events?${params}`;
+                console.log(`Loading events from: ${apiUrl}`);
+                
+                const response = await fetch(apiUrl);
                 const events = await response.json();
+                
+                console.log(`Received ${events.length} events:`, events.map(e => ({title: e.title, start_date: e.start_date})));
                 
                 allEvents = events;
                 selectedEvents.clear();
                 
                 // Display events
                 displayEvents(events);
+                
+                // Update progress with event count
+                updateProgress(100, `Complete! Found ${events.length} events`);
                 
                 // Update export buttons
                 exportAllBtn.disabled = events.length === 0;
@@ -1824,9 +2824,54 @@
             const blob = new Blob([icsContent], { type: 'text/calendar' });
             const url = URL.createObjectURL(blob);
             
+            // Generate descriptive filename based on filters
+            const dateRange = document.getElementById('dateRangeSelect').value;
+            const eventType = eventTypeSelectStep2.value || eventTypeSelect.value || 'all';
+            const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+            
+            // Abbreviate names for shorter filenames
+            const getCityAbbr = (city) => {
+                if (city.includes('Washington')) return 'dc';
+                if (city.includes('New York')) return 'nyc';
+                if (city.includes('Los Angeles')) return 'la';
+                if (city.includes('San Francisco')) return 'sf';
+                if (city.includes('Chicago')) return 'chi';
+                if (city.includes('Boston')) return 'bos';
+                if (city.includes('Seattle')) return 'sea';
+                if (city.includes('Miami')) return 'mia';
+                return city.split(',')[0].toLowerCase().replace(/[^a-z]/g, '').substring(0, 4);
+            };
+            
+            const getEventTypeAbbr = (type) => {
+                const abbrs = { 'tour': 'tour', 'exhibition': 'exh', 'festival': 'fest', 'photowalk': 'photo' };
+                return abbrs[type] || type.substring(0, 4);
+            };
+            
+            const getDateRangeAbbr = (range) => {
+                const abbrs = { 
+                    'today': 'today', 
+                    'tomorrow': 'tom', 
+                    'this_week': 'week', 
+                    'next_week': 'next', 
+                    'this_month': 'month', 
+                    'next_month': 'nextm',
+                    'custom': 'custom'
+                };
+                return abbrs[range] || range.substring(0, 4);
+            };
+            
+            const cityAbbr = getCityAbbr(cityName);
+            const eventTypeAbbr = getEventTypeAbbr(eventType);
+            const dateRangeAbbr = getDateRangeAbbr(dateRange);
+            
+            // Add current date (just month-day for brevity)
+            const today = new Date().toISOString().split('T')[0].substring(5);
+            
+            const filename = `planner_${cityAbbr}_${eventTypeAbbr}_${dateRangeAbbr}_${type}_${today}.ics`;
+            
             const a = document.createElement('a');
             a.href = url;
-            a.download = `events_${type}_${new Date().toISOString().split('T')[0]}.ics`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1840,12 +2885,21 @@
             const now = new Date();
             const nowStr = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
             
+            // Generate descriptive calendar name
+            const dateRange = document.getElementById('dateRangeSelect').value;
+            const eventType = eventTypeSelectStep2.value || eventTypeSelect.value || 'all';
+            const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+            
+            const calendarName = `Planner - ${cityName} ${eventType} (${dateRange.replace('_', ' ')})`;
+            
             let icsContent = [
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
                 'PRODID:-//Planner//Events//EN',
                 'CALSCALE:GREGORIAN',
-                'METHOD:PUBLISH'
+                'METHOD:PUBLISH',
+                `X-WR-CALNAME:${calendarName}`,
+                `X-WR-CALDESC:Events from Planner for ${cityName} - ${eventType} events (${dateRange.replace('_', ' ')})`
             ];
 
             events.forEach(event => {
@@ -1897,7 +2951,9 @@
 
         // Format date
         function formatDate(dateString) {
-            const date = new Date(dateString);
+            // Parse the date string correctly to avoid timezone issues
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day); // month is 0-indexed
             return date.toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',

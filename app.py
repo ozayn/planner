@@ -811,6 +811,44 @@ def get_public_stats():
             'events': 0
         }), 500
 
+@app.route('/api/sources')
+def get_sources():
+    """Get sources for a specific city"""
+    city_id = request.args.get('city_id')
+    
+    if not city_id:
+        return jsonify({'error': 'City ID is required'}), 400
+    
+    try:
+        # Load sources from JSON file
+        import json
+        with open('data/sources.json', 'r') as f:
+            sources_data = json.load(f)
+        
+        sources = sources_data.get('sources', {})
+        
+        # Filter by city_id if provided
+        filtered_sources = []
+        for source_id, source in sources.items():
+            if source.get('city_id') == int(city_id) or source.get('covers_multiple_cities', False):
+                filtered_sources.append({
+                    'id': source_id,
+                    'name': source.get('name', ''),
+                    'handle': source.get('handle', ''),
+                    'source_type': source.get('source_type', ''),
+                    'url': source.get('url', ''),
+                    'description': source.get('description', ''),
+                    'city_id': source.get('city_id'),
+                    'event_types': source.get('event_types', '[]'),
+                    'is_active': source.get('is_active', True)
+                })
+        
+        return jsonify(filtered_sources)
+        
+    except Exception as e:
+        app_logger.error(f"Error loading sources: {e}")
+        return jsonify({'error': 'Failed to load sources'}), 500
+
 @app.route('/api/events')
 def get_events():
     """Get events for a specific city and time range"""
@@ -836,10 +874,29 @@ def get_events():
         end_date = (now + timedelta(days=1)).date()
     elif time_range == 'this_week':
         start_date = now.date()
-        end_date = (now + timedelta(days=7)).date()
+        end_date = (now + timedelta(days=6)).date()  # 7 days total including today
+    elif time_range == 'next_week':
+        start_date = (now + timedelta(days=7)).date()
+        end_date = (now + timedelta(days=13)).date()  # 7 days starting next week
     elif time_range == 'this_month':
         start_date = now.date()
-        end_date = (now + timedelta(days=30)).date()
+        end_date = (now + timedelta(days=29)).date()  # 30 days total including today
+    elif time_range == 'next_month':
+        start_date = (now + timedelta(days=30)).date()
+        end_date = (now + timedelta(days=59)).date()  # 30 days starting next month
+    elif time_range == 'custom':
+        # Handle custom date range from request parameters
+        custom_start = request.args.get('custom_start_date')
+        custom_end = request.args.get('custom_end_date')
+        
+        if not custom_start or not custom_end:
+            return jsonify({'error': 'Custom start and end dates required for custom range'}), 400
+        
+        try:
+            start_date = datetime.strptime(custom_start, '%Y-%m-%d').date()
+            end_date = datetime.strptime(custom_end, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid custom date format. Use YYYY-MM-DD'}), 400
     else:
         return jsonify({'error': 'Invalid time range'}), 400
     
@@ -1017,6 +1074,10 @@ def trigger_scraping():
         city_id = data.get('city_id')
         event_type = data.get('event_type', '')
         time_range = data.get('time_range', 'today')
+        venue_ids = data.get('venue_ids', [])
+        source_ids = data.get('source_ids', [])
+        custom_start_date = data.get('custom_start_date')
+        custom_end_date = data.get('custom_end_date')
         
         # Get city information
         if city_id:
@@ -1027,15 +1088,31 @@ def trigger_scraping():
         else:
             city_name = 'Washington DC'  # Default for now
         
-        # For now, we'll use the existing DC scraper but could be extended
-        # to support different cities and event types
+        app_logger.info(f"Starting scraping for {city_name}, event_type: {event_type}, venues: {len(venue_ids)}, sources: {len(source_ids)}")
         
-        # Run the DC scraper
-        scraper_result = subprocess.run([
-            sys.executable, 'scripts/dc_scraper_progress.py'
-        ], capture_output=True, text=True, cwd=os.getcwd())
+        # Run the DC scraper with parameters
+        scraper_cmd = [sys.executable, 'scripts/dc_scraper_progress.py']
+        
+        # Add environment variables for the scraper
+        env = os.environ.copy()
+        env['SCRAPE_CITY_ID'] = str(city_id) if city_id else ''
+        env['SCRAPE_EVENT_TYPE'] = event_type
+        env['SCRAPE_TIME_RANGE'] = time_range
+        env['SCRAPE_VENUE_IDS'] = ','.join(map(str, venue_ids)) if venue_ids else ''
+        env['SCRAPE_SOURCE_IDS'] = ','.join(map(str, source_ids)) if source_ids else ''
+        env['SCRAPE_CUSTOM_START_DATE'] = custom_start_date if custom_start_date else ''
+        env['SCRAPE_CUSTOM_END_DATE'] = custom_end_date if custom_end_date else ''
+        
+        scraper_result = subprocess.run(
+            scraper_cmd,
+            capture_output=True, 
+            text=True, 
+            cwd=os.getcwd(),
+            env=env
+        )
         
         if scraper_result.returncode != 0:
+            app_logger.error(f"Scraper failed: {scraper_result.stderr}")
             return jsonify({
                 'error': 'Scraping failed',
                 'stderr': scraper_result.stderr
@@ -1047,18 +1124,24 @@ def trigger_scraping():
         ], capture_output=True, text=True, cwd=os.getcwd())
         
         if seed_result.returncode != 0:
+            app_logger.error(f"Seeding failed: {seed_result.stderr}")
             return jsonify({
                 'error': 'Database seeding failed',
                 'stderr': seed_result.stderr
             }), 500
         
         # Try to parse the scraper output to get event count
+        events_added = 0
         try:
-            with open('dc_scraped_data.json', 'r') as f:
-                scraped_data = json.load(f)
-                events_added = len(scraped_data.get('events', []))
-        except:
+            if os.path.exists('dc_scraped_data.json'):
+                with open('dc_scraped_data.json', 'r') as f:
+                    scraped_data = json.load(f)
+                    events_added = len(scraped_data.get('events', []))
+        except Exception as e:
+            app_logger.warning(f"Could not parse scraped data: {e}")
             events_added = 'unknown'
+        
+        app_logger.info(f"Scraping completed: {events_added} events added")
         
         return jsonify({
             'message': f'Scraping completed successfully for {city_name}',
@@ -1066,12 +1149,13 @@ def trigger_scraping():
             'city': city_name,
             'event_type': event_type,
             'time_range': time_range,
+            'venue_count': len(venue_ids),
             'scraper_output': scraper_result.stdout,
             'seed_output': seed_result.stdout
         })
         
     except Exception as e:
-        print(f"Scraping error: {e}")
+        app_logger.error(f"Scraping error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
