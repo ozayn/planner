@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-09-19",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 164,
-    "last_updated": "2025-09-19 19:04:43"
+    "total_venues": 165,
+    "last_updated": "2025-09-21 17:21:20"
   },
   "venues": {
     "1": {
@@ -3778,6 +3778,30 @@
       "longitude": -77.0622,
       "created_at": "2025-09-19T22:24:05.204080",
       "updated_at": "2025-09-19T22:42:04.594624"
+    },
+    "165": {
+      "name": "Suns Cinema",
+      "venue_type": "theater",
+      "address": "3107 Mt Pleasant St NW, Washington, DC 20010",
+      "latitude": null,
+      "longitude": null,
+      "image_url": null,
+      "instagram_url": "https://www.instagram.com/sunscinema/",
+      "facebook_url": null,
+      "twitter_url": null,
+      "youtube_url": null,
+      "tiktok_url": null,
+      "website_url": "https://www.sunscinema.com",
+      "description": "Independent cinema and theater in the Mt Pleasant neighborhood of Washington DC",
+      "city_id": 1,
+      "opening_hours": null,
+      "holiday_hours": null,
+      "phone_number": null,
+      "email": null,
+      "tour_info": null,
+      "admission_fee": null,
+      "created_at": "2025-09-21T21:15:48.076595",
+      "updated_at": "2025-09-21T21:18:17.352798"
     }
   }
 }
