@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Smart Event Planner - LLM Powered</title>
+    <title>Planner</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         /* Cache bust: v2.2 - Enhanced UI/UX - 2025-01-21 */
@@ -70,43 +70,26 @@
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 32px 24px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 32px;
+            background: transparent;
+            padding: 24px 0;
+            border: none;
             position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #ff8c42, #ff6b35, #d2691e);
         }
 
         .header h1 {
-            font-size: 2.2rem;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 50%, #d2691e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 300;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            color: rgba(0,0,0,0.87);
+            font-weight: 400;
             letter-spacing: -0.02em;
         }
 
         .header p {
-            font-size: 1.1rem;
-            color: #6c757d;
-            font-weight: 300;
-            max-width: 600px;
+            font-size: 0.9rem;
+            color: rgba(0,0,0,0.6);
+            font-weight: 400;
+            max-width: 400px;
             margin: 0 auto;
         }
 
@@ -118,67 +101,46 @@
         }
 
         .control-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 12px;
-            padding: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
 
         .control-panel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
         }
 
         .venues-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 12px;
-            padding: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
 
         .venues-panel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
         }
 
         .events-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 12px;
-            padding: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
 
         .events-panel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
         }
 
         .control-panel h2 {
-            color: #374151;
-            margin-bottom: 16px;
-            font-size: 1.0rem;
+            color: rgba(0,0,0,0.87);
+            margin-bottom: 20px;
+            font-size: 1.1rem;
             font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .form-group {
@@ -187,9 +149,9 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             font-weight: 500;
-            color: #374151;
+            color: rgba(0,0,0,0.87);
             font-size: 0.9rem;
         }
 
@@ -197,28 +159,24 @@
         .form-group input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid rgba(203, 213, 225, 0.5);
-            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.23);
+            border-radius: 4px;
             font-size: 0.95rem;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
+            background: #ffffff;
             transition: all 0.3s ease;
-            font-weight: 500;
+            font-weight: 400;
         }
 
         .form-group select:focus,
         .form-group input:focus {
             outline: none;
-            border-color: #ff8c42;
-            box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.15);
-            background: rgba(255, 255, 255, 0.95);
-            transform: translateY(-1px);
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.12);
         }
 
         .form-group select:hover,
         .form-group input:hover {
-            border-color: rgba(255, 140, 66, 0.3);
-            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(25, 118, 210, 0.3);
         }
 
         .venue-type-checkboxes {
@@ -271,46 +229,41 @@
             display: flex;
             align-items: center;
             font-size: 0.9rem;
-            color: #374151;
+            color: rgba(0,0,0,0.87);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 8px;
+            border-radius: 4px;
             transition: all 0.3s ease;
-            font-weight: 500;
-            border: 2px solid transparent;
+            font-weight: 400;
         }
 
         .checkbox-label:hover {
-            background-color: rgba(255, 140, 66, 0.08);
-            border-color: rgba(255, 140, 66, 0.2);
-            transform: translateY(-1px);
+            background-color: rgba(25, 118, 210, 0.08);
         }
 
         .checkbox-label input[type="checkbox"] {
             margin-right: 8px;
             width: 16px;
             height: 16px;
-            accent-color: #ff8c42;
+            accent-color: #1976d2;
             cursor: pointer;
         }
 
         .discover-button {
             width: 100% !important;
-            padding: 14px 20px !important;
-            background: #ff8c42 !important;
+            padding: 12px 24px !important;
+            background: #1976d2 !important;
             color: white !important;
             border: none !important;
-            border-radius: 8px !important;
-            font-size: 0.95rem !important;
-            font-weight: 400 !important;
+            border-radius: 4px !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
             cursor: pointer !important;
             transition: all 0.3s ease !important;
-            margin-bottom: 24px !important;
-            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2) !important;
-            position: relative !important;
-            overflow: hidden !important;
-            text-transform: none !important;
-            letter-spacing: 0.2px !important;
+            margin-bottom: 20px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
         }
 
         .discover-button::before {
@@ -329,22 +282,19 @@
         }
 
         .discover-button:hover {
-            background: #ff6b35 !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3) !important;
+            background: #1565c0 !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.24) !important;
         }
 
         .discover-button:active {
-            transform: translateY(0) !important;
-            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
         }
 
         .discover-button:disabled {
-            background: #adb5bd !important;
-            color: #6c757d !important;
+            background: #bdbdbd !important;
+            color: #757575 !important;
             cursor: not-allowed !important;
-            transform: none !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            box-shadow: none !important;
         }
 
         .clear-button {
@@ -913,7 +863,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Smart Event Planner</h1>
+            <h1>Planner</h1>
             <p>Discover curated events across multiple cities</p>
         </div>
 
@@ -1893,7 +1843,7 @@
             let icsContent = [
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
-                'PRODID:-//Smart Event Planner//LLM Events//EN',
+                'PRODID:-//Planner//Events//EN',
                 'CALSCALE:GREGORIAN',
                 'METHOD:PUBLISH'
             ];
