@@ -847,6 +847,14 @@ class ImageEventProcessor:
             '4:05 PM': '4:00 PM',  # 00 misread as 05
             '4:0S PM': '4:00 PM',  # 0 misread as S
             '4:0S PM': '4:00 PM',  # 0 misread as S
+            
+            # Common OCR errors for dates and times
+            'AUG 3O': 'AUG 30',  # 0 misread as O
+            'AUG 30': 'AUG 30',  # Correct
+            'SPM': '5PM',  # 5 misread as S
+            '5PM': '5PM',  # Correct
+            'NAT1ONAL': 'NATIONAL',  # I misread as 1
+            'NAT10NAL': 'NATIONAL',  # I misread as 1 and 0
             '4:0O PM': '4:00 PM',  # 0 misread as O
             '4:0O PM': '4:00 PM',  # 0 misread as O
             
