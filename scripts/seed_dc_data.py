@@ -50,11 +50,17 @@ def load_scraped_events():
         events_loaded = 0
         events_skipped = 0
         
-        # Clear existing events for DC (optional - comment out to keep existing events)
+        # Check existing events for DC (preserve existing events)
         existing_events = Event.query.filter_by(city_id=dc_city.id).count()
         if existing_events > 0:
-            print(f"🗑️ Clearing {existing_events} existing events for DC...")
-            Event.query.filter_by(city_id=dc_city.id).delete()
+            print(f"📋 Found {existing_events} existing events for DC - preserving them")
+            print("💡 To avoid duplicates, consider filtering by source or date range")
+        
+        # Only clear events from scraping sources to avoid duplicates
+        scraped_source_events = Event.query.filter_by(city_id=dc_city.id, source='scraped').count()
+        if scraped_source_events > 0:
+            print(f"🗑️ Clearing {scraped_source_events} existing scraped events for DC...")
+            Event.query.filter_by(city_id=dc_city.id, source='scraped').delete()
             db.session.commit()
         
         for event_data in events_data:
@@ -130,6 +136,9 @@ def load_scraped_events():
                     event.difficulty_level = event_data.get('difficulty_level', 'Easy')
                     event.equipment_needed = event_data.get('equipment_needed', '')
                     event.organizer = event_data.get('organizer', '')
+                
+                # Set source to identify scraped events
+                event.source = 'scraped'
                 
                 # Add to database
                 db.session.add(event)

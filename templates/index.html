@@ -95,8 +95,8 @@
 
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 24px;
+            grid-template-columns: 400px 1fr;
+            gap: 32px;
             margin-bottom: 32px;
         }
 
@@ -134,6 +134,209 @@
 
         .events-panel:hover {
             box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+        }
+
+        .discovered-events {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+        }
+
+        .discovered-events:hover {
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+        }
+
+        .time-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .time-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            background: #ffffff;
+            color: #666;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .time-btn:hover {
+            border-color: #ff8c42;
+            color: #ff8c42;
+        }
+
+        .time-btn.active {
+            background: #ff8c42;
+            border-color: #ff8c42;
+            color: white;
+        }
+
+        .advanced-controls {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .advanced-toggle {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-bottom: 15px;
+        }
+
+        .advanced-controls.hidden {
+            display: none;
+        }
+
+        .date-group {
+            margin-bottom: 24px;
+        }
+
+        .date-header {
+            color: #374151;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .discovered-event-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .discovered-event-card:hover {
+            background: #ffffff;
+            border-color: #ff8c42;
+            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.1);
+        }
+
+        .event-time {
+            font-weight: 600;
+            color: #ff8c42;
+            font-size: 0.9rem;
+            min-width: 60px;
+        }
+
+        .event-info {
+            flex: 1;
+        }
+
+        .discovered-event-card .event-title {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .discovered-event-card .event-location {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+
+        .discovered-event-card .event-type {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .discovered-event-card .event-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .discovered-event-card .action-btn {
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #374151;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .discovered-event-card .action-btn:hover {
+            border-color: #ff8c42;
+            color: #ff8c42;
+            background: #fff7ed;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #374151;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        #eventDetailsContent {
+            padding: 20px;
         }
 
         .control-panel h2 {
@@ -245,7 +448,7 @@
             margin-right: 8px;
             width: 16px;
             height: 16px;
-            accent-color: #1976d2;
+            accent-color: #6b7280;
             cursor: pointer;
         }
 
@@ -609,7 +812,7 @@
 
         .source-item input[type="checkbox"] {
             margin-right: 8px;
-            accent-color: #ff8c42;
+            accent-color: #6b7280;
         }
 
         .source-info {
@@ -946,7 +1149,7 @@
 
         @media (max-width: 1200px) {
             .main-content {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 350px 1fr;
             }
         }
 
@@ -962,6 +1165,10 @@
             .header h1 {
                 font-size: 2rem;
             }
+
+            .time-selector {
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -975,11 +1182,12 @@
         <div class="main-content">
             <!-- Control Panel -->
             <div class="control-panel">
-                <h2>🔍</h2>
+                <h2>🔍 Discover Events</h2>
                 
                 <div class="form-group">
+                    <label>City:</label>
                     <select id="citySelect">
-                        <option value="">City</option>
+                        <option value="">Select a city</option>
                     </select>
                 </div>
 
@@ -1029,8 +1237,7 @@
                         </label>
                     </div>
                     <div class="venue-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="selectAllVenues" class="source-control-btn">Select All</button>
-                        <button type="button" id="deselectAllVenues" class="source-control-btn">Deselect All</button>
+                        <button type="button" id="toggleAllVenues" class="source-control-btn" data-state="all">Deselect All</button>
                     </div>
                 </div>
 
@@ -1064,8 +1271,7 @@
                         </label>
                     </div>
                     <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="selectAllPlatforms" class="source-control-btn">Select All</button>
-                        <button type="button" id="deselectAllPlatforms" class="source-control-btn">Deselect All</button>
+                        <button type="button" id="toggleAllPlatforms" class="source-control-btn" data-state="all">Deselect All</button>
                     </div>
                 </div>
 
@@ -1099,8 +1305,7 @@
                         </label>
                     </div>
                     <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="selectAllContent" class="source-control-btn">Select All</button>
-                        <button type="button" id="deselectAllContent" class="source-control-btn">Deselect All</button>
+                        <button type="button" id="toggleAllContent" class="source-control-btn" data-state="all">Deselect All</button>
                     </div>
                 </div>
 
@@ -1168,8 +1373,7 @@
                                     <!-- Sources will be loaded here -->
                                 </div>
                                 <div class="source-controls">
-                                    <button type="button" id="selectAllSources" class="source-control-btn">Select All</button>
-                                    <button type="button" id="deselectAllSources" class="source-control-btn">Deselect All</button>
+                                    <button type="button" id="toggleAllSources" class="source-control-btn" data-state="all">Deselect All</button>
                                 </div>
                             </div>
                         </div>
@@ -1226,6 +1430,25 @@
                 </div>
             </div>
 
+            <!-- Discovered Events Panel -->
+            <div class="discovered-events">
+                <h2>📅 Discovered Events</h2>
+                <div class="time-selector">
+                    <button class="time-btn active" data-period="today">Today</button>
+                    <button class="time-btn" data-period="tomorrow">Tomorrow</button>
+                    <button class="time-btn" data-period="this_week">This Week</button>
+                    <button class="time-btn" data-period="next_week">Next Week</button>
+                    <button class="time-btn" data-period="this_month">This Month</button>
+                </div>
+                <div id="discoveredEventsContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🗓️</div>
+                        <h3>No Events Yet</h3>
+                        <p>Select a city and event type to discover events, or check back later for updates.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Venues & Sources Panel -->
             <div class="venues-panel">
                 <div class="venues-header">
@@ -1274,6 +1497,19 @@
 
     <!-- Notification -->
     <div id="notification" class="notification"></div>
+
+    <!-- Event Details Modal -->
+    <div id="eventDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>📋 Event Details</h3>
+                <span class="close" onclick="closeModal('eventDetailsModal')">&times;</span>
+            </div>
+            <div id="eventDetailsContent">
+                <!-- Event details will be populated here -->
+            </div>
+        </div>
+    </div>
 
     <script>
         // Global variables
@@ -1462,21 +1698,11 @@
             // Add event type change listener to show/hide sources
             eventTypeSelectStep2.addEventListener('change', handleEventTypeChange);
             
-            // Add source control listeners
-            document.getElementById('selectAllSources').addEventListener('click', selectAllSources);
-            document.getElementById('deselectAllSources').addEventListener('click', deselectAllSources);
-            
-            // Add venue control listeners
-            document.getElementById('selectAllVenues').addEventListener('click', selectAllVenueTypes);
-            document.getElementById('deselectAllVenues').addEventListener('click', deselectAllVenueTypes);
-            
-            // Add platform type control listeners
-            document.getElementById('selectAllPlatforms').addEventListener('click', selectAllPlatformTypes);
-            document.getElementById('deselectAllPlatforms').addEventListener('click', deselectAllPlatformTypes);
-            
-            // Add content type control listeners
-            document.getElementById('selectAllContent').addEventListener('click', selectAllContentTypes);
-            document.getElementById('deselectAllContent').addEventListener('click', deselectAllContentTypes);
+            // Add toggle control listeners
+            document.getElementById('toggleAllSources').addEventListener('click', () => toggleAllSources());
+            document.getElementById('toggleAllVenues').addEventListener('click', () => toggleAllVenueTypes());
+            document.getElementById('toggleAllPlatforms').addEventListener('click', () => toggleAllPlatformTypes());
+            document.getElementById('toggleAllContent').addEventListener('click', () => toggleAllContentTypes());
             
             // Add panel tab listeners
             document.getElementById('venuesTab').addEventListener('click', () => switchPanel('venues'));
@@ -1493,13 +1719,22 @@
             const contentGroup = contentLabel ? contentLabel.closest('.form-group') : null;
             
             if (cityId) {
+                // Update currentCity for discovered events
+                currentCity = { id: parseInt(cityId) };
+                
                 // Show source type controls when city is selected
                 if (platformGroup) platformGroup.style.display = 'block';
                 if (contentGroup) contentGroup.style.display = 'block';
                 
                 // Load sources for this city
                 await loadSourcesForCity(cityId);
+                
+                // Load discovered events for this city
+                await loadDiscoveredEvents();
             } else {
+                // Clear current city
+                currentCity = null;
+                
                 // Hide source type controls when no city selected
                 if (platformGroup) platformGroup.style.display = 'none';
                 if (contentGroup) contentGroup.style.display = 'none';
@@ -1510,16 +1745,19 @@
                 if (currentPanel === 'sources') {
                     displaySources([]);
                 }
+                
+                // Clear discovered events display
+                updateDiscoveredEventsDisplay([]);
             }
         }
 
         // Update status display
         function updateStatus() {
-            currentCity = citySelect.options[citySelect.selectedIndex]?.textContent || '-';
+            const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || '-';
             currentEventType = eventTypeSelectStep2.value || eventTypeSelect.value || '-';
             
             // Basic info
-            statusCity.textContent = currentCity;
+            statusCity.textContent = cityName;
             statusEventType.textContent = currentEventType;
             
             // Date range
@@ -1719,6 +1957,23 @@
             const contentTypeCheckboxes = document.querySelectorAll('[id^="contentType"] input[type="checkbox"]');
             contentTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
             
+            // Reset toggle button states
+            const toggleAllVenues = document.getElementById('toggleAllVenues');
+            if (toggleAllVenues) {
+                toggleAllVenues.textContent = 'Deselect All';
+                toggleAllVenues.dataset.state = 'all';
+            }
+            const toggleAllPlatforms = document.getElementById('toggleAllPlatforms');
+            if (toggleAllPlatforms) {
+                toggleAllPlatforms.textContent = 'Deselect All';
+                toggleAllPlatforms.dataset.state = 'all';
+            }
+            const toggleAllContent = document.getElementById('toggleAllContent');
+            if (toggleAllContent) {
+                toggleAllContent.textContent = 'Deselect All';
+                toggleAllContent.dataset.state = 'all';
+            }
+            
             // Reset price filter to both selected (default)
             document.querySelectorAll('.price-filter-btn').forEach(btn => btn.classList.add('active'));
             
@@ -1825,6 +2080,13 @@
             
             // Auto-select all sources by default
             selectAllSources();
+            
+            // Reset toggle button state
+            const toggleAllSources = document.getElementById('toggleAllSources');
+            if (toggleAllSources) {
+                toggleAllSources.textContent = 'Deselect All';
+                toggleAllSources.dataset.state = 'all';
+            }
         }
 
         // Select all sources
@@ -1945,6 +2207,13 @@
             
             // Auto-select all sources by default
             selectAllSourcesEarly();
+            
+            // Reset toggle button state
+            const toggleAllSources = document.getElementById('toggleAllSources');
+            if (toggleAllSources) {
+                toggleAllSources.textContent = 'Deselect All';
+                toggleAllSources.dataset.state = 'all';
+            }
         }
 
         // Select all sources early
@@ -2056,6 +2325,70 @@
                 displaySources(allSources);
             }
             updateStatus();
+        }
+
+        // Toggle all sources
+        function toggleAllSources() {
+            const button = document.getElementById('toggleAllSources');
+            const currentState = button.dataset.state;
+            
+            if (currentState === 'all') {
+                deselectAllSources();
+                button.textContent = 'Select All';
+                button.dataset.state = 'none';
+            } else {
+                selectAllSources();
+                button.textContent = 'Deselect All';
+                button.dataset.state = 'all';
+            }
+        }
+
+        // Toggle all venue types
+        function toggleAllVenueTypes() {
+            const button = document.getElementById('toggleAllVenues');
+            const currentState = button.dataset.state;
+            
+            if (currentState === 'all') {
+                deselectAllVenueTypes();
+                button.textContent = 'Select All';
+                button.dataset.state = 'none';
+            } else {
+                selectAllVenueTypes();
+                button.textContent = 'Deselect All';
+                button.dataset.state = 'all';
+            }
+        }
+
+        // Toggle all platform types
+        function toggleAllPlatformTypes() {
+            const button = document.getElementById('toggleAllPlatforms');
+            const currentState = button.dataset.state;
+            
+            if (currentState === 'all') {
+                deselectAllPlatformTypes();
+                button.textContent = 'Select All';
+                button.dataset.state = 'none';
+            } else {
+                selectAllPlatformTypes();
+                button.textContent = 'Deselect All';
+                button.dataset.state = 'all';
+            }
+        }
+
+        // Toggle all content types
+        function toggleAllContentTypes() {
+            const button = document.getElementById('toggleAllContent');
+            const currentState = button.dataset.state;
+            
+            if (currentState === 'all') {
+                deselectAllContentTypes();
+                button.textContent = 'Select All';
+                button.dataset.state = 'none';
+            } else {
+                selectAllContentTypes();
+                button.textContent = 'Deselect All';
+                button.dataset.state = 'all';
+            }
         }
 
         // Get selected platform types
@@ -2968,6 +3301,327 @@
                 day: 'numeric'
             });
         }
+
+        // Discovered Events functionality
+        let currentTimePeriod = 'today';
+        let discoveredEvents = [];
+
+        // Initialize time selector
+        function initializeTimeSelector() {
+            const timeButtons = document.querySelectorAll('.time-btn');
+            timeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    timeButtons.forEach(b => b.classList.remove('active'));
+                    // Add active class to clicked button
+                    btn.classList.add('active');
+                    // Update current time period
+                    currentTimePeriod = btn.dataset.period;
+                    // Load discovered events for this period
+                    loadDiscoveredEvents();
+                });
+            });
+        }
+
+        // Load discovered events for the selected time period
+        async function loadDiscoveredEvents() {
+            const cityId = citySelect.value;
+            if (!cityId) {
+                updateDiscoveredEventsDisplay([]);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/events?city_id=${cityId}&time_range=${currentTimePeriod}`);
+                const events = await response.json();
+                
+                discoveredEvents = events;
+                updateDiscoveredEventsDisplay(events);
+            } catch (error) {
+                console.error('Error loading discovered events:', error);
+                updateDiscoveredEventsDisplay([]);
+            }
+        }
+
+        // Update the discovered events display
+        function updateDiscoveredEventsDisplay(events) {
+            const container = document.getElementById('discoveredEventsContainer');
+            
+            if (events.length === 0) {
+                const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'selected city';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🗓️</div>
+                        <h3>No Events Found</h3>
+                        <p>No events found for ${cityName} in ${currentTimePeriod.replace('_', ' ')}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group events by date
+            const eventsByDate = {};
+            events.forEach(event => {
+                const date = event.start_date;
+                if (!eventsByDate[date]) {
+                    eventsByDate[date] = [];
+                }
+                eventsByDate[date].push(event);
+            });
+
+            // Create HTML for events
+            let html = '';
+            Object.keys(eventsByDate).sort().forEach(date => {
+                const dateEvents = eventsByDate[date];
+                // Parse date correctly to avoid timezone issues
+                const [year, month, day] = date.split('-');
+                const dateObj = new Date(year, month - 1, day); // month is 0-indexed
+                const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                html += `
+                    <div class="date-group">
+                        <h4 class="date-header">${formattedDate}</h4>
+                        <div class="events-list">
+                            ${dateEvents.map(event => createDiscoveredEventCard(event)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Create a card for discovered events
+        function createDiscoveredEventCard(event) {
+            let timeStr = '';
+            if (event.start_time) {
+                // Use the city's timezone if available
+                const cityTimezone = event.city_timezone || 'America/New_York'; // Default to EST
+                
+                try {
+                    // Create a date in the city's timezone
+                    const [hours, minutes] = event.start_time.split(':');
+                    const now = new Date();
+                    const eventDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
+                    
+                    // Format time in the city's timezone
+                    timeStr = eventDate.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: cityTimezone
+                    });
+                } catch (error) {
+                    // Fallback to simple time formatting
+                    const [hours, minutes] = event.start_time.split(':');
+                    const hour12 = parseInt(hours) > 12 ? parseInt(hours) - 12 : parseInt(hours);
+                    const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+                    timeStr = `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
+                }
+            }
+            
+            return `
+                <div class="discovered-event-card" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
+                    <div class="event-time">${timeStr}</div>
+                    <div class="event-info">
+                        <div class="event-title">${event.title}</div>
+                        <div class="event-location">${event.venue_name || event.start_location || 'Location TBD'}</div>
+                        <div class="event-type">${event.event_type || 'Event'}</div>
+                    </div>
+                    <div class="event-actions" onclick="event.stopPropagation();">
+                        <button class="action-btn calendar-btn" onclick="addDiscoveredEventToCalendar(${event.id})" title="Add to Calendar">
+                            🗓️
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show discovered event details
+        function showDiscoveredEventDetails(eventId) {
+            const event = discoveredEvents.find(e => e.id === eventId);
+            if (!event) return;
+
+            const content = generateDiscoveredEventDetailsHTML(event);
+            document.getElementById('eventDetailsContent').innerHTML = content;
+            document.getElementById('eventDetailsModal').style.display = 'block';
+        }
+
+        // Generate HTML for discovered event details
+        function generateDiscoveredEventDetailsHTML(event) {
+            // Helper function to add field only if value exists
+            const addField = (label, value, isLink = false) => {
+                if (!value || value === 'N/A' || value === '') return '';
+                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+            };
+
+            // Format time in city timezone
+            let timeStr = '';
+            if (event.start_time) {
+                const cityTimezone = event.city_timezone || 'America/New_York';
+                try {
+                    const [hours, minutes] = event.start_time.split(':');
+                    const now = new Date();
+                    const eventDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
+                    timeStr = eventDate.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: cityTimezone
+                    });
+                } catch (error) {
+                    const [hours, minutes] = event.start_time.split(':');
+                    const hour12 = parseInt(hours) > 12 ? parseInt(hours) - 12 : parseInt(hours);
+                    const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+                    timeStr = `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
+                }
+            }
+
+            // Format date
+            let dateStr = '';
+            if (event.start_date) {
+                const [year, month, day] = event.start_date.split('-');
+                const dateObj = new Date(year, month - 1, day);
+                dateStr = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📋 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${event.id}</div>
+                            ${addField('Title', event.title)}
+                            ${addField('Type', event.event_type)}
+                            ${addField('Description', event.description)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📅 Date & Time</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>Date:</strong> ${dateStr}</div>
+                            <div style="margin-bottom: 8px;"><strong>Time:</strong> ${timeStr}</div>
+                            ${addField('Timezone', event.city_timezone)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📍 Location</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Start Location', event.start_location)}
+                            ${addField('End Location', event.end_location)}
+                            ${addField('Venue', event.venue_name)}
+                            ${addField('City', event.city_name)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🔗 Additional Info</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Source', event.source)}
+                            ${addField('URL', event.url, true)}
+                            ${addField('Image', event.image_url ? 'View Image' : null, event.image_url)}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add event-specific details based on type
+            if (event.event_type === 'tour') {
+                html += `
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🚶 Tour Details</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Tour Type', event.tour_type)}
+                            ${addField('Max Participants', event.max_participants)}
+                            ${addField('Price', event.price ? `$${event.price}` : null)}
+                            ${addField('Language', event.language)}
+                        </div>
+                    </div>
+                `;
+            } else if (event.event_type === 'photowalk') {
+                html += `
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📸 Photowalk Details</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Difficulty Level', event.difficulty_level)}
+                            ${addField('Equipment Needed', event.equipment_needed)}
+                            ${addField('Organizer', event.organizer)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Add discovered event to calendar
+        function addDiscoveredEventToCalendar(eventId) {
+            const event = discoveredEvents.find(e => e.id === eventId);
+            if (!event) return;
+
+            const calendarUrl = createGoogleCalendarUrl(event);
+            window.open(calendarUrl, '_blank');
+        }
+
+        // Toggle advanced controls
+        function toggleAdvancedControls() {
+            const advancedControls = document.getElementById('advancedControls');
+            const toggle = document.querySelector('.advanced-toggle');
+            
+            if (advancedControls.classList.contains('hidden')) {
+                advancedControls.classList.remove('hidden');
+                toggle.textContent = 'Advanced Filters ▲';
+            } else {
+                advancedControls.classList.add('hidden');
+                toggle.textContent = 'Advanced Filters ▼';
+            }
+        }
+
+        // Override the existing loadEvents function to also update discovered events
+        const originalLoadEvents = window.loadEvents;
+        window.loadEvents = async function(cityId, timeRange, eventType) {
+            await originalLoadEvents(cityId, timeRange, eventType);
+            // Also load discovered events when main events are loaded
+            loadDiscoveredEvents();
+        };
+
+        // Initialize time selector when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTimeSelector();
+            
+            // Load discovered events if a city is already selected
+            if (citySelect.value) {
+                currentCity = { id: parseInt(citySelect.value) };
+                loadDiscoveredEvents();
+            }
+
+            // Close modal when clicking outside of it
+            window.addEventListener('click', (event) => {
+                const modal = document.getElementById('eventDetailsModal');
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html>
