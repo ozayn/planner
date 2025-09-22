@@ -89,7 +89,20 @@ class EnhancedLLMFallback:
         # Get API keys from centralized environment
         api_keys = get_api_keys()
         
-        # Groq (Free tier - highest priority)
+        # Google Gemini (NEW HIGHEST PRIORITY - Best balance of quality and cost)
+        if api_keys['GOOGLE_API_KEY']:
+            models.append(ModelConfig(
+                provider=ModelProvider.GOOGLE,
+                api_key=api_keys['GOOGLE_API_KEY'],
+                base_url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+                model_name='gemini-1.5-flash',
+                max_tokens=2500,
+                temperature=0.3,
+                priority=1,
+                cost_tier='low'
+            ))
+        
+        # Groq (Free tier - fallback after Gemini)
         if api_keys['GROQ_API_KEY']:
             models.append(ModelConfig(
                 provider=ModelProvider.GROQ,
@@ -98,7 +111,7 @@ class EnhancedLLMFallback:
                 model_name='llama-3.3-70b-versatile',
                 max_tokens=2500,
                 temperature=0.3,
-                priority=1,
+                priority=2,
                 cost_tier='free'
             ))
         
@@ -111,7 +124,7 @@ class EnhancedLLMFallback:
                 model_name='gpt-4-turbo',
                 max_tokens=2500,
                 temperature=0.3,
-                priority=2,
+                priority=3,
                 cost_tier='high'
             ))
             
@@ -123,7 +136,7 @@ class EnhancedLLMFallback:
                 model_name='gpt-3.5-turbo',
                 max_tokens=2500,
                 temperature=0.3,
-                priority=3,
+                priority=4,
                 cost_tier='medium'
             ))
         
@@ -136,7 +149,7 @@ class EnhancedLLMFallback:
                 model_name='claude-3-sonnet-20240229',
                 max_tokens=2500,
                 temperature=0.3,
-                priority=4,
+                priority=5,
                 cost_tier='medium'
             ))
         
@@ -147,19 +160,6 @@ class EnhancedLLMFallback:
                 api_key=api_keys['COHERE_API_KEY'],
                 base_url='https://api.cohere.ai/v1/generate',
                 model_name='command',
-                max_tokens=2500,
-                temperature=0.3,
-                priority=5,
-                cost_tier='low'
-            ))
-        
-        # Google Gemini (Google's model)
-        if api_keys['GOOGLE_API_KEY']:
-            models.append(ModelConfig(
-                provider=ModelProvider.GOOGLE,
-                api_key=api_keys['GOOGLE_API_KEY'],
-                base_url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-                model_name='gemini-1.5-flash',
                 max_tokens=2500,
                 temperature=0.3,
                 priority=6,
@@ -200,7 +200,7 @@ class EnhancedLLMFallback:
                 model_name='mistral-large-latest',
                 max_tokens=2500,
                 temperature=0.3,
-                priority=7,
+                priority=9,
                 cost_tier='medium'
             ))
         

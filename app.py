@@ -1827,7 +1827,7 @@ def smart_search_venue():
             'Shopping District', 'Art District', 'Government Building', 'Observation Tower', 
             'Observation Deck', 'Observatory', 'Aquarium', 'Zoo', 'Cathedral', 
             'Church', 'Temple', 'Shrine', 'Bridge', 'Castle', 'Palace', 'Beach', 
-            'Waterfront', 'Waterway', 'Avenue', 'cafe', 'restaurant', 'other'
+            'Waterfront', 'Waterway', 'Avenue', 'cafe', 'restaurant', 'bookstore', 'other'
         ]
         
         # Normalize venue type - check for exact match first
