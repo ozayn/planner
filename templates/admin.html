@@ -2189,6 +2189,9 @@
             // Populate city dropdown
             populateVenueCityDropdown();
             
+            // Populate venue type dropdown
+            populateVenueTypeDropdown();
+            
             // Clear form
             document.getElementById('addVenueForm').reset();
             
@@ -2218,16 +2221,10 @@
                     type: 'select',
                     required: true,
                     options: [
-                        { value: '', text: 'Select Type' },
-                        { value: 'museum', text: 'Museum' },
-                        { value: 'gallery', text: 'Gallery' },
-                        { value: 'theater', text: 'Theater' },
-                        { value: 'concert_hall', text: 'Concert Hall' },
-                        { value: 'park', text: 'Park' },
-                        { value: 'landmark', text: 'Landmark' },
-                        { value: 'cultural_center', text: 'Cultural Center' },
-                        { value: 'other', text: 'Other' }
-                    ]
+                        { value: '', text: 'Select Type' }
+                        // Dynamic venue types will be loaded from backend
+                    ],
+                    special: 'venue_type_dropdown' // Special handling for dynamic venue types
                 },
                 {
                     id: 'venueCity',
@@ -2418,10 +2415,50 @@
             
             citySelect.innerHTML = '<option value="">Select City</option>';
             window.allCities.forEach(city => {
-                citySelect.innerHTML += `<option value="${city.id}">${city.name}, ${city.country}</option>`;
+                // Always include state/province if available, then country
+                let displayName = city.name;
+                if (city.state) {
+                    displayName += `, ${city.state}`;
+                }
+                displayName += `, ${city.country}`;
+                citySelect.innerHTML += `<option value="${city.id}">${displayName}</option>`;
             });
             
             console.log(`Populated city dropdown with ${window.allCities.length} cities`);
+        }
+        
+        async function populateVenueTypeDropdown() {
+            const typeSelect = document.getElementById('venueType');
+            if (!typeSelect) return;
+            
+            try {
+                console.log('Loading venue types...');
+                const response = await fetch('/api/venue-types');
+                const data = await response.json();
+                
+                if (data.venue_types) {
+                    typeSelect.innerHTML = '<option value="">Select Type</option>';
+                    data.venue_types.forEach(type => {
+                        typeSelect.innerHTML += `<option value="${type.value}">${type.text}</option>`;
+                    });
+                    console.log(`Populated venue type dropdown with ${data.venue_types.length} types`);
+                } else {
+                    console.error('No venue types returned from API');
+                }
+            } catch (error) {
+                console.error('Error loading venue types:', error);
+                // Fallback to basic types
+                typeSelect.innerHTML = `
+                    <option value="">Select Type</option>
+                    <option value="museum">Museum</option>
+                    <option value="gallery">Gallery</option>
+                    <option value="theater">Theater</option>
+                    <option value="cafe">Cafe</option>
+                    <option value="restaurant">Restaurant</option>
+                    <option value="bookstore">Bookstore</option>
+                    <option value="other">Other</option>
+                `;
+            }
         }
         
         async function smartSearchVenue() {

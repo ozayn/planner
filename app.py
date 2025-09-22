@@ -787,6 +787,15 @@ def get_cities():
     cities = City.query.all()
     return jsonify([city.to_dict() for city in cities])
 
+@app.route('/api/venue-types')
+def get_venue_types():
+    """Get all allowed venue types for form dropdowns"""
+    from scripts.venue_types import get_allowed_venue_types
+    venue_types = get_allowed_venue_types()
+    return jsonify({
+        'venue_types': [{'value': vtype.lower().replace(' ', '_'), 'text': vtype} for vtype in venue_types]
+    })
+
 @app.route('/api/stats')
 def get_public_stats():
     """Get public statistics for the main page"""
