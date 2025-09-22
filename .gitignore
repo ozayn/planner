@@ -132,6 +132,10 @@ credentials/
 *.secret
 *.private
 
+# Google Cloud credentials
+config/google-vision-credentials.json
+config/*.json
+
 # Temporary files with potential secrets
 *.tmp
 *.temp
