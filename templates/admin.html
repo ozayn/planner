@@ -332,6 +332,17 @@
         .data-table tr:hover {
             background: #f8f9fa;
         }
+        
+        .data-table tr[onclick] {
+            cursor: pointer;
+        }
+        
+        .data-table tr[onclick]:hover {
+            background-color: rgba(255, 140, 66, 0.1) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
 
         .data-table tr.hidden {
             display: none;
@@ -914,21 +925,11 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>📅</th>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Venue</th>
-                                <th>Start Date</th>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Description</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                                <!-- Headers will be dynamically generated -->
                             </tr>
                         </thead>
                         <tbody id="eventsTable">
-                            <tr><td colspan="11" class="loading">Loading events...</td></tr>
+                            <tr><td colspan="12" class="loading">Loading events...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -965,18 +966,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Handle</th>
-                                <th>Type</th>
-                                <th>City</th>
-                                <th>Event Types</th>
-                                <th>Reliability</th>
-                                <th>Frequency</th>
-                                <th>Active</th>
-                                <th>Events Found</th>
-                                <th>Last Checked</th>
-                                <th>Actions</th>
+                                <!-- Headers will be dynamically generated -->
                             </tr>
                         </thead>
                         <tbody id="sourcesTable">
@@ -1362,6 +1352,58 @@
         </div>
     </div>
 
+    <!-- Event Details Modal -->
+    <div id="eventDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>📋 Event Details</h3>
+                <span class="close" onclick="closeModal('eventDetailsModal')">&times;</span>
+            </div>
+            <div id="eventDetailsContent">
+                <!-- Event details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Venue Details Modal -->
+    <div id="venueDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>🏢 Venue Details</h3>
+                <span class="close" onclick="closeModal('venueDetailsModal')">&times;</span>
+            </div>
+            <div id="venueDetailsContent">
+                <!-- Venue details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- City Details Modal -->
+    <div id="cityDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>🏙️ City Details</h3>
+                <span class="close" onclick="closeModal('cityDetailsModal')">&times;</span>
+            </div>
+            <div id="cityDetailsContent">
+                <!-- City details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Source Details Modal -->
+    <div id="sourceDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>📱 Source Details</h3>
+                <span class="close" onclick="closeModal('sourceDetailsModal')">&times;</span>
+            </div>
+            <div id="sourceDetailsContent">
+                <!-- Source details will be populated here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Image Upload Modal -->
     <div id="imageUploadModal" class="modal">
         <div class="modal-content">
@@ -1374,13 +1416,6 @@
                     <label for="eventImage">Select Image:</label>
                     <input type="file" id="eventImage" name="image" accept="image/*" required>
                     <small>Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF</small>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="createCalendarEventFromImage" checked>
-                        Create Google Calendar Event
-                    </label>
                 </div>
                 
                 <div class="modal-actions">
@@ -2341,6 +2376,11 @@
             if (tableHead) {
                 let headerRow = '';
                 
+                // Add calendar icon header for events table
+                if (tableType === 'events') {
+                    headerRow += '<th>📅</th>';
+                }
+                
                 orderedFields.forEach(field => {
                     const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
                     if (config.visible !== false) {
@@ -2360,11 +2400,22 @@
             
             // Generate data rows
             tableBody.innerHTML = data.map(item => {
-                let row = `<tr id="${tableType}-row-${item.id}">`;
+                // Make all table rows clickable
+                let rowClickable = '';
+                if (tableType === 'events') {
+                    rowClickable = 'onclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
+                } else if (tableType === 'venues') {
+                    rowClickable = 'onclick="showVenueDetails(' + item.id + ')" style="cursor: pointer;"';
+                } else if (tableType === 'cities') {
+                    rowClickable = 'onclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
+                } else if (tableType === 'sources') {
+                    rowClickable = 'onclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
+                }
+                let row = `<tr id="${tableType}-row-${item.id}" ${rowClickable}>`;
                 
                 // Add calendar icon for events
                 if (tableType === 'events') {
-                    const calendarIcon = `<td style="text-align: center; padding: 8px;">
+                    const calendarIcon = `<td style="text-align: center; padding: 8px;" onclick="event.stopPropagation();">
                         <button onclick="addEventToCalendar(${item.id})" 
                                 style="background: none; border: none; cursor: pointer; font-size: 16px; color: #ff8c42; padding: 4px; border-radius: 4px; transition: all 0.2s ease;"
                                 onmouseover="this.style.background='rgba(255, 140, 66, 0.1)'" 
@@ -2490,7 +2541,7 @@
         // Format field values based on field type and configuration
         function formatFieldValue(fieldName, value, config = {}) {
             if (value === null || value === undefined || value === '') {
-                return 'N/A';
+                return '';
             }
             
             // Special formatting for specific fields
@@ -2738,13 +2789,13 @@
                                 venue.admission_fee.toLowerCase().includes('free') ||
                                 venue.admission_fee.toLowerCase().includes('no charge') ||
                                 venue.admission_fee.toLowerCase().includes('complimentary') ||
-                                venue.admission_fee === 'N/A';
+                                !venue.admission_fee || venue.admission_fee === '';
                 } else if (feeFilter === 'paid') {
                     matchesFee = venue.admission_fee && 
                                !venue.admission_fee.toLowerCase().includes('free') &&
                                !venue.admission_fee.toLowerCase().includes('no charge') &&
                                !venue.admission_fee.toLowerCase().includes('complimentary') &&
-                               venue.admission_fee !== 'N/A';
+                               venue.admission_fee !== '';
                 }
                 
                 return matchesSearch && matchesType && matchesCity && matchesFee;
@@ -3639,13 +3690,24 @@
             // Format times for Google Calendar (HHMMSS format)
             const formatTimeForGoogle = (timeStr) => {
                 if (!timeStr) return '';
-                return timeStr.replace(/:/g, '');
+                // Convert "04:00 PM" to "040000" format
+                // Remove AM/PM and colons, then add seconds if missing
+                let formatted = timeStr.replace(/[:\s]/g, '');
+                formatted = formatted.replace(/AM|PM/gi, '');
+                
+                // Add seconds if not present (should be 6 digits total)
+                if (formatted.length === 4) {
+                    formatted += '00';
+                }
+                
+                return formatted;
             };
             
             let startDateTime, endDateTime;
             
             if (eventData.start_time && eventData.end_time) {
-                // Event with specific times - use local time format (no timezone suffix)
+                // Event with specific times - use city's timezone
+                const cityTimezone = eventData.city_timezone || 'America/New_York'; // Default to Eastern if not specified
                 startDateTime = `${formatDateForGoogle(startDate)}T${formatTimeForGoogle(eventData.start_time)}`;
                 endDateTime = `${formatDateForGoogle(endDate)}T${formatTimeForGoogle(eventData.end_time)}`;
             } else {
@@ -4409,6 +4471,380 @@
         }
         
         // Image Upload Functions
+        function showEventDetails(eventId) {
+            // Find the event data
+            const event = window.allEvents.find(e => e.id == eventId);
+            if (!event) {
+                alert('Event not found');
+                return;
+            }
+            
+            // Populate the event details modal
+            const content = generateEventDetailsHTML(event);
+            document.getElementById('eventDetailsContent').innerHTML = content;
+            
+            // Show the modal
+            document.getElementById('eventDetailsModal').style.display = 'block';
+        }
+        
+        function showVenueDetails(venueId) {
+            // Find the venue data
+            const venue = window.allVenues.find(v => v.id == venueId);
+            if (!venue) {
+                alert('Venue not found');
+                return;
+            }
+            
+            // Populate the venue details modal
+            const content = generateVenueDetailsHTML(venue);
+            document.getElementById('venueDetailsContent').innerHTML = content;
+            
+            // Show the modal
+            document.getElementById('venueDetailsModal').style.display = 'block';
+        }
+        
+        function showCityDetails(cityId) {
+            // Find the city data
+            const city = window.allCities.find(c => c.id == cityId);
+            if (!city) {
+                alert('City not found');
+                return;
+            }
+            
+            // Populate the city details modal
+            const content = generateCityDetailsHTML(city);
+            document.getElementById('cityDetailsContent').innerHTML = content;
+            
+            // Show the modal
+            document.getElementById('cityDetailsModal').style.display = 'block';
+        }
+        
+        function showSourceDetails(sourceId) {
+            // Find the source data
+            const source = window.allSources.find(s => s.id == sourceId);
+            if (!source) {
+                alert('Source not found');
+                return;
+            }
+            
+            // Populate the source details modal
+            const content = generateSourceDetailsHTML(source);
+            document.getElementById('sourceDetailsContent').innerHTML = content;
+            
+            // Show the modal
+            document.getElementById('sourceDetailsModal').style.display = 'block';
+        }
+        
+        function generateEventDetailsHTML(event) {
+            // Helper function to add field only if value exists
+            const addField = (label, value, isLink = false) => {
+                if (!value || value === 'N/A' || value === '') return '';
+                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+            };
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📋 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${event.id}</div>
+                            ${addField('Title', event.title)}
+                            ${addField('Type', event.event_type)}
+                            ${addField('Description', event.description)}
+                            <div style="margin-bottom: 8px;"><strong>Selected:</strong> ${event.is_selected ? 'Yes' : 'No'}</div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📅 Date & Time</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Start Date', event.start_date)}
+                            ${addField('End Date', event.end_date)}
+                            ${addField('Start Time', event.start_time)}
+                            ${addField('End Time', event.end_time)}
+                            ${addField('City Timezone', event.city_timezone)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📍 Location</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Start Location', event.start_location)}
+                            ${addField('End Location', event.end_location)}
+                            ${addField('City', event.city_name)}
+                            ${addField('Venue', event.venue_name)}
+                            ${addField('Coordinates', event.start_latitude && event.start_longitude ? `${event.start_latitude}, ${event.start_longitude}` : null)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🔗 Sources & Links</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Source', event.source)}
+                            ${addField('Source URL', event.source_url, true)}
+                            ${addField('Event URL', event.url, true)}
+                            ${addField('Image URL', event.image_url ? 'View Image' : null, event.image_url)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event-specific fields based on event type
+            if (event.event_type === 'tour') {
+                const tourFields = [];
+                if (event.tour_type) tourFields.push(addField('Tour Type', event.tour_type));
+                if (event.max_participants) tourFields.push(addField('Max Participants', event.max_participants));
+                if (event.price) tourFields.push(addField('Price', `$${event.price}`));
+                if (event.language) tourFields.push(addField('Language', event.language));
+                
+                if (tourFields.length > 0) {
+                    html += `
+                        <div>
+                            <h4 style="margin-bottom: 10px; color: #4a5568;">🚶 Tour Details</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                ${tourFields.join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (event.event_type === 'exhibition') {
+                const exhibitionFields = [];
+                if (event.exhibition_location) exhibitionFields.push(addField('Exhibition Location', event.exhibition_location));
+                if (event.curator) exhibitionFields.push(addField('Curator', event.curator));
+                if (event.admission_price) exhibitionFields.push(addField('Admission Price', `$${event.admission_price}`));
+                
+                if (exhibitionFields.length > 0) {
+                    html += `
+                        <div>
+                            <h4 style="margin-bottom: 10px; color: #4a5568;">🎨 Exhibition Details</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                ${exhibitionFields.join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (event.event_type === 'festival') {
+                const festivalFields = [];
+                if (event.festival_type) festivalFields.push(addField('Festival Type', event.festival_type));
+                festivalFields.push(`<div style="margin-bottom: 8px;"><strong>Multiple Locations:</strong> ${event.multiple_locations ? 'Yes' : 'No'}</div>`);
+                
+                if (festivalFields.length > 0) {
+                    html += `
+                        <div>
+                            <h4 style="margin-bottom: 10px; color: #4a5568;">🎪 Festival Details</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                ${festivalFields.join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (event.event_type === 'photowalk') {
+                const photowalkFields = [];
+                if (event.difficulty_level) photowalkFields.push(addField('Difficulty Level', event.difficulty_level));
+                if (event.equipment_needed) photowalkFields.push(addField('Equipment Needed', event.equipment_needed));
+                if (event.organizer) photowalkFields.push(addField('Organizer', event.organizer));
+                
+                if (photowalkFields.length > 0) {
+                    html += `
+                        <div>
+                            <h4 style="margin-bottom: 10px; color: #4a5568;">📸 Photowalk Details</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                ${photowalkFields.join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Add system information
+            html += `
+                <div>
+                    <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        ${addField('Created', event.created_at)}
+                        ${addField('Updated', event.updated_at)}
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+        
+        function generateVenueDetailsHTML(venue) {
+            // Helper function to add field only if value exists
+            const addField = (label, value, isLink = false) => {
+                if (!value || value === 'N/A' || value === '') return '';
+                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+            };
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🏢 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${venue.id}</div>
+                            ${addField('Name', venue.name)}
+                            ${addField('Type', venue.venue_type)}
+                            ${addField('Description', venue.description)}
+                            ${addField('City', venue.city_name)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📍 Location & Contact</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Address', venue.address)}
+                            ${addField('Phone', venue.phone)}
+                            ${addField('Email', venue.email)}
+                            ${addField('Website', venue.website, true)}
+                            ${addField('Coordinates', venue.latitude && venue.longitude ? `${venue.latitude}, ${venue.longitude}` : null)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🕒 Hours & Pricing</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Opening Hours', venue.opening_hours)}
+                            ${addField('Admission Fee', venue.admission_fee)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📱 Social Media</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Instagram', venue.instagram, true)}
+                            ${addField('Twitter', venue.twitter, true)}
+                            ${addField('Facebook', venue.facebook, true)}
+                            ${addField('LinkedIn', venue.linkedin, true)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        ${addField('Created', venue.created_at)}
+                        ${addField('Updated', venue.updated_at)}
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+        
+        function generateCityDetailsHTML(city) {
+            // Helper function to add field only if value exists
+            const addField = (label, value, isLink = false) => {
+                if (!value || value === 'N/A' || value === '') return '';
+                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+            };
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🏙️ Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${city.id}</div>
+                            ${addField('Name', city.name)}
+                            ${addField('Display Name', city.display_name)}
+                            ${addField('State/Province', city.state)}
+                            ${addField('Country', city.country)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🌍 Location & Timezone</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Timezone', city.timezone)}
+                            ${addField('Latitude', city.latitude)}
+                            ${addField('Longitude', city.longitude)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        ${addField('Created', city.created_at)}
+                        ${addField('Updated', city.updated_at)}
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+        
+        function generateSourceDetailsHTML(source) {
+            // Helper function to add field only if value exists
+            const addField = (label, value, isLink = false) => {
+                if (!value || value === 'N/A' || value === '') return '';
+                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+            };
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📱 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${source.id}</div>
+                            ${addField('Name', source.name)}
+                            ${addField('Handle', source.handle)}
+                            ${addField('Type', source.source_type)}
+                            ${addField('Description', source.description)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🔗 Links & Contact</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('URL', source.url, true)}
+                            ${addField('Email', source.email)}
+                            ${addField('Phone', source.phone)}
+                            ${addField('Contact Person', source.contact_person)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🎯 Event Information</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            ${addField('Event Types', source.event_types)}
+                            ${addField('Frequency', source.frequency)}
+                            ${addField('Language', source.language)}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">📊 Status & Stats</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 8px;"><strong>Active:</strong> ${source.is_active ? 'Yes' : 'No'}</div>
+                            ${addField('Last Scraped', source.last_scraped_at)}
+                            ${addField('Events Count', source.events_count)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        ${addField('Created', source.created_at)}
+                        ${addField('Updated', source.updated_at)}
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+        
         function openImageUploadModal() {
             document.getElementById('imageUploadModal').style.display = 'block';
             document.getElementById('extractedDataDisplay').style.display = 'none';
@@ -4658,7 +5094,7 @@
                 city_id: document.getElementById('manualCityId').value || null,
                 source: document.getElementById('manualEventSource').value || null,
                 source_url: document.getElementById('manualSourceUrl').value.trim() || null,
-                create_calendar_event: document.getElementById('createCalendarEventFromImage').checked
+                create_calendar_event: false
             };
             
             try {

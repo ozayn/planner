@@ -1378,7 +1378,8 @@ def admin_events():
             event_dict = event.to_dict()
             event_dict.update({
                 'venue_name': event.venue.name if event.venue else None,
-                'city_name': event.city.name if event.city else 'Unknown'
+                'city_name': event.city.name if event.city else 'Unknown',
+                'city_timezone': event.city.timezone if event.city else 'UTC'
             })
             events_data.append(event_dict)
         
@@ -3044,7 +3045,7 @@ def auto_fill_event():
             'admission_price': 12.00 if event_type == 'exhibition' else None,
             'festival_type': 'Cultural' if event_type == 'festival' else None,
             'multiple_locations': True if event_type == 'festival' else False,
-            'difficulty_level': 'Beginner' if event_type == 'photowalk' else None,
+            'difficulty_level': None,  # Leave empty - not required
             'equipment_needed': 'Camera, comfortable shoes' if event_type == 'photowalk' else None,
             'organizer': 'Local Photography Club' if event_type == 'photowalk' else None
         }
@@ -3401,7 +3402,7 @@ def create_event_from_data():
             event.festival_type = data.get('festival_type', 'Cultural')
             event.multiple_locations = data.get('multiple_locations', False)
         elif event.event_type == 'photowalk':
-            event.difficulty_level = data.get('difficulty_level', 'Easy')
+            event.difficulty_level = data.get('difficulty_level', '') or None
             event.equipment_needed = data.get('equipment_needed', '')
             event.organizer = data.get('organizer', '')
         
@@ -3657,7 +3658,7 @@ def create_event_from_venue():
             event.festival_type = data.get('festival_type', 'Cultural')
             event.multiple_locations = data.get('multiple_locations', False)
         elif event.event_type == 'photowalk':
-            event.difficulty_level = data.get('difficulty_level', 'Easy')
+            event.difficulty_level = data.get('difficulty_level', '') or None
             event.equipment_needed = data.get('equipment_needed', '')
             event.organizer = data.get('organizer', '')
         

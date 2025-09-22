@@ -803,6 +803,10 @@ class ImageEventProcessor:
             '0C': 'DC',  # D often misread as 0
             'D0': 'DC',  # C often misread as 0
             'DO': 'DC',  # C often misread as O
+            '1S1AND': 'ISLAND',  # ISLAND misread as 1S1AND
+            '1SLAND': 'ISLAND',  # ISLAND misread as 1SLAND
+            'RH0DE': 'RHODE',  # RHODE with O misread as 0
+            'RH0DE ISLAND': 'RHODE ISLAND',  # RHODE ISLAND with O misread as 0
             
             # Common word misreadings in event contexts
             'STREETMEETOC': 'STREETMEETDC',
@@ -814,16 +818,41 @@ class ImageEventProcessor:
             '4PM': '4PM',  # Usually correct
             '4P0': '4PM',  # M misread as 0
             '4PO': '4PM',  # M misread as O
+            '4:05PM': '4:00PM',  # 00 misread as 05
+            '4:05 PM': '4:00 PM',  # 00 misread as 05
+            '4:0S PM': '4:00 PM',  # 0 misread as S
+            '4:0S PM': '4:00 PM',  # 0 misread as S
+            '4:0O PM': '4:00 PM',  # 0 misread as O
+            '4:0O PM': '4:00 PM',  # 0 misread as O
             
             # Date misreadings
             'SEP 28': 'SEP 28',  # Usually correct
             'SEP 2B': 'SEP 28',  # 8 misread as B
             'SEP 2O': 'SEP 28',  # 8 misread as O
             
-            # Location misreadings
+            # Location misreadings - Rhode Island variations
             'RHODE ISLAND AVE': 'RHODE ISLAND AVE',  # Usually correct
             'RHODE ISLAND AV0': 'RHODE ISLAND AVE',  # E misread as 0
             'RHODE ISLAND AVO': 'RHODE ISLAND AVE',  # E misread as O
+            'RHODE 1S1AND AVE': 'RHODE ISLAND AVE',  # Common misreading
+            'RHODE 1SLAND AVE': 'RHODE ISLAND AVE',  # Common misreading
+            'RH0DE ISLAND AVE': 'RHODE ISLAND AVE',  # O misread as 0
+            'RH0DE 1S1AND AVE': 'RHODE ISLAND AVE',  # Multiple misreadings
+            
+            # Metro station variations
+            'METRO STATION': 'METRO STATION',
+            'METRO STATI0N': 'METRO STATION',  # O misread as 0
+            'METR0 STATION': 'METRO STATION',  # O misread as 0
+            
+            # Common event text misreadings
+            'WE 11 BE': 'WE WILL BE',  # WILL misread as 11
+            'WE W1LL BE': 'WE WILL BE',  # I misread as 1
+            'K1CKING': 'KICKING',  # I misread as 1
+            'TH1NGS': 'THINGS',  # I misread as 1
+            'OFF A': 'OFF AT',  # AT misread as A
+            'M0RE': 'MORE',  # O misread as 0
+            'DAYS AGO': 'DAYS AGO',
+            'DAY5 AGO': 'DAYS AGO',  # S misread as 5
         }
         
         corrected_text = text
@@ -891,11 +920,20 @@ class ImageEventProcessor:
             r'\d+[A-Z][a-z]*\s*[A-Z][a-z]*\s*%\s*[A-Z]',  # Like "28G FOe- %N"
             r'[A-Z][a-z]*\s*[A-Z][a-z]*\s*\d+%',  # Like "FOe- %N OA 187%"
             r'\d+[A-Z][a-z]*\s*%\s*[A-Z]\s*[A-Z][a-z]*',  # Other patterns
+            r'\b[a-z]+\d+[a-z]+\d+[a-z]+\b',  # Mixed letters and numbers like "haautifi11arsunhntnnranbe"
+            r'\b\d+[a-z]+\d+[a-z]+\d+\b',  # Number-letter-number patterns
+            r'\b[a-z]*\d+[a-z]*\d+[a-z]*\d+[a-z]*\b',  # Multiple digit-letter combinations
+            r'\b[a-z]{10,}\d+[a-z]{10,}\b',  # Very long letter sequences with numbers
         ]
         
         for pattern in garbled_patterns:
-            if re.search(pattern, text):
+            if re.search(pattern, text, re.IGNORECASE):
                 return True
+        
+        # Check for excessive mixed alphanumeric sequences
+        mixed_sequences = re.findall(r'\b[a-zA-Z]*\d+[a-zA-Z]*\d+[a-zA-Z]*\b', text)
+        if len(mixed_sequences) > 2:  # More than 2 mixed sequences is likely garbled
+            return True
         
         # Check if text has too many random characters
         alpha_chars = sum(1 for c in text if c.isalpha())
@@ -904,74 +942,107 @@ class ImageEventProcessor:
         if total_chars > 0 and alpha_chars / total_chars < 0.3:
             return True
         
+        # Check for repetitive character patterns (common in garbled OCR)
+        if re.search(r'(.)\1{4,}', text):  # Same character repeated 5+ times
+            return True
+        
         return False
     
+    def _clean_text_for_extraction(self, text: str) -> str:
+        """Remove comments, hashtags, handles, and other social media noise"""
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+                
+            # Skip hashtags and handles
+            if line.startswith('#') or line.startswith('@'):
+                continue
+                
+            # Skip lines that are just hashtags/handles
+            if re.match(r'^[#@\s]+$', line):
+                continue
+                
+            # Skip lines that are mostly hashtags
+            hashtag_count = len(re.findall(r'#\w+', line))
+            if hashtag_count > 2:
+                # Remove hashtags but keep the rest if there's meaningful content
+                line_without_hashtags = re.sub(r'#\w+\s*', '', line).strip()
+                if len(line_without_hashtags) > 5:
+                    cleaned_lines.append(line_without_hashtags)
+                continue
+            
+            # Skip lines that look like comments or reactions
+            if any(pattern in line.lower() for pattern in [
+                'like', 'comment', 'share', 'follow', 'dm', 'message me',
+                'tag your friends', 'double tap', 'save this post'
+            ]):
+                continue
+                
+            # Skip lines with excessive punctuation (often comments)
+            if len(re.findall(r'[!]{2,}|[?]{2,}|[.]{3,}', line)) > 0:
+                continue
+                
+            # Keep meaningful lines
+            if len(line) > 3:
+                cleaned_lines.append(line)
+        
+        return '\n'.join(cleaned_lines)
+    
     def _extract_title(self, text: str) -> Optional[str]:
-        """Extract event title from text"""
-        # If text is garbled, skip title extraction and rely on source enhancement
+        """Extract simple, clean event title - ignore comments and social media noise"""
+        # If text is garbled, skip title extraction
         if self._is_garbled_text(text):
             logger.warning("Skipping title extraction due to garbled text")
             return None
-            
-        lines = text.split('\n')
         
-        # For Instagram posts, look for meaningful content
+        # Clean up text first - remove comments, hashtags, handles, etc.
+        cleaned_text = self._clean_text_for_extraction(text)
+        
+        lines = cleaned_text.split('\n')
+        
+        # Look for the first meaningful line that could be a title
         for line in lines:
             line = line.strip()
-            if len(line) > 5 and not self._is_date_or_time_line(line):
-                # Skip hashtags and handles for title
-                if not line.startswith('#') and not line.startswith('@'):
-                    # Clean up the line for title
-                    title = line.replace('#STREETMEETDC', '').replace('#streetmeetdc', '').strip()
-                    if title and len(title) > 3 and not self._is_garbled_text(title):
-                        return title
+            # Skip empty lines, dates, and times
+            if (len(line) > 5 and 
+                not self._is_date_or_time_line(line) and
+                not self._is_garbled_text(line)):
+                
+                if line and len(line) > 3:
+                    return line
         
-        # If no good title found, generate one based on content
-        if '#streetmeetdc' in text.lower() or 'streetmeet' in text.lower():
-            # Try to extract location for better title
-            if 'rhode island' in text.lower():
-                return "Street Meet DC - Rhode Island Ave"
-            else:
-                return "Street Meet DC Event"
-        
-        # If we have a location but no good title, use the location
-        location = self._extract_location(text)
-        if location and not any(line.strip() == location for line in lines if len(line.strip()) > 5):
-            return f"Event at {location}"
-        
-        return None
+        # If no good title found, generate a simple one based on content
+        if any(keyword in text.lower() for keyword in ['streetmeet', 'photowalk', 'meetup']):
+            return "Photography Meetup"
+        elif any(keyword in text.lower() for keyword in ['tour', 'walking', 'guided']):
+            return "Walking Tour"
+        elif any(keyword in text.lower() for keyword in ['exhibition', 'art', 'gallery']):
+            return "Art Exhibition"
+        else:
+            return "Community Event"
     
     def _extract_description(self, text: str) -> Optional[str]:
-        """Extract event description from text"""
-        # If text is garbled, skip description extraction and rely on source enhancement
+        """Extract simple event description - just the essential info"""
+        # If text is garbled, skip description extraction
         if self._is_garbled_text(text):
             logger.warning("Skipping description extraction due to garbled text")
             return None
-            
-        lines = text.split('\n')
-        description_lines = []
         
-        for line in lines:
-            line = line.strip()
-            if line and not self._is_date_or_time_line(line) and len(line) > 10:
-                # Clean up hashtags and handles
-                clean_line = line.replace('#STREETMEETDC', '').replace('#streetmeetdc', '').strip()
-                if clean_line and len(clean_line) > 3 and not self._is_garbled_text(clean_line):
-                    # Check if this line contains location details that should be in description
-                    if self._contains_location_details(clean_line):
-                        description_lines.append(clean_line)
-        
-        # If we found location details, include them in description
-        if description_lines:
-            base_description = "Join us for a Street Meet DC photography event"
-            location_details = ' '.join(description_lines[:2])  # Take first 2 lines with location details
-            return f"{base_description}. {location_details}"
-        
-        # Generate description for Instagram posts
-        if '#streetmeetdc' in text.lower() or 'streetmeet' in text.lower():
-            return "Join us for a Street Meet DC photography event"
-        
-        return None
+        # Keep it simple - just provide a basic description based on event type
+        if any(keyword in text.lower() for keyword in ['streetmeet', 'photowalk']):
+            return "Photography meetup and photowalk"
+        elif any(keyword in text.lower() for keyword in ['tour', 'walking']):
+            return "Walking tour"
+        elif any(keyword in text.lower() for keyword in ['exhibition', 'art']):
+            return "Art exhibition"
+        else:
+            return "Community event"
     
     def _contains_location_details(self, text: str) -> bool:
         """Check if text contains additional location details beyond street name"""
@@ -991,9 +1062,54 @@ class ImageEventProcessor:
         
         return False
     
+    def _contains_meeting_details(self, text: str) -> bool:
+        """Check if text contains meeting or event details"""
+        # Look for patterns that indicate meeting instructions or details
+        meeting_detail_patterns = [
+            r'\b(meeting point|gathering spot|start point|entrance|meet at|meet us)\b',
+            r'\b(bring|bring your|don\'t forget|remember to)\b',
+            r'\b(what to expect|what to bring|what you\'ll need)\b',
+            r'\b(weather|rain|sunny|cloudy)\b',
+            r'\b(all skill levels|beginner|advanced|experience)\b',
+            r'\b(free|cost|price|ticket|registration)\b',
+        ]
+        
+        text_lower = text.lower()
+        for pattern in meeting_detail_patterns:
+            if re.search(pattern, text_lower):
+                return True
+        
+        return False
+    
     def _extract_location(self, text: str) -> Optional[str]:
-        """Extract clean location from text for Google Maps searchability"""
-        # Look for common location indicators
+        """Extract simple location name from text"""
+        # Look for street/avenue names first (most common for events)
+        street_patterns = [
+            r'\b([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))\b',
+        ]
+        
+        for pattern in street_patterns:
+            match = re.search(pattern, text)
+            if match:
+                location = match.group(1).strip()
+                return self._clean_location_name(location)
+        
+        # Look for specific known locations (with OCR error tolerance)
+        text_upper = text.upper()
+        if 'RHODE' in text_upper and ('ISLAND' in text_upper or '1SLAND' in text_upper or '1S1AND' in text_upper):
+            return 'Rhode Island Ave'
+        
+        # Look for other common DC locations
+        if 'DUPONT' in text_upper and 'CIRCLE' in text_upper:
+            return 'Dupont Circle'
+        if 'GEORGETOWN' in text_upper:
+            return 'Georgetown'
+        if 'CAPITOL' in text_upper and 'HILL' in text_upper:
+            return 'Capitol Hill'
+        if 'NATIONAL' in text_upper and 'MALL' in text_upper:
+            return 'National Mall'
+        
+        # Look for venue names or general locations
         location_patterns = [
             r'at\s+([A-Z][^,\n]+)',
             r'@\s+([A-Z][^,\n]+)',
@@ -1005,51 +1121,23 @@ class ImageEventProcessor:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 location = match.group(1).strip()
-                return self._clean_location_for_maps(location)
-        
-        # For Instagram posts, look for street/avenue names
-        street_patterns = [
-            r'\b([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))\b',
-            r'\b([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))\b',
-        ]
-        
-        for pattern in street_patterns:
-            match = re.search(pattern, text)
-            if match:
-                location = match.group(1).strip()
-                return self._clean_location_for_maps(location)
-        
-        # Look for specific known locations in the text (with OCR error tolerance)
-        text_upper = text.upper()
-        if 'RHODE 1SLAND AVE' in text_upper or 'RHODE ISLAND AVE' in text_upper or 'RHODE ISLAND AVENUE' in text_upper:
-            return 'Rhode Island Ave'
+                # Only return if it's a reasonable length and not garbled
+                if 3 < len(location) < 50 and not self._is_garbled_text(location):
+                    return self._clean_location_name(location)
         
         return None
     
-    def _clean_location_for_maps(self, location: str) -> str:
-        """Clean location string to be Google Maps searchable"""
+    def _clean_location_name(self, location: str) -> str:
+        """Clean location name to be simple and readable"""
         if not location:
             return ""
         
         # Remove common OCR errors
         location = location.replace('AV0', 'AVE').replace('AVO', 'AVE')
         
-        # Extract just the street name (remove extra details)
-        # Look for patterns like "Rhode Island Ave, Washington DC" -> "Rhode Island Ave"
-        street_patterns = [
-            r'^([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))',
-            r'^([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))',
-        ]
-        
-        for pattern in street_patterns:
-            match = re.search(pattern, location, re.IGNORECASE)
-            if match:
-                clean_location = match.group(1).strip()
-                # Capitalize properly
-                return ' '.join(word.capitalize() for word in clean_location.split())
-        
-        # If no street pattern found, return cleaned version
-        return location.strip()
+        # Clean up and capitalize properly
+        clean_location = location.strip()
+        return ' '.join(word.capitalize() for word in clean_location.split())
     
     def _extract_price(self, text: str) -> Optional[float]:
         """Extract price from text"""
