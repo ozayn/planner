@@ -983,6 +983,10 @@ class ImageEventProcessor:
     
     def _clean_text_for_extraction(self, text: str) -> str:
         """Remove comments, hashtags, handles, and other social media noise"""
+        # First, remove meaningless OCR noise from the beginning
+        # Pattern for meaningless phrases like "ne, ae!" at start
+        text = re.sub(r'^[a-z]{1,3}[,\.!]*\s*[a-z]{1,3}[,\.!]*\s*', '', text, flags=re.IGNORECASE)
+        
         lines = text.split('\n')
         cleaned_lines = []
         
@@ -996,6 +1000,12 @@ class ImageEventProcessor:
             # Skip hashtags and handles
             if line.startswith('#') or line.startswith('@'):
                 continue
+                
+            # Skip meaningless short phrases (OCR noise)
+            if len(line) <= 8 and not any(char.isdigit() for char in line):
+                # Skip lines like "ne, ae!", "hi!", "ok", etc.
+                if re.match(r'^[a-z]{1,3}[,\.!]*[a-z]{1,3}[,\.!]*$', line.lower()):
+                    continue
                 
             # Skip lines that are just hashtags/handles
             if re.match(r'^[#@\s]+$', line):
@@ -1040,15 +1050,28 @@ class ImageEventProcessor:
         lines = cleaned_text.split('\n')
         
         # Look for the first meaningful line that could be a title
+        # Skip meaningless OCR noise at the beginning
         for line in lines:
             line = line.strip()
-            # Skip empty lines, dates, and times
-            if (len(line) > 5 and 
-                not self._is_date_or_time_line(line) and
-                not self._is_garbled_text(line)):
+            
+            # Skip meaningless short phrases (like "ne, ae!")
+            if len(line) <= 8 and not any(char.isdigit() for char in line):
+                if re.match(r'^[a-z]{1,3}[,\.!]*[a-z]{1,3}[,\.!]*$', line.lower()):
+                    continue
+            line = line.strip()
+            # Skip empty lines and garbled text
+            if len(line) > 5 and not self._is_garbled_text(line):
                 
                 if line and len(line) > 3:
-                    return line
+                    # If line contains location info, use it as title (even if it also has date/time)
+                    if any(location_word in line.upper() for location_word in ['MALL', 'AVENUE', 'STREET', 'PARK', 'CENTER', 'MUSEUM']):
+                        return line
+                    # Skip lines that are ONLY date/time (no location or other meaningful content)
+                    elif self._is_date_or_time_line(line):
+                        continue
+                    # Otherwise use the line as is
+                    else:
+                        return line
         
         # If no good title found, generate a simple one based on content
         if any(keyword in text.lower() for keyword in ['streetmeet', 'photowalk', 'meetup']):
