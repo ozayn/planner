@@ -1351,7 +1351,14 @@ def admin_venues():
         
         for venue in venues:
             venue_dict = venue.to_dict()
-            venue_dict['city_name'] = venue.city.name if venue.city else 'Unknown'
+            if venue.city:
+                # Use full display name with state if available
+                if venue.city.state:
+                    venue_dict['city_name'] = f"{venue.city.name}, {venue.city.state}, {venue.city.country}"
+                else:
+                    venue_dict['city_name'] = f"{venue.city.name}, {venue.city.country}"
+            else:
+                venue_dict['city_name'] = 'Unknown'
             venues_data.append(venue_dict)
         
         return jsonify(venues_data)
