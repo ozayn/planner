@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-09-21",
     "description": "Cities exported from database - always most updated version",
-    "total_cities": 24,
-    "last_updated": "2025-09-21 17:19:58"
+    "total_cities": 25,
+    "last_updated": "2025-09-21 20:53:39"
   },
   "cities": {
     "1": {
@@ -146,6 +146,12 @@
       "timezone": "America/Los_Angeles"
     },
     "24": {
+      "name": "Silver Spring",
+      "state": "Maryland",
+      "country": "United States",
+      "timezone": "America/New_York"
+    },
+    "25": {
       "name": "Silver Spring",
       "state": "Maryland",
       "country": "United States",

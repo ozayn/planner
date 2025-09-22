@@ -162,20 +162,20 @@ def add_city():
         # Format the names properly
         formatted_name = format_city_name(name)
         formatted_country = format_country_name(country, name)  # Pass city name as context
-        formatted_state = format_city_name(state) if state else None
+        formatted_state = state.strip().title() if state else None  # Simple title case for states
         
-        # Check for duplicates using the new duplicate checking function
-        from scripts.utils import check_city_duplicate_active
+        # Check for duplicates directly (more reliable than external function)
         print(f"🔍 Checking for duplicates: {formatted_name}, {formatted_state}, {formatted_country}")
-        duplicate_city, duplicate_type = check_city_duplicate_active(formatted_name, formatted_state, formatted_country)
-        print(f"🔍 Duplicate check result: {duplicate_city}, {duplicate_type}")
+        
+        # Direct duplicate check in the same database session
+        duplicate_city = City.query.filter_by(
+            name=formatted_name,
+            state=formatted_state,
+            country=formatted_country
+        ).first()
+        
         if duplicate_city:
-            if duplicate_type == "exact":
-                return jsonify({'error': f'City "{formatted_name}" already exists (ID: {duplicate_city.id})'}), 400
-            elif duplicate_type == "variation":
-                return jsonify({'error': f'Similar city already exists: "{duplicate_city.name}" (ID: {duplicate_city.id}). Please use the existing city or choose a different name.'}), 400
-            else:
-                return jsonify({'error': f'City with similar name already exists: "{duplicate_city.name}" (ID: {duplicate_city.id})'}), 400
+            return jsonify({'error': f'City "{formatted_name}, {formatted_state}" already exists (ID: {duplicate_city.id})'}), 400
         
         # Get timezone - use provided timezone or auto-detect
         provided_timezone = data.get('timezone', '').strip()
@@ -1818,17 +1818,8 @@ def smart_search_venue():
         
         # Validate and normalize venue_type to match our dropdown options
         llm_venue_type = venue_details.get('venue_type', 'Museum')
-        allowed_venue_types = [
-            'Museum', 'Science Museum', 'Gallery', 'Theater', 'Performing Arts Center', 
-            'Concert Hall', 'Park', 'Botanical Garden', 'Library', 'Historic Site', 
-            'Historic District', 'Historic Trail', 'Monument', 'Memorial', 'Landmark', 
-            'Cultural Center', 'Arts Center', 'Community Center', 'Convention Center', 
-            'Exhibition Hall', 'Auditorium', 'Stadium', 'Arena', 'Market', 
-            'Shopping District', 'Art District', 'Government Building', 'Observation Tower', 
-            'Observation Deck', 'Observatory', 'Aquarium', 'Zoo', 'Cathedral', 
-            'Church', 'Temple', 'Shrine', 'Bridge', 'Castle', 'Palace', 'Beach', 
-            'Waterfront', 'Waterway', 'Avenue', 'cafe', 'restaurant', 'bookstore', 'other'
-        ]
+        from scripts.venue_types import get_allowed_venue_types
+        allowed_venue_types = get_allowed_venue_types()
         
         # Normalize venue type - check for exact match first
         if llm_venue_type in allowed_venue_types:

@@ -1,10 +1,18 @@
 {
   "metadata": {
-    "version": "2.1",
+    "version": "3.0",
     "created": "2025-09-21",
-    "description": "Venues with complete contact info, social media, and Google Maps images",
+    "description": "Complete venue database with cafes, restaurants, bookstores, contact info, social media, and Google Maps images",
     "total_venues": 178,
-    "last_updated": "2025-09-21 20:47:16"
+    "last_updated": "2025-09-21 21:07:01",
+    "features": [
+      "Google Maps images for all venues",
+      "Complete contact information",
+      "Social media links",
+      "Cafe, restaurant, and bookstore venue types",
+      "Dynamic LLM venue type detection",
+      "Fixed state name normalization bug"
+    ]
   },
   "venues": {
     "1": {

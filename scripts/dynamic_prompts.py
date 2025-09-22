@@ -57,13 +57,33 @@ class DynamicPromptGenerator:
             return []
     
     @staticmethod
+    def _get_venue_type_description() -> str:
+        """Get dynamic venue type description based on current allowed types"""
+        try:
+            from scripts.venue_types import get_venue_type_description
+            return get_venue_type_description()
+        except Exception as e:
+            print(f"Warning: Could not get dynamic venue types: {e}")
+            return 'Type of venue (e.g., Museum, Theater, Gallery, cafe, restaurant, bookstore, etc.)'
+    
+    @staticmethod
+    def _get_allowed_venue_types() -> List[str]:
+        """Get dynamic list of allowed venue types"""
+        try:
+            from scripts.venue_types import get_allowed_venue_types
+            return get_allowed_venue_types()
+        except Exception as e:
+            print(f"Warning: Could not get allowed venue types: {e}")
+            return ['Museum', 'Theater', 'Gallery', 'cafe', 'restaurant', 'bookstore', 'other']
+    
+    @staticmethod
     def generate_field_description(field_name: str, column_info: dict = None) -> str:
         """Generate dynamic field description based on field name and type"""
         # Basic field name to description mapping
         descriptions = {
             'id': 'Unique identifier',
             'name': 'Full official name',
-            'venue_type': 'Type of venue - MUST match one of these EXACT values: Museum, Science Museum, Gallery, Theater, Performing Arts Center, Concert Hall, Park, Botanical Garden, Library, Historic Site, Historic District, Historic Trail, Monument, Memorial, Landmark, Cultural Center, Arts Center, Community Center, Convention Center, Exhibition Hall, Auditorium, Stadium, Arena, Market, Shopping District, Art District, Government Building, Observation Tower, Observation Deck, Observatory, Aquarium, Zoo, Cathedral, Church, Temple, Shrine, Bridge, Castle, Palace, Beach, Waterfront, Waterway, Avenue, or Other',
+            'venue_type': DynamicPromptGenerator._get_venue_type_description(),
             'event_type': 'Type of event (tour, exhibition, festival, etc.)',
             'description': 'Detailed description',
             'address': 'Complete street address',
@@ -148,12 +168,15 @@ Include the full location details: city name, state/province/equivalent, and cou
         
         return f"""Find CURRENT and ACCURATE information about "{venue_name}" in {location}.
 
-IMPORTANT: For admission_fee, provide the CURRENT 2024-2025 pricing. Many museums have changed from free to paid admission in recent years. Check the most recent information.
+IMPORTANT: 
+- For admission_fee, provide the CURRENT 2024-2025 pricing. Many museums have changed from free to paid admission in recent years. Check the most recent information.
+- If the venue name includes additional context (like "Starbucks on 14th Street" or "Barnes & Noble downtown"), use that information to find the SPECIFIC location mentioned.
+- If this is a chain with multiple locations but no specific location is mentioned, you MUST pick ONE SPECIFIC location in {location}. Choose the MOST FAMOUS, FLAGSHIP, or DOWNTOWN location that would be most likely to host events or be a cultural destination. Provide the exact address, phone number, and hours for that specific branch. Do NOT say "Multiple locations" - choose a real, specific location.
 
 Return ONLY a JSON object with these fields:
 - name: Official name
 - address: Full street address
-- venue_type: Type - MUST be one of these EXACT values: Museum, Science Museum, Gallery, Theater, Performing Arts Center, Concert Hall, Park, Botanical Garden, Library, Historic Site, Historic District, Historic Trail, Monument, Memorial, Landmark, Cultural Center, Arts Center, Community Center, Convention Center, Exhibition Hall, Auditorium, Stadium, Arena, Market, Shopping District, Art District, Government Building, Observation Tower, Observation Deck, Observatory, Aquarium, Zoo, Cathedral, Church, Temple, Shrine, Bridge, Castle, Palace, Beach, Waterfront, Waterway, Avenue, or Other. Choose the MOST APPROPRIATE type from this list.
+- venue_type: Type - MUST be one of these EXACT values: {', '.join(DynamicPromptGenerator._get_allowed_venue_types())}. Choose the MOST APPROPRIATE type from this list.
 - description: Brief description
 - website_url: Official website
 - phone_number: Contact phone

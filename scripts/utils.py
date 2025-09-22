@@ -51,6 +51,9 @@ from scripts.nlp_utils import (
 # Import dynamic prompt generator
 from scripts.dynamic_prompts import DynamicPromptGenerator
 
+# Import venue types from centralized module
+from scripts.venue_types import get_allowed_venue_types
+
 # Virtual environment auto-activation
 def ensure_venv_activated():
     """Ensure virtual environment is activated and dependencies are available"""
