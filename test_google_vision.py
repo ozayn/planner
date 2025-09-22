@@ -23,6 +23,13 @@ def test_environment_setup():
     env_file = project_root / '.env'
     print(f"📁 .env file: {'✅ Found' if env_file.exists() else '❌ Not found'}")
     
+    # Load environment variables manually
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(env_file)
+    except ImportError:
+        pass
+    
     # Check GOOGLE_APPLICATION_CREDENTIALS
     credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
     if credentials_path:
@@ -157,7 +164,7 @@ def main():
         print("   💡 Set up at least one OCR engine:")
         print("      - Install Tesseract for local OCR")
         print("      - Configure Google Vision API for cloud OCR")
-        print("   📖 See GOOGLE_VISION_SETUP.md for detailed instructions")
+        print("   📖 See docs/setup/GOOGLE_VISION_SETUP.md for detailed instructions")
 
 if __name__ == "__main__":
     main()

@@ -44,7 +44,7 @@ python app.py
 
 Visit: `http://localhost:5001`
 
-📖 **For detailed setup instructions, see [SETUP.md](SETUP.md)**
+📖 **For detailed setup instructions, see [docs/setup/SETUP_GUIDE.md](docs/setup/SETUP_GUIDE.md)**
 
 ## 🎭 Event Types
 
@@ -138,10 +138,13 @@ planner/
 │   ├── index.html         # Main web interface
 │   ├── admin.html         # Admin interface
 │   └── debug.html         # Debug interface
-├── docs/                  # Documentation
-│   ├── API_DOCUMENTATION.md
-│   ├── ARCHITECTURE.md
-│   └── DATABASE_SCHEMA.md
+├── docs/                  # 📚 Comprehensive Documentation
+│   ├── setup/             # Setup & installation guides
+│   ├── deployment/        # Deployment guides
+│   ├── admin/             # Admin interface docs
+│   ├── data/              # Data management guides
+│   ├── session-notes/     # Development session notes
+│   └── README.md          # Documentation index
 ├── archive/               # Archived files
 │   ├── outdated_scripts/  # Old scripts
 │   └── outdated_docs/     # Old documentation
@@ -150,6 +153,17 @@ planner/
 ├── setup_github.sh       # GitHub setup script
 └── README.md             # This file
 ```
+
+## 📚 Documentation
+
+All documentation is organized in the `docs/` directory:
+
+- **[📖 Documentation Index](docs/README.md)** - Complete documentation overview
+- **[🚀 Setup Guide](docs/setup/SETUP_GUIDE.md)** - Detailed installation instructions
+- **[☁️ Deployment Guide](docs/deployment/RAILWAY_DEPLOYMENT.md)** - Railway deployment
+- **[🔍 Google Vision Setup](docs/setup/GOOGLE_VISION_SETUP.md)** - OCR configuration
+- **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System design
+- **[📊 API Documentation](docs/API_DOCUMENTATION.md)** - API endpoints
 
 ## ⚙️ Configuration
 
