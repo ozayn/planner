@@ -64,7 +64,7 @@ class ImageEventProcessor:
     
     def _setup_ocr_engine(self) -> str:
         """Setup OCR engine (Tesseract or Google Vision)"""
-        # Try Tesseract first since it's more reliable for local development
+        # Try Tesseract first since it's more reliable and doesn't require credentials
         try:
             pytesseract.get_tesseract_version()
             logger.info("Using Tesseract OCR engine")
@@ -72,15 +72,24 @@ class ImageEventProcessor:
         except Exception as e:
             logger.warning(f"Tesseract not available: {e}")
         
-        # Fallback to Google Cloud Vision if Tesseract fails
-        try:
-            if os.getenv('GOOGLE_APPLICATION_CREDENTIALS') or os.getenv('GOOGLE_CLIENT_ID'):
+        # Only try Google Cloud Vision if we have proper credentials
+        # Check for both service account file and application default credentials
+        has_google_creds = (
+            os.getenv('GOOGLE_APPLICATION_CREDENTIALS') or 
+            os.getenv('GOOGLE_CLIENT_ID') or
+            os.path.exists(os.path.expanduser('~/.config/gcloud/application_default_credentials.json'))
+        )
+        
+        if has_google_creds:
+            try:
+                # Test if we can actually create a client
+                client = vision.ImageAnnotatorClient()
                 logger.info("Using Google Cloud Vision OCR engine")
                 return 'google_vision'
-        except Exception as e:
-            logger.warning(f"Google Vision not available: {e}")
+            except Exception as e:
+                logger.warning(f"Google Vision credentials found but client creation failed: {e}")
         
-        # Last resort - try Tesseract anyway
+        # Last resort - try Tesseract anyway (might work even if version check failed)
         logger.warning("No OCR engine properly configured, attempting Tesseract anyway")
         return 'tesseract'
     
@@ -204,8 +213,18 @@ class ImageEventProcessor:
             if self.ocr_engine == 'google_vision':
                 try:
                     text = self._extract_text_google_vision(image_path)
+                    if text:
+                        logger.info("Successfully extracted text using Google Vision")
+                    else:
+                        logger.warning("Google Vision returned empty text, falling back to Tesseract")
+                        text = self._extract_text_tesseract(image_path)
                 except Exception as e:
-                    logger.warning(f"Google Vision failed: {e}, falling back to Tesseract")
+                    error_msg = str(e)
+                    if "credentials" in error_msg.lower() or "authentication" in error_msg.lower():
+                        logger.error(f"Google Vision authentication failed: {e}")
+                        logger.info("Falling back to Tesseract due to credential issues")
+                    else:
+                        logger.warning(f"Google Vision failed: {e}, falling back to Tesseract")
                     text = self._extract_text_tesseract(image_path)
             elif self.ocr_engine == 'tesseract':
                 text = self._extract_text_tesseract(image_path)
@@ -219,8 +238,14 @@ class ImageEventProcessor:
             
         except Exception as e:
             logger.error(f"Error extracting text from image: {e}")
-            # Return a fallback message instead of empty string
-            return f"OCR Error: {str(e)}"
+            # Provide more specific error information
+            error_msg = str(e)
+            if "tesseract" in error_msg.lower() or "command not found" in error_msg.lower():
+                return "OCR Error: Tesseract not installed. Please contact administrator."
+            elif "google" in error_msg.lower() or "vision" in error_msg.lower():
+                return "OCR Error: Google Vision API issue. Please try again or contact administrator."
+            else:
+                return f"OCR Error: {error_msg}"
     
     def _extract_text_google_vision(self, image_path: str) -> str:
         """Extract text using Google Cloud Vision API"""
