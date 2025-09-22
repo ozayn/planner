@@ -62,6 +62,7 @@ def get_api_keys() -> dict:
         'HUGGINGFACE_API_KEY': os.getenv('HUGGINGFACE_API_KEY'),
         'GOOGLE_MAPS_API_KEY': os.getenv('GOOGLE_MAPS_API_KEY'),
         'INSTAGRAM_API_KEY': os.getenv('INSTAGRAM_API_KEY'),
+        'GOOGLE_APPLICATION_CREDENTIALS': os.getenv('GOOGLE_APPLICATION_CREDENTIALS'),
     }
 
 def get_available_llm_providers() -> list:
@@ -85,6 +86,39 @@ def get_available_llm_providers() -> list:
         available.append('huggingface')
     
     return available
+
+def get_google_vision_status() -> dict:
+    """Check Google Vision API availability"""
+    ensure_env_loaded()
+    
+    api_keys = get_api_keys()
+    has_credentials = bool(api_keys['GOOGLE_APPLICATION_CREDENTIALS'])
+    
+    # Check if credentials file exists (if it's a file path)
+    credentials_path = api_keys['GOOGLE_APPLICATION_CREDENTIALS']
+    file_exists = False
+    
+    if credentials_path and not credentials_path.startswith('{'):
+        # It's a file path, check if file exists
+        file_exists = os.path.exists(credentials_path)
+    
+    # Test if we can create a Vision client
+    can_create_client = False
+    if has_credentials:
+        try:
+            from google.cloud import vision
+            client = vision.ImageAnnotatorClient()
+            can_create_client = True
+        except Exception:
+            can_create_client = False
+    
+    return {
+        'has_credentials': has_credentials,
+        'credentials_path': credentials_path,
+        'file_exists': file_exists,
+        'can_create_client': can_create_client,
+        'is_available': has_credentials and (file_exists or credentials_path.startswith('{'))
+    }
 
 def check_env_status() -> dict:
     """Check environment configuration status"""
@@ -123,6 +157,14 @@ if __name__ == "__main__":
     for key, has_key in status['api_keys_status'].items():
         status_icon = "✅" if has_key else "❌"
         print(f"  {status_icon} {key}")
+    
+    print("\n🔍 Google Vision API Status:")
+    vision_status = get_google_vision_status()
+    print(f"  Has Credentials: {'✅' if vision_status['has_credentials'] else '❌'}")
+    print(f"  Credentials Path: {vision_status['credentials_path'] or 'Not set'}")
+    print(f"  File Exists: {'✅' if vision_status['file_exists'] else '❌'}")
+    print(f"  Can Create Client: {'✅' if vision_status['can_create_client'] else '❌'}")
+    print(f"  Is Available: {'✅' if vision_status['is_available'] else '❌'}")
     
     print("\n✅ Environment configuration test complete!")
 
