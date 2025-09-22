@@ -390,6 +390,8 @@ class Event(db.Model):
     url = db.Column(db.String(500))
     is_selected = db.Column(db.Boolean, default=True)
     event_type = db.Column(db.String(50), nullable=False)  # 'tour', 'exhibition', 'festival', 'photowalk'
+    source = db.Column(db.String(50))  # 'instagram', 'facebook', 'website', etc.
+    source_url = db.Column(db.String(500))  # URL of the source (e.g., Instagram post URL)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -3252,6 +3254,445 @@ def sync_cities_to_predefined_json():
     except Exception as e:
         print(f"❌ Error syncing cities: {e}")
         return False
+
+# Image Upload and Event Creation Endpoints
+@app.route('/api/admin/upload-event-image', methods=['POST'])
+@login_required
+def upload_event_image():
+    """Upload an image and extract event information"""
+    try:
+        from scripts.image_event_processor import ImageEventProcessor
+        from scripts.google_calendar_integration import GoogleCalendarManager, create_calendar_event_from_extracted_data
+        
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No image file selected'}), 400
+        
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
+        if not ('.' in file.filename and 
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'error': 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, BMP, TIFF'}), 400
+        
+        # Save uploaded file
+        upload_dir = 'uploads'
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        filename = f"event_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+        file_path = os.path.join(upload_dir, filename)
+        file.save(file_path)
+        
+        # Process image to extract event data
+        processor = ImageEventProcessor()
+        extracted_data = processor.process_image(file_path)
+        
+        # Clean up uploaded file
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            app_logger.warning(f"Could not remove uploaded file {file_path}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'extracted_data': {
+                'title': extracted_data.title,
+                'description': extracted_data.description,
+                'start_date': extracted_data.start_date.isoformat() if extracted_data.start_date else None,
+                'end_date': extracted_data.end_date.isoformat() if extracted_data.end_date else None,
+                'start_time': extracted_data.start_time.isoformat() if extracted_data.start_time else None,
+                'end_time': extracted_data.end_time.isoformat() if extracted_data.end_time else None,
+                'location': extracted_data.location,
+                'start_location': extracted_data.start_location,
+                'end_location': extracted_data.end_location,
+                'event_type': extracted_data.event_type,
+                'price': extracted_data.price,
+                'organizer': extracted_data.organizer,
+                'url': extracted_data.url,
+                'confidence': extracted_data.confidence,
+                'city': extracted_data.city,
+                'state': extracted_data.state,
+                'country': extracted_data.country,
+                'city_id': extracted_data.city_id,
+                'source': extracted_data.source,
+                'source_url': extracted_data.source_url,
+                'instagram_handle': extracted_data.instagram_handle
+            }
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error processing uploaded image: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/create-event-from-data', methods=['POST'])
+@login_required
+def create_event_from_data():
+    """Create an event from extracted data and optional venue/source information"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('title'):
+            return jsonify({'error': 'Event title is required'}), 400
+        
+        if not data.get('start_date'):
+            return jsonify({'error': 'Start date is required'}), 400
+        
+        # Parse dates
+        try:
+            start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            end_date = None
+            if data.get('end_date'):
+                end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Parse times
+        start_time = None
+        end_time = None
+        if data.get('start_time'):
+            try:
+                start_time = datetime.strptime(data['start_time'], '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+                except ValueError:
+                    return jsonify({'error': 'Invalid time format. Use HH:MM or HH:MM:SS'}), 400
+        
+        if data.get('end_time'):
+            try:
+                end_time = datetime.strptime(data['end_time'], '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+                except ValueError:
+                    return jsonify({'error': 'Invalid time format. Use HH:MM or HH:MM:SS'}), 400
+        
+        # Create event
+        event = Event(
+            title=data['title'],
+            description=data.get('description', ''),
+            start_date=start_date,
+            end_date=end_date,
+            start_time=start_time,
+            end_time=end_time,
+            event_type=data.get('event_type', 'tour'),
+            start_location=data.get('location', ''),
+            url=data.get('url', ''),
+            city_id=data.get('city_id'),
+            venue_id=data.get('venue_id'),
+            source=data.get('source'),
+            source_url=data.get('source_url')
+        )
+        
+        # Add event type specific fields
+        if event.event_type == 'tour':
+            event.tour_type = data.get('tour_type', 'Guided')
+            event.max_participants = data.get('max_participants')
+            event.price = data.get('price')
+            event.language = data.get('language', 'English')
+        elif event.event_type == 'exhibition':
+            event.exhibition_location = data.get('exhibition_location', '')
+            event.curator = data.get('curator', '')
+            event.admission_price = data.get('price')
+        elif event.event_type == 'festival':
+            event.festival_type = data.get('festival_type', 'Cultural')
+            event.multiple_locations = data.get('multiple_locations', False)
+        elif event.event_type == 'photowalk':
+            event.difficulty_level = data.get('difficulty_level', 'Easy')
+            event.equipment_needed = data.get('equipment_needed', '')
+            event.organizer = data.get('organizer', '')
+        
+        # Add to database
+        db.session.add(event)
+        db.session.commit()
+        
+        # Create Google Calendar event if requested
+        calendar_event_id = None
+        if data.get('create_calendar_event', False):
+            try:
+                from scripts.google_calendar_integration import GoogleCalendarManager, create_calendar_event_from_extracted_data
+                
+                # Get venue data if venue_id provided
+                venue_data = None
+                if event.venue_id:
+                    venue = Venue.query.get(event.venue_id)
+                    if venue:
+                        venue_data = venue.to_dict()
+                
+                # Get city data if city_id provided
+                city_data = None
+                if event.city_id:
+                    city = City.query.get(event.city_id)
+                    if city:
+                        city_data = city.to_dict()
+                
+                # Create calendar event
+                calendar_manager = GoogleCalendarManager()
+                if calendar_manager.authenticate():
+                    calendar_event = create_calendar_event_from_extracted_data(
+                        data, venue_data, city_data
+                    )
+                    if calendar_event:
+                        calendar_event_id = calendar_manager.create_event(calendar_event)
+                
+            except Exception as e:
+                app_logger.warning(f"Could not create Google Calendar event: {e}")
+        
+        return jsonify({
+            'success': True,
+            'event_id': event.id,
+            'calendar_event_id': calendar_event_id,
+            'message': 'Event created successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error creating event: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/calendar/add', methods=['POST'])
+def add_event_to_calendar():
+    """Add an event to the user's calendar"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['title', 'start_date']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Extract event data
+        title = data.get('title')
+        description = data.get('description', '')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date', start_date)  # Default to start_date if not provided
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        location = data.get('location', '')
+        event_type = data.get('event_type', 'event')
+        city_id = data.get('city_id')
+        
+        # Get city timezone if city_id is provided
+        timezone = 'UTC'  # Default timezone
+        if city_id:
+            city = City.query.get(city_id)
+            if city and city.timezone:
+                timezone = city.timezone
+        
+        # Create calendar event data
+        calendar_event = {
+            'title': title,
+            'description': description,
+            'start_date': start_date,
+            'end_date': end_date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'location': location,
+            'event_type': event_type,
+            'timezone': timezone
+        }
+        
+        # Generate iCal format for calendar integration
+        ical_content = generate_ical_event(calendar_event)
+        
+        app_logger.info(f"Calendar event created: {title} on {start_date} in {timezone}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Event added to calendar successfully',
+            'event': calendar_event,
+            'ical_content': ical_content
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error adding event to calendar: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def generate_ical_event(event_data):
+    """Generate iCal format for calendar event"""
+    from datetime import datetime
+    import pytz
+    
+    # Parse dates and times
+    start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+    end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+    
+    # Get timezone
+    timezone_str = event_data.get('timezone', 'UTC')
+    try:
+        tz = pytz.timezone(timezone_str)
+    except:
+        tz = pytz.UTC  # Fallback to UTC if timezone is invalid
+    
+    # Handle times if provided - use floating time (no timezone conversion)
+    start_datetime_str = start_date.strftime('%Y%m%d')
+    end_datetime_str = end_date.strftime('%Y%m%d')
+    
+    if event_data.get('start_time'):
+        start_time_str = event_data['start_time']
+        # Handle both HH:MM and HH:MM:SS formats
+        if len(start_time_str.split(':')) == 2:
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        else:
+            start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+        
+        # Use floating time format (no timezone conversion)
+        start_datetime_str = f"{start_date.strftime('%Y%m%d')}T{start_time.strftime('%H%M%S')}"
+    
+    if event_data.get('end_time'):
+        end_time_str = event_data['end_time']
+        # Handle both HH:MM and HH:MM:SS formats
+        if len(end_time_str.split(':')) == 2:
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        else:
+            end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+        
+        # Use floating time format (no timezone conversion)
+        end_datetime_str = f"{end_date.strftime('%Y%m%d')}T{end_time.strftime('%H%M%S')}"
+    
+    # Generate unique ID
+    import uuid
+    event_id = str(uuid.uuid4())
+    
+    # Create iCal content with floating time (no timezone)
+    ical_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Event Planner//Event Planner//EN
+BEGIN:VEVENT
+UID:{event_id}@eventplanner.com
+DTSTART:{start_datetime_str}
+DTEND:{end_datetime_str}
+SUMMARY:{event_data['title']}
+DESCRIPTION:{event_data['description']}
+LOCATION:{event_data['location']}
+END:VEVENT
+END:VCALENDAR"""
+    
+    return ical_content
+
+@app.route('/api/admin/create-event-from-venue', methods=['POST'])
+@login_required
+def create_event_from_venue():
+    """Create an event based on venue information and additional data"""
+    try:
+        data = request.get_json()
+        
+        venue_id = data.get('venue_id')
+        if not venue_id:
+            return jsonify({'error': 'Venue ID is required'}), 400
+        
+        venue = Venue.query.get(venue_id)
+        if not venue:
+            return jsonify({'error': 'Venue not found'}), 404
+        
+        # Validate required fields
+        if not data.get('title'):
+            return jsonify({'error': 'Event title is required'}), 400
+        
+        if not data.get('start_date'):
+            return jsonify({'error': 'Start date is required'}), 400
+        
+        # Parse dates
+        try:
+            start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            end_date = None
+            if data.get('end_date'):
+                end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Parse times
+        start_time = None
+        end_time = None
+        if data.get('start_time'):
+            try:
+                start_time = datetime.strptime(data['start_time'], '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+                except ValueError:
+                    return jsonify({'error': 'Invalid time format. Use HH:MM or HH:MM:SS'}), 400
+        
+        if data.get('end_time'):
+            try:
+                end_time = datetime.strptime(data['end_time'], '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+                except ValueError:
+                    return jsonify({'error': 'Invalid time format. Use HH:MM or HH:MM:SS'}), 400
+        
+        # Create event
+        event = Event(
+            title=data['title'],
+            description=data.get('description', ''),
+            start_date=start_date,
+            end_date=end_date,
+            start_time=start_time,
+            end_time=end_time,
+            event_type=data.get('event_type', 'tour'),
+            start_location=venue.name,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            url=data.get('url', ''),
+            source=data.get('source'),
+            source_url=data.get('source_url')
+        )
+        
+        # Add event type specific fields
+        if event.event_type == 'tour':
+            event.tour_type = data.get('tour_type', 'Guided')
+            event.max_participants = data.get('max_participants')
+            event.price = data.get('price')
+            event.language = data.get('language', 'English')
+        elif event.event_type == 'exhibition':
+            event.exhibition_location = data.get('exhibition_location', '')
+            event.curator = data.get('curator', '')
+            event.admission_price = data.get('price')
+        elif event.event_type == 'festival':
+            event.festival_type = data.get('festival_type', 'Cultural')
+            event.multiple_locations = data.get('multiple_locations', False)
+        elif event.event_type == 'photowalk':
+            event.difficulty_level = data.get('difficulty_level', 'Easy')
+            event.equipment_needed = data.get('equipment_needed', '')
+            event.organizer = data.get('organizer', '')
+        
+        # Add to database
+        db.session.add(event)
+        db.session.commit()
+        
+        # Create Google Calendar event if requested
+        calendar_event_id = None
+        if data.get('create_calendar_event', False):
+            try:
+                from scripts.google_calendar_integration import GoogleCalendarManager, create_calendar_event_from_extracted_data
+                
+                calendar_manager = GoogleCalendarManager()
+                if calendar_manager.authenticate():
+                    calendar_event = create_calendar_event_from_extracted_data(
+                        data, venue.to_dict(), venue.city.to_dict() if venue.city else None
+                    )
+                    if calendar_event:
+                        calendar_event_id = calendar_manager.create_event(calendar_event)
+                
+            except Exception as e:
+                app_logger.warning(f"Could not create Google Calendar event: {e}")
+        
+        return jsonify({
+            'success': True,
+            'event_id': event.id,
+            'calendar_event_id': calendar_event_id,
+            'message': f'Event created successfully for venue: {venue.name}'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating event from venue: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     with app.app_context():

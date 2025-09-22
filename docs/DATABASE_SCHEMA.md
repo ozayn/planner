@@ -44,6 +44,8 @@ The database uses a **unified events architecture** with three main tables:
 | url | VARCHAR(500) | Yes |  | No |
 | is_selected | BOOLEAN | Yes |  | No |
 | event_type | VARCHAR(50) | No |  | No |
+| source | VARCHAR(50) | Yes |  | No |
+| source_url | VARCHAR(500) | Yes |  | No |
 | created_at | DATETIME | Yes |  | No |
 | updated_at | DATETIME | Yes | '2025-09-09T22:23:00.358548' | No |
 | city_id | INTEGER | Yes |  | No |

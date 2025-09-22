@@ -585,11 +585,13 @@
 
         .modal-content {
             background-color: white;
-            margin: 5% auto;
+            margin: 2% auto;
             padding: 20px;
             border-radius: 8px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -686,7 +688,50 @@
 
             .modal-content {
                 width: 95%;
-                margin: 10% auto;
+                margin: 5% auto;
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+        }
+        
+        /* Extracted Data Display Styles */
+        .extracted-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .extracted-data-grid > div {
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+        }
+        
+        .extracted-data-grid strong {
+            color: #374151;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .extracted-data-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -858,6 +903,8 @@
                     <button onclick="applyEventFilters()" class="filter-button">🔍 Filter</button>
                     <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
                     <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
+                    <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
+                    <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
                 </div>
 
                 <div id="eventFilterSummary" class="filter-summary"></div>
@@ -868,6 +915,7 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>📅</th>
                                 <th>Title</th>
                                 <th>Type</th>
                                 <th>Venue</th>
@@ -880,7 +928,7 @@
                             </tr>
                         </thead>
                         <tbody id="eventsTable">
-                            <tr><td colspan="10" class="loading">Loading events...</td></tr>
+                            <tr><td colspan="11" class="loading">Loading events...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1309,6 +1357,554 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editSourceModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Update Source</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Upload Modal -->
+    <div id="imageUploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📷 Upload Event Image</h3>
+                <span class="close" onclick="closeModal('imageUploadModal')">&times;</span>
+            </div>
+            <form id="imageUploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="eventImage">Select Image:</label>
+                    <input type="file" id="eventImage" name="image" accept="image/*" required>
+                    <small>Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="createCalendarEventFromImage" checked>
+                        Create Google Calendar Event
+                    </label>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">📷 Process Image</button>
+                </div>
+            </form>
+            
+            <!-- Extracted Data Display -->
+            <div id="extractedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h4>📋 Extracted Event Data</h4>
+                <div id="extractedDataContent"></div>
+                
+                <!-- Manual Input Fields -->
+                <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h5>✏️ Manual Input (Edit or Add Missing Information)</h5>
+                    
+                    <div class="form-group">
+                        <label for="manualEventTitle">Event Title *:</label>
+                        <input type="text" id="manualEventTitle" placeholder="Enter event title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualEventDescription">Description:</label>
+                        <textarea id="manualEventDescription" rows="3" placeholder="Enter event description"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="manualStartDate">Start Date *:</label>
+                            <input type="date" id="manualStartDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="manualEndDate">End Date:</label>
+                            <input type="date" id="manualEndDate">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="manualStartTime">Start Time:</label>
+                            <input type="time" id="manualStartTime">
+                        </div>
+                        <div class="form-group">
+                            <label for="manualEndTime">End Time:</label>
+                            <input type="time" id="manualEndTime">
+                        </div>
+                    </div>
+                    
+                       <div class="form-group">
+                           <label for="manualEventType">Event Type:</label>
+                           <select id="manualEventType">
+                               <option value="tour">Tour</option>
+                               <option value="exhibition">Exhibition</option>
+                               <option value="festival">Festival</option>
+                               <option value="photowalk">Photowalk</option>
+                               <option value="workshop">Workshop</option>
+                               <option value="seminar">Seminar</option>
+                               <option value="conference">Conference</option>
+                               <option value="meeting">Meeting</option>
+                               <option value="lecture">Lecture</option>
+                               <option value="presentation">Presentation</option>
+                               <option value="performance">Performance</option>
+                               <option value="concert">Concert</option>
+                               <option value="show">Show</option>
+                               <option value="party">Party</option>
+                               <option value="reception">Reception</option>
+                               <option value="networking">Networking</option>
+                               <option value="social">Social Event</option>
+                               <option value="fundraiser">Fundraiser</option>
+                               <option value="charity">Charity Event</option>
+                               <option value="sports">Sports Event</option>
+                               <option value="competition">Competition</option>
+                               <option value="contest">Contest</option>
+                               <option value="awards">Awards Ceremony</option>
+                               <option value="gala">Gala</option>
+                               <option value="dinner">Dinner</option>
+                               <option value="lunch">Lunch</option>
+                               <option value="brunch">Brunch</option>
+                               <option value="tasting">Tasting</option>
+                               <option value="market">Market</option>
+                               <option value="fair">Fair</option>
+                               <option value="carnival">Carnival</option>
+                               <option value="parade">Parade</option>
+                               <option value="march">March</option>
+                               <option value="protest">Protest</option>
+                               <option value="rally">Rally</option>
+                               <option value="demonstration">Demonstration</option>
+                               <option value="ceremony">Ceremony</option>
+                               <option value="celebration">Celebration</option>
+                               <option value="anniversary">Anniversary</option>
+                               <option value="birthday">Birthday</option>
+                               <option value="wedding">Wedding</option>
+                               <option value="graduation">Graduation</option>
+                               <option value="launch">Launch Event</option>
+                               <option value="opening">Opening</option>
+                               <option value="closing">Closing</option>
+                               <option value="preview">Preview</option>
+                               <option value="screening">Screening</option>
+                               <option value="premiere">Premiere</option>
+                               <option value="book_signing">Book Signing</option>
+                               <option value="signing">Signing</option>
+                               <option value="autograph">Autograph Session</option>
+                               <option value="meet_greet">Meet & Greet</option>
+                               <option value="q_a">Q&A Session</option>
+                               <option value="panel">Panel Discussion</option>
+                               <option value="debate">Debate</option>
+                               <option value="forum">Forum</option>
+                               <option value="summit">Summit</option>
+                               <option value="retreat">Retreat</option>
+                               <option value="training">Training</option>
+                               <option value="class">Class</option>
+                               <option value="course">Course</option>
+                               <option value="lesson">Lesson</option>
+                               <option value="tutorial">Tutorial</option>
+                               <option value="demo">Demo</option>
+                               <option value="trial">Trial</option>
+                               <option value="test">Test</option>
+                               <option value="exam">Exam</option>
+                               <option value="audition">Audition</option>
+                               <option value="interview">Interview</option>
+                               <option value="appointment">Appointment</option>
+                               <option value="consultation">Consultation</option>
+                               <option value="session">Session</option>
+                               <option value="therapy">Therapy</option>
+                               <option value="treatment">Treatment</option>
+                               <option value="checkup">Checkup</option>
+                               <option value="inspection">Inspection</option>
+                               <option value="tournament">Tournament</option>
+                               <option value="championship">Championship</option>
+                               <option value="playoff">Playoff</option>
+                               <option value="game">Game</option>
+                               <option value="match">Match</option>
+                               <option value="race">Race</option>
+                               <option value="marathon">Marathon</option>
+                               <option value="walk">Walk</option>
+                               <option value="run">Run</option>
+                               <option value="ride">Ride</option>
+                               <option value="hike">Hike</option>
+                               <option value="climb">Climb</option>
+                               <option value="swim">Swim</option>
+                               <option value="dive">Dive</option>
+                               <option value="sail">Sail</option>
+                               <option value="cruise">Cruise</option>
+                               <option value="trip">Trip</option>
+                               <option value="excursion">Excursion</option>
+                               <option value="adventure">Adventure</option>
+                               <option value="expedition">Expedition</option>
+                               <option value="journey">Journey</option>
+                               <option value="pilgrimage">Pilgrimage</option>
+                               <option value="retreat">Retreat</option>
+                               <option value="camp">Camp</option>
+                               <option value="camping">Camping</option>
+                               <option value="picnic">Picnic</option>
+                               <option value="barbecue">Barbecue</option>
+                               <option value="cookout">Cookout</option>
+                               <option value="potluck">Potluck</option>
+                               <option value="banquet">Banquet</option>
+                               <option value="feast">Feast</option>
+                               <option value="buffet">Buffet</option>
+                               <option value="catered">Catered Event</option>
+                               <option value="catering">Catering</option>
+                               <option value="delivery">Delivery</option>
+                               <option value="pickup">Pickup</option>
+                               <option value="dropoff">Drop-off</option>
+                               <option value="collection">Collection</option>
+                               <option value="distribution">Distribution</option>
+                               <option value="donation">Donation</option>
+                               <option value="volunteer">Volunteer</option>
+                               <option value="service">Service</option>
+                               <option value="maintenance">Maintenance</option>
+                               <option value="repair">Repair</option>
+                               <option value="installation">Installation</option>
+                               <option value="setup">Setup</option>
+                               <option value="breakdown">Breakdown</option>
+                               <option value="cleanup">Cleanup</option>
+                               <option value="maintenance">Maintenance</option>
+                               <option value="inspection">Inspection</option>
+                               <option value="audit">Audit</option>
+                               <option value="review">Review</option>
+                               <option value="evaluation">Evaluation</option>
+                               <option value="assessment">Assessment</option>
+                               <option value="analysis">Analysis</option>
+                               <option value="research">Research</option>
+                               <option value="study">Study</option>
+                               <option value="survey">Survey</option>
+                               <option value="poll">Poll</option>
+                               <option value="vote">Vote</option>
+                               <option value="election">Election</option>
+                               <option value="referendum">Referendum</option>
+                               <option value="petition">Petition</option>
+                               <option value="campaign">Campaign</option>
+                               <option value="other">Other</option>
+                           </select>
+                       </div>
+                    
+                    <div class="form-group">
+                        <label for="manualLocation">Location:</label>
+                        <input type="text" id="manualLocation" placeholder="Enter event location">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualPrice">Price:</label>
+                        <input type="number" id="manualPrice" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                       <div class="form-group">
+                           <label for="manualUrl">Event URL:</label>
+                           <input type="url" id="manualUrl" placeholder="https://...">
+                       </div>
+                       
+                       <div class="form-group">
+                           <label for="manualCityId">City:</label>
+                           <select id="manualCityId">
+                               <option value="">Select City</option>
+                           </select>
+                       </div>
+                       
+                       <div class="form-group">
+                           <label for="manualEventSource">Event Source:</label>
+                           <select id="manualEventSource">
+                               <option value="">Select Source</option>
+                               <option value="instagram">Instagram</option>
+                               <option value="facebook">Facebook</option>
+                               <option value="twitter">Twitter</option>
+                               <option value="website">Website</option>
+                               <option value="email">Email</option>
+                               <option value="flyer">Flyer/Poster</option>
+                               <option value="word_of_mouth">Word of Mouth</option>
+                               <option value="venue_website">Venue Website</option>
+                               <option value="eventbrite">Eventbrite</option>
+                               <option value="meetup">Meetup</option>
+                               <option value="ticketmaster">Ticketmaster</option>
+                               <option value="stubhub">StubHub</option>
+                               <option value="newspaper">Newspaper</option>
+                               <option value="magazine">Magazine</option>
+                               <option value="radio">Radio</option>
+                               <option value="tv">TV</option>
+                               <option value="billboard">Billboard</option>
+                               <option value="direct_mail">Direct Mail</option>
+                               <option value="newsletter">Newsletter</option>
+                               <option value="blog">Blog</option>
+                               <option value="podcast">Podcast</option>
+                               <option value="youtube">YouTube</option>
+                               <option value="tiktok">TikTok</option>
+                               <option value="linkedin">LinkedIn</option>
+                               <option value="reddit">Reddit</option>
+                               <option value="discord">Discord</option>
+                               <option value="telegram">Telegram</option>
+                               <option value="whatsapp">WhatsApp</option>
+                               <option value="phone_call">Phone Call</option>
+                               <option value="text_message">Text Message</option>
+                               <option value="in_person">In Person</option>
+                               <option value="other">Other</option>
+                           </select>
+                       </div>
+                       
+                       <div class="form-group">
+                           <label for="manualSourceUrl">Source URL:</label>
+                           <input type="url" id="manualSourceUrl" placeholder="https://instagram.com/...">
+                       </div>
+                </div>
+                
+                <div class="modal-actions" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="createEventFromExtractedData()">✅ Create Event</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Event from Venue Modal -->
+    <div id="createFromVenueModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏛️ Create Event from Venue</h3>
+                <span class="close" onclick="closeModal('createFromVenueModal')">&times;</span>
+            </div>
+            <form id="createFromVenueForm">
+                <div class="form-group">
+                    <label for="venueSelect">Select Venue:</label>
+                    <select id="venueSelect" required>
+                        <option value="">Choose a venue...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventTitleFromVenue">Event Title:</label>
+                    <input type="text" id="eventTitleFromVenue" required placeholder="Enter event title">
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventDescriptionFromVenue">Description:</label>
+                    <textarea id="eventDescriptionFromVenue" rows="3" placeholder="Enter event description"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDateFromVenue">Start Date:</label>
+                        <input type="date" id="startDateFromVenue" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDateFromVenue">End Date:</label>
+                        <input type="date" id="endDateFromVenue">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startTimeFromVenue">Start Time:</label>
+                        <input type="time" id="startTimeFromVenue">
+                    </div>
+                    <div class="form-group">
+                        <label for="endTimeFromVenue">End Time:</label>
+                        <input type="time" id="endTimeFromVenue">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventTypeFromVenue">Event Type:</label>
+                    <select id="eventTypeFromVenue" required>
+                        <option value="tour">Tour</option>
+                        <option value="exhibition">Exhibition</option>
+                        <option value="festival">Festival</option>
+                        <option value="photowalk">Photowalk</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="seminar">Seminar</option>
+                        <option value="conference">Conference</option>
+                        <option value="meeting">Meeting</option>
+                        <option value="lecture">Lecture</option>
+                        <option value="presentation">Presentation</option>
+                        <option value="performance">Performance</option>
+                        <option value="concert">Concert</option>
+                        <option value="show">Show</option>
+                        <option value="party">Party</option>
+                        <option value="reception">Reception</option>
+                        <option value="networking">Networking</option>
+                        <option value="social">Social Event</option>
+                        <option value="fundraiser">Fundraiser</option>
+                        <option value="charity">Charity Event</option>
+                        <option value="sports">Sports Event</option>
+                        <option value="competition">Competition</option>
+                        <option value="contest">Contest</option>
+                        <option value="awards">Awards Ceremony</option>
+                        <option value="gala">Gala</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="brunch">Brunch</option>
+                        <option value="tasting">Tasting</option>
+                        <option value="market">Market</option>
+                        <option value="fair">Fair</option>
+                        <option value="carnival">Carnival</option>
+                        <option value="parade">Parade</option>
+                        <option value="march">March</option>
+                        <option value="protest">Protest</option>
+                        <option value="rally">Rally</option>
+                        <option value="demonstration">Demonstration</option>
+                        <option value="ceremony">Ceremony</option>
+                        <option value="celebration">Celebration</option>
+                        <option value="anniversary">Anniversary</option>
+                        <option value="birthday">Birthday</option>
+                        <option value="wedding">Wedding</option>
+                        <option value="graduation">Graduation</option>
+                        <option value="launch">Launch Event</option>
+                        <option value="opening">Opening</option>
+                        <option value="closing">Closing</option>
+                        <option value="preview">Preview</option>
+                        <option value="screening">Screening</option>
+                        <option value="premiere">Premiere</option>
+                        <option value="book_signing">Book Signing</option>
+                        <option value="signing">Signing</option>
+                        <option value="autograph">Autograph Session</option>
+                        <option value="meet_greet">Meet & Greet</option>
+                        <option value="q_a">Q&A Session</option>
+                        <option value="panel">Panel Discussion</option>
+                        <option value="debate">Debate</option>
+                        <option value="forum">Forum</option>
+                        <option value="summit">Summit</option>
+                        <option value="retreat">Retreat</option>
+                        <option value="training">Training</option>
+                        <option value="class">Class</option>
+                        <option value="course">Course</option>
+                        <option value="lesson">Lesson</option>
+                        <option value="tutorial">Tutorial</option>
+                        <option value="demo">Demo</option>
+                        <option value="trial">Trial</option>
+                        <option value="test">Test</option>
+                        <option value="exam">Exam</option>
+                        <option value="audition">Audition</option>
+                        <option value="interview">Interview</option>
+                        <option value="appointment">Appointment</option>
+                        <option value="consultation">Consultation</option>
+                        <option value="session">Session</option>
+                        <option value="therapy">Therapy</option>
+                        <option value="treatment">Treatment</option>
+                        <option value="checkup">Checkup</option>
+                        <option value="inspection">Inspection</option>
+                        <option value="tournament">Tournament</option>
+                        <option value="championship">Championship</option>
+                        <option value="playoff">Playoff</option>
+                        <option value="game">Game</option>
+                        <option value="match">Match</option>
+                        <option value="race">Race</option>
+                        <option value="marathon">Marathon</option>
+                        <option value="walk">Walk</option>
+                        <option value="run">Run</option>
+                        <option value="ride">Ride</option>
+                        <option value="hike">Hike</option>
+                        <option value="climb">Climb</option>
+                        <option value="swim">Swim</option>
+                        <option value="dive">Dive</option>
+                        <option value="sail">Sail</option>
+                        <option value="cruise">Cruise</option>
+                        <option value="trip">Trip</option>
+                        <option value="excursion">Excursion</option>
+                        <option value="adventure">Adventure</option>
+                        <option value="expedition">Expedition</option>
+                        <option value="journey">Journey</option>
+                        <option value="pilgrimage">Pilgrimage</option>
+                        <option value="retreat">Retreat</option>
+                        <option value="camp">Camp</option>
+                        <option value="camping">Camping</option>
+                        <option value="picnic">Picnic</option>
+                        <option value="barbecue">Barbecue</option>
+                        <option value="cookout">Cookout</option>
+                        <option value="potluck">Potluck</option>
+                        <option value="banquet">Banquet</option>
+                        <option value="feast">Feast</option>
+                        <option value="buffet">Buffet</option>
+                        <option value="catered">Catered Event</option>
+                        <option value="catering">Catering</option>
+                        <option value="delivery">Delivery</option>
+                        <option value="pickup">Pickup</option>
+                        <option value="dropoff">Drop-off</option>
+                        <option value="collection">Collection</option>
+                        <option value="distribution">Distribution</option>
+                        <option value="donation">Donation</option>
+                        <option value="volunteer">Volunteer</option>
+                        <option value="service">Service</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="repair">Repair</option>
+                        <option value="installation">Installation</option>
+                        <option value="setup">Setup</option>
+                        <option value="breakdown">Breakdown</option>
+                        <option value="cleanup">Cleanup</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="inspection">Inspection</option>
+                        <option value="audit">Audit</option>
+                        <option value="review">Review</option>
+                        <option value="evaluation">Evaluation</option>
+                        <option value="assessment">Assessment</option>
+                        <option value="analysis">Analysis</option>
+                        <option value="research">Research</option>
+                        <option value="study">Study</option>
+                        <option value="survey">Survey</option>
+                        <option value="poll">Poll</option>
+                        <option value="vote">Vote</option>
+                        <option value="election">Election</option>
+                        <option value="referendum">Referendum</option>
+                        <option value="petition">Petition</option>
+                        <option value="campaign">Campaign</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventUrlFromVenue">Event URL:</label>
+                    <input type="url" id="eventUrlFromVenue" placeholder="https://...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventSourceFromVenue">Event Source:</label>
+                    <select id="eventSourceFromVenue">
+                        <option value="">Select Source</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="twitter">Twitter</option>
+                        <option value="website">Website</option>
+                        <option value="email">Email</option>
+                        <option value="flyer">Flyer/Poster</option>
+                        <option value="word_of_mouth">Word of Mouth</option>
+                        <option value="venue_website">Venue Website</option>
+                        <option value="eventbrite">Eventbrite</option>
+                        <option value="meetup">Meetup</option>
+                        <option value="ticketmaster">Ticketmaster</option>
+                        <option value="stubhub">StubHub</option>
+                        <option value="newspaper">Newspaper</option>
+                        <option value="magazine">Magazine</option>
+                        <option value="radio">Radio</option>
+                        <option value="tv">TV</option>
+                        <option value="billboard">Billboard</option>
+                        <option value="direct_mail">Direct Mail</option>
+                        <option value="newsletter">Newsletter</option>
+                        <option value="blog">Blog</option>
+                        <option value="podcast">Podcast</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="reddit">Reddit</option>
+                        <option value="discord">Discord</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="phone_call">Phone Call</option>
+                        <option value="text_message">Text Message</option>
+                        <option value="in_person">In Person</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sourceUrlFromVenue">Source URL:</label>
+                    <input type="url" id="sourceUrlFromVenue" placeholder="https://instagram.com/...">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="createCalendarEventFromVenue" checked>
+                        Create Google Calendar Event
+                    </label>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createFromVenueModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">🏛️ Create Event</button>
                 </div>
             </form>
         </div>
@@ -1765,6 +2361,20 @@
             // Generate data rows
             tableBody.innerHTML = data.map(item => {
                 let row = `<tr id="${tableType}-row-${item.id}">`;
+                
+                // Add calendar icon for events
+                if (tableType === 'events') {
+                    const calendarIcon = `<td style="text-align: center; padding: 8px;">
+                        <button onclick="addEventToCalendar(${item.id})" 
+                                style="background: none; border: none; cursor: pointer; font-size: 16px; color: #ff8c42; padding: 4px; border-radius: 4px; transition: all 0.2s ease;"
+                                onmouseover="this.style.background='rgba(255, 140, 66, 0.1)'" 
+                                onmouseout="this.style.background='none'"
+                                title="Add to Calendar">
+                            📅
+                        </button>
+                    </td>`;
+                    row += calendarIcon;
+                }
                 
                 orderedFields.forEach(field => {
                     const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
@@ -2829,7 +3439,7 @@
                 console.error('Error loading events:', error);
                 const eventsTable = document.getElementById('eventsTable');
                 if (eventsTable) {
-                    eventsTable.innerHTML = '<tr><td colspan="10" class="no-results">❌ Failed to load events: ' + error.message + '</td></tr>';
+                    eventsTable.innerHTML = '<tr><td colspan="12" class="no-results">❌ Failed to load events: ' + error.message + '</td></tr>';
                 }
             }
         }
@@ -2876,6 +3486,193 @@
             .catch(error => {
                 alert('Error updating event: ' + error.message);
             });
+        }
+        
+        async function addEventToCalendar(eventId) {
+            try {
+                // Find the event data
+                const event = window.allEvents.find(e => e.id == eventId);
+                if (!event) {
+                    alert('Event not found');
+                    return;
+                }
+                
+                // Prepare calendar event data
+                const calendarData = {
+                    title: event.title,
+                    description: event.description || '',
+                    start_date: event.start_date,
+                    end_date: event.end_date || event.start_date,
+                    start_time: event.start_time,
+                    end_time: event.end_time,
+                    location: event.start_location || event.venue_name || '',
+                    event_type: event.event_type,
+                    city_id: event.city_id  // Include city_id for timezone lookup
+                };
+                
+                // Call the calendar API
+                const response = await fetch('/api/calendar/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(calendarData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Show options dialog for calendar integration
+                    const options = [
+                        '📥 Download .ics File (Recommended)',
+                        '📅 Open in Calendar App',
+                        '❌ Cancel'
+                    ];
+                    
+                    const choice = prompt(`Choose how to add "${event.title}" to your calendar:\n\n1. ${options[0]}\n2. ${options[1]}\n3. ${options[2]}\n\nEnter 1, 2, or 3:`, '1');
+                    
+                    if (choice === '1') {
+                        // Download iCal file (recommended - works correctly)
+                        const icalContent = result.ical_content;
+                        const blob = new Blob([icalContent], { type: 'text/calendar' });
+                        const url = window.URL.createObjectURL(blob);
+                        
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                        
+                        alert('✅ Event downloaded as .ics file! Open it to add to your calendar.');
+                    } else if (choice === '2') {
+                        // Open calendar app (may have timezone issues)
+                        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                        
+                        if (isMobile) {
+                            const mobileCalendarUrl = generateMobileCalendarUrl(calendarData);
+                            if (mobileCalendarUrl) {
+                                window.location.href = mobileCalendarUrl;
+                                alert('✅ Opening in your calendar app...');
+                            } else {
+                                const calendarUrl = generateCalendarUrl(calendarData);
+                                window.open(calendarUrl, '_blank');
+                                alert('✅ Event opened in Google Calendar!');
+                            }
+                        } else {
+                            const calendarUrl = generateCalendarUrl(calendarData);
+                            if (calendarUrl) {
+                                window.open(calendarUrl, '_blank');
+                                alert('✅ Event opened in Google Calendar!');
+                            } else {
+                                alert('❌ Could not generate calendar URL');
+                            }
+                        }
+                    }
+                    // If choice is '3' or anything else, do nothing (cancelled)
+                } else {
+                    const error = await response.json();
+                    alert('❌ Failed to add event to calendar: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error adding event to calendar:', error);
+                alert('❌ Error adding event to calendar: ' + error.message);
+            }
+        }
+        
+        function generateMobileCalendarUrl(eventData) {
+            // Generate mobile calendar app URLs
+            const startDate = eventData.start_date;
+            const endDate = eventData.end_date || eventData.start_date;
+            const startTime = eventData.start_time;
+            const endTime = eventData.end_time;
+            const location = eventData.location;
+            const title = eventData.title;
+            const description = eventData.description;
+            
+            // Format dates for mobile calendar URLs
+            const formatDateForMobile = (dateStr) => {
+                const date = new Date(dateStr);
+                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            };
+            
+            // Detect iOS vs Android
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                // iOS Calendar URL scheme - use local time format (no timezone suffix)
+                if (startTime && endTime) {
+                    const startDateTime = `${startDate.replace(/-/g, '')}T${startTime.replace(/:/g, '')}`;
+                    const endDateTime = `${endDate.replace(/-/g, '')}T${endTime.replace(/:/g, '')}`;
+                    return `webcal://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
+                } else {
+                    // All-day event
+                    return `webcal://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate.replace(/-/g, '')}/${endDate.replace(/-/g, '')}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
+                }
+            } else if (isAndroid) {
+                // Android Calendar URL scheme - use local time format (no timezone suffix)
+                if (startTime && endTime) {
+                    const startDateTime = `${startDate.replace(/-/g, '')}T${startTime.replace(/:/g, '')}`;
+                    const endDateTime = `${endDate.replace(/-/g, '')}T${endTime.replace(/:/g, '')}`;
+                    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
+                } else {
+                    // All-day event
+                    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate.replace(/-/g, '')}/${endDate.replace(/-/g, '')}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
+                }
+            }
+            
+            return null; // Not mobile or unsupported
+        }
+        
+        function generateCalendarUrl(eventData) {
+            // Generate Google Calendar URL with proper date/time format
+            const startDate = eventData.start_date;
+            const endDate = eventData.end_date || eventData.start_date;
+            
+            // Format dates for Google Calendar (YYYYMMDD format)
+            const formatDateForGoogle = (dateStr) => {
+                return dateStr.replace(/-/g, '');
+            };
+            
+            // Format times for Google Calendar (HHMMSS format)
+            const formatTimeForGoogle = (timeStr) => {
+                if (!timeStr) return '';
+                return timeStr.replace(/:/g, '');
+            };
+            
+            let startDateTime, endDateTime;
+            
+            if (eventData.start_time && eventData.end_time) {
+                // Event with specific times - use local time format (no timezone suffix)
+                startDateTime = `${formatDateForGoogle(startDate)}T${formatTimeForGoogle(eventData.start_time)}`;
+                endDateTime = `${formatDateForGoogle(endDate)}T${formatTimeForGoogle(eventData.end_time)}`;
+            } else {
+                // All-day event
+                startDateTime = formatDateForGoogle(startDate);
+                endDateTime = formatDateForGoogle(endDate);
+            }
+            
+            // Debug logging
+            console.log('Calendar URL Debug:', {
+                originalData: eventData,
+                formattedStart: startDateTime,
+                formattedEnd: endDateTime
+            });
+            
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: eventData.title,
+                dates: `${startDateTime}/${endDateTime}`,
+                details: eventData.description,
+                location: eventData.location
+            });
+            
+            const url = `https://calendar.google.com/calendar/render?${params.toString()}`;
+            console.log('Generated Google Calendar URL:', url);
+            
+            return url;
         }
         
         function deleteEvent(id) {
@@ -3610,6 +4407,345 @@
                 alert('Error updating source: ' + error.message);
             }
         }
+        
+        // Image Upload Functions
+        function openImageUploadModal() {
+            document.getElementById('imageUploadModal').style.display = 'block';
+            document.getElementById('extractedDataDisplay').style.display = 'none';
+            document.getElementById('imageUploadForm').reset();
+            
+            // Reset manual input fields
+            document.getElementById('manualEventTitle').value = '';
+            document.getElementById('manualEventDescription').value = '';
+            document.getElementById('manualStartDate').value = '';
+            document.getElementById('manualEndDate').value = '';
+            document.getElementById('manualStartTime').value = '';
+            document.getElementById('manualEndTime').value = '';
+            document.getElementById('manualEventType').value = 'tour';
+            document.getElementById('manualLocation').value = '';
+            document.getElementById('manualPrice').value = '';
+            document.getElementById('manualUrl').value = '';
+            document.getElementById('manualCityId').value = '';
+            document.getElementById('manualEventSource').value = '';
+            document.getElementById('manualSourceUrl').value = '';
+            
+            // Populate city dropdown
+            populateCitySelect('manualCityId');
+        }
+        
+        function openCreateFromVenueModal() {
+            document.getElementById('createFromVenueModal').style.display = 'block';
+            populateVenueSelect();
+        }
+        
+        function populateVenueSelect() {
+            const venueSelect = document.getElementById('venueSelect');
+            venueSelect.innerHTML = '<option value="">Choose a venue...</option>';
+            
+            if (window.allVenues) {
+                window.allVenues.forEach(venue => {
+                    const option = document.createElement('option');
+                    option.value = venue.id;
+                    option.textContent = `${venue.name} (${venue.city_name || 'Unknown City'})`;
+                    venueSelect.appendChild(option);
+                });
+            }
+        }
+        
+        // Handle image upload form submission
+        document.getElementById('imageUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const imageFile = document.getElementById('eventImage').files[0];
+            
+            if (!imageFile) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            formData.append('image', imageFile);
+            
+            try {
+                const response = await fetch('/api/admin/upload-event-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayExtractedData(result.extracted_data);
+                } else {
+                    alert('Error processing image: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error uploading image: ' + error.message);
+            }
+        });
+        
+        function displayExtractedData(data) {
+            const displayDiv = document.getElementById('extractedDataDisplay');
+            const contentDiv = document.getElementById('extractedDataContent');
+            
+            let html = '<div class="extracted-data-grid">';
+            
+            if (data.title) html += `<div><strong>Title:</strong> ${data.title}</div>`;
+            if (data.description) html += `<div><strong>Description:</strong> ${data.description}</div>`;
+            if (data.start_date) html += `<div><strong>Start Date:</strong> ${data.start_date}</div>`;
+            if (data.end_date) html += `<div><strong>End Date:</strong> ${data.end_date}</div>`;
+            if (data.start_time) html += `<div><strong>Start Time:</strong> ${data.start_time}</div>`;
+            if (data.end_time) html += `<div><strong>End Time:</strong> ${data.end_time}</div>`;
+            if (data.location) html += `<div><strong>Location:</strong> ${data.location}</div>`;
+            if (data.start_location) html += `<div><strong>Start Location:</strong> ${data.start_location}</div>`;
+            if (data.end_location) html += `<div><strong>End Location:</strong> ${data.end_location}</div>`;
+            if (data.event_type) html += `<div><strong>Event Type:</strong> ${data.event_type}</div>`;
+            if (data.price) html += `<div><strong>Price:</strong> $${data.price}</div>`;
+            if (data.organizer) html += `<div><strong>Organizer:</strong> ${data.organizer}</div>`;
+            if (data.url) html += `<div><strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>`;
+            if (data.city) html += `<div><strong>City:</strong> ${data.city}</div>`;
+            if (data.state) html += `<div><strong>State:</strong> ${data.state}</div>`;
+            if (data.country) html += `<div><strong>Country:</strong> ${data.country}</div>`;
+            if (data.city_id) html += `<div><strong>City ID:</strong> ${data.city_id}</div>`;
+            if (data.source) html += `<div><strong>Source:</strong> ${data.source}</div>`;
+            if (data.source_url) html += `<div><strong>Source URL:</strong> <a href="${data.source_url}" target="_blank">${data.source_url}</a></div>`;
+            if (data.instagram_handle) html += `<div><strong>Instagram Handle:</strong> @${data.instagram_handle}</div>`;
+            
+            html += `<div><strong>Confidence:</strong> ${Math.round(data.confidence * 100)}%</div>`;
+            html += '</div>';
+            
+            contentDiv.innerHTML = html;
+            displayDiv.style.display = 'block';
+            
+            // Populate manual input fields with extracted data
+            populateManualFields(data);
+            
+            // Store extracted data for event creation
+            window.extractedEventData = data;
+        }
+        
+        async function populateCitySelect(selectId, targetCity = null, targetState = null) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            try {
+                const response = await fetch('/api/admin/cities');
+                const cities = await response.json();
+                
+                // Clear existing options
+                select.innerHTML = '<option value="">Select City</option>';
+                
+                // Add cities to dropdown
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.id;
+                    option.textContent = `${city.name}, ${city.state}`;
+                    select.appendChild(option);
+                    
+                    // Auto-select if this matches the target city
+                    if (targetCity && targetState && 
+                        city.name.toLowerCase() === targetCity.toLowerCase() && 
+                        city.state === targetState) {
+                        option.selected = true;
+                        console.log(`Auto-selected city: ${city.name}, ${city.state}`);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading cities:', error);
+            }
+        }
+        
+        function populateManualFields(data) {
+            // Populate manual input fields with extracted data
+            const fields = [
+                'manualEventTitle', 'manualEventDescription', 'manualStartDate', 'manualEndDate',
+                'manualStartTime', 'manualEndTime', 'manualEventType', 'manualLocation',
+                'manualPrice', 'manualUrl', 'manualEventSource', 'manualSourceUrl'
+            ];
+            
+            // Helper function to safely set field value
+            function setFieldValue(fieldId, value) {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    element.value = value || '';
+                } else {
+                    console.warn(`Field not found: ${fieldId}`);
+                }
+            }
+            
+            // Populate all fields safely
+            setFieldValue('manualEventTitle', data.title);
+            setFieldValue('manualEventDescription', data.description);
+            setFieldValue('manualStartDate', data.start_date);
+            setFieldValue('manualEndDate', data.end_date);
+            setFieldValue('manualStartTime', data.start_time);
+            setFieldValue('manualEndTime', data.end_time);
+            setFieldValue('manualEventType', data.event_type || 'tour');
+            setFieldValue('manualLocation', data.location);
+            setFieldValue('manualPrice', data.price);
+            setFieldValue('manualUrl', data.url);
+            
+            // Populate source fields
+            if (data.source) {
+                setFieldValue('manualEventSource', data.source);
+            }
+            if (data.source_url) {
+                setFieldValue('manualSourceUrl', data.source_url);
+            }
+            
+            // Set default date to today if no date extracted
+            if (!data.start_date) {
+                const today = new Date().toISOString().split('T')[0];
+                setFieldValue('manualStartDate', today);
+            }
+            
+            // Auto-select city if extracted
+            if (data.city_id) {
+                console.log(`Auto-selecting city ID: ${data.city_id}`);
+                const citySelect = document.getElementById('manualCityId');
+                if (citySelect) {
+                    citySelect.value = data.city_id;
+                    console.log(`Set city select value to: ${data.city_id}`);
+                } else {
+                    console.warn('City select field not found: manualCityId');
+                }
+            } else if (data.city) {
+                console.log(`Attempting to auto-select city: ${data.city}, ${data.state}`);
+                populateCitySelect('manualCityId', data.city, data.state);
+            }
+        }
+        
+        async function createEventFromExtractedData() {
+            // Get data from manual input fields
+            const title = document.getElementById('manualEventTitle').value.trim();
+            const startDate = document.getElementById('manualStartDate').value;
+            
+            if (!title) {
+                alert('Event title is required');
+                return;
+            }
+            
+            if (!startDate) {
+                alert('Start date is required');
+                return;
+            }
+            
+            // Handle end date - if no end date provided, assume same as start date
+            let endDate = document.getElementById('manualEndDate').value || startDate;
+            
+            // Handle end time - if start time provided but no end time, assume 1 hour duration
+            let startTime = document.getElementById('manualStartTime').value || null;
+            let endTime = document.getElementById('manualEndTime').value || null;
+            
+            if (startTime && !endTime) {
+                // Calculate end time (1 hour after start time)
+                const startTimeObj = new Date(`2000-01-01T${startTime}`);
+                const endTimeObj = new Date(startTimeObj.getTime() + 60 * 60 * 1000); // Add 1 hour
+                endTime = endTimeObj.toTimeString().slice(0, 5); // Format as HH:MM
+            }
+            
+            const data = {
+                title: title,
+                description: document.getElementById('manualEventDescription').value.trim(),
+                start_date: startDate,
+                end_date: endDate,
+                start_time: startTime,
+                end_time: endTime,
+                event_type: document.getElementById('manualEventType').value,
+                location: document.getElementById('manualLocation').value.trim(),
+                price: document.getElementById('manualPrice').value ? parseFloat(document.getElementById('manualPrice').value) : null,
+                url: document.getElementById('manualUrl').value.trim() || null,
+                city_id: document.getElementById('manualCityId').value || null,
+                source: document.getElementById('manualEventSource').value || null,
+                source_url: document.getElementById('manualSourceUrl').value.trim() || null,
+                create_calendar_event: document.getElementById('createCalendarEventFromImage').checked
+            };
+            
+            try {
+                const response = await fetch('/api/admin/create-event-from-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`Event created successfully! Event ID: ${result.event_id}`);
+                    if (result.calendar_event_id) {
+                        alert('Google Calendar event also created!');
+                    }
+                    closeModal('imageUploadModal');
+                    loadEvents();
+                } else {
+                    alert('Error creating event: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error creating event: ' + error.message);
+            }
+        }
+        
+        // Handle create from venue form submission
+        document.getElementById('createFromVenueForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Handle end date - if no end date provided, assume same as start date
+            const startDate = document.getElementById('startDateFromVenue').value;
+            let endDate = document.getElementById('endDateFromVenue').value || startDate;
+            
+            // Handle end time - if start time provided but no end time, assume 1 hour duration
+            let startTime = document.getElementById('startTimeFromVenue').value || null;
+            let endTime = document.getElementById('endTimeFromVenue').value || null;
+            
+            if (startTime && !endTime) {
+                // Calculate end time (1 hour after start time)
+                const startTimeObj = new Date(`2000-01-01T${startTime}`);
+                const endTimeObj = new Date(startTimeObj.getTime() + 60 * 60 * 1000); // Add 1 hour
+                endTime = endTimeObj.toTimeString().slice(0, 5); // Format as HH:MM
+            }
+            
+            const formData = {
+                venue_id: document.getElementById('venueSelect').value,
+                title: document.getElementById('eventTitleFromVenue').value,
+                description: document.getElementById('eventDescriptionFromVenue').value,
+                start_date: startDate,
+                end_date: endDate,
+                start_time: startTime,
+                end_time: endTime,
+                event_type: document.getElementById('eventTypeFromVenue').value,
+                url: document.getElementById('eventUrlFromVenue').value || null,
+                source: document.getElementById('eventSourceFromVenue').value || null,
+                source_url: document.getElementById('sourceUrlFromVenue').value.trim() || null,
+                create_calendar_event: document.getElementById('createCalendarEventFromVenue').checked
+            };
+            
+            try {
+                const response = await fetch('/api/admin/create-event-from-venue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`Event created successfully! Event ID: ${result.event_id}`);
+                    if (result.calendar_event_id) {
+                        alert('Google Calendar event also created!');
+                    }
+                    closeModal('createFromVenueModal');
+                    loadEvents();
+                } else {
+                    alert('Error creating event: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error creating event: ' + error.message);
+            }
+        });
         
         console.log('Minimal script test - loaded');
     </script>
