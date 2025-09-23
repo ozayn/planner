@@ -20,9 +20,12 @@ RUN pip install --no-cache-dir -r requirements-railway.txt
 # Copy application code
 COPY . .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE ${PORT:-5001}
 
 # Start command - back to full app
-CMD python railway_data_loader.py && gunicorn app:app --bind 0.0.0.0:${PORT:-5001}
+CMD ["./start.sh"]
 
