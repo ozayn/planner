@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements-railway.txt
 
 COPY . .
 
-EXPOSE 5001
+# Railway will set the PORT environment variable
+EXPOSE $PORT
 
-CMD ["gunicorn", "test_app:app", "--bind", "0.0.0.0:5001"]
+CMD ["sh", "-c", "gunicorn test_app:app --bind 0.0.0.0:$PORT"]
