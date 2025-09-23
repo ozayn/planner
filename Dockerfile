@@ -18,5 +18,5 @@ COPY . .
 # Expose port (Railway will override this)
 EXPOSE 8080
 
-# Start command
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:${PORT:-8080}"]
+# Start command with shell expansion
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8080}"]
