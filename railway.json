@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python railway_data_loader.py && gunicorn app:app --bind 0.0.0.0:${PORT:-8080}",
+    "startCommand": "gunicorn app:app --bind 0.0.0.0:${PORT:-8080}",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

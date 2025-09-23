@@ -10,4 +10,4 @@ COPY . .
 # Don't expose a specific port - Railway will handle this
 EXPOSE 8080
 
-CMD ["sh", "-c", "python railway_data_loader.py && gunicorn app:app --bind 0.0.0.0:$PORT"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:$PORT"]
