@@ -10,6 +10,7 @@ import os
 import re
 import json
 import logging
+import tempfile
 from datetime import datetime, date, time
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
@@ -20,6 +21,27 @@ from google.cloud.vision_v1 import types as vision_types
 
 # Setup logging
 logger = logging.getLogger(__name__)
+
+def setup_google_credentials():
+    """Setup Google credentials from JSON environment variable if available"""
+    json_creds = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+    if json_creds:
+        try:
+            # Parse the JSON credentials
+            creds_data = json.loads(json_creds)
+            
+            # Create a temporary file with the credentials
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(creds_data, f)
+                temp_file = f.name
+            
+            # Set the environment variable to point to the temp file
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_file
+            logger.info("Google credentials set up from JSON environment variable")
+            return temp_file
+        except Exception as e:
+            logger.warning(f"Failed to set up Google credentials from JSON: {e}")
+    return None
 
 @dataclass
 class ExtractedEventData:
@@ -64,6 +86,9 @@ class ImageEventProcessor:
     
     def _setup_ocr_engine(self) -> str:
         """Setup OCR engine (Tesseract or Google Vision)"""
+        # Setup Google credentials from JSON if available
+        setup_google_credentials()
+        
         # Try Tesseract first since it's more reliable and doesn't require credentials
         try:
             pytesseract.get_tesseract_version()
@@ -76,6 +101,7 @@ class ImageEventProcessor:
         # Check for both service account file and application default credentials
         has_google_creds = (
             os.getenv('GOOGLE_APPLICATION_CREDENTIALS') or 
+            os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON') or
             os.getenv('GOOGLE_CLIENT_ID') or
             os.path.exists(os.path.expanduser('~/.config/gcloud/application_default_credentials.json'))
         )
