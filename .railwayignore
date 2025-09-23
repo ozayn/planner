@@ -1,0 +1,15 @@
+# Ignore Docker files to force NIXPACKS
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Ignore development files
+venv/
+__pycache__/
+*.pyc
+.env
+.env.local
+
+# Ignore logs
+logs/
+*.log
