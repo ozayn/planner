@@ -4,13 +4,6 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    libtesseract-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy requirements first for better caching
 COPY requirements-railway.txt .
 
@@ -21,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements-railway.txt
 COPY . .
 
 # Expose port
-EXPOSE ${PORT:-5001}
+EXPOSE 5001
 
 # Start command - using test app for debugging
-CMD gunicorn test_app:app --bind 0.0.0.0:${PORT:-5001}
+CMD gunicorn test_app:app --bind 0.0.0.0:5001
 
