@@ -94,47 +94,58 @@ def load_venues_data():
                 return False
             
             venues_added = 0
-            for venue_id, venue_data in venues_data.items():
-                try:
-                    # Handle image_url - keep as string if it's already processed
-                    image_url = venue_data.get('image_url', '')
-                    if isinstance(image_url, dict):
-                        # If it's still a photo reference dict, convert to placeholder
-                        image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
-                    
-                    # Create new venue
-                    venue = Venue(
-                        id=int(venue_id),  # Use the JSON venue ID
-                        name=venue_data.get('name', ''),
-                        venue_type=venue_data.get('venue_type', 'museum'),
-                        address=venue_data.get('address', ''),
-                        latitude=venue_data.get('latitude'),
-                        longitude=venue_data.get('longitude'),
-                        image_url=image_url,
-                        instagram_url=venue_data.get('instagram_url', ''),
-                        facebook_url=venue_data.get('facebook_url', ''),
-                        twitter_url=venue_data.get('twitter_url', ''),
-                        youtube_url=venue_data.get('youtube_url', ''),
-                        tiktok_url=venue_data.get('tiktok_url', ''),
-                        website_url=venue_data.get('website_url', ''),
-                        description=venue_data.get('description', ''),
-                        city_id=venue_data.get('city_id', 1),
-                        opening_hours=venue_data.get('opening_hours', ''),
-                        holiday_hours=venue_data.get('holiday_hours', ''),
-                        phone_number=venue_data.get('phone_number', ''),
-                        email=venue_data.get('email', ''),
-                        tour_info=venue_data.get('tour_info', ''),
-                        admission_fee=venue_data.get('admission_fee', ''),
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    
-                    db.session.add(venue)
-                    venues_added += 1
-                    
-                except Exception as e:
-                    print(f"    ⚠️  Error adding venue {venue_data.get('name', 'Unknown')}: {e}")
+            
+            # Handle the nested structure: venues_data[city_id]["venues"]
+            for city_id, city_data in venues_data.items():
+                city_name = city_data.get('name', 'Unknown')
+                city_venues = city_data.get('venues', [])
+                
+                # Find the city in database
+                city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
+                if not city:
+                    print(f"⚠️ City not found: {city_name}")
                     continue
+                
+                for venue_data in city_venues:
+                    try:
+                        # Handle image_url - keep as string if it's already processed
+                        image_url = venue_data.get('image_url', '')
+                        if isinstance(image_url, dict):
+                            # If it's still a photo reference dict, convert to placeholder
+                            image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
+                        
+                        # Create new venue
+                        venue = Venue(
+                            name=venue_data.get('name', ''),
+                            venue_type=venue_data.get('venue_type', 'museum'),
+                            address=venue_data.get('address', ''),
+                            latitude=venue_data.get('latitude'),
+                            longitude=venue_data.get('longitude'),
+                            image_url=image_url,
+                            instagram_url=venue_data.get('instagram_url', ''),
+                            facebook_url=venue_data.get('facebook_url', ''),
+                            twitter_url=venue_data.get('twitter_url', ''),
+                            youtube_url=venue_data.get('youtube_url', ''),
+                            tiktok_url=venue_data.get('tiktok_url', ''),
+                            website_url=venue_data.get('website_url', ''),
+                            description=venue_data.get('description', ''),
+                            city_id=city.id,  # Use the actual city ID
+                            opening_hours=venue_data.get('opening_hours', ''),
+                            holiday_hours=venue_data.get('holiday_hours', ''),
+                            phone_number=venue_data.get('phone_number', ''),
+                            email=venue_data.get('email', ''),
+                            tour_info=venue_data.get('tour_info', ''),
+                            admission_fee=venue_data.get('admission_fee', ''),
+                            created_at=datetime.utcnow(),
+                            updated_at=datetime.utcnow()
+                        )
+                        
+                        db.session.add(venue)
+                        venues_added += 1
+                        
+                    except Exception as e:
+                        print(f"    ⚠️  Error adding venue {venue_data.get('name', 'Unknown')}: {e}")
+                        continue
             
             db.session.commit()
             print(f"✅ Successfully loaded {venues_added} venues for Railway")
