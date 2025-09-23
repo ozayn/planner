@@ -21,8 +21,8 @@ RUN pip install --no-cache-dir -r requirements-railway.txt
 COPY . .
 
 # Expose port
-EXPOSE ${PORT:-5000}
+EXPOSE ${PORT:-5001}
 
 # Start command - back to full app
-CMD python railway_data_loader.py && gunicorn app:app --bind 0.0.0.0:${PORT:-5000}
+CMD python railway_data_loader.py && gunicorn app:app --bind 0.0.0.0:${PORT:-5001}
 
