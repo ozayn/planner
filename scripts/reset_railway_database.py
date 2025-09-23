@@ -73,36 +73,78 @@ def load_venues_from_json():
             venues_data = json.load(f)
         
         venues_loaded = 0
-        for city_name, city_venues in venues_data.items():
-            # Find the city
-            city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
-            if not city:
-                print(f"⚠️ City not found: {city_name}")
-                continue
-            
-            for venue_data in city_venues:
-                venue = Venue(
-                    name=venue_data['name'],
-                    venue_type=venue_data['venue_type'],
-                    address=venue_data.get('address'),
-                    latitude=venue_data.get('latitude'),
-                    longitude=venue_data.get('longitude'),
-                    image_url=venue_data.get('image_url'),
-                    instagram_url=venue_data.get('instagram_url'),
-                    facebook_url=venue_data.get('facebook_url'),
-                    twitter_url=venue_data.get('twitter_url'),
-                    youtube_url=venue_data.get('youtube_url'),
-                    tiktok_url=venue_data.get('tiktok_url'),
-                    website_url=venue_data.get('website_url'),
-                    description=venue_data.get('description'),
-                    opening_hours=venue_data.get('opening_hours'),
-                    holiday_hours=venue_data.get('holiday_hours'),
-                    phone_number=venue_data.get('phone_number'),
-                    maps_link=venue_data.get('maps_link'),
-                    city_id=city.id
-                )
-                db.session.add(venue)
-                venues_loaded += 1
+        
+        # Handle the nested structure: venues_data["venues"][city_id]["venues"]
+        if "venues" in venues_data:
+            venues_section = venues_data["venues"]
+            for city_id, city_data in venues_section.items():
+                city_name = city_data.get('name', 'Unknown')
+                city_venues = city_data.get('venues', [])
+                
+                # Find the city
+                city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
+                if not city:
+                    print(f"⚠️ City not found: {city_name}")
+                    continue
+                
+                for venue_data in city_venues:
+                    venue = Venue(
+                        name=venue_data['name'],
+                        venue_type=venue_data['venue_type'],
+                        address=venue_data.get('address'),
+                        latitude=venue_data.get('latitude'),
+                        longitude=venue_data.get('longitude'),
+                        image_url=venue_data.get('image_url'),
+                        instagram_url=venue_data.get('instagram_url'),
+                        facebook_url=venue_data.get('facebook_url'),
+                        twitter_url=venue_data.get('twitter_url'),
+                        youtube_url=venue_data.get('youtube_url'),
+                        tiktok_url=venue_data.get('tiktok_url'),
+                        website_url=venue_data.get('website_url'),
+                        description=venue_data.get('description'),
+                        opening_hours=venue_data.get('opening_hours'),
+                        holiday_hours=venue_data.get('holiday_hours'),
+                        phone_number=venue_data.get('phone_number'),
+                        maps_link=venue_data.get('maps_link'),
+                        city_id=city.id
+                    )
+                    db.session.add(venue)
+                    venues_loaded += 1
+        else:
+            # Fallback for old format
+            for city_name, city_venues in venues_data.items():
+                if city_name == "metadata":
+                    continue
+                    
+                # Find the city
+                city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
+                if not city:
+                    print(f"⚠️ City not found: {city_name}")
+                    continue
+                
+                for venue_data in city_venues:
+                    venue = Venue(
+                        name=venue_data['name'],
+                        venue_type=venue_data['venue_type'],
+                        address=venue_data.get('address'),
+                        latitude=venue_data.get('latitude'),
+                        longitude=venue_data.get('longitude'),
+                        image_url=venue_data.get('image_url'),
+                        instagram_url=venue_data.get('instagram_url'),
+                        facebook_url=venue_data.get('facebook_url'),
+                        twitter_url=venue_data.get('twitter_url'),
+                        youtube_url=venue_data.get('youtube_url'),
+                        tiktok_url=venue_data.get('tiktok_url'),
+                        website_url=venue_data.get('website_url'),
+                        description=venue_data.get('description'),
+                        opening_hours=venue_data.get('opening_hours'),
+                        holiday_hours=venue_data.get('holiday_hours'),
+                        phone_number=venue_data.get('phone_number'),
+                        maps_link=venue_data.get('maps_link'),
+                        city_id=city.id
+                    )
+                    db.session.add(venue)
+                    venues_loaded += 1
         
         db.session.commit()
         print(f"✅ Loaded {venues_loaded} venues")
