@@ -14,8 +14,8 @@ def hello():
 
 @app.route('/health')
 def health():
-    return {"status": "healthy", "port": os.getenv('PORT', '5000')}
+    return {"status": "healthy", "port": os.getenv('PORT', '5001')}
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('PORT', 5001))
     app.run(debug=False, port=port, host='0.0.0.0')
