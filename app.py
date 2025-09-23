@@ -1077,8 +1077,10 @@ def get_scraping_progress():
 def trigger_scraping():
     """Trigger the scraping process to refresh event data"""
     try:
-        import subprocess
         import json
+        from datetime import datetime
+        from scripts.venue_event_scraper import VenueEventScraper
+        from scripts.seed_dc_data import load_scraped_events
         
         # Get parameters from request
         data = request.get_json() or {}
@@ -1101,56 +1103,66 @@ def trigger_scraping():
         
         app_logger.info(f"Starting scraping for {city_name}, event_type: {event_type}, venues: {len(venue_ids)}, sources: {len(source_ids)}")
         
-        # Run the DC scraper with parameters
-        scraper_cmd = [sys.executable, 'scripts/dc_scraper_progress.py']
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 10,
+            'message': f'Starting scraping for {city_name}...',
+            'timestamp': datetime.now().isoformat()
+        }
         
-        # Add environment variables for the scraper
-        env = os.environ.copy()
-        env['SCRAPE_CITY_ID'] = str(city_id) if city_id else ''
-        env['SCRAPE_EVENT_TYPE'] = event_type
-        env['SCRAPE_TIME_RANGE'] = time_range
-        env['SCRAPE_VENUE_IDS'] = ','.join(map(str, venue_ids)) if venue_ids else ''
-        env['SCRAPE_SOURCE_IDS'] = ','.join(map(str, source_ids)) if source_ids else ''
-        env['SCRAPE_CUSTOM_START_DATE'] = custom_start_date if custom_start_date else ''
-        env['SCRAPE_CUSTOM_END_DATE'] = custom_end_date if custom_end_date else ''
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
-        scraper_result = subprocess.run(
-            scraper_cmd,
-            capture_output=True, 
-            text=True, 
-            cwd=os.getcwd(),
-            env=env
+        # Step 1: Run venue event scraper directly
+        progress_data.update({
+            'current_step': 2,
+            'percentage': 30,
+            'message': f'Scraping events from {len(venue_ids)} venues...'
+        })
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        scraper = VenueEventScraper()
+        events_scraped = scraper.scrape_venue_events(
+            city_id=city_id,
+            event_type=event_type,
+            time_range=time_range,
+            venue_ids=venue_ids
         )
         
-        if scraper_result.returncode != 0:
-            app_logger.error(f"Scraper failed: {scraper_result.stderr}")
+        # Step 2: Load events into database
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 70,
+            'message': 'Loading events into database...'
+        })
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Load scraped events into database
+        success = load_scraped_events()
+        
+        if not success:
+            app_logger.error("Failed to load events into database")
             return jsonify({
-                'error': 'Scraping failed',
-                'stderr': scraper_result.stderr
+                'error': 'Database loading failed'
             }), 500
         
-        # Run the seed script to update the database
-        seed_result = subprocess.run([
-            sys.executable, 'scripts/seed_dc_data.py'
-        ], capture_output=True, text=True, cwd=os.getcwd())
+        # Step 3: Complete
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 100,
+            'message': f'Scraping complete! Found {events_scraped} events.'
+        })
         
-        if seed_result.returncode != 0:
-            app_logger.error(f"Seeding failed: {seed_result.stderr}")
-            return jsonify({
-                'error': 'Database seeding failed',
-                'stderr': seed_result.stderr
-            }), 500
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
-        # Try to parse the scraper output to get event count
-        events_added = 0
-        try:
-            if os.path.exists('dc_scraped_data.json'):
-                with open('dc_scraped_data.json', 'r') as f:
-                    scraped_data = json.load(f)
-                    events_added = len(scraped_data.get('events', []))
-        except Exception as e:
-            app_logger.warning(f"Could not parse scraped data: {e}")
-            events_added = 'unknown'
+        events_added = events_scraped
         
         app_logger.info(f"Scraping completed: {events_added} events added")
         
