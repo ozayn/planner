@@ -2861,6 +2861,24 @@
             scrapeButton.innerHTML = '<span class="loading-spinner"></span> Scraping events...';
             updateProgress(10, 'Scraping events from selected venues...');
 
+            // Start progress polling
+            const progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/scrape-progress');
+                    if (response.ok) {
+                        const progress = await response.json();
+                        updateProgress(progress.percentage, progress.message);
+                        
+                        // Stop polling when complete
+                        if (progress.percentage >= 100) {
+                            clearInterval(progressInterval);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Progress polling error:', error);
+                }
+            }, 1000); // Poll every second
+
             try {
                 // Step 1: Scrape events from selected venues
                 updateProgress(30, 'Scraping events from ' + selectedVenues.size + ' venues...');
@@ -2901,6 +2919,19 @@
                 // Step 2: Load events
                 await loadEvents(cityId, timeRange, eventType);
                 
+                // Force refresh the events display
+                console.log(`Scraping complete. Loaded ${allEvents.length} events.`);
+                console.log('Events:', allEvents);
+                
+                // Force a manual refresh of the events display
+                setTimeout(() => {
+                    displayEvents(allEvents);
+                    console.log('Manually refreshed events display');
+                    
+                    // Also try to reload events from API
+                    loadEvents(cityId, timeRange, eventType);
+                }, 500);
+                
                 updateProgress(100, 'Complete! Found ' + allEvents.length + ' events');
                 showNotification(`Successfully scraped ${allEvents.length} events!`, 'success');
 
@@ -2909,6 +2940,8 @@
                 showNotification('Event scraping failed: ' + error.message, 'error');
                 updateProgress(0, 'Event scraping failed');
             } finally {
+                // Stop progress polling
+                clearInterval(progressInterval);
                 scrapeButton.disabled = false;
                 scrapeButton.innerHTML = '🚀';
             }

@@ -1,194 +1,12 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-09-22",
+    "created": "2025-09-23",
     "description": "Events exported from database - always most updated version",
-    "total_events": 15,
-    "last_updated": "2025-09-22 17:38:47"
+    "total_events": 1,
+    "last_updated": "2025-09-23 18:26:25"
   },
   "events": {
-    "16": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-22",
-      "start_time": "09:00:00",
-      "end_time": "10:00:00",
-      "event_type": "tour",
-      "venue_id": 11,
-      "venue_name": "Kennedy Center",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.131084",
-      "updated_at": "2025-09-22T21:26:10.131087"
-    },
-    "17": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-22",
-      "start_time": "09:00:00",
-      "end_time": "12:00:00",
-      "event_type": "tour",
-      "venue_id": 162,
-      "venue_name": "Embassy of South Korea",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.134850",
-      "updated_at": "2025-09-22T21:26:10.134851"
-    },
-    "18": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-23",
-      "start_time": "10:00:00",
-      "end_time": "11:00:00",
-      "event_type": "tour",
-      "venue_id": 164,
-      "venue_name": "Embassy of Switzerland",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135841",
-      "updated_at": "2025-09-22T21:26:10.135841"
-    },
-    "19": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-23",
-      "start_time": "13:00:00",
-      "end_time": "14:00:00",
-      "event_type": "tour",
-      "venue_id": 15,
-      "venue_name": "Martin Luther King Jr. Memorial",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135842",
-      "updated_at": "2025-09-22T21:26:10.135843"
-    },
-    "20": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-24",
-      "start_time": "13:00:00",
-      "end_time": "14:00:00",
-      "event_type": "tour",
-      "venue_id": 155,
-      "venue_name": "Embassy of Canada",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135843",
-      "updated_at": "2025-09-22T21:26:10.135844"
-    },
-    "21": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-24",
-      "start_time": "11:00:00",
-      "end_time": "12:00:00",
-      "event_type": "tour",
-      "venue_id": 151,
-      "venue_name": "Embassy of France",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135844",
-      "updated_at": "2025-09-22T21:26:10.135845"
-    },
-    "22": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-25",
-      "start_time": "09:00:00",
-      "end_time": "11:00:00",
-      "event_type": "tour",
-      "venue_id": 20,
-      "venue_name": "National Zoo",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135845",
-      "updated_at": "2025-09-22T21:26:10.135846"
-    },
-    "23": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-25",
-      "start_time": "15:00:00",
-      "end_time": "17:00:00",
-      "event_type": "tour",
-      "venue_id": 1,
-      "venue_name": "Arena Stage",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135846",
-      "updated_at": "2025-09-22T21:26:10.135846"
-    },
-    "24": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-26",
-      "start_time": "10:00:00",
-      "end_time": "13:00:00",
-      "event_type": "tour",
-      "venue_id": 25,
-      "venue_name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135847",
-      "updated_at": "2025-09-22T21:26:10.135847"
-    },
-    "25": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-26",
-      "start_time": "12:00:00",
-      "end_time": "13:00:00",
-      "event_type": "tour",
-      "venue_id": 9,
-      "venue_name": "International Spy Museum",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135848",
-      "updated_at": "2025-09-22T21:26:10.135848"
-    },
-    "26": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-27",
-      "start_time": "14:00:00",
-      "end_time": "15:00:00",
-      "event_type": "tour",
-      "venue_id": 14,
-      "venue_name": "Lincoln Memorial",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135849",
-      "updated_at": "2025-09-22T21:26:10.135849"
-    },
-    "27": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-27",
-      "start_time": "14:00:00",
-      "end_time": "16:00:00",
-      "event_type": "tour",
-      "venue_id": 9,
-      "venue_name": "International Spy Museum",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135849",
-      "updated_at": "2025-09-22T21:26:10.135850"
-    },
-    "28": {
-      "title": "Guided Museum Tour",
-      "description": "Join our expert guide for an in-depth exploration of the museum's highlights",
-      "start_date": "2025-09-28",
-      "start_time": "11:00:00",
-      "end_time": "12:00:00",
-      "event_type": "tour",
-      "venue_id": 162,
-      "venue_name": "Embassy of South Korea",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135850",
-      "updated_at": "2025-09-22T21:26:10.135851"
-    },
-    "29": {
-      "title": "Self-Guided Audio Tour",
-      "description": "Explore at your own pace with our comprehensive audio guide",
-      "start_date": "2025-09-28",
-      "start_time": "15:00:00",
-      "end_time": "18:00:00",
-      "event_type": "tour",
-      "venue_id": 24,
-      "venue_name": "Smithsonian Freer Gallery of Art",
-      "city_name": "Washington",
-      "created_at": "2025-09-22T21:26:10.135851",
-      "updated_at": "2025-09-22T21:26:10.135851"
-    },
     "30": {
       "title": "Street Meet DC - Rhode Island Ave",
       "description": "Street Meet DC organizes street photography meetups, workshops, and photo walks throughout Washington DC. Focuses on urban and street photography techniques.",
@@ -199,8 +17,8 @@
       "venue_id": null,
       "venue_name": "",
       "city_name": "",
-      "created_at": "2025-09-22T21:27:02.135677",
-      "updated_at": "2025-09-22T21:27:02.135681"
+      "created_at": "2025-09-23T21:34:06.454402",
+      "updated_at": "2025-09-23T21:34:06.454410"
     }
   }
 }

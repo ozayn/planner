@@ -63,13 +63,24 @@ def load_scraped_events():
             Event.query.filter_by(city_id=dc_city.id, source='scraped').delete()
             db.session.commit()
         
+        # Create a set to track loaded event titles to prevent duplicates
+        loaded_titles = set()
+        
         for event_data in events_data:
             try:
+                # Check for duplicate titles within this batch
+                event_title = event_data.get('title', 'Untitled Event')
+                if event_title in loaded_titles:
+                    print(f"⚠️ Skipping duplicate event: {event_title}")
+                    events_skipped += 1
+                    continue
+                
                 # Create new event
                 event = Event()
                 
                 # Basic fields
-                event.title = event_data.get('title', 'Untitled Event')
+                event.title = event_title
+                loaded_titles.add(event_title)
                 event.description = event_data.get('description', '')
                 event.event_type = event_data.get('event_type', 'tour')
                 event.url = event_data.get('url', '')

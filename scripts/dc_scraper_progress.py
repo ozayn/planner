@@ -225,18 +225,29 @@ def generate_sample_events():
 def main():
     """Main scraping function"""
     try:
-        total_steps = 5
+        total_steps = 4
         
         # Step 1: Initialize
         update_progress(1, total_steps, "Initializing DC event scraper...")
         
-        # Step 2: Load venue data
-        update_progress(2, total_steps, "Loading venue data...")
-        # For now, we'll generate sample events without real venue data
+        # Step 2: Get parameters
+        update_progress(2, total_steps, "Loading scraping parameters...")
+        venue_ids = os.getenv('SCRAPE_VENUE_IDS', '').split(',') if os.getenv('SCRAPE_VENUE_IDS') else []
+        venue_ids = [int(vid) for vid in venue_ids if vid.strip()]
+        city_id = int(os.getenv('SCRAPE_CITY_ID', 0)) if os.getenv('SCRAPE_CITY_ID') else None
         
-        # Step 3: Generate sample events
-        update_progress(3, total_steps, "Generating sample events...")
-        events = generate_sample_events()
+        # Step 3: Scrape real events from venues
+        update_progress(3, total_steps, "Scraping events from venues...")
+        
+        # Import and use the real venue scraper
+        from venue_event_scraper import VenueEventScraper
+        scraper = VenueEventScraper()
+        events = scraper.scrape_venue_events(venue_ids, city_id)
+        
+        # NO FALLBACK TO SAMPLE EVENTS - Only real scraped events
+        if not events:
+            print("⚠️ No events found from venues - this is normal if venues don't have events listed")
+            events = []  # Empty list, no fake data
         
         # Step 4: Save to file
         update_progress(4, total_steps, "Saving scraped data...")
@@ -245,7 +256,9 @@ def main():
             "metadata": {
                 "scraped_at": datetime.now().isoformat(),
                 "total_events": len(events),
-                "scraper_version": "1.0",
+                "scraper_version": "2.0",
+                "venue_ids": venue_ids,
+                "city_id": city_id,
                 "city": "Washington DC"
             },
             "events": events
@@ -254,10 +267,7 @@ def main():
         with open('dc_scraped_data.json', 'w') as f:
             json.dump(scraped_data, f, indent=2)
         
-        # Step 5: Complete
-        update_progress(5, total_steps, f"Scraping complete! Generated {len(events)} events")
-        
-        print(f"✅ Successfully generated {len(events)} sample events")
+        print(f"✅ Successfully scraped {len(events)} events")
         return True
         
     except Exception as e:
