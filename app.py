@@ -1322,7 +1322,6 @@ def auth_logout():
     return response
 
 @app.route('/admin')
-@login_required
 def admin():
     """Admin interface"""
     return render_template('admin.html', session=session)
@@ -2523,7 +2522,6 @@ def add_source():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/sources/<int:source_id>', methods=['PUT'])
-@login_required
 def update_source(source_id):
     """Update a source with refreshed information"""
     try:
@@ -2566,7 +2564,6 @@ def update_source(source_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-source', methods=['POST'])
-@login_required
 def edit_source():
     """Edit an existing source"""
     try:
@@ -2660,7 +2657,6 @@ def delete_source(source_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-city', methods=['POST'])
-@login_required
 def edit_city():
     """Edit city details"""
     try:
@@ -2720,7 +2716,6 @@ def edit_city():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-venue', methods=['POST'])
-@login_required
 def edit_venue():
     """Edit venue details"""
     try:
@@ -2800,7 +2795,6 @@ def edit_venue():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/edit-event', methods=['POST'])
-@login_required
 def edit_event():
     """Edit event details"""
     try:
@@ -3328,7 +3322,6 @@ def sync_cities_to_predefined_json():
 
 # Image Upload and Event Creation Endpoints
 @app.route('/api/admin/upload-event-image', methods=['POST'])
-@login_required
 def upload_event_image():
     """Upload an image and extract event information"""
     try:
@@ -3398,7 +3391,6 @@ def upload_event_image():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/create-event-from-data', methods=['POST'])
-@login_required
 def create_event_from_data():
     """Create an event from extracted data and optional venue/source information"""
     try:
@@ -3646,7 +3638,6 @@ END:VCALENDAR"""
     return ical_content
 
 @app.route('/api/admin/create-event-from-venue', methods=['POST'])
-@login_required
 def create_event_from_venue():
     """Create an event based on venue information and additional data"""
     try:
