@@ -1453,9 +1453,9 @@ def auth_login():
         # Create flow with proper configuration
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
         
-        # Use Railway domain for OAuth callback
+        # Use custom domain for OAuth callback to maintain consistent branding
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
-            flow.redirect_uri = 'https://web-production-3b8c6c.up.railway.app/auth/callback'
+            flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
         else:
             flow.redirect_uri = request.url_root + 'auth/callback'
         
@@ -1480,9 +1480,9 @@ def auth_callback():
         # Create flow without state validation to avoid CSRF issues on Railway
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
         
-        # Use Railway domain for OAuth callback
+        # Use custom domain for OAuth callback to maintain consistent branding
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
-            flow.redirect_uri = 'https://web-production-3b8c6c.up.railway.app/auth/callback'
+            flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
         else:
             flow.redirect_uri = request.url_root + 'auth/callback'
         
@@ -1707,7 +1707,7 @@ def debug_oauth():
             'admin_emails': ADMIN_EMAILS,
             'current_host': request.host,
             'current_url': request.url,
-            'callback_url': 'https://web-production-3b8c6c.up.railway.app/auth/callback' if 'railway.app' in request.host or 'ozayn.com' in request.host else request.url_root + 'auth/callback'
+            'callback_url': 'https://planner.ozayn.com/auth/callback' if 'railway.app' in request.host or 'ozayn.com' in request.host else request.url_root + 'auth/callback'
         })
         
     except Exception as e:
