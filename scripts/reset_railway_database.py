@@ -58,15 +58,30 @@ def load_cities_from_json():
             cities_data = json.load(f)
         
         cities_loaded = 0
-        for city_data in cities_data:
-            city = City(
-                name=city_data['name'],
-                state=city_data.get('state'),
-                country=city_data['country'],
-                timezone=city_data.get('timezone', 'America/New_York')
-            )
-            db.session.add(city)
-            cities_loaded += 1
+        
+        # Handle the nested structure: cities_data["cities"][city_id]
+        if "cities" in cities_data:
+            cities_section = cities_data["cities"]
+            for city_id, city_data in cities_section.items():
+                city = City(
+                    name=city_data['name'],
+                    state=city_data.get('state'),
+                    country=city_data['country'],
+                    timezone=city_data.get('timezone', 'America/New_York')
+                )
+                db.session.add(city)
+                cities_loaded += 1
+        else:
+            # Fallback for old format
+            for city_data in cities_data:
+                city = City(
+                    name=city_data['name'],
+                    state=city_data.get('state'),
+                    country=city_data['country'],
+                    timezone=city_data.get('timezone', 'America/New_York')
+                )
+                db.session.add(city)
+                cities_loaded += 1
         
         db.session.commit()
         print(f"✅ Loaded {cities_loaded} cities")
