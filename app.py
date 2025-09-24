@@ -1533,8 +1533,14 @@ def auth_logout():
     # Force session to be saved
     session.permanent = False
     
+    # Redirect to custom domain instead of Railway domain
+    if 'railway.app' in request.host:
+        redirect_url = 'https://planner.ozayn.com/'
+    else:
+        redirect_url = '/'
+    
     # Create response with cache control headers to prevent caching
-    response = redirect('/')
+    response = redirect(redirect_url)
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
