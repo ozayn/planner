@@ -1237,10 +1237,19 @@ def load_data():
                         # Find the city by city_id
                         city_id = source_data.get('city_id')
                         if city_id:
+                            # Try multiple lookup methods
                             city = City.query.get(city_id)
                             if not city:
-                                app_logger.warning(f"City not found for city_id: {city_id}")
-                                continue
+                                # Try by name as fallback
+                                city_name = source_data.get('city_name', 'Washington')
+                                city = City.query.filter_by(name=city_name).first()
+                                if not city:
+                                    app_logger.warning(f"City not found for city_id: {city_id}, city_name: {city_name}")
+                                    continue
+                                else:
+                                    app_logger.info(f"Found city by name: {city_name} (ID: {city.id})")
+                            else:
+                                app_logger.info(f"Found city by ID: {city_id} ({city.name})")
                         else:
                             app_logger.warning(f"No city_id for source: {source_data.get('name', 'Unknown')}")
                             continue
@@ -1654,6 +1663,28 @@ def test_files():
                     pass
         
         return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/debug-cities')
+def debug_cities():
+    """Debug city data on Railway"""
+    try:
+        cities = City.query.all()
+        city_data = []
+        for city in cities:
+            city_data.append({
+                'id': city.id,
+                'name': city.name,
+                'state': city.state,
+                'country': city.country
+            })
+        
+        return jsonify({
+            'cities_count': len(city_data),
+            'cities': city_data
+        })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
