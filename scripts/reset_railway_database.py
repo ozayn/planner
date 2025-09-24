@@ -63,8 +63,6 @@ def load_cities_from_json():
                 name=city_data['name'],
                 state=city_data.get('state'),
                 country=city_data['country'],
-                latitude=city_data.get('latitude'),
-                longitude=city_data.get('longitude'),
                 timezone=city_data.get('timezone', 'America/New_York')
             )
             db.session.add(city)
@@ -193,13 +191,26 @@ def load_sources_from_json():
                 continue
             
             for source_data in city_sources:
+                # Handle list fields (convert to JSON string for database)
+                event_types = source_data.get('event_types', [])
+                if isinstance(event_types, list):
+                    event_types = json.dumps(event_types)
+                
+                covered_cities = source_data.get('covered_cities')
+                if isinstance(covered_cities, list):
+                    covered_cities = json.dumps(covered_cities)
+                
                 source = Source(
                     name=source_data['name'],
+                    handle=source_data.get('handle', ''),
                     source_type=source_data['source_type'],
-                    handle=source_data.get('handle'),
                     url=source_data.get('url'),
                     description=source_data.get('description'),
-                    city_id=city.id
+                    city_id=city.id,
+                    covers_multiple_cities=source_data.get('covers_multiple_cities', False),
+                    covered_cities=covered_cities,
+                    event_types=event_types,
+                    is_active=source_data.get('is_active', True)
                 )
                 db.session.add(source)
                 sources_loaded += 1
