@@ -1175,27 +1175,33 @@ def load_data():
                     
                     for venue_data in city_venues:
                         try:
+                            # Truncate fields to fit database limits
+                            def truncate_field(value, max_length):
+                                if value and len(str(value)) > max_length:
+                                    return str(value)[:max_length]
+                                return value
+                            
                             venue = Venue(
-                                name=venue_data['name'],
-                                venue_type=venue_data['venue_type'],
-                                address=venue_data.get('address'),
+                                name=truncate_field(venue_data['name'], 200),
+                                venue_type=truncate_field(venue_data['venue_type'], 50),
+                                address=venue_data.get('address'),  # TEXT field, no limit
                                 latitude=venue_data.get('latitude'),
                                 longitude=venue_data.get('longitude'),
-                                image_url=venue_data.get('image_url'),
-                                instagram_url=venue_data.get('instagram_url'),
-                                facebook_url=venue_data.get('facebook_url'),
-                                twitter_url=venue_data.get('twitter_url'),
-                                youtube_url=venue_data.get('youtube_url'),
-                                tiktok_url=venue_data.get('tiktok_url'),
-                                website_url=venue_data.get('website_url'),
-                                description=venue_data.get('description'),
-                                opening_hours=venue_data.get('opening_hours'),
-                                holiday_hours=venue_data.get('holiday_hours'),
-                                phone_number=venue_data.get('phone_number'),
-                                email=venue_data.get('email'),
-                                tour_info=venue_data.get('tour_info'),
-                                admission_fee=venue_data.get('admission_fee'),
-                                additional_info=venue_data.get('additional_info'),
+                                image_url=truncate_field(venue_data.get('image_url'), 500),
+                                instagram_url=truncate_field(venue_data.get('instagram_url'), 200),
+                                facebook_url=truncate_field(venue_data.get('facebook_url'), 200),
+                                twitter_url=truncate_field(venue_data.get('twitter_url'), 200),
+                                youtube_url=truncate_field(venue_data.get('youtube_url'), 200),
+                                tiktok_url=truncate_field(venue_data.get('tiktok_url'), 200),
+                                website_url=truncate_field(venue_data.get('website_url'), 200),
+                                description=venue_data.get('description'),  # TEXT field, no limit
+                                opening_hours=venue_data.get('opening_hours'),  # TEXT field, no limit
+                                holiday_hours=venue_data.get('holiday_hours'),  # TEXT field, no limit
+                                phone_number=truncate_field(venue_data.get('phone_number'), 50),
+                                email=truncate_field(venue_data.get('email'), 200),
+                                tour_info=venue_data.get('tour_info'),  # TEXT field, no limit
+                                admission_fee=venue_data.get('admission_fee'),  # TEXT field, no limit
+                                additional_info=venue_data.get('additional_info'),  # TEXT field, no limit
                                 city_id=city.id
                             )
                             db.session.add(venue)
