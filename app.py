@@ -1264,7 +1264,14 @@ def load_data():
                             covers_multiple_cities=source_data.get('covers_multiple_cities', False),
                             covered_cities=covered_cities,
                             event_types=event_types,
-                            is_active=source_data.get('is_active', True)
+                            is_active=source_data.get('is_active', True),
+                            last_checked=source_data.get('last_checked'),
+                            last_event_found=source_data.get('last_event_found'),
+                            events_found_count=source_data.get('events_found_count', 0),
+                            reliability_score=source_data.get('reliability_score', 5.0),
+                            posting_frequency=source_data.get('posting_frequency'),
+                            notes=source_data.get('notes'),
+                            scraping_pattern=source_data.get('scraping_pattern')
                         )
                         db.session.add(source)
                         sources_loaded += 1
