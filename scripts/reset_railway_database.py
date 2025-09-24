@@ -198,20 +198,28 @@ def load_sources_from_json():
             sources_data = json.load(f)
         
         sources_loaded = 0
-        for city_name, city_sources in sources_data.items():
-            # Find the city
-            city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
-            if not city:
-                print(f"⚠️ City not found: {city_name}")
-                continue
-            
-            for source_data in city_sources:
+        
+        # Handle the nested structure: sources_data["sources"][source_id]
+        if "sources" in sources_data:
+            sources_section = sources_data["sources"]
+            for source_id, source_data in sources_section.items():
+                # Find the city by city_id
+                city_id = source_data.get('city_id')
+                if city_id:
+                    city = City.query.get(city_id)
+                    if not city:
+                        print(f"⚠️ City not found for city_id: {city_id}")
+                        continue
+                else:
+                    print(f"⚠️ No city_id for source: {source_data.get('name', 'Unknown')}")
+                    continue
+                
                 # Handle list fields (convert to JSON string for database)
-                event_types = source_data.get('event_types', [])
+                event_types = source_data.get('event_types', '')
                 if isinstance(event_types, list):
                     event_types = json.dumps(event_types)
                 
-                covered_cities = source_data.get('covered_cities')
+                covered_cities = source_data.get('covered_cities', '')
                 if isinstance(covered_cities, list):
                     covered_cities = json.dumps(covered_cities)
                 
@@ -229,6 +237,42 @@ def load_sources_from_json():
                 )
                 db.session.add(source)
                 sources_loaded += 1
+        else:
+            # Fallback for old format
+            for city_name, city_sources in sources_data.items():
+                if city_name in ['metadata']:
+                    continue
+                    
+                # Find the city
+                city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
+                if not city:
+                    print(f"⚠️ City not found: {city_name}")
+                    continue
+                
+                for source_data in city_sources:
+                    # Handle list fields (convert to JSON string for database)
+                    event_types = source_data.get('event_types', [])
+                    if isinstance(event_types, list):
+                        event_types = json.dumps(event_types)
+                    
+                    covered_cities = source_data.get('covered_cities')
+                    if isinstance(covered_cities, list):
+                        covered_cities = json.dumps(covered_cities)
+                    
+                    source = Source(
+                        name=source_data['name'],
+                        handle=source_data.get('handle', ''),
+                        source_type=source_data['source_type'],
+                        url=source_data.get('url'),
+                        description=source_data.get('description'),
+                        city_id=city.id,
+                        covers_multiple_cities=source_data.get('covers_multiple_cities', False),
+                        covered_cities=covered_cities,
+                        event_types=event_types,
+                        is_active=source_data.get('is_active', True)
+                    )
+                    db.session.add(source)
+                    sources_loaded += 1
         
         db.session.commit()
         print(f"✅ Loaded {sources_loaded} sources")
