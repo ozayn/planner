@@ -1453,9 +1453,9 @@ def auth_login():
         # Create flow with proper configuration
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
         
-        # Use fixed callback URL for Railway deployment
+        # Use Railway domain for OAuth callback
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
-            flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
+            flow.redirect_uri = 'https://web-production-3b8c6c.up.railway.app/auth/callback'
         else:
             flow.redirect_uri = request.url_root + 'auth/callback'
         
@@ -1479,9 +1479,9 @@ def auth_callback():
     try:
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES, state=session['state'])
         
-        # Use fixed callback URL for Railway deployment
+        # Use Railway domain for OAuth callback
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
-            flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
+            flow.redirect_uri = 'https://web-production-3b8c6c.up.railway.app/auth/callback'
         else:
             flow.redirect_uri = request.url_root + 'auth/callback'
         
@@ -1541,72 +1541,11 @@ def auth_logout():
     return response
 
 @app.route('/admin')
+@login_required
 def admin():
     """Admin interface"""
-    # Check if user is logged in with simple session
-    if not session.get('admin_logged_in'):
-        return redirect('/admin-login')
     return render_template('admin.html', session=session)
 
-@app.route('/admin-login')
-def admin_login():
-    """Simple admin login page"""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Admin Login</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 400px; margin: 100px auto; padding: 20px; }
-            .form-group { margin-bottom: 15px; }
-            label { display: block; margin-bottom: 5px; font-weight: bold; }
-            input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-            button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-            button:hover { background: #0056b3; }
-            .error { color: red; margin-top: 10px; }
-        </style>
-    </head>
-    <body>
-        <h1>🏛️ Admin Login</h1>
-        <form method="POST" action="/admin-login">
-            <div class="form-group">
-                <label for="password">Admin Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">Login</button>
-        </form>
-        <div id="error" class="error"></div>
-        
-        <script>
-            // Check for error message
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('error')) {
-                document.getElementById('error').textContent = 'Invalid password';
-            }
-        </script>
-    </body>
-    </html>
-    """
-
-@app.route('/admin-login', methods=['POST'])
-def admin_login_post():
-    """Handle admin login"""
-    password = request.form.get('password')
-    
-    # Simple password check (you can change this password)
-    if password == 'admin123':
-        session['admin_logged_in'] = True
-        session['admin_user'] = 'admin'
-        return redirect('/admin')
-    else:
-        return redirect('/admin-login?error=1')
-
-@app.route('/admin-logout')
-def admin_logout():
-    """Logout admin"""
-    session.pop('admin_logged_in', None)
-    session.pop('admin_user', None)
-    return redirect('/admin-login')
 
 @app.route('/test-admin')
 def test_admin():
@@ -1761,7 +1700,7 @@ def debug_oauth():
             'admin_emails': ADMIN_EMAILS,
             'current_host': request.host,
             'current_url': request.url,
-            'callback_url': 'https://planner.ozayn.com/auth/callback' if 'railway.app' in request.host or 'ozayn.com' in request.host else request.url_root + 'auth/callback'
+            'callback_url': 'https://web-production-3b8c6c.up.railway.app/auth/callback' if 'railway.app' in request.host or 'ozayn.com' in request.host else request.url_root + 'auth/callback'
         })
         
     except Exception as e:
