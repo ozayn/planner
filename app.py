@@ -1580,6 +1580,71 @@ def admin_test():
     """Test admin page"""
     return render_template('admin_test.html')
 
+@app.route('/api/test-files')
+def test_files():
+    """Test if JSON files are accessible on Railway"""
+    try:
+        import os
+        import json
+        
+        result = {
+            'data_dir_exists': os.path.exists('data'),
+            'data_dir_contents': [],
+            'cities_file_exists': False,
+            'venues_file_exists': False,
+            'sources_file_exists': False,
+            'cities_file_size': 0,
+            'venues_file_size': 0,
+            'sources_file_size': 0,
+            'cities_json_valid': False,
+            'venues_json_valid': False,
+            'sources_json_valid': False
+        }
+        
+        if os.path.exists('data'):
+            result['data_dir_contents'] = os.listdir('data')
+            
+            # Check cities.json
+            cities_path = 'data/cities.json'
+            if os.path.exists(cities_path):
+                result['cities_file_exists'] = True
+                result['cities_file_size'] = os.path.getsize(cities_path)
+                try:
+                    with open(cities_path, 'r') as f:
+                        json.load(f)
+                    result['cities_json_valid'] = True
+                except:
+                    pass
+            
+            # Check venues.json
+            venues_path = 'data/venues.json'
+            if os.path.exists(venues_path):
+                result['venues_file_exists'] = True
+                result['venues_file_size'] = os.path.getsize(venues_path)
+                try:
+                    with open(venues_path, 'r') as f:
+                        json.load(f)
+                    result['venues_json_valid'] = True
+                except:
+                    pass
+            
+            # Check sources.json
+            sources_path = 'data/sources.json'
+            if os.path.exists(sources_path):
+                result['sources_file_exists'] = True
+                result['sources_file_size'] = os.path.getsize(sources_path)
+                try:
+                    with open(sources_path, 'r') as f:
+                        json.load(f)
+                    result['sources_json_valid'] = True
+                except:
+                    pass
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/stats')
 def admin_stats():
     """Get admin statistics"""
