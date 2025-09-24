@@ -1100,6 +1100,62 @@ def clear_database():
             'error': str(e)
         }), 500
 
+@app.route('/api/load-data', methods=['POST'])
+def load_data():
+    """Load data from JSON files into database"""
+    try:
+        from scripts.reset_railway_database import load_cities_from_json, load_venues_from_json, load_sources_from_json
+        
+        app_logger.info("Starting data loading...")
+        
+        # Load cities first
+        cities_success = load_cities_from_json()
+        if not cities_success:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to load cities'
+            }), 500
+        
+        # Load venues
+        venues_success = load_venues_from_json()
+        if not venues_success:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to load venues'
+            }), 500
+        
+        # Load sources
+        sources_success = load_sources_from_json()
+        if not sources_success:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to load sources'
+            }), 500
+        
+        # Get final counts
+        cities_count = City.query.count()
+        venues_count = Venue.query.count()
+        sources_count = Source.query.count()
+        events_count = Event.query.count()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Data loaded successfully!',
+            'counts': {
+                'cities': cities_count,
+                'venues': venues_count,
+                'sources': sources_count,
+                'events': events_count
+            }
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Data loading error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scraping():
     """Trigger the scraping process to refresh event data"""
@@ -1353,9 +1409,18 @@ def admin_status():
         <p>Events: {events_count}</p>
         <br>
         <button onclick="clearDatabase()">Clear Database</button>
+        <button onclick="loadData()">Load Data</button>
         <script>
         function clearDatabase() {{
             fetch('/api/clear-database', {{method: 'POST'}})
+                .then(r => r.json())
+                .then(data => {{
+                    alert(data.message);
+                    location.reload();
+                }});
+        }}
+        function loadData() {{
+            fetch('/api/load-data', {{method: 'POST'}})
                 .then(r => r.json())
                 .then(data => {{
                     alert(data.message);
