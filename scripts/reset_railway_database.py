@@ -19,10 +19,25 @@ def clear_all_data():
     print("🗑️ Clearing all data from database...")
     
     try:
+        # Get counts before clearing
+        events_count = Event.query.count()
+        venues_count = Venue.query.count()
+        sources_count = Source.query.count()
+        cities_count = City.query.count()
+        
+        print(f"📊 Current counts: Events={events_count}, Venues={venues_count}, Sources={sources_count}, Cities={cities_count}")
+        
         # Clear in order to respect foreign key constraints
+        print("🗑️ Clearing events...")
         Event.query.delete()
+        
+        print("🗑️ Clearing venues...")
         Venue.query.delete()
+        
+        print("🗑️ Clearing sources...")
         Source.query.delete()
+        
+        print("🗑️ Clearing cities...")
         City.query.delete()
         
         db.session.commit()
