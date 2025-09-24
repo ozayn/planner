@@ -1337,6 +1337,37 @@ def admin_simple():
     """Simple admin page"""
     return render_template('admin_simple.html')
 
+@app.route('/admin-status')
+def admin_status():
+    """Simple admin status page"""
+    try:
+        cities_count = City.query.count()
+        venues_count = Venue.query.count()
+        sources_count = Source.query.count()
+        events_count = Event.query.count()
+        
+        return f"""
+        <h1>Database Status</h1>
+        <p>Cities: {cities_count}</p>
+        <p>Venues: {venues_count}</p>
+        <p>Sources: {sources_count}</p>
+        <p>Events: {events_count}</p>
+        <br>
+        <button onclick="clearDatabase()">Clear Database</button>
+        <script>
+        function clearDatabase() {{
+            fetch('/api/clear-database', {{method: 'POST'}})
+                .then(r => r.json())
+                .then(data => {{
+                    alert(data.message);
+                    location.reload();
+                }});
+        }}
+        </script>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 @app.route('/admin-test')
 def admin_test():
     """Test admin page"""
