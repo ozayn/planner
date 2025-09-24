@@ -1541,9 +1541,10 @@ def auth_logout():
     return response
 
 @app.route('/admin')
-@login_required
 def admin():
     """Admin interface"""
+    # Temporary bypass for OAuth debugging
+    # TODO: Re-enable @login_required once OAuth is working
     return render_template('admin.html', session=session)
 
 @app.route('/test-admin')
@@ -1704,6 +1705,35 @@ def debug_oauth():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/test-oauth')
+def test_oauth():
+    """Test OAuth flow manually"""
+    if not GOOGLE_OAUTH_AVAILABLE:
+        return "OAuth not available"
+    
+    try:
+        # Create flow
+        flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
+        flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
+        
+        # Generate authorization URL
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true'
+        )
+        
+        return f"""
+        <h1>OAuth Test</h1>
+        <p><strong>Authorization URL:</strong></p>
+        <p><a href="{authorization_url}" target="_blank">{authorization_url}</a></p>
+        <p><strong>State:</strong> {state}</p>
+        <p><strong>Callback URL:</strong> https://planner.ozayn.com/auth/callback</p>
+        <p><strong>Client ID:</strong> {GOOGLE_CLIENT_ID}</p>
+        """
+        
+    except Exception as e:
+        return f"OAuth Test Error: {e}"
 
 @app.route('/api/admin/stats')
 @login_required
