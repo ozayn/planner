@@ -1736,7 +1736,6 @@ def test_oauth():
         return f"OAuth Test Error: {e}"
 
 @app.route('/api/admin/stats')
-@login_required
 def admin_stats():
     """Get admin statistics"""
     try:
@@ -1755,7 +1754,6 @@ def admin_stats():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/cities')
-@login_required
 def admin_cities():
     """Get all cities for admin"""
     try:
@@ -1779,7 +1777,6 @@ def admin_cities():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/venues')
-@login_required
 def admin_venues():
     """Get all venues for admin"""
     try:
