@@ -120,7 +120,10 @@ def load_venues_from_json():
                         opening_hours=venue_data.get('opening_hours'),
                         holiday_hours=venue_data.get('holiday_hours'),
                         phone_number=venue_data.get('phone_number'),
-                        maps_link=venue_data.get('maps_link'),
+                        email=venue_data.get('email'),
+                        tour_info=venue_data.get('tour_info'),
+                        admission_fee=venue_data.get('admission_fee'),
+                        additional_info=venue_data.get('additional_info'),
                         city_id=city.id
                     )
                     db.session.add(venue)
@@ -155,7 +158,10 @@ def load_venues_from_json():
                         opening_hours=venue_data.get('opening_hours'),
                         holiday_hours=venue_data.get('holiday_hours'),
                         phone_number=venue_data.get('phone_number'),
-                        maps_link=venue_data.get('maps_link'),
+                        email=venue_data.get('email'),
+                        tour_info=venue_data.get('tour_info'),
+                        admission_fee=venue_data.get('admission_fee'),
+                        additional_info=venue_data.get('additional_info'),
                         city_id=city.id
                     )
                     db.session.add(venue)
