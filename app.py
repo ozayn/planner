@@ -1453,12 +1453,11 @@ def auth_login():
         # Create flow with proper configuration
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
         
-        # Force HTTPS for Railway deployment
-        base_url = request.url_root
+        # Use fixed callback URL for Railway deployment
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
-            base_url = base_url.replace('http://', 'https://')
-        
-        flow.redirect_uri = base_url + 'auth/callback'
+            flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
+        else:
+            flow.redirect_uri = request.url_root + 'auth/callback'
         
         authorization_url, state = flow.authorization_url(
             access_type='offline',
@@ -1480,12 +1479,11 @@ def auth_callback():
     try:
         flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES, state=session['state'])
         
-        # Force HTTPS for Railway deployment
-        base_url = request.url_root
+        # Use fixed callback URL for Railway deployment
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
-            base_url = base_url.replace('http://', 'https://')
-        
-        flow.redirect_uri = base_url + 'auth/callback'
+            flow.redirect_uri = 'https://planner.ozayn.com/auth/callback'
+        else:
+            flow.redirect_uri = request.url_root + 'auth/callback'
         
         # Handle Railway proxy HTTPS issue
         authorization_response = request.url
@@ -1685,6 +1683,23 @@ def debug_cities():
         return jsonify({
             'cities_count': len(city_data),
             'cities': city_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/debug-oauth')
+def debug_oauth():
+    """Debug OAuth configuration"""
+    try:
+        return jsonify({
+            'oauth_available': GOOGLE_OAUTH_AVAILABLE,
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret_set': bool(GOOGLE_CLIENT_SECRET),
+            'admin_emails': ADMIN_EMAILS,
+            'current_host': request.host,
+            'current_url': request.url,
+            'callback_url': 'https://planner.ozayn.com/auth/callback' if 'railway.app' in request.host or 'ozayn.com' in request.host else request.url_root + 'auth/callback'
         })
         
     except Exception as e:
