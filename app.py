@@ -1073,6 +1073,47 @@ def get_scraping_progress():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/reset-database', methods=['POST'])
+def reset_database():
+    """Reset database and reload from JSON files"""
+    try:
+        from scripts.reset_railway_database import main as reset_main
+        
+        app_logger.info("Starting database reset...")
+        
+        # Run the reset script
+        success = reset_main()
+        
+        if success:
+            # Get final counts
+            cities_count = City.query.count()
+            venues_count = Venue.query.count()
+            sources_count = Source.query.count()
+            events_count = Event.query.count()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Database reset completed successfully!',
+                'counts': {
+                    'cities': cities_count,
+                    'venues': venues_count,
+                    'sources': sources_count,
+                    'events': events_count
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Database reset failed'
+            }), 500
+            
+    except Exception as e:
+        app_logger.error(f"Database reset error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scraping():
     """Trigger the scraping process to refresh event data"""
