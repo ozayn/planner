@@ -1148,14 +1148,24 @@ def load_data():
         # Load venues
         venues_loaded = 0
         try:
+            app_logger.info("Starting venues loading...")
             with open('data/venues.json', 'r') as f:
                 venues_data = json.load(f)
             
+            app_logger.info(f"Venues JSON loaded, keys: {list(venues_data.keys())}")
+            
             if "venues" in venues_data:
                 venues_section = venues_data["venues"]
+                app_logger.info(f"Found venues section with {len(venues_section)} cities")
+                
                 for city_id, city_data in venues_section.items():
+                    if city_id == "metadata":
+                        continue
+                        
                     city_name = city_data.get('name', 'Unknown')
                     city_venues = city_data.get('venues', [])
+                    
+                    app_logger.info(f"Processing city: {city_name} with {len(city_venues)} venues")
                     
                     # Find the city
                     city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
@@ -1164,31 +1174,35 @@ def load_data():
                         continue
                     
                     for venue_data in city_venues:
-                        venue = Venue(
-                            name=venue_data['name'],
-                            venue_type=venue_data['venue_type'],
-                            address=venue_data.get('address'),
-                            latitude=venue_data.get('latitude'),
-                            longitude=venue_data.get('longitude'),
-                            image_url=venue_data.get('image_url'),
-                            instagram_url=venue_data.get('instagram_url'),
-                            facebook_url=venue_data.get('facebook_url'),
-                            twitter_url=venue_data.get('twitter_url'),
-                            youtube_url=venue_data.get('youtube_url'),
-                            tiktok_url=venue_data.get('tiktok_url'),
-                            website_url=venue_data.get('website_url'),
-                            description=venue_data.get('description'),
-                            opening_hours=venue_data.get('opening_hours'),
-                            holiday_hours=venue_data.get('holiday_hours'),
-                            phone_number=venue_data.get('phone_number'),
-                            email=venue_data.get('email'),
-                            tour_info=venue_data.get('tour_info'),
-                            admission_fee=venue_data.get('admission_fee'),
-                            additional_info=venue_data.get('additional_info'),
-                            city_id=city.id
-                        )
-                        db.session.add(venue)
-                        venues_loaded += 1
+                        try:
+                            venue = Venue(
+                                name=venue_data['name'],
+                                venue_type=venue_data['venue_type'],
+                                address=venue_data.get('address'),
+                                latitude=venue_data.get('latitude'),
+                                longitude=venue_data.get('longitude'),
+                                image_url=venue_data.get('image_url'),
+                                instagram_url=venue_data.get('instagram_url'),
+                                facebook_url=venue_data.get('facebook_url'),
+                                twitter_url=venue_data.get('twitter_url'),
+                                youtube_url=venue_data.get('youtube_url'),
+                                tiktok_url=venue_data.get('tiktok_url'),
+                                website_url=venue_data.get('website_url'),
+                                description=venue_data.get('description'),
+                                opening_hours=venue_data.get('opening_hours'),
+                                holiday_hours=venue_data.get('holiday_hours'),
+                                phone_number=venue_data.get('phone_number'),
+                                email=venue_data.get('email'),
+                                tour_info=venue_data.get('tour_info'),
+                                admission_fee=venue_data.get('admission_fee'),
+                                additional_info=venue_data.get('additional_info'),
+                                city_id=city.id
+                            )
+                            db.session.add(venue)
+                            venues_loaded += 1
+                        except Exception as venue_error:
+                            app_logger.error(f"Error creating venue {venue_data.get('name', 'Unknown')}: {venue_error}")
+                            continue
             
             db.session.commit()
             app_logger.info(f"Loaded {venues_loaded} venues")
@@ -1202,46 +1216,55 @@ def load_data():
         # Load sources
         sources_loaded = 0
         try:
+            app_logger.info("Starting sources loading...")
             with open('data/sources.json', 'r') as f:
                 sources_data = json.load(f)
             
+            app_logger.info(f"Sources JSON loaded, keys: {list(sources_data.keys())}")
+            
             if "sources" in sources_data:
                 sources_section = sources_data["sources"]
+                app_logger.info(f"Found sources section with {len(sources_section)} sources")
+                
                 for source_id, source_data in sources_section.items():
-                    # Find the city by city_id
-                    city_id = source_data.get('city_id')
-                    if city_id:
-                        city = City.query.get(city_id)
-                        if not city:
-                            app_logger.warning(f"City not found for city_id: {city_id}")
+                    try:
+                        # Find the city by city_id
+                        city_id = source_data.get('city_id')
+                        if city_id:
+                            city = City.query.get(city_id)
+                            if not city:
+                                app_logger.warning(f"City not found for city_id: {city_id}")
+                                continue
+                        else:
+                            app_logger.warning(f"No city_id for source: {source_data.get('name', 'Unknown')}")
                             continue
-                    else:
-                        app_logger.warning(f"No city_id for source: {source_data.get('name', 'Unknown')}")
+                        
+                        # Handle list fields (convert to JSON string for database)
+                        event_types = source_data.get('event_types', '')
+                        if isinstance(event_types, list):
+                            event_types = json.dumps(event_types)
+                        
+                        covered_cities = source_data.get('covered_cities', '')
+                        if isinstance(covered_cities, list):
+                            covered_cities = json.dumps(covered_cities)
+                        
+                        source = Source(
+                            name=source_data['name'],
+                            handle=source_data.get('handle', ''),
+                            source_type=source_data['source_type'],
+                            url=source_data.get('url'),
+                            description=source_data.get('description'),
+                            city_id=city.id,
+                            covers_multiple_cities=source_data.get('covers_multiple_cities', False),
+                            covered_cities=covered_cities,
+                            event_types=event_types,
+                            is_active=source_data.get('is_active', True)
+                        )
+                        db.session.add(source)
+                        sources_loaded += 1
+                    except Exception as source_error:
+                        app_logger.error(f"Error creating source {source_data.get('name', 'Unknown')}: {source_error}")
                         continue
-                    
-                    # Handle list fields (convert to JSON string for database)
-                    event_types = source_data.get('event_types', '')
-                    if isinstance(event_types, list):
-                        event_types = json.dumps(event_types)
-                    
-                    covered_cities = source_data.get('covered_cities', '')
-                    if isinstance(covered_cities, list):
-                        covered_cities = json.dumps(covered_cities)
-                    
-                    source = Source(
-                        name=source_data['name'],
-                        handle=source_data.get('handle', ''),
-                        source_type=source_data['source_type'],
-                        url=source_data.get('url'),
-                        description=source_data.get('description'),
-                        city_id=city.id,
-                        covers_multiple_cities=source_data.get('covers_multiple_cities', False),
-                        covered_cities=covered_cities,
-                        event_types=event_types,
-                        is_active=source_data.get('is_active', True)
-                    )
-                    db.session.add(source)
-                    sources_loaded += 1
             
             db.session.commit()
             app_logger.info(f"Loaded {sources_loaded} sources")
