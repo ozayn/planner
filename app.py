@@ -1543,6 +1543,7 @@ def auth_logout():
     return response
 
 @app.route('/admin')
+@login_required
 def admin():
     """Admin interface"""
     return render_template('admin.html', session=session)
@@ -1690,6 +1691,7 @@ def debug_cities():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/stats')
+@login_required
 def admin_stats():
     """Get admin statistics"""
     try:
@@ -1708,6 +1710,7 @@ def admin_stats():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/cities')
+@login_required
 def admin_cities():
     """Get all cities for admin"""
     try:
@@ -1731,6 +1734,7 @@ def admin_cities():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/venues')
+@login_required
 def admin_venues():
     """Get all venues for admin"""
     try:
