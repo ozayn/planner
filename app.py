@@ -1477,7 +1477,8 @@ def auth_callback():
         return redirect('/admin')
     
     try:
-        flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES, state=session['state'])
+        # Create flow without state validation to avoid CSRF issues on Railway
+        flow = Flow.from_client_config(CLIENT_CONFIG, SCOPES)
         
         # Use Railway domain for OAuth callback
         if 'railway.app' in request.host or 'ozayn.com' in request.host:
