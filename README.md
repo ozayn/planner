@@ -2,6 +2,34 @@
 
 A minimal, artistic web and mobile app for discovering events in cities worldwide.
 
+## 🚨 **IMPORTANT REMINDERS**
+
+### **🔑 Critical Setup Steps**
+- **ALWAYS activate virtual environment first**: `source venv/bin/activate`
+- **Use port 5001, never 5000**: App runs on `http://localhost:5001`
+- **Use `python3` not `python`**: System Python vs venv Python
+- **Environment variables**: Add API keys to `.env` file (never commit this file)
+
+### **🤖 Hybrid OCR + LLM System**
+- **Default OCR**: Tesseract (local), Google Vision API (deployment)
+- **LLM Processing**: Google Gemini for intelligent event extraction
+- **Smart Detection**: Automatically chooses optimal OCR engine
+- **Instagram Context**: Extracts page names, handles, and poster info
+- **Intelligent Processing**: 90% confidence with Vision API, 80% with Tesseract
+
+### **🌐 Deployment Configuration**
+- **Platform**: Railway with custom domain `planner.ozayn.com`
+- **Database**: PostgreSQL (Railway managed)
+- **Environment Detection**: Automatically switches OCR engines based on environment
+- **Security**: All API keys properly protected, no exposed credentials
+
+### **📊 Current System Status**
+- **Cities**: 25 loaded
+- **Venues**: 178 loaded  
+- **Sources**: 37 loaded
+- **Hybrid Processing**: ✅ Production ready
+- **Instagram Recognition**: ✅ Working perfectly
+
 ## ✨ Features
 
 - **🌍 Global Cities**: Support for 22 major cities worldwide with 147+ venues

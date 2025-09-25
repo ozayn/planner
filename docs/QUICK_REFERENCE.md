@@ -1,5 +1,11 @@
 # QUICK REFERENCE CARD
 
+## 🚨 **CRITICAL REMINDERS**
+- **ALWAYS activate venv**: `source venv/bin/activate`
+- **Use port 5001**: Never 5000, app runs on `http://localhost:5001`
+- **Use `python3`**: Not `python` (system vs venv)
+- **Environment variables**: Add API keys to `.env` (never commit)
+
 ## 🚀 RESTART COMMANDS
 ```bash
 cd /Users/oz/Dropbox/2025/planner
@@ -8,13 +14,26 @@ python app.py
 ```
 
 ## 📊 CURRENT STATUS
-- **Cities**: 22 ✅
-- **Venues**: 147 ✅  
-- **Sources**: 36 ✅
+- **Cities**: 25 ✅
+- **Venues**: 178 ✅  
+- **Sources**: 37 ✅
 - **Events**: 0 (ready)
 - **Port**: 5001
-- **Database**: `instance/events.db`
-- **Scripts**: 8 (cleaned up from 65)
+- **Database**: `instance/events.db` (local), PostgreSQL (deployment)
+- **Hybrid System**: ✅ Production ready
+
+## 🤖 HYBRID OCR + LLM SYSTEM
+- **OCR Engines**: Tesseract (local), Google Vision API (deployment)
+- **LLM**: Google Gemini for intelligent processing
+- **Smart Detection**: Auto-chooses optimal OCR engine
+- **Instagram Context**: Extracts page names, handles, poster info
+- **Confidence**: 90% (Vision API), 80% (Tesseract)
+
+## 🌐 DEPLOYMENT
+- **Platform**: Railway
+- **Domain**: `planner.ozayn.com`
+- **Status**: ✅ Live and operational
+- **Environment**: Auto-detects local vs deployment
 
 ## 🔧 KEY COMMANDS
 ```bash
