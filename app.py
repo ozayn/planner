@@ -3720,8 +3720,9 @@ def upload_event_image():
         file.save(file_path)
         
         # Process image to extract event data
-        processor = ImageEventProcessor()
-        extracted_data = processor.process_image(file_path)
+        from scripts.hybrid_event_processor import HybridEventProcessor
+        processor = HybridEventProcessor()
+        extracted_data = processor.process_image_with_llm(file_path)
         
         # Clean up uploaded file
         try:
@@ -3738,21 +3739,17 @@ def upload_event_image():
                 'end_date': extracted_data.end_date.isoformat() if extracted_data.end_date else None,
                 'start_time': extracted_data.start_time.isoformat() if extracted_data.start_time else None,
                 'end_time': extracted_data.end_time.isoformat() if extracted_data.end_time else None,
-                'location': extracted_data.location,
                 'start_location': extracted_data.start_location,
                 'end_location': extracted_data.end_location,
                 'event_type': extracted_data.event_type,
-                'price': extracted_data.price,
-                'organizer': extracted_data.organizer,
-                'url': extracted_data.url,
-                'confidence': extracted_data.confidence,
                 'city': extracted_data.city,
-                'state': extracted_data.state,
-                'country': extracted_data.country,
-                'city_id': extracted_data.city_id,
+                'confidence': extracted_data.confidence,
                 'source': extracted_data.source,
-                'source_url': extracted_data.source_url,
-                'instagram_handle': extracted_data.instagram_handle
+                'raw_text': extracted_data.raw_text,
+                'llm_reasoning': extracted_data.llm_reasoning,
+                'instagram_page': extracted_data.instagram_page,
+                'instagram_handle': extracted_data.instagram_handle,
+                'instagram_posted_by': extracted_data.instagram_posted_by
             }
         })
         
