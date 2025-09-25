@@ -1,3 +1,3 @@
 #!/bin/bash
 echo "Starting minimal Flask app..."
-python test_minimal.py
+python3 test_minimal.py

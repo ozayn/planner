@@ -85,11 +85,20 @@ class ImageEventProcessor:
         self.city_data = self._load_city_data()
     
     def _setup_ocr_engine(self) -> str:
-        """Setup OCR engine (Tesseract or Google Vision)"""
+        """Setup OCR engine (Google Vision preferred, Tesseract fallback)"""
         # Setup Google credentials from JSON if available
         setup_google_credentials()
         
-        # Try Tesseract first since it's more reliable and doesn't require credentials
+        # Try Google Cloud Vision first for better accuracy
+        try:
+            from google.cloud import vision
+            client = vision.ImageAnnotatorClient()
+            logger.info("Using Google Cloud Vision OCR engine")
+            return 'google_vision'
+        except Exception as e:
+            logger.warning(f"Google Vision not available: {e}")
+        
+        # Fall back to Tesseract if Google Vision fails
         try:
             pytesseract.get_tesseract_version()
             logger.info("Using Tesseract OCR engine")
@@ -368,14 +377,21 @@ class ImageEventProcessor:
         times = self._extract_times(text)
         if times:
             event_data.start_time = times[0]
-            if len(times) > 1:
-                event_data.end_time = times[1]
+            # Check if we have multiple different times
+            unique_times = list(set(times))
+            if len(unique_times) > 1:
+                # Find the best end time candidate (not timestamps)
+                end_time_candidate = self._find_best_end_time(unique_times, text)
+                if end_time_candidate:
+                    event_data.end_time = end_time_candidate
+                else:
+                    # If no good end time found, estimate it
+                    event_data.end_time = self._estimate_end_time(times[0], text)
             else:
-                # If only start time found, assume 1 hour duration
-                start_hour = event_data.start_time.hour
-                start_minute = event_data.start_time.minute
-                end_hour = (start_hour + 1) % 24
-                event_data.end_time = time(end_hour, start_minute)
+                # If only one unique time found, estimate end time (2 hours default)
+                event_data.end_time = self._estimate_end_time(times[0], text)
+        else:
+            logger.info("No times found in text")
         
         # Extract event type
         event_data.event_type = self._extract_event_type(text)
@@ -392,7 +408,8 @@ class ImageEventProcessor:
         # Set start and end locations
         if event_data.location:
             event_data.start_location = event_data.location
-            event_data.end_location = event_data.location  # Assume same as start if not specified
+            # Intelligently estimate end location
+            event_data.end_location = self._estimate_end_location(event_data.location, text)
         
         # Set end date to start date if not explicitly mentioned
         if event_data.start_date and not event_data.end_date:
@@ -442,27 +459,232 @@ class ImageEventProcessor:
         return event_data
     
     def _extract_dates(self, text: str) -> List[date]:
-        """Extract dates from text using comprehensive pattern matching"""
+        """Smart date extraction with multiple strategies and context awareness"""
         dates = []
-        logger.info(f"Extracting dates from text: {text}")
+        logger.info(f"Smart date extraction from text: {text}")
+        
+        # Strategy 1: Direct pattern matching with context validation
+        pattern_dates = self._extract_dates_by_patterns(text)
+        dates.extend(pattern_dates)
+        
+        # Strategy 2: Natural language processing for date mentions
+        nlp_dates = self._extract_dates_by_nlp(text)
+        dates.extend(nlp_dates)
+        
+        # Strategy 3: Context-aware extraction (look for event-related dates)
+        context_dates = self._extract_dates_by_context(text)
+        dates.extend(context_dates)
+        
+        # Remove duplicates and sort by confidence
+        unique_dates = list(set(dates))
+        logger.info(f"Found {len(unique_dates)} unique dates: {unique_dates}")
+        
+        return sorted(unique_dates)
+    
+    def _filter_ui_elements(self, text: str) -> str:
+        """Filter out obvious UI elements that might be mistaken for dates"""
+        # Remove common Instagram UI patterns
+        ui_patterns = [
+            r'\b\d+\s*%\b',  # Percentage like "87%"
+            r'\b\d+\s*▾\b',  # Dropdown arrow like "3 8 ▾"
+            r'\b\d+\s*likes?\b',  # Like counts
+            r'\b\d+\s*days?\s*ago\b',  # Time stamps
+            r'\b\d+\s*hours?\s*ago\b',  # Time stamps
+            r'\b\d+\s*weeks?\s*ago\b',  # Time stamps
+            r'\b\d+\s*months?\s*ago\b',  # Time stamps
+            r'\b\d+\s*years?\s*ago\b',  # Time stamps
+        ]
+        
+        filtered_text = text
+        for pattern in ui_patterns:
+            filtered_text = re.sub(pattern, '', filtered_text, flags=re.IGNORECASE)
+        
+        return filtered_text
+    
+    def _is_valid_event_date(self, parsed_date: date, text: str) -> bool:
+        """Check if a parsed date looks like a real event date"""
+        # Check if the date is in the future (events are usually future dates)
+        today = date.today()
+        if parsed_date < today:
+            # Allow dates within the last 30 days (for ongoing events)
+            if (today - parsed_date).days > 30:
+                return False
+        
+        # Check if the date appears in context that suggests it's an event date
+        event_context_keywords = [
+            'event', 'meet', 'gathering', 'tour', 'exhibition', 'festival',
+            'join', 'attend', 'come', 'visit', 'at', 'on', 'pm', 'am'
+        ]
+        
+        # Look for context around the date in the text
+        date_str = parsed_date.strftime('%B %d')  # "September 28"
+        date_str_alt = parsed_date.strftime('%b %d')  # "Sep 28"
+        
+        # Check if date appears near event-related keywords
+        text_lower = text.lower()
+        for keyword in event_context_keywords:
+            if keyword in text_lower:
+                # Check if date appears near this keyword
+                keyword_pos = text_lower.find(keyword)
+                date_pos1 = text_lower.find(date_str.lower())
+                date_pos2 = text_lower.find(date_str_alt.lower())
+                
+                if keyword_pos != -1 and (date_pos1 != -1 or date_pos2 != -1):
+                    return True
+        
+        # If no clear context, be more lenient but still filter obvious UI elements
+        return True
+    
+    def _extract_dates_by_patterns(self, text: str) -> List[date]:
+        """Extract dates using comprehensive pattern matching with smart filtering"""
+        dates = []
+        
+        # Filter out UI elements first
+        filtered_text = self._filter_ui_elements(text)
         
         for i, pattern in enumerate(self.date_patterns):
-            matches = pattern.findall(text)
+            matches = pattern.findall(filtered_text)
             if matches:
                 logger.info(f"Pattern {i+1} ({pattern.pattern}) found matches: {matches}")
             
             for match in matches:
                 try:
                     parsed_date = self._parse_date_match(match, pattern.pattern)
-                    if parsed_date and parsed_date not in dates:
+                    if parsed_date and self._is_valid_event_date(parsed_date, filtered_text):
                         dates.append(parsed_date)
-                        logger.info(f"Added date: {parsed_date}")
+                        logger.info(f"Added pattern date: {parsed_date}")
                 except (ValueError, TypeError) as e:
                     logger.info(f"Failed to parse date match {match}: {e}")
                     continue
         
-        logger.info(f"Final extracted dates: {dates}")
-        return sorted(dates)
+        return dates
+    
+    def _extract_dates_by_nlp(self, text: str) -> List[date]:
+        """Extract dates using natural language processing approach"""
+        dates = []
+        
+        # Look for natural language date expressions
+        nlp_patterns = [
+            # "Join us on September 28th"
+            r'join\s+us\s+on\s+(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?',
+            # "Come to our event on Sep 28"
+            r'event\s+on\s+(\w+)\s+(\d{1,2})',
+            # "This Saturday", "Next Friday", etc.
+            r'(this|next)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)',
+            # "Tomorrow", "Today"
+            r'\b(tomorrow|today)\b',
+            # "In 3 days", "Next week"
+            r'(in\s+\d+\s+days?|next\s+week)',
+        ]
+        
+        for pattern in nlp_patterns:
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                try:
+                    parsed_date = self._parse_nlp_date(match.group(), text)
+                    if parsed_date:
+                        dates.append(parsed_date)
+                        logger.info(f"Added NLP date: {parsed_date}")
+                except Exception as e:
+                    logger.info(f"Failed to parse NLP date {match.group()}: {e}")
+                    continue
+        
+        return dates
+    
+    def _extract_dates_by_context(self, text: str) -> List[date]:
+        """Extract dates by looking for event-related context"""
+        dates = []
+        
+        # Split text into sentences/phrases
+        sentences = re.split(r'[.!?]', text)
+        
+        for sentence in sentences:
+            # Look for event-related keywords
+            event_keywords = ['meet', 'gathering', 'event', 'tour', 'exhibition', 'festival', 'join', 'attend']
+            
+            if any(keyword in sentence.lower() for keyword in event_keywords):
+                # Extract any date-like patterns from this sentence
+                date_patterns = [
+                    r'\b(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?\b',  # "September 28th"
+                    r'\b(\d{1,2})/(\d{1,2})\b',  # "9/28"
+                    r'\b(\d{1,2})-(\d{1,2})\b',  # "9-28"
+                ]
+                
+                for pattern in date_patterns:
+                    matches = re.findall(pattern, sentence)
+                    for match in matches:
+                        try:
+                            parsed_date = self._parse_context_date(match, sentence)
+                            if parsed_date:
+                                dates.append(parsed_date)
+                                logger.info(f"Added context date: {parsed_date}")
+                        except Exception as e:
+                            logger.info(f"Failed to parse context date {match}: {e}")
+                            continue
+        
+        return dates
+    
+    def _parse_nlp_date(self, date_expression: str, full_text: str) -> Optional[date]:
+        """Parse natural language date expressions"""
+        today = date.today()
+        
+        if 'tomorrow' in date_expression.lower():
+            return today + timedelta(days=1)
+        elif 'today' in date_expression.lower():
+            return today
+        elif 'this' in date_expression.lower() or 'next' in date_expression.lower():
+            # Handle "this Saturday", "next Friday", etc.
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            for i, day in enumerate(days):
+                if day in date_expression.lower():
+                    target_weekday = i
+                    current_weekday = today.weekday()
+                    days_ahead = target_weekday - current_weekday
+                    if days_ahead <= 0:  # Target day already happened this week
+                        days_ahead += 7
+                    return today + timedelta(days=days_ahead)
+        
+        return None
+    
+    def _parse_context_date(self, match: tuple, sentence: str) -> Optional[date]:
+        """Parse date from context-aware extraction"""
+        try:
+            if len(match) == 2:
+                part1, part2 = match
+                
+                # Try to parse as month day
+                if part1.isalpha() and part2.isdigit():
+                    month_name = part1.lower()
+                    day = int(part2)
+                    
+                    month_map = {
+                        'january': 1, 'jan': 1, 'february': 2, 'feb': 2,
+                        'march': 3, 'mar': 3, 'april': 4, 'apr': 4,
+                        'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+                        'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'sept': 9,
+                        'october': 10, 'oct': 10, 'november': 11, 'nov': 11,
+                        'december': 12, 'dec': 12
+                    }
+                    
+                    if month_name in month_map:
+                        month = month_map[month_name]
+                        current_year = datetime.now().year
+                        return date(current_year, month, day)
+                
+                # Try to parse as month/day
+                elif part1.isdigit() and part2.isdigit():
+                    month = int(part1)
+                    day = int(part2)
+                    
+                    # Assume MM/DD format
+                    if 1 <= month <= 12 and 1 <= day <= 31:
+                        current_year = datetime.now().year
+                        return date(current_year, month, day)
+        
+        except (ValueError, TypeError):
+            pass
+        
+        return None
     
     def _parse_date_match(self, match: tuple, pattern: str) -> Optional[date]:
         """Parse a date match tuple based on the pattern used"""
@@ -576,7 +798,115 @@ class ImageEventProcessor:
         return None
     
     def _extract_times(self, text: str) -> List[time]:
-        """Extract times from text"""
+        """Smart time extraction with multiple strategies and intelligent prioritization"""
+        times = []
+        logger.info(f"Smart time extraction from text: {text}")
+        
+        # Strategy 1: Direct time pattern matching
+        pattern_times = self._extract_times_by_patterns(text)
+        times.extend(pattern_times)
+        
+        # Strategy 2: Context-aware time extraction (look near "PM" keyword)
+        context_times = self._extract_times_by_context(text)
+        times.extend(context_times)
+        
+        # Strategy 3: Natural language time expressions
+        nlp_times = self._extract_times_by_nlp(text)
+        times.extend(nlp_times)
+        
+        # Intelligent prioritization: prefer event times over timestamps
+        prioritized_times = self._prioritize_event_times(times, text)
+        
+        logger.info(f"Found {len(prioritized_times)} prioritized times: {prioritized_times}")
+        
+        return prioritized_times
+    
+    def _prioritize_event_times(self, times: List[time], text: str) -> List[time]:
+        """Intelligently prioritize event times over timestamps"""
+        if not times:
+            return []
+        
+        # Score each time based on context
+        scored_times = []
+        
+        for t in times:
+            score = self._score_time_relevance(t, text)
+            scored_times.append((score, t))
+        
+        # Sort by score (higher is better) and return times
+        scored_times.sort(key=lambda x: x[0], reverse=True)
+        prioritized = [t for score, t in scored_times]
+        
+        logger.info(f"Time prioritization scores: {[(score, t) for score, t in scored_times]}")
+        
+        return prioritized
+    
+    def _score_time_relevance(self, t: time, text: str) -> float:
+        """Score how relevant a time is to being an event time"""
+        score = 0.0
+        
+        # Higher score for times with AM/PM (more likely to be event times)
+        if t.hour > 12:  # PM times
+            score += 2.0
+        elif t.hour == 12:  # Noon
+            score += 1.5
+        elif t.hour == 0:  # Midnight
+            score += 1.0
+        else:  # AM times
+            score += 1.0
+        
+        # Higher score for common event times (4-8 PM)
+        if 16 <= t.hour <= 20:  # 4 PM to 8 PM
+            score += 3.0
+        elif 9 <= t.hour <= 11:  # 9 AM to 11 AM
+            score += 2.0
+        elif 13 <= t.hour <= 15:  # 1 PM to 3 PM
+            score += 2.5
+        
+        # Lower score for very early morning times (likely timestamps)
+        if 0 <= t.hour <= 6:
+            score -= 2.0
+        
+        # Check context around the time in the text
+        time_str = t.strftime('%H:%M')
+        time_str_12h = t.strftime('%I:%M %p').lstrip('0')
+        
+        # Look for event-related context near the time
+        event_keywords = ['meet', 'gathering', 'event', 'tour', 'exhibition', 'festival', 'join', 'attend', 'at', 'pm', 'am']
+        
+        for keyword in event_keywords:
+            if keyword in text.lower():
+                keyword_pos = text.lower().find(keyword)
+                
+                # Check if time appears near this keyword
+                time_pos1 = text.find(time_str)
+                time_pos2 = text.find(time_str_12h)
+                
+                if time_pos1 != -1 or time_pos2 != -1:
+                    # Calculate distance from keyword
+                    time_pos = time_pos1 if time_pos1 != -1 else time_pos2
+                    distance = abs(keyword_pos - time_pos)
+                    
+                    if distance < 50:  # Within 50 characters
+                        score += 5.0 - (distance / 10)  # Closer = higher score
+        
+        # Penalty for times that look like timestamps (very specific patterns)
+        timestamp_patterns = [
+            r'\d{1,2}:\d{2}\s*(AM|PM)?\s*Posts?',  # "12:18 Posts"
+            r'\d{1,2}:\d{2}\s*(AM|PM)?\s*days?\s*ago',  # "12:18 3 days ago"
+        ]
+        
+        for pattern in timestamp_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                # If this time matches a timestamp pattern, reduce score
+                if time_str in text or time_str_12h in text:
+                    score -= 3.0
+        
+        logger.info(f"Time {t} scored {score:.1f}")
+        return score
+    
+    def _extract_times_by_patterns(self, text: str) -> List[time]:
+        """Extract times using comprehensive pattern matching"""
         times = []
         
         for pattern in self.time_patterns:
@@ -619,7 +949,290 @@ class ImageEventProcessor:
                 except (ValueError, TypeError):
                     continue
         
-        return sorted(times)
+        return times
+    
+    def _extract_times_by_context(self, text: str) -> List[time]:
+        """Extract times by looking for event-related context"""
+        times = []
+        
+        # Look for time expressions near event keywords
+        event_keywords = ['meet', 'gathering', 'event', 'tour', 'exhibition', 'festival', 'join', 'attend', 'at', 'pm', 'am']
+        
+        for keyword in event_keywords:
+            if keyword in text.lower():
+                # Look for time patterns near this keyword
+                keyword_pos = text.lower().find(keyword)
+                
+                # Search in a window around the keyword
+                start = max(0, keyword_pos - 50)
+                end = min(len(text), keyword_pos + 50)
+                context = text[start:end]
+                
+                # Extract times from this context
+                time_patterns = [
+                    r'\b(\d{1,2}):(\d{2})\s*(AM|PM)\b',
+                    r'\b(\d{1,2}):(\d{2})\b',
+                    r'\b(\d{1,2})\s*(AM|PM)\b',
+                ]
+                
+                for pattern in time_patterns:
+                    matches = re.findall(pattern, context, re.IGNORECASE)
+                    for match in matches:
+                        try:
+                            parsed_time = self._parse_time_match(match, pattern)
+                            if parsed_time:
+                                times.append(parsed_time)
+                                logger.info(f"Added context time: {parsed_time}")
+                        except (ValueError, TypeError) as e:
+                            logger.info(f"Failed to parse context time {match}: {e}")
+                            continue
+        
+        return times
+    
+    def _extract_times_by_nlp(self, text: str) -> List[time]:
+        """Extract times using natural language processing"""
+        times = []
+        
+        # Look for natural language time expressions
+        nlp_patterns = [
+            r'at\s+(\d{1,2}):(\d{2})\s*(AM|PM)',
+            r'at\s+(\d{1,2})\s*(AM|PM)',
+            r'starting\s+at\s+(\d{1,2}):(\d{2})',
+            r'begins\s+at\s+(\d{1,2}):(\d{2})',
+            r'kickoff\s+at\s+(\d{1,2}):(\d{2})',
+        ]
+        
+        for pattern in nlp_patterns:
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                try:
+                    parsed_time = self._parse_nlp_time(match.groups())
+                    if parsed_time:
+                        times.append(parsed_time)
+                        logger.info(f"Added NLP time: {parsed_time}")
+                except Exception as e:
+                    logger.info(f"Failed to parse NLP time {match.groups()}: {e}")
+                    continue
+        
+        return times
+    
+    def _parse_nlp_time(self, groups: tuple) -> Optional[time]:
+        """Parse natural language time expressions"""
+        try:
+            if len(groups) >= 2:
+                hour = int(groups[0])
+                minute = int(groups[1]) if len(groups) > 1 and groups[1] else 0
+                
+                # Handle AM/PM
+                if len(groups) > 2 and groups[2]:
+                    am_pm = groups[2].upper()
+                    if am_pm == 'PM' and hour != 12:
+                        hour += 12
+                    elif am_pm == 'AM' and hour == 12:
+                        hour = 0
+                
+                return time(hour, minute)
+        except (ValueError, TypeError):
+            pass
+        
+        return None
+    
+    def _parse_time_match(self, match: tuple, pattern: str) -> Optional[time]:
+        """Parse a time match tuple based on the pattern used"""
+        try:
+            if len(match) == 3:  # HH:MM AM/PM
+                hour, minute, ampm = match
+                hour = int(hour)
+                minute = int(minute)
+                
+                if ampm.upper() == 'PM' and hour != 12:
+                    hour += 12
+                elif ampm.upper() == 'AM' and hour == 12:
+                    hour = 0
+                
+                return time(hour, minute)
+            
+            elif len(match) == 2:  # HH:MM or H AM/PM
+                if ':' in pattern:  # HH:MM format
+                    hour, minute = match
+                    return time(int(hour), int(minute))
+                else:  # H AM/PM format
+                    hour, ampm = match
+                    hour = int(hour)
+                    
+                    if ampm.upper() == 'PM' and hour != 12:
+                        hour += 12
+                    elif ampm.upper() == 'AM' and hour == 12:
+                        hour = 0
+                    
+                    return time(hour, 0)
+        
+        except (ValueError, TypeError):
+            pass
+        
+        return None
+    
+    def _estimate_end_time(self, start_time: time, text: str) -> time:
+        """Intelligently estimate end time based on start time and event context"""
+        # Default duration is 2 hours
+        duration_hours = 2
+        
+        # Adjust duration based on event type and context
+        text_lower = text.lower()
+        
+        # Longer events
+        if any(keyword in text_lower for keyword in ['festival', 'conference', 'workshop', 'seminar', 'all day']):
+            duration_hours = 4
+        elif any(keyword in text_lower for keyword in ['tour', 'walking tour', 'city tour']):
+            duration_hours = 3
+        elif any(keyword in text_lower for keyword in ['exhibition', 'gallery', 'museum']):
+            duration_hours = 3
+        elif any(keyword in text_lower for keyword in ['meetup', 'networking', 'social']):
+            duration_hours = 2
+        elif any(keyword in text_lower for keyword in ['quick', 'brief', 'short']):
+            duration_hours = 1
+        
+        # Calculate end time
+        start_hour = start_time.hour
+        start_minute = start_time.minute
+        
+        # Add duration
+        total_minutes = start_hour * 60 + start_minute + (duration_hours * 60)
+        end_hour = (total_minutes // 60) % 24
+        end_minute = total_minutes % 60
+        
+        estimated_end_time = time(end_hour, end_minute)
+        logger.info(f"Estimated end time: {estimated_end_time} (duration: {duration_hours} hours)")
+        
+        return estimated_end_time
+    
+    def _estimate_end_location(self, start_location: str, text: str) -> str:
+        """Intelligently estimate end location based on start location and event context"""
+        # Default: same as start location
+        end_location = start_location
+        
+        # Check if there are multiple locations mentioned in the text
+        text_lower = text.lower()
+        
+        # Look for location patterns that might indicate different start/end locations
+        location_patterns = [
+            r'from\s+([^,\n]+)\s+to\s+([^,\n]+)',  # "from X to Y"
+            r'starting\s+at\s+([^,\n]+)\s+ending\s+at\s+([^,\n]+)',  # "starting at X ending at Y"
+            r'meet\s+at\s+([^,\n]+)\s+then\s+([^,\n]+)',  # "meet at X then Y"
+        ]
+        
+        for pattern in location_patterns:
+            matches = re.findall(pattern, text_lower)
+            if matches:
+                # Found multiple locations, use the second one as end location
+                start_loc, end_loc = matches[0]
+                if end_loc.strip() and end_loc.strip() != start_location.lower():
+                    end_location = end_loc.strip().title()
+                    logger.info(f"Found end location pattern: {end_location}")
+                    break
+        
+        # For certain event types, end location might be different
+        if any(keyword in text_lower for keyword in ['tour', 'walking tour', 'city tour', 'walk']):
+            # For tours, end location might be different from start
+            # Look for "ends at" or "finishes at" patterns
+            tour_patterns = [
+                r'ends?\s+at\s+([^,\n]+)',
+                r'finishes?\s+at\s+([^,\n]+)',
+                r'concludes?\s+at\s+([^,\n]+)',
+            ]
+            
+            for pattern in tour_patterns:
+                matches = re.findall(pattern, text_lower)
+                if matches:
+                    end_location = matches[0].strip().title()
+                    logger.info(f"Found tour end location: {end_location}")
+                    break
+        
+        # If no different end location found, use start location
+        if end_location == start_location:
+            logger.info(f"Using start location as end location: {end_location}")
+        
+        return end_location
+    
+    def _find_best_end_time(self, unique_times: List[time], text: str) -> Optional[time]:
+        """Find the best end time candidate from multiple times, filtering out timestamps"""
+        if len(unique_times) <= 1:
+            return None
+        
+        # Score each time as a potential end time
+        scored_times = []
+        start_time = unique_times[0]  # First time is the start time
+        
+        for t in unique_times[1:]:  # Skip the start time
+            score = self._score_end_time_candidate(t, start_time, text)
+            scored_times.append((score, t))
+        
+        # Sort by score (higher is better)
+        scored_times.sort(key=lambda x: x[0], reverse=True)
+        
+        # Return the highest scoring time if it's reasonable
+        if scored_times and scored_times[0][0] > 0:
+            best_time = scored_times[0][1]
+            logger.info(f"Best end time candidate: {best_time} (score: {scored_times[0][0]})")
+            return best_time
+        
+        return None
+    
+    def _score_end_time_candidate(self, candidate_time: time, start_time: time, text: str) -> float:
+        """Score how good a time is as an end time candidate"""
+        score = 0.0
+        
+        # Must be after start time
+        if candidate_time <= start_time:
+            return -10.0  # Heavily penalize times before or equal to start time
+        
+        # Higher score for reasonable durations (1-6 hours)
+        duration_hours = candidate_time.hour - start_time.hour
+        if candidate_time.minute < start_time.minute:
+            duration_hours -= 1
+        
+        if 1 <= duration_hours <= 6:
+            score += 5.0
+        elif duration_hours > 6:
+            score += 2.0  # Very long events are possible but less common
+        else:
+            score -= 5.0  # Very short durations are unlikely
+        
+        # Check if this time appears in event context
+        time_str = candidate_time.strftime('%H:%M')
+        time_str_12h = candidate_time.strftime('%I:%M %p').lstrip('0')
+        
+        # Look for event-related context near the time
+        event_keywords = ['ends', 'finishes', 'concludes', 'until', 'till', 'pm', 'am']
+        
+        for keyword in event_keywords:
+            if keyword in text.lower():
+                keyword_pos = text.lower().find(keyword)
+                
+                # Check if time appears near this keyword
+                time_pos1 = text.find(time_str)
+                time_pos2 = text.find(time_str_12h)
+                
+                if time_pos1 != -1 or time_pos2 != -1:
+                    time_pos = time_pos1 if time_pos1 != -1 else time_pos2
+                    distance = abs(keyword_pos - time_pos)
+                    
+                    if distance < 50:  # Within 50 characters
+                        score += 8.0 - (distance / 10)  # Closer = higher score
+        
+        # Penalty for times that look like timestamps
+        timestamp_patterns = [
+            r'\d{1,2}:\d{2}\s*(AM|PM)?\s*Posts?',  # "12:18 Posts"
+            r'\d{1,2}:\d{2}\s*(AM|PM)?\s*days?\s*ago',  # "12:18 3 days ago"
+        ]
+        
+        for pattern in timestamp_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                if time_str in text or time_str_12h in text:
+                    score -= 10.0  # Heavy penalty for timestamp patterns
+        
+        logger.info(f"End time candidate {candidate_time} scored {score:.1f}")
+        return score
     
     def _extract_event_type(self, text: str) -> Optional[str]:
         """Extract event type from text"""
@@ -974,35 +1587,36 @@ class ImageEventProcessor:
         if not text or len(text.strip()) < 3:
             return True
         
-        # Check for common garbled patterns
+        # Check for very obvious garbled patterns (very specific)
         garbled_patterns = [
-            r'\d+[A-Z][a-z]*\s*[A-Z][a-z]*\s*%\s*[A-Z]',  # Like "28G FOe- %N"
-            r'[A-Z][a-z]*\s*[A-Z][a-z]*\s*\d+%',  # Like "FOe- %N OA 187%"
-            r'\d+[A-Z][a-z]*\s*%\s*[A-Z]\s*[A-Z][a-z]*',  # Other patterns
-            r'\b[a-z]+\d+[a-z]+\d+[a-z]+\b',  # Mixed letters and numbers like "haautifi11arsunhntnnranbe"
-            r'\b\d+[a-z]+\d+[a-z]+\d+\b',  # Number-letter-number patterns
-            r'\b[a-z]*\d+[a-z]*\d+[a-z]*\d+[a-z]*\b',  # Multiple digit-letter combinations
-            r'\b[a-z]{10,}\d+[a-z]{10,}\b',  # Very long letter sequences with numbers
+            r'\b[a-z]{20,}\d+[a-z]{20,}\b',  # Very long letter sequences with numbers like "haautifi11arsunhntnnranbe"
+            r'\b[a-z]*\d+[a-z]*\d+[a-z]*\d+[a-z]*\d+[a-z]*\d+[a-z]*\b',  # Multiple digit-letter combinations (5+ digits)
+            r'\b[a-z]{30,}\b',  # Very long single words (likely garbled)
         ]
         
         for pattern in garbled_patterns:
             if re.search(pattern, text, re.IGNORECASE):
                 return True
         
-        # Check for excessive mixed alphanumeric sequences
+        # Check for excessive mixed alphanumeric sequences (be very lenient)
         mixed_sequences = re.findall(r'\b[a-zA-Z]*\d+[a-zA-Z]*\d+[a-zA-Z]*\b', text)
-        if len(mixed_sequences) > 2:  # More than 2 mixed sequences is likely garbled
+        if len(mixed_sequences) > 10:  # Increased threshold - more than 10 mixed sequences
             return True
         
-        # Check if text has too many random characters
+        # Check if text has too few readable characters (be very lenient)
         alpha_chars = sum(1 for c in text if c.isalpha())
         total_chars = len(text.replace(' ', ''))
         
-        if total_chars > 0 and alpha_chars / total_chars < 0.3:
+        if total_chars > 0 and alpha_chars / total_chars < 0.1:  # Reduced threshold to 10%
             return True
         
         # Check for repetitive character patterns (common in garbled OCR)
-        if re.search(r'(.)\1{4,}', text):  # Same character repeated 5+ times
+        if re.search(r'(.)\1{8,}', text):  # Same character repeated 9+ times (increased threshold)
+            return True
+        
+        # Check for excessive special characters (be very lenient)
+        special_char_ratio = sum(1 for c in text if not c.isalnum() and not c.isspace()) / len(text)
+        if special_char_ratio > 0.7:  # Increased threshold to 70% special characters
             return True
         
         return False
@@ -1065,13 +1679,13 @@ class ImageEventProcessor:
     
     def _extract_title(self, text: str) -> Optional[str]:
         """Extract simple, clean event title - ignore comments and social media noise"""
-        # If text is garbled, skip title extraction
-        if self._is_garbled_text(text):
-            logger.warning("Skipping title extraction due to garbled text")
-            return None
-        
         # Clean up text first - remove comments, hashtags, handles, etc.
         cleaned_text = self._clean_text_for_extraction(text)
+        
+        # If cleaned text is garbled, skip title extraction
+        if self._is_garbled_text(cleaned_text):
+            logger.warning("Skipping title extraction due to garbled text")
+            return None
         
         lines = cleaned_text.split('\n')
         
@@ -1111,17 +1725,20 @@ class ImageEventProcessor:
     
     def _extract_description(self, text: str) -> Optional[str]:
         """Extract simple event description - just the essential info"""
-        # If text is garbled, skip description extraction
-        if self._is_garbled_text(text):
+        # Clean up text first
+        cleaned_text = self._clean_text_for_extraction(text)
+        
+        # If cleaned text is garbled, skip description extraction
+        if self._is_garbled_text(cleaned_text):
             logger.warning("Skipping description extraction due to garbled text")
             return None
         
         # Keep it simple - just provide a basic description based on event type
-        if any(keyword in text.lower() for keyword in ['streetmeet', 'photowalk']):
+        if any(keyword in cleaned_text.lower() for keyword in ['streetmeet', 'photowalk']):
             return "Photography meetup and photowalk"
-        elif any(keyword in text.lower() for keyword in ['tour', 'walking']):
+        elif any(keyword in cleaned_text.lower() for keyword in ['tour', 'walking']):
             return "Walking tour"
-        elif any(keyword in text.lower() for keyword in ['exhibition', 'art']):
+        elif any(keyword in cleaned_text.lower() for keyword in ['exhibition', 'art']):
             return "Art exhibition"
         else:
             return "Community event"
@@ -1165,18 +1782,7 @@ class ImageEventProcessor:
     
     def _extract_location(self, text: str) -> Optional[str]:
         """Extract simple location name from text"""
-        # Look for street/avenue names first (most common for events)
-        street_patterns = [
-            r'\b([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))\b',
-        ]
-        
-        for pattern in street_patterns:
-            match = re.search(pattern, text)
-            if match:
-                location = match.group(1).strip()
-                return self._clean_location_name(location)
-        
-        # Look for specific known locations (with OCR error tolerance)
+        # Look for specific known locations first (with OCR error tolerance)
         text_upper = text.upper()
         if 'RHODE' in text_upper and ('ISLAND' in text_upper or '1SLAND' in text_upper or '1S1AND' in text_upper):
             return 'Rhode Island Ave'
@@ -1190,6 +1796,17 @@ class ImageEventProcessor:
             return 'Capitol Hill'
         if 'NATIONAL' in text_upper and 'MALL' in text_upper:
             return 'National Mall'
+        
+        # Look for street/avenue names (fallback)
+        street_patterns = [
+            r'\b([A-Z][a-z\s]+(?:Ave|Avenue|Street|St|Road|Rd|Boulevard|Blvd|Drive|Dr|Way|Place|Pl|Court|Ct))\b',
+        ]
+        
+        for pattern in street_patterns:
+            match = re.search(pattern, text)
+            if match:
+                location = match.group(1).strip()
+                return self._clean_location_name(location)
         
         # Look for venue names or general locations
         location_patterns = [

@@ -257,9 +257,17 @@ def load_sources_from_json():
     with open(sources_file, 'r') as f:
         data = json.load(f)
     
-    # Count total sources
-    total_sources = sum(len(city_data['sources']) for city_data in data.values() if isinstance(city_data, dict) and 'sources' in city_data)
-    total_cities = len([k for k, v in data.items() if isinstance(v, dict) and 'sources' in v])
+    # Handle the new structure with 'sources' key
+    if 'sources' in data:
+        sources_data = data['sources']
+        total_sources = len(sources_data)
+        # Count unique cities
+        city_ids = set(source.get('city_id') for source in sources_data.values() if source.get('city_id'))
+        total_cities = len(city_ids)
+    else:
+        # Fallback to old structure (organized by cities)
+        total_sources = sum(len(city_data['sources']) for city_data in data.values() if isinstance(city_data, dict) and 'sources' in city_data)
+        total_cities = len([k for k, v in data.items() if isinstance(v, dict) and 'sources' in v])
     
     print(f"📊 Found {total_sources} sources across {total_cities} cities")
     print("=" * 60)
@@ -272,28 +280,46 @@ def load_sources_from_json():
             db.session.commit()
             print("✅ Existing sources cleared")
             
-            # Process each city
+            # Process sources
             total_sources_added = 0
             
-            for city_id, city_data in data.items():
-                if not isinstance(city_data, dict) or 'sources' not in city_data:
-                    continue
-                    
-                city_name = city_data['name']
-                sources = city_data['sources']
-                
-                print(f"\n🏙️ Processing {city_name} ({len(sources)} sources)...")
+            if 'sources' in data:
+                # New structure: all sources in 'sources' key
+                sources_data = data['sources']
+                print(f"\n🏙️ Processing {len(sources_data)} sources...")
                 print("-" * 50)
                 
-                # Get city from database
-                city = City.query.get(int(city_id))
-                if not city:
-                    print(f"      ⚠️  City '{city_name}' (ID: {city_id}) not found in database, skipping...")
-                    continue
-                
-                for i, source_data in enumerate(sources):
+                for i, (source_id, source_data) in enumerate(sources_data.items()):
                     source_name = source_data['name']
-                    print(f"  [{i+1}/{len(sources)}] Adding source: {source_name}")
+                    city_id = source_data.get('city_id')
+                    print(f"  [{i+1}/{len(sources_data)}] Adding source: {source_name}")
+                    
+                    # Get city from database
+                    city = City.query.get(int(city_id)) if city_id else None
+                    if not city:
+                        print(f"      ⚠️  City ID {city_id} not found in database, skipping...")
+                        continue
+            else:
+                # Old structure: organized by cities
+                for city_id, city_data in data.items():
+                    if not isinstance(city_data, dict) or 'sources' not in city_data:
+                        continue
+                        
+                    city_name = city_data['name']
+                    sources = city_data['sources']
+                    
+                    print(f"\n🏙️ Processing {city_name} ({len(sources)} sources)...")
+                    print("-" * 50)
+                    
+                    # Get city from database
+                    city = City.query.get(int(city_id))
+                    if not city:
+                        print(f"      ⚠️  City '{city_name}' (ID: {city_id}) not found in database, skipping...")
+                        continue
+                    
+                    for i, source_data in enumerate(sources):
+                        source_name = source_data['name']
+                        print(f"  [{i+1}/{len(sources)}] Adding source: {source_name}")
                     
                     # Handle datetime fields properly
                     last_checked = source_data.get('last_checked')

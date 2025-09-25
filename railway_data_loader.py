@@ -2,20 +2,42 @@
 """
 Railway Data Loading Script
 Automatically loads JSON data into Railway database during deployment
+Uses the unified data management system for consistency
 """
 
 import os
 import sys
-import json
 from pathlib import Path
 
 # Add the project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-# Import Flask app and database
-from app import app, db, Event, Venue, City, Source
-from datetime import datetime
+# Import the unified data manager
+from scripts.unified_data_manager import UnifiedDataManager
+
+def main():
+    """Main function for Railway data loading"""
+    print("🚀 RAILWAY DATA LOADING")
+    print("=" * 50)
+    print("Using unified data management system...")
+    print("=" * 50)
+    
+    # Use the unified data manager
+    manager = UnifiedDataManager()
+    
+    # Sync all data (this will detect Railway environment automatically)
+    success = manager.sync_all_data(force_reload=False)
+    
+    if success:
+        print("\n🎉 Railway data loading completed successfully!")
+        return 0
+    else:
+        print("\n❌ Railway data loading failed!")
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(main())
 
 def load_cities_data():
     """Load cities from cities.json into Railway database"""
