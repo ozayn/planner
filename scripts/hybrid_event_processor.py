@@ -314,7 +314,7 @@ Be precise and logical. If uncertain, use null.
             event_data.title = data.get('title')
             event_data.description = data.get('description')
             event_data.event_type = data.get('event_type')
-            event_data.city = data.get('city')
+            event_data.city = self._normalize_city_name(data.get('city'))
             event_data.confidence = float(data.get('confidence', 0.0))
             
             # Dates
@@ -363,6 +363,113 @@ Be precise and logical. If uncertain, use null.
         
         return time(end_hour, end_minute)
     
+    def _estimate_end_location(self, start_location: Optional[str], text: str) -> Optional[str]:
+        """Estimate end location if not specified"""
+        if not start_location:
+            return None
+        
+        # Look for "from X to Y" patterns
+        from_to_pattern = r'from\s+([^,\n]+?)\s+to\s+([^,\n]+)'
+        match = re.search(from_to_pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(2).strip()
+        
+        # Default: same as start location
+        return start_location
+    
+    def _normalize_city_name(self, city_name: Optional[str]) -> Optional[str]:
+        """Normalize city name to match database entries using comprehensive city recognition"""
+        if not city_name:
+            return None
+        
+        # Use the same city recognition logic as image_event_processor
+        city_info = self._extract_city_info(city_name)
+        return city_info.get('city')
+    
+    def _setup_city_mappings(self) -> Dict[str, Dict[str, str]]:
+        """Setup city/state mappings for location extraction (same as image_event_processor)"""
+        return {
+            # Washington, DC area
+            'dc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'washington dc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'washington, dc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'washington d.c.': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'rhode island ave': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'dupont circle': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'georgetown': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'capitol hill': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'national mall': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'streetmeetdc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'streetmeetoc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},  # OCR correction
+            
+            # New York
+            'nyc': {'city': 'New York', 'state': 'NY', 'country': 'United States'},
+            'new york city': {'city': 'New York', 'state': 'NY', 'country': 'United States'},
+            'manhattan': {'city': 'New York', 'state': 'NY', 'country': 'United States'},
+            'brooklyn': {'city': 'New York', 'state': 'NY', 'country': 'United States'},
+            'queens': {'city': 'New York', 'state': 'NY', 'country': 'United States'},
+            
+            # Los Angeles
+            'la': {'city': 'Los Angeles', 'state': 'CA', 'country': 'United States'},
+            'los angeles': {'city': 'Los Angeles', 'state': 'CA', 'country': 'United States'},
+            
+            # San Francisco
+            'sf': {'city': 'San Francisco', 'state': 'CA', 'country': 'United States'},
+            'san francisco': {'city': 'San Francisco', 'state': 'CA', 'country': 'United States'},
+            
+            # Chicago
+            'chicago': {'city': 'Chicago', 'state': 'IL', 'country': 'United States'},
+            
+            # Boston
+            'boston': {'city': 'Boston', 'state': 'MA', 'country': 'United States'},
+            
+            # Seattle
+            'seattle': {'city': 'Seattle', 'state': 'WA', 'country': 'United States'},
+            
+            # Miami
+            'miami': {'city': 'Miami', 'state': 'FL', 'country': 'United States'},
+            
+            # International cities
+            'london': {'city': 'London', 'state': 'England', 'country': 'United Kingdom'},
+            'paris': {'city': 'Paris', 'state': 'Île-de-France', 'country': 'France'},
+            'tokyo': {'city': 'Tokyo', 'state': 'Tokyo', 'country': 'Japan'},
+            'sydney': {'city': 'Sydney', 'state': 'New South Wales', 'country': 'Australia'},
+            'montreal': {'city': 'Montreal', 'state': 'Quebec', 'country': 'Canada'},
+            'toronto': {'city': 'Toronto', 'state': 'Ontario', 'country': 'Canada'},
+            'vancouver': {'city': 'Vancouver', 'state': 'British Columbia', 'country': 'Canada'},
+        }
+    
+    def _extract_city_info(self, text: str) -> Dict[str, str]:
+        """Extract city information from text (same logic as image_event_processor)"""
+        text_lower = text.lower().strip()
+        city_mappings = self._setup_city_mappings()
+        
+        # Direct mapping lookup
+        for location_key, city_info in city_mappings.items():
+            if location_key in text_lower:
+                return city_info
+        
+        # Pattern matching for common formats
+        # Look for "City, State" patterns
+        city_state_pattern = re.compile(r'\b([A-Za-z\s]+),\s*([A-Z]{2})\b')
+        match = city_state_pattern.search(text)
+        if match:
+            city_name = match.group(1).strip().title()
+            state_code = match.group(2).upper()
+            return {
+                'city': city_name,
+                'state': state_code,
+                'country': 'United States'
+            }
+        
+        # Look for standalone city names that might be in our database
+        words = text_lower.split()
+        for word in words:
+            if word in city_mappings:
+                return city_mappings[word]
+        
+        return {'city': None, 'state': None, 'country': None}
+    
     def _fallback_extraction(self, text: str) -> HybridEventData:
         """Fallback extraction when LLM fails"""
         logger.warning("⚠️ Using fallback extraction")
@@ -374,7 +481,7 @@ Be precise and logical. If uncertain, use null.
         if 'streetmeet' in text.lower():
             event_data.title = "DC Street Meet"
             event_data.event_type = "photowalk"
-            event_data.city = "Washington"
+            event_data.city = self._normalize_city_name("DC")
         
         return event_data
 
