@@ -262,10 +262,11 @@ INSTRUCTIONS:
 1. IGNORE timestamps like "12:18 Posts", "3 days ago", "2 hours ago" - these are post metadata, not event times
 2. EXTRACT the actual event information
 3. USE FULL location names (e.g., "Rhode Island Ave" not "Island Ave")
-4. ESTIMATE end time if not mentioned (default 2 hours for most events)
+4. ALWAYS estimate end time if not explicitly mentioned - add 2 hours to start time
 5. USE same location for end location if not specified
 6. RECOGNIZE Instagram context and extract page/handle information
 7. IDENTIFY the Instagram page that posted this event
+8. NEVER return the same time for both start_time and end_time
 
 RETURN ONLY a JSON object with this exact structure:
 {{
@@ -286,10 +287,11 @@ RETURN ONLY a JSON object with this exact structure:
 }}
 
 EXAMPLES:
-- "SEP 28 | 4PM" → start_date: "2025-09-28", start_time: "16:00:00", end_time: "18:00:00"
+- "SEP 28 | 4PM" → start_date: "2025-09-28", start_time: "16:00:00", end_time: "18:00:00" (4PM + 2 hours)
 - "Rhode Island Ave metro station" → start_location: "Rhode Island Ave"
 - "streetmeetdc" → instagram_handle: "streetmeetdc", instagram_page: "DC Street Meet"
 - "DC streetmeetdc" → instagram_page: "DC Street Meet", instagram_handle: "streetmeetdc"
+- If only start time mentioned: ALWAYS add 2 hours for end time
 
 Be precise and logical. If uncertain, use null.
 """
@@ -330,9 +332,12 @@ Be precise and logical. If uncertain, use null.
                 event_data.start_time = datetime.strptime(data['start_time'], '%H:%M:%S').time()
             if data.get('end_time'):
                 event_data.end_time = datetime.strptime(data['end_time'], '%H:%M:%S').time()
-            elif event_data.start_time:
-                # Estimate end time if not provided
-                event_data.end_time = self._estimate_end_time(event_data.start_time)
+            
+            # Apply our rule: if end time is not provided OR same as start time, estimate 2 hours later
+            if not data.get('end_time') or (event_data.start_time and event_data.end_time and event_data.start_time == event_data.end_time):
+                if event_data.start_time:
+                    event_data.end_time = self._estimate_end_time(event_data.start_time)
+                    logger.info(f"🕐 Applied 2-hour rule: {event_data.start_time} → {event_data.end_time}")
             
             # Locations
             event_data.start_location = data.get('start_location')
