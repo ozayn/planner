@@ -3055,7 +3055,7 @@
                     <div class="event-header">
                         <div>
                             <div class="event-title">${event.title}</div>
-                            <div class="event-venue">${event.venue_name}</div>
+                            <div class="event-venue">${event.venue_name || event.start_location || 'Location TBD'}</div>
                         </div>
                         <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleEventSelection(${event.id})">
@@ -3151,12 +3151,15 @@
 
         // Generate Google Calendar URL
         function generateGoogleCalendarUrl(event, startDate, endDate) {
+            // Use start_location as primary location, fallback to venue_name
+            const location = event.start_location || event.venue_name || '';
+            
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: event.title,
                 dates: `${formatDateForGoogle(startDate)}/${formatDateForGoogle(endDate)}`,
                 details: event.description || '',
-                location: event.venue_name || '',
+                location: location,
                 trp: 'false'
             });
 
