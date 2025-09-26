@@ -502,13 +502,16 @@ Be precise and logical. If uncertain, use null.
             
             # Try direct name lookup first
             if city_lower in city_lookup:
-                return city_lookup[city_lower]['id']
+                city_id = city_lookup[city_lower]['id']
+                # Adjust city ID for Railway environment
+                return self._adjust_city_id_for_environment(city_id)
             
             # Try name + state lookup for Washington DC
             if city_lower == 'washington':
                 dc_key = 'washington,district of columbia'
                 if dc_key in city_lookup:
-                    return city_lookup[dc_key]['id']
+                    city_id = city_lookup[dc_key]['id']
+                    return self._adjust_city_id_for_environment(city_id)
             
             logger.warning(f"City ID not found for: {city_name}")
             return None
@@ -516,6 +519,18 @@ Be precise and logical. If uncertain, use null.
         except Exception as e:
             logger.error(f"Error getting city ID for {city_name}: {e}")
             return None
+    
+    def _adjust_city_id_for_environment(self, local_city_id: int) -> int:
+        """Adjust city ID based on environment (local vs Railway)"""
+        import os
+        
+        # If running on Railway, adjust city IDs
+        if os.getenv('RAILWAY_ENVIRONMENT'):
+            # Railway city IDs start from 301, local starts from 1
+            return local_city_id + 300
+        else:
+            # Local environment uses original IDs
+            return local_city_id
     
     def _get_city_timezone(self, city_name: str, state: str = None) -> Optional[str]:
         """Get timezone for a city from the city data"""
