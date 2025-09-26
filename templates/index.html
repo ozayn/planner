@@ -3151,16 +3151,127 @@
 
         // Generate Google Calendar URL
         function generateGoogleCalendarUrl(event, startDate, endDate) {
-            // Use start_location as primary location, fallback to venue_name
-            const location = event.start_location || event.venue_name || '';
+            // Format dates for Google Calendar (YYYYMMDD format)
+            const formatDateForGoogle = (date) => {
+                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            };
+            
+            // Format times for Google Calendar (HHMMSS format)
+            const formatTimeForGoogle = (timeStr) => {
+                if (!timeStr) return '';
+                // Convert "11:00" to "110000" format
+                let formatted = timeStr.replace(/[:\s]/g, '');
+                // Add seconds if not present (should be 6 digits total)
+                if (formatted.length === 4) {
+                    formatted += '00';
+                }
+                return formatted;
+            };
+            
+            let startDateTime, endDateTime;
+            
+            if (event.start_time && event.end_time) {
+                // Event with specific times
+                const startDateStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
+                const endDateStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
+                startDateTime = `${startDateStr}T${formatTimeForGoogle(event.start_time)}`;
+                endDateTime = `${endDateStr}T${formatTimeForGoogle(event.end_time)}`;
+            } else {
+                // All-day event
+                startDateTime = formatDateForGoogle(startDate);
+                endDateTime = formatDateForGoogle(endDate);
+            }
+            
+            // Build enhanced description with social media and additional information
+            let descriptionParts = [];
+            if (event.description) {
+                descriptionParts.push(event.description);
+            }
+            
+            // Add event type
+            if (event.event_type) {
+                descriptionParts.push(`Event Type: ${event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}`);
+            }
+            
+            // Add end location if different from start location
+            if (event.end_location && event.end_location !== event.start_location) {
+                descriptionParts.push(`End Location: ${event.end_location}`);
+            }
+            
+            // Add social media information
+            if (event.social_media_platform && event.social_media_handle) {
+                const platformName = event.social_media_platform.charAt(0).toUpperCase() + event.social_media_platform.slice(1);
+                descriptionParts.push(`${platformName}: @${event.social_media_handle}`);
+            }
+            
+            if (event.social_media_page_name) {
+                descriptionParts.push(`Page/Group: ${event.social_media_page_name}`);
+            }
+            
+            if (event.social_media_posted_by) {
+                descriptionParts.push(`Posted By: ${event.social_media_posted_by}`);
+            }
+            
+            if (event.social_media_url) {
+                descriptionParts.push(`Social Media URL: ${event.social_media_url}`);
+            }
+            
+            // Add website URL
+            if (event.url) {
+                descriptionParts.push(`Website: ${event.url}`);
+            }
+            
+            // Add source information
+            if (event.source) {
+                descriptionParts.push(`Source: ${event.source}`);
+            }
+            
+            if (event.source_url) {
+                descriptionParts.push(`Source URL: ${event.source_url}`);
+            }
+            
+            // Add organizer and pricing
+            if (event.organizer) {
+                descriptionParts.push(`Organizer: ${event.organizer}`);
+            }
+            
+            if (event.price) {
+                descriptionParts.push(`Price: $${event.price}`);
+            }
+            
+            const enhancedDescription = descriptionParts.join('\n\n');
+            
+            // Use start_location as the primary calendar location, fallback to venue_name
+            let calendarLocation = event.start_location || event.venue_name || '';
+            
+            // If start_location is empty, try to extract from description
+            if (!calendarLocation && event.description) {
+                // Look for location patterns in the description
+                const locationPatterns = [
+                    // "Join us at the [Location]" pattern
+                    /(?:join us at|meet at|at|location:)\s*([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i,
+                    // Direct location patterns
+                    /([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i
+                ];
+                
+                for (const pattern of locationPatterns) {
+                    const match = event.description.match(pattern);
+                    if (match) {
+                        calendarLocation = match[1].trim();
+                        // Clean up common prefixes
+                        calendarLocation = calendarLocation.replace(/^(the|at|join us at|meet at|location:)\s*/i, '');
+                        break;
+                    }
+                }
+            }
             
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: event.title,
-                dates: `${formatDateForGoogle(startDate)}/${formatDateForGoogle(endDate)}`,
-                details: event.description || '',
-                location: location,
-                trp: 'false'
+                dates: `${startDateTime}/${endDateTime}`,
+                details: enhancedDescription,
+                location: calendarLocation,
+                ctz: event.city_timezone || 'America/New_York'  // Add timezone
             });
 
             return `https://calendar.google.com/calendar/render?${params}`;
