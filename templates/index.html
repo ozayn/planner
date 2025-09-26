@@ -382,11 +382,42 @@
             border-color: rgba(25, 118, 210, 0.3);
         }
 
-        .venue-type-checkboxes {
+        .venue-type-tabs {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 8px;
             margin-top: 8px;
+        }
+
+        .venue-type-tab {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #f8f9fa;
+            color: #9ca3af;
+            font-size: 0.875rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            user-select: none;
+        }
+
+        .venue-type-tab:hover {
+            border-color: #d1d5db;
+            background: #f1f3f4;
+            color: #6b7280;
+        }
+
+        .venue-type-tab.active {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+            color: #4b5563;
+        }
+
+        .venue-type-tab.active:hover {
+            background: #d1d5db;
+            border-color: #9ca3af;
         }
 
         .price-filter-checkboxes {
@@ -1206,35 +1237,28 @@
 
                 <div class="form-group">
                     <label>Venue Types:</label>
-                    <div class="venue-type-checkboxes">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeMuseum" value="museum" checked>
-                            Museums
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeHistoric" value="historic_site,memorial,monument" checked>
-                            Historic & Monuments
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeArts" value="arts_center,theater,concert_hall" checked>
-                            Arts & Performance
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeCinema" value="cinema" checked>
-                            Movie Cinemas
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeParks" value="park,garden,zoo,aquarium,beach" checked>
-                            Parks & Nature
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeEmbassy" value="embassy" checked>
-                            Embassies
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="venueTypeOther" value="landmark,observation,government,library,market,religious_site,shopping,stadium,arts_district,waterfront" checked>
-                            Other Attractions
-                        </label>
+                    <div class="venue-type-tabs">
+                        <div class="venue-type-tab active" data-value="museum" data-id="venueTypeMuseum">
+                            🏛️ Museums
+                        </div>
+                        <div class="venue-type-tab active" data-value="historic_site,memorial,monument" data-id="venueTypeHistoric">
+                            🏛️ Historic & Monuments
+                        </div>
+                        <div class="venue-type-tab active" data-value="arts_center,theater,concert_hall" data-id="venueTypeArts">
+                            🎭 Arts & Performance
+                        </div>
+                        <div class="venue-type-tab active" data-value="cinema" data-id="venueTypeCinema">
+                            🎬 Movie Cinemas
+                        </div>
+                        <div class="venue-type-tab active" data-value="park,garden,zoo,aquarium,beach" data-id="venueTypeParks">
+                            🌳 Parks & Nature
+                        </div>
+                        <div class="venue-type-tab active" data-value="embassy" data-id="venueTypeEmbassy">
+                            🏢 Embassies
+                        </div>
+                        <div class="venue-type-tab active" data-value="landmark,observation,government,library,market,religious_site,shopping,stadium,arts_district,waterfront" data-id="venueTypeOther">
+                            🎯 Other Attractions
+                        </div>
                     </div>
                     <div class="venue-controls" style="display: flex; gap: 8px; margin-top: 8px;">
                         <button type="button" id="toggleAllVenues" class="source-control-btn" data-state="all">Deselect All</button>
@@ -1244,31 +1268,25 @@
                 <!-- Source Platform Types -->
                 <div class="form-group">
                     <label>📱 Source Platforms:</label>
-                    <div class="venue-type-checkboxes">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="platformTypeInstagram" value="instagram" checked>
-                            Instagram
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="platformTypeFacebook" value="facebook" checked>
-                            Facebook
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="platformTypeWebsite" value="website" checked>
-                            Websites
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="platformTypeMeetup" value="meetup" checked>
-                            Meetup
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="platformTypeEventbrite" value="eventbrite" checked>
-                            Eventbrite
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="platformTypeOther" value="twitter,tiktok,youtube,newsletter" checked>
-                            Other Platforms
-                        </label>
+                    <div class="venue-type-tabs">
+                        <div class="venue-type-tab active" data-value="instagram" data-id="platformTypeInstagram">
+                            📸 Instagram
+                        </div>
+                        <div class="venue-type-tab active" data-value="facebook" data-id="platformTypeFacebook">
+                            📘 Facebook
+                        </div>
+                        <div class="venue-type-tab active" data-value="website" data-id="platformTypeWebsite">
+                            🌐 Websites
+                        </div>
+                        <div class="venue-type-tab active" data-value="meetup" data-id="platformTypeMeetup">
+                            🤝 Meetup
+                        </div>
+                        <div class="venue-type-tab active" data-value="eventbrite" data-id="platformTypeEventbrite">
+                            🎫 Eventbrite
+                        </div>
+                        <div class="venue-type-tab active" data-value="twitter,tiktok,youtube,newsletter" data-id="platformTypeOther">
+                            📱 Other Platforms
+                        </div>
                     </div>
                     <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
                         <button type="button" id="toggleAllPlatforms" class="source-control-btn" data-state="all">Deselect All</button>
@@ -1278,31 +1296,25 @@
                 <!-- Source Content Types -->
                 <div class="form-group">
                     <label>🎯 Source Content Types:</label>
-                    <div class="venue-type-checkboxes">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="contentTypeArts" value="art_exhibitions,cultural_events,gallery_openings,artist_showcases,visual_arts" checked>
-                            Arts & Culture
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="contentTypeMusic" value="music,concerts,theater,dance,performances" checked>
-                            Music & Performance
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="contentTypePhoto" value="photography,photography_workshops,photography_education,street_photography,photowalks,art_walks" checked>
-                            Photography
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="contentTypeEvents" value="festivals,community_events,free_events,local_news" checked>
-                            Events & Festivals
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="contentTypeFood" value="food_events,culinary,restaurants" checked>
-                            Food & Dining
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="contentTypeOther" value="nightlife,political_events,lectures,workshops,language_classes,film_screenings,family_events,outdoor_events" checked>
-                            Other Content
-                        </label>
+                    <div class="venue-type-tabs">
+                        <div class="venue-type-tab active" data-value="art_exhibitions,cultural_events,gallery_openings,artist_showcases,visual_arts" data-id="contentTypeArts">
+                            🎨 Arts & Culture
+                        </div>
+                        <div class="venue-type-tab active" data-value="music,concerts,theater,dance,performances" data-id="contentTypeMusic">
+                            🎵 Music & Performance
+                        </div>
+                        <div class="venue-type-tab active" data-value="photography,photography_workshops,photography_education,street_photography,photowalks,art_walks" data-id="contentTypePhoto">
+                            📷 Photography
+                        </div>
+                        <div class="venue-type-tab active" data-value="festivals,community_events,free_events,local_news" data-id="contentTypeEvents">
+                            🎪 Events & Festivals
+                        </div>
+                        <div class="venue-type-tab active" data-value="food_events,culinary,restaurants" data-id="contentTypeFood">
+                            🍽️ Food & Dining
+                        </div>
+                        <div class="venue-type-tab active" data-value="nightlife,political_events,lectures,workshops,language_classes,film_screenings,family_events,outdoor_events" data-id="contentTypeOther">
+                            🎯 Other Content
+                        </div>
                     </div>
                     <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
                         <button type="button" id="toggleAllContent" class="source-control-btn" data-state="all">Deselect All</button>
@@ -1806,23 +1818,14 @@
 
         // Get selected venue types
         function getSelectedVenueTypes() {
-            const venueTypeCheckboxes = [
-                'venueTypeMuseum',
-                'venueTypeHistoric', 
-                'venueTypeArts',
-                'venueTypeCinema',
-                'venueTypeParks',
-                'venueTypeEmbassy',
-                'venueTypeOther'
-            ];
-            
+            const activeTabs = document.querySelectorAll('.venue-type-tab.active');
             const selectedTypes = [];
             
-            venueTypeCheckboxes.forEach(id => {
-                const checkbox = document.getElementById(id);
-                if (checkbox && checkbox.checked) {
+            activeTabs.forEach(tab => {
+                const value = tab.getAttribute('data-value');
+                if (value) {
                     // Split comma-separated values and add to array
-                    const types = checkbox.value.split(',');
+                    const types = value.split(',');
                     selectedTypes.push(...types);
                 }
             });
@@ -1854,10 +1857,11 @@
                 });
             });
 
-            // Venue type checkboxes
-            const venueTypeCheckboxes = document.querySelectorAll('.venue-type-checkboxes input[type="checkbox"]');
-            venueTypeCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
+            // Venue type tabs
+            const venueTypeTabs = document.querySelectorAll('.venue-type-tab');
+            venueTypeTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    this.classList.toggle('active');
                     if (allVenues.length > 0) {
                         updateVenueCounts();
                         filterAndDisplayVenues();
@@ -1945,17 +1949,17 @@
             document.getElementById('dateRangeSelect').value = 'this_week';
             document.getElementById('customDateGroup').style.display = 'none';
             
-            // Reset venue type checkboxes (all checked)
-            const venueTypeCheckboxes = document.querySelectorAll('.venue-type-checkboxes input[type="checkbox"]');
-            venueTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
+            // Reset venue type tabs (all active)
+            const venueTypeTabs = document.querySelectorAll('.venue-type-tab');
+            venueTypeTabs.forEach(tab => tab.classList.add('active'));
             
-            // Reset platform type checkboxes (all checked)
-            const platformTypeCheckboxes = document.querySelectorAll('[id^="platformType"] input[type="checkbox"]');
-            platformTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
+            // Reset platform type tabs (all active)
+            const platformTabs = document.querySelectorAll('.form-group:has(label:contains("Source Platforms")) .venue-type-tab');
+            platformTabs.forEach(tab => tab.classList.add('active'));
             
-            // Reset content type checkboxes (all checked)
-            const contentTypeCheckboxes = document.querySelectorAll('[id^="contentType"] input[type="checkbox"]');
-            contentTypeCheckboxes.forEach(checkbox => checkbox.checked = true);
+            // Reset content type tabs (all active)
+            const contentTabs = document.querySelectorAll('.form-group:has(label:contains("Content Types")) .venue-type-tab');
+            contentTabs.forEach(tab => tab.classList.add('active'));
             
             // Reset toggle button states
             const toggleAllVenues = document.getElementById('toggleAllVenues');
@@ -2359,6 +2363,18 @@
             }
         }
 
+        // Select all venue types
+        function selectAllVenueTypes() {
+            const tabs = document.querySelectorAll('.venue-type-tab');
+            tabs.forEach(tab => tab.classList.add('active'));
+        }
+
+        // Deselect all venue types
+        function deselectAllVenueTypes() {
+            const tabs = document.querySelectorAll('.venue-type-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+        }
+
         // Toggle all platform types
         function toggleAllPlatformTypes() {
             const button = document.getElementById('toggleAllPlatforms');
@@ -2372,6 +2388,24 @@
                 selectAllPlatformTypes();
                 button.textContent = 'Deselect All';
                 button.dataset.state = 'all';
+            }
+        }
+
+        // Select all platform types
+        function selectAllPlatformTypes() {
+            const platformGroup = document.querySelector('label:contains("Source Platforms")')?.closest('.form-group');
+            if (platformGroup) {
+                const tabs = platformGroup.querySelectorAll('.venue-type-tab');
+                tabs.forEach(tab => tab.classList.add('active'));
+            }
+        }
+
+        // Deselect all platform types
+        function deselectAllPlatformTypes() {
+            const platformGroup = document.querySelector('label:contains("Source Platforms")')?.closest('.form-group');
+            if (platformGroup) {
+                const tabs = platformGroup.querySelectorAll('.venue-type-tab');
+                tabs.forEach(tab => tab.classList.remove('active'));
             }
         }
 
@@ -2391,23 +2425,33 @@
             }
         }
 
+        // Select all content types
+        function selectAllContentTypes() {
+            const contentGroup = document.querySelector('label:contains("Content Types")')?.closest('.form-group');
+            if (contentGroup) {
+                const tabs = contentGroup.querySelectorAll('.venue-type-tab');
+                tabs.forEach(tab => tab.classList.add('active'));
+            }
+        }
+
+        // Deselect all content types
+        function deselectAllContentTypes() {
+            const contentGroup = document.querySelector('label:contains("Content Types")')?.closest('.form-group');
+            if (contentGroup) {
+                const tabs = contentGroup.querySelectorAll('.venue-type-tab');
+                tabs.forEach(tab => tab.classList.remove('active'));
+            }
+        }
+
         // Get selected platform types
         function getSelectedPlatformTypes() {
-            const platformCheckboxes = [
-                'platformTypeInstagram',
-                'platformTypeFacebook', 
-                'platformTypeWebsite',
-                'platformTypeMeetup',
-                'platformTypeEventbrite',
-                'platformTypeOther'
-            ];
-            
+            const activeTabs = document.querySelectorAll('.venue-type-tabs .venue-type-tab.active');
             const selectedTypes = [];
             
-            platformCheckboxes.forEach(id => {
-                const checkbox = document.getElementById(id);
-                if (checkbox && checkbox.checked) {
-                    const types = checkbox.value.split(',');
+            activeTabs.forEach(tab => {
+                const value = tab.getAttribute('data-value');
+                if (value && tab.closest('.form-group').querySelector('label').textContent.includes('Source Platforms')) {
+                    const types = value.split(',');
                     selectedTypes.push(...types);
                 }
             });
@@ -2417,21 +2461,13 @@
 
         // Get selected content types
         function getSelectedContentTypes() {
-            const contentCheckboxes = [
-                'contentTypeArts',
-                'contentTypeMusic', 
-                'contentTypePhoto',
-                'contentTypeEvents',
-                'contentTypeFood',
-                'contentTypeOther'
-            ];
-            
+            const activeTabs = document.querySelectorAll('.venue-type-tabs .venue-type-tab.active');
             const selectedTypes = [];
             
-            contentCheckboxes.forEach(id => {
-                const checkbox = document.getElementById(id);
-                if (checkbox && checkbox.checked) {
-                    const types = checkbox.value.split(',');
+            activeTabs.forEach(tab => {
+                const value = tab.getAttribute('data-value');
+                if (value && tab.closest('.form-group').querySelector('label').textContent.includes('Content Types')) {
+                    const types = value.split(',');
                     selectedTypes.push(...types);
                 }
             });
