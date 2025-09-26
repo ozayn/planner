@@ -3621,8 +3621,21 @@
             const event = discoveredEvents.find(e => e.id === eventId);
             if (!event) return;
 
-            const calendarUrl = createGoogleCalendarUrl(event);
+            // Parse date correctly to avoid timezone issues
+            const [year, month, day] = event.start_date.split('-').map(Number);
+            const startDate = new Date(year, month - 1, day); // month is 0-indexed
+            if (event.start_time) {
+                const [hours, minutes] = event.start_time.split(':');
+                startDate.setHours(parseInt(hours), parseInt(minutes));
+            }
+
+            const endDate = new Date(startDate);
+            endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
+
+            const calendarUrl = generateGoogleCalendarUrl(event, startDate, endDate);
             window.open(calendarUrl, '_blank');
+            
+            showNotification('Opening Google Calendar...', 'info');
         }
 
         // Toggle advanced controls
