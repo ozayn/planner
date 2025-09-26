@@ -3132,7 +3132,9 @@
                 return;
             }
 
-            const startDate = new Date(event.start_date);
+            // Parse date correctly to avoid timezone issues
+            const [year, month, day] = event.start_date.split('-').map(Number);
+            const startDate = new Date(year, month - 1, day); // month is 0-indexed
             if (event.start_time) {
                 const [hours, minutes] = event.start_time.split(':');
                 startDate.setHours(parseInt(hours), parseInt(minutes));
@@ -3276,7 +3278,9 @@
             ];
 
             events.forEach(event => {
-                const startDate = new Date(event.start_date);
+                // Parse date correctly to avoid timezone issues
+                const [year, month, day] = event.start_date.split('-').map(Number);
+                const startDate = new Date(year, month - 1, day); // month is 0-indexed
                 if (event.start_time) {
                     const [hours, minutes] = event.start_time.split(':');
                     startDate.setHours(parseInt(hours), parseInt(minutes));
@@ -3331,7 +3335,8 @@
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
+                timeZone: 'UTC' // Force UTC to avoid timezone conversion
             });
         }
 
@@ -3412,7 +3417,8 @@
                 const formattedDate = dateObj.toLocaleDateString('en-US', { 
                     weekday: 'short', 
                     month: 'short', 
-                    day: 'numeric' 
+                    day: 'numeric',
+                    timeZone: 'UTC' // Force UTC to avoid timezone conversion
                 });
                 
                 html += `
@@ -3524,7 +3530,8 @@
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
-                    day: 'numeric'
+                    day: 'numeric',
+                    timeZone: 'UTC' // Force UTC to avoid timezone conversion
                 });
             }
 

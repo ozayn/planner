@@ -23,6 +23,55 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Environment Detection**: Automatically switches OCR engines based on environment
 - **Security**: All API keys properly protected, no exposed credentials
 
+### **🔒 Security & API Keys**
+- **NEVER commit `.env` file**: Contains sensitive API keys and secrets
+- **NEVER hardcode API keys**: Always use environment variables
+- **Check `.gitignore`**: Ensure `.env`, `*.key`, `*.pem` files are ignored
+- **Rotate keys regularly**: Change API keys periodically for security
+- **Use different keys**: Separate keys for development, staging, and production
+- **Monitor key usage**: Check API dashboards for unusual activity
+- **Secure credentials file**: `config/google-vision-credentials.json` contains Google service account
+- **Environment-specific configs**: Use `FLASK_ENV=development` locally, `production` on Railway
+- **Security tools available**: 
+  - Run `./scripts/security_check.sh` to scan for exposed secrets
+  - Use `./clean_api_key.sh` if API keys were accidentally committed
+
+### **💻 Development Rules**
+- **Always use modal forms for edit functions**: Never use `prompt()` dialogs for editing data
+- **Prevent event bubbling**: Add `event.stopPropagation()` to action buttons to prevent row click events
+- **Use proper form validation**: All modals should have client-side and server-side validation
+- **Maintain consistent UX**: All tables should follow the same interaction patterns
+- **🚨 Database schema changes**: When adding/modifying table columns, update ALL related components:
+  - Modal forms (add/edit forms must include new fields)
+  - Table headers and display logic
+  - API endpoints and data processing
+  - Form validation and field mappings
+  - JavaScript functions that reference field names
+- **🚨 Timezone handling**: Always use CITY timezone for event date/time processing:
+  - Image upload event extraction MUST use city timezone, not server timezone
+  - Date/time parsing should consider the event's location timezone
+  - Never use `datetime.now()` or `date.today()` without timezone context
+
+### **🔧 Testing & Debugging**
+- **Test in both environments**: Always test locally AND on Railway deployment
+- **Check browser console**: Look for JavaScript errors before reporting issues
+- **Verify data persistence**: After adding/editing, refresh page to confirm data saved
+- **Test all CRUD operations**: Create, Read, Update, Delete for each entity type
+- **Mobile responsiveness**: Test on mobile devices - app uses pastel design for mobile-first
+- **🚨 Always check `.env` file first**: When troubleshooting, check `.env` for API keys, configuration, and environment settings
+
+### **📁 File Organization**
+- **Never modify files in `/archive/`**: These are outdated - use current files in root directories
+- **Keep scripts in `/scripts/`**: All utility scripts belong there, not in root
+- **Update documentation**: When changing functionality, update relevant docs in `/docs/`
+- **Use proper imports**: Import from correct modules (e.g., `scripts/utils.py`, not `utils.py`)
+
+### **🚀 Performance & Optimization**
+- **Monitor API calls**: Check browser Network tab for failed requests
+- **Image optimization**: Large images in `/uploads/` can slow down the app
+- **Database queries**: Use browser dev tools to monitor slow database operations
+- **Memory leaks**: Check for JavaScript memory leaks in long-running sessions
+
 ### **📊 Current System Status**
 - **Cities**: 25 loaded
 - **Venues**: 178 loaded  
@@ -45,6 +94,37 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 
 ⚠️ **IMPORTANT: Always activate virtual environment first!**
 
+### Option 1: Automated Setup
+```bash
+# Clone and setup
+git clone https://github.com/ozayn/planner.git
+cd planner
+
+# 🔥 ALWAYS RUN THIS FIRST!
+source venv/bin/activate
+
+# Create virtual environment (if not exists)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install with setup.py (recommended)
+python setup.py install
+
+# Or install dependencies manually
+pip install -r requirements.txt
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# Initialize database
+python scripts/data_manager.py load
+
+# Start the app
+python app.py
+```
+
+### Option 2: Manual Setup Only
 ```bash
 # Clone and setup
 git clone https://github.com/ozayn/planner.git
@@ -60,8 +140,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Setup environment (create .env file)
-# Add your API keys to .env file
+# Setup environment
+cp .env.example .env
+# Edit .env with your API keys
 
 # Initialize database
 python scripts/data_manager.py load
@@ -105,7 +186,7 @@ Visit: `http://localhost:5001`
 ## 🛠️ Technical Stack
 
 - **Backend**: Python Flask with SQLAlchemy
-- **Database**: SQLite with comprehensive schema
+- **Database**: SQLite (local development), PostgreSQL (Railway production)
 - **Frontend**: HTML/CSS/JavaScript with minimal design
 - **AI Integration**: Multiple LLM providers (Groq, OpenAI, Anthropic, Cohere, Google, Mistral)
 - **Data Management**: JSON files with database synchronization
@@ -113,40 +194,6 @@ Visit: `http://localhost:5001`
 - **Deployment**: Railway-ready with Procfile
 - **Design**: Pastel colors, minimal UI, icon-based interactions
 
-## 🚀 Quick Start
-
-### Option 1: Automated Setup
-```bash
-python setup.py
-```
-
-### Option 2: Manual Setup
-
-1. **Install Dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-2. **Setup Environment**
-```bash
-cp env_example.txt .env
-# Edit .env with your configuration
-```
-
-3. **Initialize Database**
-```bash
-python scripts/data_manager.py load
-```
-
-4. **Run the App**
-```bash
-python app.py
-```
-
-5. **Open Browser**
-```
-http://localhost:5001
-```
 
 ## 📁 Project Structure
 
@@ -291,7 +338,8 @@ This project follows professional Python development practices:
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Quick Fixes
+- **🚨 Image processing broken?** → [QUICK_FIX_GUIDE.md](docs/QUICK_FIX_GUIDE.md)
 - **Port 5000 in use**: App runs on port 5001 by default
 - **Database errors**: Run `python scripts/data_manager.py load` to reload data
 - **Python not found**: Use `python3` instead of `python`
@@ -299,8 +347,9 @@ This project follows professional Python development practices:
 - **API key errors**: Add your API keys to `.env` file (GROQ_API_KEY, OPENAI_API_KEY, etc.)
 
 ### Getting Help
-- Check [SETUP.md](SETUP.md) for detailed instructions
-- Check [REQUIREMENTS.md](REQUIREMENTS.md) for project understanding
+- **Quick fixes**: [QUICK_FIX_GUIDE.md](docs/QUICK_FIX_GUIDE.md) - Common issues solved in 2 minutes
+- **Detailed setup**: [docs/setup/SETUP_GUIDE.md](docs/setup/SETUP_GUIDE.md)
+- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## 🤝 Contributing
 

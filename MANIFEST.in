@@ -1,0 +1,23 @@
+include README.md
+include requirements*.txt
+include runtime.txt
+include Procfile
+recursive-include templates *.html *.css *.js
+recursive-include data *.json
+recursive-include docs *.md
+recursive-include scripts *.py *.sh
+recursive-include config *.json
+include .env.example
+exclude .env
+exclude *.db
+exclude *.sqlite
+exclude *.sqlite3
+exclude instance/
+exclude venv/
+exclude __pycache__/
+exclude *.pyc
+exclude .DS_Store
+exclude logs/
+exclude uploads/
+exclude backups/
+

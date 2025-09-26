@@ -3743,6 +3743,7 @@ def upload_event_image():
                 'end_location': extracted_data.end_location,
                 'event_type': extracted_data.event_type,
                 'city': extracted_data.city,
+                'city_id': extracted_data.city_id,
                 'confidence': extracted_data.confidence,
                 'source': extracted_data.source,
                 'raw_text': extracted_data.raw_text,

@@ -18,6 +18,7 @@ from PIL import Image
 import pytesseract
 from google.cloud import vision
 from google.cloud.vision_v1 import types as vision_types
+import pytz
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -363,8 +364,25 @@ class ImageEventProcessor:
         if not text.strip():
             return event_data
         
-        # Extract dates
-        dates = self._extract_dates(text)
+        # Extract city information first to get timezone
+        city_info = self._extract_city_info(text)
+        city_timezone = None
+        if city_info['city']:
+            city_timezone = self._get_city_timezone(city_info['city'], city_info['state'])
+            event_data.city = city_info['city']
+            event_data.state = city_info['state']
+            event_data.country = city_info['country']
+            
+            # Look up city ID
+            city_id = self._lookup_city_id(city_info['city'], city_info['state'])
+            if city_id:
+                event_data.city_id = city_id
+                logger.info(f"Found city ID {city_id} for {city_info['city']}, {city_info['state']}")
+            else:
+                logger.warning(f"Could not find city ID for {city_info['city']}, {city_info['state']}")
+        
+        # Extract dates with timezone context
+        dates = self._extract_dates(text, city_timezone)
         if dates:
             event_data.start_date = dates[0]
             if len(dates) > 1:
@@ -428,20 +446,6 @@ class ImageEventProcessor:
         # Extract URL
         event_data.url = self._extract_url(text)
         
-        # Extract city information
-        city_info = self._extract_city_info(text)
-        if city_info['city']:
-            event_data.city = city_info['city']
-            event_data.state = city_info['state']
-            event_data.country = city_info['country']
-            
-            # Look up city ID
-            city_id = self._lookup_city_id(city_info['city'], city_info['state'])
-            if city_id:
-                event_data.city_id = city_id
-                logger.info(f"Found city ID {city_id} for {city_info['city']}, {city_info['state']}")
-            else:
-                logger.warning(f"Could not find city ID for {city_info['city']}, {city_info['state']}")
         
         # Extract Instagram information and source
         instagram_info = self._extract_instagram_info(text)
@@ -458,21 +462,21 @@ class ImageEventProcessor:
         
         return event_data
     
-    def _extract_dates(self, text: str) -> List[date]:
+    def _extract_dates(self, text: str, city_timezone: str = None) -> List[date]:
         """Smart date extraction with multiple strategies and context awareness"""
         dates = []
         logger.info(f"Smart date extraction from text: {text}")
         
         # Strategy 1: Direct pattern matching with context validation
-        pattern_dates = self._extract_dates_by_patterns(text)
+        pattern_dates = self._extract_dates_by_patterns(text, city_timezone)
         dates.extend(pattern_dates)
         
         # Strategy 2: Natural language processing for date mentions
-        nlp_dates = self._extract_dates_by_nlp(text)
+        nlp_dates = self._extract_dates_by_nlp(text, city_timezone)
         dates.extend(nlp_dates)
         
         # Strategy 3: Context-aware extraction (look for event-related dates)
-        context_dates = self._extract_dates_by_context(text)
+        context_dates = self._extract_dates_by_context(text, city_timezone)
         dates.extend(context_dates)
         
         # Remove duplicates and sort by confidence
@@ -501,10 +505,19 @@ class ImageEventProcessor:
         
         return filtered_text
     
-    def _is_valid_event_date(self, parsed_date: date, text: str) -> bool:
+    def _is_valid_event_date(self, parsed_date: date, text: str, city_timezone: str = None) -> bool:
         """Check if a parsed date looks like a real event date"""
         # Check if the date is in the future (events are usually future dates)
-        today = date.today()
+        # Use city timezone if available, otherwise use server timezone
+        if city_timezone:
+            try:
+                tz = pytz.timezone(city_timezone)
+                today = datetime.now(tz).date()
+            except:
+                today = date.today()
+        else:
+            today = date.today()
+            
         if parsed_date < today:
             # Allow dates within the last 30 days (for ongoing events)
             if (today - parsed_date).days > 30:
@@ -535,7 +548,7 @@ class ImageEventProcessor:
         # If no clear context, be more lenient but still filter obvious UI elements
         return True
     
-    def _extract_dates_by_patterns(self, text: str) -> List[date]:
+    def _extract_dates_by_patterns(self, text: str, city_timezone: str = None) -> List[date]:
         """Extract dates using comprehensive pattern matching with smart filtering"""
         dates = []
         
@@ -549,8 +562,8 @@ class ImageEventProcessor:
             
             for match in matches:
                 try:
-                    parsed_date = self._parse_date_match(match, pattern.pattern)
-                    if parsed_date and self._is_valid_event_date(parsed_date, filtered_text):
+                    parsed_date = self._parse_date_match(match, pattern.pattern, city_timezone)
+                    if parsed_date and self._is_valid_event_date(parsed_date, filtered_text, city_timezone):
                         dates.append(parsed_date)
                         logger.info(f"Added pattern date: {parsed_date}")
                 except (ValueError, TypeError) as e:
@@ -559,7 +572,7 @@ class ImageEventProcessor:
         
         return dates
     
-    def _extract_dates_by_nlp(self, text: str) -> List[date]:
+    def _extract_dates_by_nlp(self, text: str, city_timezone: str = None) -> List[date]:
         """Extract dates using natural language processing approach"""
         dates = []
         
@@ -581,7 +594,7 @@ class ImageEventProcessor:
             matches = re.finditer(pattern, text, re.IGNORECASE)
             for match in matches:
                 try:
-                    parsed_date = self._parse_nlp_date(match.group(), text)
+                    parsed_date = self._parse_nlp_date(match.group(), text, city_timezone)
                     if parsed_date:
                         dates.append(parsed_date)
                         logger.info(f"Added NLP date: {parsed_date}")
@@ -591,7 +604,7 @@ class ImageEventProcessor:
         
         return dates
     
-    def _extract_dates_by_context(self, text: str) -> List[date]:
+    def _extract_dates_by_context(self, text: str, city_timezone: str = None) -> List[date]:
         """Extract dates by looking for event-related context"""
         dates = []
         
@@ -614,7 +627,7 @@ class ImageEventProcessor:
                     matches = re.findall(pattern, sentence)
                     for match in matches:
                         try:
-                            parsed_date = self._parse_context_date(match, sentence)
+                            parsed_date = self._parse_context_date(match, sentence, city_timezone)
                             if parsed_date:
                                 dates.append(parsed_date)
                                 logger.info(f"Added context date: {parsed_date}")
@@ -624,9 +637,17 @@ class ImageEventProcessor:
         
         return dates
     
-    def _parse_nlp_date(self, date_expression: str, full_text: str) -> Optional[date]:
+    def _parse_nlp_date(self, date_expression: str, full_text: str, city_timezone: str = None) -> Optional[date]:
         """Parse natural language date expressions"""
-        today = date.today()
+        # Use city timezone if available, otherwise use server timezone
+        if city_timezone:
+            try:
+                tz = pytz.timezone(city_timezone)
+                today = datetime.now(tz).date()
+            except:
+                today = date.today()
+        else:
+            today = date.today()
         
         if 'tomorrow' in date_expression.lower():
             return today + timedelta(days=1)
@@ -646,7 +667,7 @@ class ImageEventProcessor:
         
         return None
     
-    def _parse_context_date(self, match: tuple, sentence: str) -> Optional[date]:
+    def _parse_context_date(self, match: tuple, sentence: str, city_timezone: str = None) -> Optional[date]:
         """Parse date from context-aware extraction"""
         try:
             if len(match) == 2:
@@ -668,7 +689,15 @@ class ImageEventProcessor:
                     
                     if month_name in month_map:
                         month = month_map[month_name]
-                        current_year = datetime.now().year
+                        # Use city timezone if available, otherwise use server timezone
+                        if city_timezone:
+                            try:
+                                tz = pytz.timezone(city_timezone)
+                                current_year = datetime.now(tz).year
+                            except:
+                                current_year = datetime.now().year
+                        else:
+                            current_year = datetime.now().year
                         return date(current_year, month, day)
                 
                 # Try to parse as month/day
@@ -678,7 +707,15 @@ class ImageEventProcessor:
                     
                     # Assume MM/DD format
                     if 1 <= month <= 12 and 1 <= day <= 31:
-                        current_year = datetime.now().year
+                        # Use city timezone if available, otherwise use server timezone
+                        if city_timezone:
+                            try:
+                                tz = pytz.timezone(city_timezone)
+                                current_year = datetime.now(tz).year
+                            except:
+                                current_year = datetime.now().year
+                        else:
+                            current_year = datetime.now().year
                         return date(current_year, month, day)
         
         except (ValueError, TypeError):
@@ -686,9 +723,17 @@ class ImageEventProcessor:
         
         return None
     
-    def _parse_date_match(self, match: tuple, pattern: str) -> Optional[date]:
+    def _parse_date_match(self, match: tuple, pattern: str, city_timezone: str = None) -> Optional[date]:
         """Parse a date match tuple based on the pattern used"""
-        current_year = datetime.now().year
+        # Use city timezone if available, otherwise use server timezone
+        if city_timezone:
+            try:
+                tz = pytz.timezone(city_timezone)
+                current_year = datetime.now(tz).year
+            except:
+                current_year = datetime.now().year
+        else:
+            current_year = datetime.now().year
         logger.info(f"Parsing date match: {match} with pattern: {pattern}")
         
         # Simple, direct approach for ordinal patterns
@@ -1412,6 +1457,32 @@ class ImageEventProcessor:
             if city_name.lower() in city_info['name'].lower():
                 if not state or state.lower() in city_info['state'].lower():
                     return city_info['id']
+        
+        return None
+    
+    def _get_city_timezone(self, city_name: str, state: str = None) -> Optional[str]:
+        """Get timezone for a city"""
+        if not city_name or not self.city_data:
+            return None
+        
+        city_key = city_name.lower()
+        state_key = state.lower() if state else ""
+        
+        # Try exact match with state
+        if state:
+            full_key = f"{city_key},{state_key}"
+            if full_key in self.city_data:
+                return self.city_data[full_key].get('timezone')
+        
+        # Try city name only
+        if city_key in self.city_data:
+            return self.city_data[city_key].get('timezone')
+        
+        # Try partial matches
+        for key, city_info in self.city_data.items():
+            if city_name.lower() in city_info['name'].lower():
+                if not state or state.lower() in city_info['state'].lower():
+                    return city_info.get('timezone')
         
         return None
     

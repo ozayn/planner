@@ -7,9 +7,18 @@ Combines Google Vision API for OCR with OpenAI LLM for intelligent event extract
 import os
 import json
 import logging
+import re
 from datetime import datetime, date, time, timedelta
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
+import pytz
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Google Vision API
 from google.cloud import vision
@@ -39,6 +48,7 @@ class HybridEventData:
     end_location: Optional[str] = None
     event_type: Optional[str] = None
     city: Optional[str] = None
+    city_id: Optional[int] = None
     confidence: float = 0.0
     source: str = "instagram"
     raw_text: Optional[str] = None
@@ -135,7 +145,7 @@ class HybridEventProcessor:
                 return
             
             genai.configure(api_key=google_api_key)
-            self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
             logger.info("✅ Google Gemini API client initialized")
         except Exception as e:
             logger.error(f"❌ Failed to setup Google Gemini API: {e}")
@@ -261,16 +271,20 @@ TEXT TO ANALYZE:
 INSTRUCTIONS:
 1. IGNORE timestamps like "12:18 Posts", "3 days ago", "2 hours ago" - these are post metadata, not event times
 2. EXTRACT the actual event information
-3. USE FULL location names (e.g., "Rhode Island Ave" not "Island Ave")
-4. ALWAYS estimate end time if not explicitly mentioned - add 2 hours to start time
-5. USE same location for end location if not specified
-6. RECOGNIZE Instagram context and extract page/handle information
-7. IDENTIFY the Instagram page that posted this event
-8. NEVER return the same time for both start_time and end_time
+3. ALWAYS extract a meaningful title - use the event name, page name, or create one from context
+4. USE FULL location names (e.g., "Rhode Island Ave" not "Island Ave")
+5. ALWAYS estimate end time if not explicitly mentioned - add 2 hours to start time
+6. USE same location for end location if not specified
+7. RECOGNIZE Instagram context and extract page/handle information
+8. IDENTIFY the Instagram page that posted this event
+9. NEVER return the same time for both start_time and end_time
+10. NEVER return null for title - always provide a meaningful event title
+11. INFER city from location context - if location mentions "Rhode Island Ave", "DC", "Washington", "streetmeetdc", etc., set city to "Washington"
+12. INFER city from Instagram handle - if handle contains "dc" (like "streetmeetdc"), set city to "Washington"
 
 RETURN ONLY a JSON object with this exact structure:
 {{
-    "title": "event title or null",
+    "title": "meaningful event title (REQUIRED - never null)",
     "description": "brief event description or null", 
     "start_date": "YYYY-MM-DD or null",
     "end_date": "YYYY-MM-DD or null",
@@ -288,10 +302,13 @@ RETURN ONLY a JSON object with this exact structure:
 
 EXAMPLES:
 - "SEP 28 | 4PM" → start_date: "2025-09-28", start_time: "16:00:00", end_time: "18:00:00" (4PM + 2 hours)
-- "Rhode Island Ave metro station" → start_location: "Rhode Island Ave"
-- "streetmeetdc" → instagram_handle: "streetmeetdc", instagram_page: "DC Street Meet"
-- "DC streetmeetdc" → instagram_page: "DC Street Meet", instagram_handle: "streetmeetdc"
+- "Rhode Island Ave metro station" → start_location: "Rhode Island Ave", city: "Washington"
+- "streetmeetdc" → instagram_handle: "streetmeetdc", instagram_page: "DC Street Meet", city: "Washington"
+- "DC streetmeetdc" → instagram_page: "DC Street Meet", instagram_handle: "streetmeetdc", city: "Washington"
 - If only start time mentioned: ALWAYS add 2 hours for end time
+- ALWAYS use year 2025 for current events (we are in 2025)
+- If date is in the past for 2025, assume it's for next year (2026)
+- City inference: "Rhode Island Ave" + "streetmeetdc" → city: "Washington"
 
 Be precise and logical. If uncertain, use null.
 """
@@ -317,9 +334,14 @@ Be precise and logical. If uncertain, use null.
             event_data.description = data.get('description')
             event_data.event_type = data.get('event_type')
             event_data.city = self._normalize_city_name(data.get('city'))
+            event_data.city_id = self._get_city_id(event_data.city)
             event_data.confidence = float(data.get('confidence', 0.0))
             
-            # Dates
+            # Dates - use city timezone if available
+            city_timezone = None
+            if event_data.city:
+                city_timezone = self._get_city_timezone(event_data.city)
+            
             if data.get('start_date'):
                 event_data.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
             if data.get('end_date'):
@@ -387,9 +409,135 @@ Be precise and logical. If uncertain, use null.
         if not city_name:
             return None
         
-        # Use the same city recognition logic as image_event_processor
+        # Direct city name mapping for common cases
+        city_mappings = {
+            'washington': 'Washington',
+            'washington dc': 'Washington',
+            'washington, dc': 'Washington',
+            'washington d.c.': 'Washington',
+            'washington, d.c.': 'Washington',
+            'dc': 'Washington',
+            'new york': 'New York',
+            'nyc': 'New York',
+            'new york city': 'New York',
+            'los angeles': 'Los Angeles',
+            'la': 'Los Angeles',
+            'san francisco': 'San Francisco',
+            'sf': 'San Francisco',
+            'chicago': 'Chicago',
+            'boston': 'Boston',
+            'seattle': 'Seattle',
+            'miami': 'Miami'
+        }
+        
+        # Check direct mapping first
+        city_lower = city_name.lower().strip()
+        if city_lower in city_mappings:
+            return city_mappings[city_lower]
+        
+        # Fallback to text extraction for complex cases
         city_info = self._extract_city_info(city_name)
         return city_info.get('city')
+    
+    def _get_city_id(self, city_name: Optional[str]) -> Optional[int]:
+        """Get city ID from city name using the city lookup"""
+        if not city_name:
+            return None
+        
+        try:
+            city_lookup = self._load_city_data()
+            city_lower = city_name.lower().strip()
+            
+            # Try direct name lookup first
+            if city_lower in city_lookup:
+                return city_lookup[city_lower]['id']
+            
+            # Try name + state lookup for Washington DC
+            if city_lower == 'washington':
+                dc_key = 'washington,district of columbia'
+                if dc_key in city_lookup:
+                    return city_lookup[dc_key]['id']
+            
+            logger.warning(f"City ID not found for: {city_name}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting city ID for {city_name}: {e}")
+            return None
+    
+    def _get_city_timezone(self, city_name: str, state: str = None) -> Optional[str]:
+        """Get timezone for a city from the city data"""
+        if not city_name:
+            return None
+        
+        # Load city data if not already loaded
+        if not hasattr(self, 'city_data') or not self.city_data:
+            self.city_data = self._load_city_data()
+        
+        city_key = city_name.lower()
+        state_key = state.lower() if state else ""
+        
+        # Try exact match with state
+        if state:
+            full_key = f"{city_key},{state_key}"
+            if full_key in self.city_data:
+                return self.city_data[full_key].get('timezone')
+        
+        # Try city name only
+        if city_key in self.city_data:
+            return self.city_data[city_key].get('timezone')
+        
+        # Try partial matches
+        for key, city_info in self.city_data.items():
+            if city_name.lower() in city_info['name'].lower():
+                if not state or state.lower() in city_info['state'].lower():
+                    return city_info.get('timezone')
+        
+        return None
+    
+    def _load_city_data(self) -> Dict[str, Dict]:
+        """Load city data from cities.json"""
+        try:
+            cities_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'cities.json')
+            if os.path.exists(cities_file):
+                with open(cities_file, 'r') as f:
+                    cities_data = json.load(f)
+                
+                # Handle nested structure - cities might be under a 'cities' key
+                if 'cities' in cities_data:
+                    cities_data = cities_data['cities']
+                
+                # Create a lookup by name and state
+                city_lookup = {}
+                for city_id, city_info in cities_data.items():
+                    if isinstance(city_info, dict):
+                        # Add by name + state combination
+                        name = city_info.get('name', '').lower()
+                        state = city_info.get('state', '').lower()
+                        key = f"{name},{state}" if state else name
+                        city_lookup[key] = {
+                            'id': int(city_id),
+                            'name': city_info.get('name'),
+                            'state': city_info.get('state'),
+                            'country': city_info.get('country'),
+                            'timezone': city_info.get('timezone')
+                        }
+                        
+                        # Also add by name only (for cases where state might not match exactly)
+                        city_lookup[name] = {
+                            'id': int(city_id),
+                            'name': city_info.get('name'),
+                            'state': city_info.get('state'),
+                            'country': city_info.get('country'),
+                            'timezone': city_info.get('timezone')
+                        }
+                
+                logger.info(f"Loaded {len(city_lookup)} city entries")
+                return city_lookup
+        except Exception as e:
+            logger.warning(f"Could not load city data: {e}")
+        
+        return {}
     
     def _setup_city_mappings(self) -> Dict[str, Dict[str, str]]:
         """Setup city/state mappings for location extraction (same as image_event_processor)"""
@@ -399,6 +547,7 @@ Be precise and logical. If uncertain, use null.
             'washington dc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
             'washington, dc': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
             'washington d.c.': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
+            'washington, d.c.': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
             'rhode island ave': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
             'dupont circle': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
             'georgetown': {'city': 'Washington', 'state': 'DC', 'country': 'United States'},
@@ -481,13 +630,138 @@ Be precise and logical. If uncertain, use null.
         
         event_data = HybridEventData()
         event_data.raw_text = text
+        event_data.confidence = 0.3  # Lower confidence for fallback
         
-        # Basic fallback logic
-        if 'streetmeet' in text.lower():
+        # Enhanced fallback logic with regex patterns
+        import re
+        
+        # Extract dates (MMM DD, DD/MM, etc.) with timezone context
+        city_timezone = None
+        if event_data.city:
+            city_timezone = self._get_city_timezone(event_data.city)
+        
+        # Get current year in city timezone
+        current_year = 2025  # Default
+        if city_timezone:
+            try:
+                tz = pytz.timezone(city_timezone)
+                current_year = datetime.now(tz).year
+            except:
+                current_year = datetime.now().year
+        else:
+            current_year = datetime.now().year
+        
+        date_patterns = [
+            r'([A-Z]{3})\s+(\d{1,2})',  # SEP 28, OCT 15
+            r'(\d{1,2})[/\-](\d{1,2})',  # 28/09, 09-28
+            r'(\d{1,2})\s+([A-Z]{3})',  # 28 SEP
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                # Try to parse the date (simplified)
+                try:
+                    if 'SEP' in text.upper():
+                        event_data.start_date = date(current_year, 9, int(match.group(2)) if match.group(2).isdigit() else int(match.group(1)))
+                    elif 'OCT' in text.upper():
+                        event_data.start_date = date(current_year, 10, int(match.group(2)) if match.group(2).isdigit() else int(match.group(1)))
+                    
+                    # Apply rule: end_date = start_date if not explicitly mentioned
+                    event_data.end_date = event_data.start_date
+                    break
+                except:
+                    pass
+        
+        # Extract times (4PM, 16:00, etc.)
+        time_patterns = [
+            r'(\d{1,2}):(\d{2})',  # 16:00, 4:30
+            r'(\d{1,2})\s*(AM|PM)',  # 4PM, 4 PM, 4AM
+        ]
+        
+        for pattern in time_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                try:
+                    if ':' in match.group(0):
+                        # 24-hour format
+                        hour, minute = int(match.group(1)), int(match.group(2))
+                        event_data.start_time = time(hour, minute)
+                    else:
+                        # 12-hour format
+                        hour = int(match.group(1))
+                        period = match.group(2).upper()
+                        if period == 'PM' and hour != 12:
+                            hour += 12
+                        elif period == 'AM' and hour == 12:
+                            hour = 0
+                        event_data.start_time = time(hour, 0)
+                    
+                    # Add 2 hours for end time
+                    if event_data.start_time:
+                        event_data.end_time = self._estimate_end_time(event_data.start_time)
+                    break
+                except:
+                    pass
+        
+        # Extract locations
+        location_patterns = [
+            r'([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square))',
+            r'(Rhode Island|Dupont|Georgetown|Capitol|National Mall)',
+        ]
+        
+        for pattern in location_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                event_data.start_location = match.group(1).strip()
+                event_data.end_location = event_data.start_location
+                break
+        
+        # Extract event type based on keywords
+        text_lower = text.lower()
+        if 'streetmeet' in text_lower or 'photowalk' in text_lower:
             event_data.title = "DC Street Meet"
             event_data.event_type = "photowalk"
             event_data.city = self._normalize_city_name("DC")
+        elif 'tour' in text_lower:
+            event_data.event_type = "tour"
+        elif 'exhibition' in text_lower or 'exhibit' in text_lower:
+            event_data.event_type = "exhibition"
+        elif 'festival' in text_lower:
+            event_data.event_type = "festival"
         
+        # Extract Instagram page/handle with multiple patterns
+        instagram_patterns = [
+            r'@([a-zA-Z0-9_]+)',  # @streetmeetdc
+            r'instagram\.com/([a-zA-Z0-9_]+)',  # instagram.com/streetmeetdc
+            r'([a-zA-Z0-9_]+)\s*instagram',  # streetmeetdc instagram
+            r'([a-zA-Z0-9_]+)\s*@',  # streetmeetdc @
+        ]
+        
+        for pattern in instagram_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                handle = match.group(1).lower()
+                event_data.instagram_handle = handle
+                
+                # Convert handle to page name (capitalize and add spaces)
+                if 'streetmeet' in handle:
+                    event_data.instagram_page = "DC Street Meet"
+                elif 'dc' in handle:
+                    event_data.instagram_page = f"DC {handle.replace('dc', '').title()}"
+                else:
+                    event_data.instagram_page = handle.title()
+                
+                event_data.instagram_posted_by = event_data.instagram_page
+                break
+        
+        # If we found some basic info, set a title
+        if not event_data.title and (event_data.start_date or event_data.start_time or event_data.start_location):
+            event_data.title = "Event from Image"
+        
+        logger.info(f"📝 Fallback extracted: {event_data.title}, {event_data.start_date}, {event_data.end_date}, {event_data.start_time}, {event_data.start_location}")
+        if event_data.instagram_handle:
+            logger.info(f"📱 Instagram: @{event_data.instagram_handle} ({event_data.instagram_page})")
         return event_data
 
 def main():
