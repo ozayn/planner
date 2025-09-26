@@ -3886,6 +3886,17 @@ def create_event_from_data():
         if not location and start_location:
             location = start_location
         
+        # Default to Washington DC if no city_id provided
+        city_id = data.get('city_id')
+        if not city_id:
+            # Try to find Washington DC in the database
+            washington = City.query.filter_by(name='Washington').first()
+            if washington:
+                city_id = washington.id
+            else:
+                # Fallback to city_id=1 (local) or 301 (Railway)
+                city_id = 1 if not os.getenv('RAILWAY_ENVIRONMENT') else 301
+        
         event = Event(
             title=data['title'],
             description=data.get('description', ''),
@@ -3897,7 +3908,7 @@ def create_event_from_data():
             start_location=start_location,
             end_location=end_location,
             url=data.get('url', ''),
-            city_id=data.get('city_id'),
+            city_id=city_id,
             venue_id=data.get('venue_id'),
             source=data.get('source'),
             source_url=data.get('source_url'),
