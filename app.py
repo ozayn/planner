@@ -241,19 +241,11 @@ db = SQLAlchemy(app)
 
 # Auto-migrate schema on startup (Railway only)
 def auto_migrate_schema():
-    """Automatically migrate Railway PostgreSQL schema to match local SQLite."""
+    """Automatically migrate Railway PostgreSQL schema to match expected schema."""
     if os.getenv('RAILWAY_ENVIRONMENT') and os.getenv('DATABASE_URL'):
         try:
             import psycopg2
             from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-            
-            # Get local schema
-            import sqlite3
-            local_conn = sqlite3.connect('instance/events.db')
-            local_cursor = local_conn.cursor()
-            local_cursor.execute('PRAGMA table_info(events)')
-            local_columns = {col[1]: col[2] for col in local_cursor.fetchall()}
-            local_conn.close()
             
             # Connect to Railway PostgreSQL
             railway_conn = psycopg2.connect(os.getenv('DATABASE_URL'))
@@ -268,17 +260,21 @@ def auto_migrate_schema():
             """)
             railway_columns = {row[0]: row[1] for row in railway_cursor.fetchall()}
             
-            # Add missing columns
-            type_mapping = {
-                'INTEGER': 'INTEGER', 'VARCHAR(200)': 'VARCHAR(200)', 'VARCHAR(100)': 'VARCHAR(100)',
-                'VARCHAR(50)': 'VARCHAR(50)', 'VARCHAR(500)': 'VARCHAR(500)', 'TEXT': 'TEXT',
-                'DATE': 'DATE', 'TIME': 'TIME', 'DATETIME': 'TIMESTAMP', 'BOOLEAN': 'BOOLEAN', 'FLOAT': 'REAL'
-            }
+            # Define expected columns (based on current Event model)
+            expected_columns = [
+                ('social_media_platform', 'VARCHAR(50)'),
+                ('social_media_handle', 'VARCHAR(100)'),
+                ('social_media_page_name', 'VARCHAR(100)'),
+                ('social_media_posted_by', 'VARCHAR(100)'),
+                ('social_media_url', 'VARCHAR(500)'),
+                ('start_location', 'VARCHAR(200)'),
+                ('end_location', 'VARCHAR(200)')
+            ]
             
+            # Add missing columns
             added_count = 0
-            for col_name, col_type in local_columns.items():
+            for col_name, pg_type in expected_columns:
                 if col_name not in railway_columns:
-                    pg_type = type_mapping.get(col_type, 'TEXT')
                     try:
                         railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type}")
                         added_count += 1
@@ -288,6 +284,8 @@ def auto_migrate_schema():
             
             if added_count > 0:
                 print(f"🎉 Auto-migrated {added_count} columns to Railway PostgreSQL")
+            else:
+                print("✅ Railway schema is already up to date")
             
             railway_cursor.close()
             railway_conn.close()
