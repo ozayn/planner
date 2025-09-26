@@ -916,6 +916,16 @@
                     <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
                     <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
                     <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
+                    
+                    <!-- Event Scraping Controls -->
+                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+                        <h4 style="margin: 0 0 10px 0; color: #007bff;">🕷️ Event Scraping</h4>
+                        <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Scrape Smithsonian</button>
+                        <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Scrape Museums</button>
+                        <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 Scrape All Venues</button>
+                        <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
+                        <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
+                    </div>
                 </div>
 
                 <div id="eventFilterSummary" class="filter-summary"></div>
@@ -5606,6 +5616,119 @@
             }
         });
         
+        // Event Scraping Functions
+        async function startSmithsonianScraping() {
+            updateScrapingStatus('🏛️ Starting Smithsonian scraping...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-smithsonian', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ Smithsonian scraping completed! Found ${result.events_found} events, saved ${result.events_saved}`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ Smithsonian scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ Smithsonian scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startMuseumScraping() {
+            updateScrapingStatus('🏛️ Starting museum scraping...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-museums', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ Museum scraping completed! Scraped ${result.museums_scraped} museums, saved ${result.events_saved} events`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ Museum scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ Museum scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startAllVenuesScraping() {
+            updateScrapingStatus('🌐 Starting all venues scraping...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-all-venues', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ All venues scraping completed! Scraped ${result.venues_scraped} venues, saved ${result.events_saved} events`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ All venues scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ All venues scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function discoverNewVenues() {
+            updateScrapingStatus('🔍 Discovering new venues...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/discover-venues', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ Venue discovery completed! Found ${result.events_found} events from new venues`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ Venue discovery failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ Venue discovery error: ${error.message}`, 'error');
+            }
+        }
+        
+        function updateScrapingStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('scrapingStatus');
+            if (!statusDiv) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const statusMessage = `[${timestamp}] ${message}`;
+            
+            // Clear previous status after 10 seconds for success/info messages
+            if (type === 'success' || type === 'info') {
+                statusDiv.innerHTML = statusMessage;
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 10000);
+            } else {
+                // Keep error messages visible longer
+                statusDiv.innerHTML = statusMessage;
+                statusDiv.style.color = type === 'error' ? '#dc3545' : '#007bff';
+            }
+        }
+
         console.log('Minimal script test - loaded');
     </script>
 </body>

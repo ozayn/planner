@@ -4324,6 +4324,144 @@ def create_event_from_venue():
         logger.error(f"Error creating event from venue: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Event Scraping API Endpoints
+@app.route('/api/admin/scrape-smithsonian', methods=['POST'])
+def scrape_smithsonian():
+    """Scrape events from Smithsonian museums."""
+    try:
+        logger.info("Starting Smithsonian scraping...")
+        
+        # Import scraping modules
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
+        
+        from smithsonian_scraper import SmithsonianEventScraper
+        from scraping_database_integration import EventDatabaseManager
+        
+        # Scrape Smithsonian events
+        scraper = SmithsonianEventScraper()
+        scraped_events = scraper.scrape_all_smithsonian_events()
+        
+        # Save to database
+        event_manager = EventDatabaseManager()
+        saved_count = event_manager.save_scraped_events(scraped_events, city_id=1)
+        
+        result = {
+            'success': True,
+            'events_found': len(scraped_events),
+            'events_saved': saved_count,
+            'message': f'Successfully scraped {len(scraped_events)} events, saved {saved_count} to database'
+        }
+        
+        logger.info(f"Smithsonian scraping completed: {result}")
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in Smithsonian scraping: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Smithsonian scraping failed'
+        }), 500
+
+@app.route('/api/admin/scrape-museums', methods=['POST'])
+def scrape_museums():
+    """Scrape events from museums only."""
+    try:
+        logger.info("Starting museum scraping...")
+        
+        # Import scraping modules
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
+        
+        from scraping_database_integration import ScrapingScheduler
+        
+        # Run museum scraping
+        scheduler = ScrapingScheduler()
+        result = scheduler.run_museum_scraping(city_id=1)
+        
+        return jsonify({
+            'success': True,
+            'museums_scraped': result['museums_scraped'],
+            'events_found': result['events_found'],
+            'events_saved': result['events_saved'],
+            'message': f'Successfully scraped {result["museums_scraped"]} museums, saved {result["events_saved"]} events'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in museum scraping: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Museum scraping failed'
+        }), 500
+
+@app.route('/api/admin/scrape-all-venues', methods=['POST'])
+def scrape_all_venues():
+    """Scrape events from all venues."""
+    try:
+        logger.info("Starting all venues scraping...")
+        
+        # Import scraping modules
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
+        
+        from scraping_database_integration import ScrapingScheduler
+        
+        # Run all venues scraping
+        scheduler = ScrapingScheduler()
+        result = scheduler.run_daily_scraping(city_id=1)
+        
+        return jsonify({
+            'success': True,
+            'venues_scraped': result['venues_scraped'],
+            'events_found': result['events_found'],
+            'events_saved': result['events_saved'],
+            'message': f'Successfully scraped {result["venues_scraped"]} venues, saved {result["events_saved"]} events'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in all venues scraping: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'All venues scraping failed'
+        }), 500
+
+@app.route('/api/admin/discover-venues', methods=['POST'])
+def discover_venues():
+    """Discover new venues and scrape their events."""
+    try:
+        logger.info("Starting venue discovery...")
+        
+        # Import scraping modules
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
+        
+        from event_scraping_system import EventScrapingOrchestrator
+        
+        # Discover and scrape
+        orchestrator = EventScrapingOrchestrator()
+        events = orchestrator.discover_and_scrape("Washington DC")
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'message': f'Successfully discovered {len(events)} events from new venues'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in venue discovery: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Venue discovery failed'
+        }), 500
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
