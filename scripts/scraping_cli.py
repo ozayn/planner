@@ -13,8 +13,11 @@ from datetime import datetime
 # Add the parent directory to the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dotenv import load_dotenv
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available, continue without it
 
 def setup_logging(level=logging.INFO):
     """Setup logging configuration."""

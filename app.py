@@ -4431,8 +4431,8 @@ def scrape_all_venues():
             'message': 'All venues scraping failed'
         }), 500
 
-@app.route('/api/admin/discover-venues', methods=['POST'])
-def discover_venues():
+@app.route('/api/admin/discover-new-venues', methods=['POST'])
+def discover_new_venues():
     """Discover new venues and scrape their events."""
     try:
         logger.info("Starting venue discovery...")

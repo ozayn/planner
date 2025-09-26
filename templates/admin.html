@@ -5690,7 +5690,7 @@
             updateScrapingStatus('🔍 Discovering new venues...', 'info');
             
             try {
-                const response = await fetch('/api/admin/discover-venues', {
+                const response = await fetch('/api/admin/discover-new-venues', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
