@@ -68,6 +68,22 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **✅ Type Conversion**: SQLite types are automatically converted to PostgreSQL equivalents
 - **✅ Error Handling**: Migration failures are logged but don't crash the app
 - **Manual Sync**: If needed, run `python scripts/sync_schema.py` with Railway environment
+
+### **📚 Lessons Learned from Schema Issues**
+- **Problem**: Railway PostgreSQL doesn't automatically create new columns when SQLAlchemy models are updated
+- **Root Cause**: SQLAlchemy only creates tables, not column additions, on existing databases
+- **Solution**: Auto-migration function runs on Railway startup to add missing columns
+- **Key Insight**: Always define expected columns in code rather than reading from local SQLite (which doesn't exist on Railway)
+- **Dashboard Impact**: Missing columns cause API errors, resulting in "undefined" counts on admin dashboard
+- **Prevention**: The auto-migration function prevents this recurring problem permanently
+
+### **🔧 Troubleshooting Schema Issues**
+- **Symptom**: Dashboard shows "undefined" counts for Cities, Venues, Events, Sources
+- **Cause**: Missing columns in Railway PostgreSQL database
+- **Check**: Look for errors like "column events.social_media_platform does not exist" in Railway logs
+- **Solution**: The auto-migration should fix this automatically on next deployment
+- **Manual Fix**: If auto-migration fails, run `python scripts/sync_schema.py` with Railway environment
+- **Verification**: Check API endpoints return correct counts: `/api/admin/cities`, `/api/admin/venues`, etc.
 - **🚨 Timezone handling**: Always use CITY timezone for event date/time processing:
   - Image upload event extraction MUST use city timezone, not server timezone
   - Date/time parsing should consider the event's location timezone
