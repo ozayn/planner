@@ -3886,16 +3886,8 @@ def create_event_from_data():
         if not location and start_location:
             location = start_location
         
-        # Default to Washington DC if no city_id provided
+        # Use city_id from frontend (which should be auto-selected by smart detection)
         city_id = data.get('city_id')
-        if not city_id:
-            # Try to find Washington DC in the database
-            washington = City.query.filter_by(name='Washington').first()
-            if washington:
-                city_id = washington.id
-            else:
-                # Fallback to city_id=1 (local) or 301 (Railway)
-                city_id = 1 if not os.getenv('RAILWAY_ENVIRONMENT') else 301
         
         event = Event(
             title=data['title'],
