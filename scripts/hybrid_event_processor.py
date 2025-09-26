@@ -54,7 +54,14 @@ class HybridEventData:
     raw_text: Optional[str] = None
     llm_reasoning: Optional[str] = None
     
-    # Instagram-specific fields
+    # Social media fields (generic for multiple platforms)
+    social_media_platform: Optional[str] = None
+    social_media_handle: Optional[str] = None
+    social_media_page_name: Optional[str] = None
+    social_media_posted_by: Optional[str] = None
+    social_media_url: Optional[str] = None
+    
+    # Legacy Instagram fields for backward compatibility
     instagram_page: Optional[str] = None
     instagram_handle: Optional[str] = None
     instagram_posted_by: Optional[str] = None
@@ -62,26 +69,46 @@ class HybridEventData:
 class HybridEventProcessor:
     """Hybrid processor combining Vision API OCR with LLM intelligence"""
     
-    def __init__(self):
+    def __init__(self, ocr_engine_preference='auto'):
         """Initialize the hybrid processor"""
         self.vision_client = None
         self.gemini_model = None
         self.ocr_engine = None
+        self.ocr_engine_preference = ocr_engine_preference
         self._setup_clients()
     
     def _setup_clients(self):
         """Setup Google Vision, Gemini, and OCR clients with smart defaults"""
-        # Determine environment (local vs deployment)
-        is_deployment = self._is_deployment_environment()
-        
-        if is_deployment:
-            # Deployment: Prefer Google Vision API (more reliable in cloud)
-            logger.info("🌐 Deployment environment detected - using Google Vision API")
-            self._setup_vision_api_first()
+        # Check for user-specified OCR engine preference first
+        if self.ocr_engine_preference and self.ocr_engine_preference != 'auto':
+            if self.ocr_engine_preference == 'google_vision':
+                logger.info("🔧 User selected Google Vision API")
+                self._setup_vision_api_first()
+            elif self.ocr_engine_preference == 'tesseract':
+                logger.info("🔧 User selected Tesseract OCR")
+                self._setup_tesseract_first()
         else:
-            # Local: Prefer Tesseract (free and works well locally)
-            logger.info("💻 Local environment detected - using Tesseract OCR")
-            self._setup_tesseract_first()
+            # Check for forced OCR engine preference from environment
+            forced_ocr = os.getenv('FORCE_OCR_ENGINE', '').lower()
+            
+            if forced_ocr == 'google_vision':
+                logger.info("🔧 Forced Google Vision API via FORCE_OCR_ENGINE environment variable")
+                self._setup_vision_api_first()
+            elif forced_ocr == 'tesseract':
+                logger.info("🔧 Forced Tesseract OCR via FORCE_OCR_ENGINE environment variable")
+                self._setup_tesseract_first()
+            else:
+                # Determine environment (local vs deployment)
+                is_deployment = self._is_deployment_environment()
+                
+                if is_deployment:
+                    # Deployment: Prefer Google Vision API (more reliable in cloud)
+                    logger.info("🌐 Deployment environment detected - using Google Vision API")
+                    self._setup_vision_api_first()
+                else:
+                    # Local: Use Tesseract with optimized settings for speed and accuracy
+                    logger.info("💻 Local environment detected - using Tesseract OCR with optimized settings")
+                    self._setup_tesseract_first()
         
         # Setup Google Gemini API (always needed for intelligent processing)
         self._setup_gemini()
@@ -197,8 +224,11 @@ class HybridEventProcessor:
             # Open image with PIL
             image = Image.open(image_path)
             
-            # Extract text using Tesseract
-            extracted_text = pytesseract.image_to_string(image)
+            # Extract text using Tesseract with optimized settings
+            # PSM 6: Assume a single uniform block of text
+            # OEM 3: Default OCR Engine Mode
+            config = '--psm 6 --oem 3'
+            extracted_text = pytesseract.image_to_string(image, config=config)
             
             logger.info(f"✅ Tesseract extracted {len(extracted_text)} characters")
             return extracted_text
@@ -216,6 +246,7 @@ class HybridEventProcessor:
         try:
             raw_text = self.extract_text_from_image(image_path)
             logger.info(f"📝 Raw text extracted: {len(raw_text)} characters")
+            logger.info(f"📝 Raw OCR text: {repr(raw_text)}")
         except Exception as e:
             logger.error(f"❌ Failed to extract text: {e}")
             return HybridEventData()
@@ -249,6 +280,7 @@ class HybridEventProcessor:
             
             llm_response = response.text
             logger.info(f"🤖 Gemini response received: {len(llm_response)} characters")
+            logger.info(f"🤖 LLM response: {repr(llm_response)}")
             
             # Parse the LLM response
             event_data = self._parse_llm_response(llm_response)
@@ -261,9 +293,9 @@ class HybridEventProcessor:
             raise
     
     def _create_extraction_prompt(self, text: str) -> str:
-        """Create a structured prompt for event extraction with Instagram context"""
+        """Create a structured prompt for event extraction with social media context"""
         return f"""
-Extract event information from this Instagram post text. Be intelligent and logical.
+Extract event information from this social media post text. Be intelligent and logical.
 
 TEXT TO ANALYZE:
 {text}
@@ -275,12 +307,12 @@ INSTRUCTIONS:
 4. USE FULL location names (e.g., "Rhode Island Ave" not "Island Ave")
 5. ALWAYS estimate end time if not explicitly mentioned - add 2 hours to start time
 6. USE same location for end location if not specified
-7. RECOGNIZE Instagram context and extract page/handle information
-8. IDENTIFY the Instagram page that posted this event
+7. RECOGNIZE social media context and extract platform/handle information
+8. IDENTIFY the social media platform and page that posted this event
 9. NEVER return the same time for both start_time and end_time
 10. NEVER return null for title - always provide a meaningful event title
 11. INFER city from location context - if location mentions "Rhode Island Ave", "DC", "Washington", "streetmeetdc", etc., set city to "Washington"
-12. INFER city from Instagram handle - if handle contains "dc" (like "streetmeetdc"), set city to "Washington"
+12. INFER city from social media handle - if handle contains "dc" (like "streetmeetdc"), set city to "Washington"
 
 RETURN ONLY a JSON object with this exact structure:
 {{
@@ -295,20 +327,25 @@ RETURN ONLY a JSON object with this exact structure:
     "event_type": "photowalk|meetup|tour|exhibition|festival|other or null",
     "city": "city name or null",
     "confidence": 0.0-1.0,
-    "instagram_page": "Instagram page name (e.g., 'DC Street Meet') or null",
-    "instagram_handle": "Instagram handle (e.g., 'streetmeetdc') or null",
-    "instagram_posted_by": "who posted this (page name) or null"
+    "social_media_platform": "instagram|meetup|eventbrite|facebook|other or null",
+    "social_media_handle": "handle without @ (e.g., 'streetmeetdc') or null",
+    "social_media_page_name": "page/group name (e.g., 'DC Street Meet') or null",
+    "social_media_posted_by": "who posted this (page name) or null",
+    "social_media_url": "direct URL to post/event or null"
 }}
 
-EXAMPLES:
-- "SEP 28 | 4PM" → start_date: "2025-09-28", start_time: "16:00:00", end_time: "18:00:00" (4PM + 2 hours)
-- "Rhode Island Ave metro station" → start_location: "Rhode Island Ave", city: "Washington"
-- "streetmeetdc" → instagram_handle: "streetmeetdc", instagram_page: "DC Street Meet", city: "Washington"
-- "DC streetmeetdc" → instagram_page: "DC Street Meet", instagram_handle: "streetmeetdc", city: "Washington"
-- If only start time mentioned: ALWAYS add 2 hours for end time
-- ALWAYS use year 2025 for current events (we are in 2025)
-- If date is in the past for 2025, assume it's for next year (2026)
-- City inference: "Rhode Island Ave" + "streetmeetdc" → city: "Washington"
+        EXAMPLES:
+        - "SEP 28 | 4PM" → start_date: "2025-09-28", start_time: "16:00:00", end_time: "18:00:00" (4PM + 2 hours)
+        - "MEET AT 11:00, WALK AT 11:30" → start_time: "11:00:00", end_time: "13:30:00", description: "Meet at 11:00 AM, walk starts at 11:30 AM"
+        - "Rhode Island Ave metro station" → start_location: "Rhode Island Ave", city: "Washington"
+        - "streetmeetdc" → social_media_platform: "instagram", social_media_handle: "streetmeetdc", social_media_page_name: "DC Street Meet", city: "Washington"
+        - "DC streetmeetdc" → social_media_platform: "instagram", social_media_page_name: "DC Street Meet", social_media_handle: "streetmeetdc", city: "Washington"
+        - If only start time mentioned: ALWAYS add 2 hours for end time
+        - If meet time and walk time mentioned: use meet time as start_time, add 2 hours from walk time for end_time
+        - ALWAYS use year 2025 for current events (we are in 2025)
+        - If date is in the past for 2025, assume it's for next year (2026)
+        - City inference: "Rhode Island Ave" + "streetmeetdc" → city: "Washington"
+        - Include timing details in description when multiple times are mentioned
 
 Be precise and logical. If uncertain, use null.
 """
@@ -365,7 +402,22 @@ Be precise and logical. If uncertain, use null.
             event_data.start_location = data.get('start_location')
             event_data.end_location = data.get('end_location') or event_data.start_location
             
-            # Instagram-specific fields
+            # If start_location is empty but description contains location info, extract it
+            if not event_data.start_location and event_data.description:
+                location_match = re.search(r'(?:join us at|meet at|at)\s*([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))', event_data.description, re.IGNORECASE)
+                if location_match:
+                    event_data.start_location = location_match.group(1).strip()
+                    event_data.end_location = event_data.start_location
+                    logger.info(f"📍 Extracted location from description: {event_data.start_location}")
+            
+            # Social media fields
+            event_data.social_media_platform = data.get('social_media_platform')
+            event_data.social_media_handle = data.get('social_media_handle')
+            event_data.social_media_page_name = data.get('social_media_page_name')
+            event_data.social_media_posted_by = data.get('social_media_posted_by')
+            event_data.social_media_url = data.get('social_media_url')
+            
+            # Legacy Instagram fields for backward compatibility
             event_data.instagram_page = data.get('instagram_page')
             event_data.instagram_handle = data.get('instagram_handle')
             event_data.instagram_posted_by = data.get('instagram_posted_by')
@@ -742,17 +794,23 @@ Be precise and logical. If uncertain, use null.
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 handle = match.group(1).lower()
-                event_data.instagram_handle = handle
+                event_data.social_media_platform = "instagram"
+                event_data.social_media_handle = handle
                 
                 # Convert handle to page name (capitalize and add spaces)
                 if 'streetmeet' in handle:
-                    event_data.instagram_page = "DC Street Meet"
+                    event_data.social_media_page_name = "DC Street Meet"
                 elif 'dc' in handle:
-                    event_data.instagram_page = f"DC {handle.replace('dc', '').title()}"
+                    event_data.social_media_page_name = f"DC {handle.replace('dc', '').title()}"
                 else:
-                    event_data.instagram_page = handle.title()
+                    event_data.social_media_page_name = handle.title()
                 
-                event_data.instagram_posted_by = event_data.instagram_page
+                event_data.social_media_posted_by = event_data.social_media_page_name
+                
+                # Legacy Instagram fields for backward compatibility
+                event_data.instagram_handle = handle
+                event_data.instagram_page = event_data.social_media_page_name
+                event_data.instagram_posted_by = event_data.social_media_posted_by
                 break
         
         # If we found some basic info, set a title
@@ -760,7 +818,9 @@ Be precise and logical. If uncertain, use null.
             event_data.title = "Event from Image"
         
         logger.info(f"📝 Fallback extracted: {event_data.title}, {event_data.start_date}, {event_data.end_date}, {event_data.start_time}, {event_data.start_location}")
-        if event_data.instagram_handle:
+        if event_data.social_media_handle:
+            logger.info(f"📱 {event_data.social_media_platform.title()}: @{event_data.social_media_handle} ({event_data.social_media_page_name})")
+        elif event_data.instagram_handle:
             logger.info(f"📱 Instagram: @{event_data.instagram_handle} ({event_data.instagram_page})")
         return event_data
 

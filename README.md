@@ -42,11 +42,25 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Use proper form validation**: All modals should have client-side and server-side validation
 - **Maintain consistent UX**: All tables should follow the same interaction patterns
 - **🚨 Database schema changes**: When adding/modifying table columns, update ALL related components:
-  - Modal forms (add/edit forms must include new fields)
-  - Table headers and display logic
-  - API endpoints and data processing
-  - Form validation and field mappings
-  - JavaScript functions that reference field names
+  - **Model definition**: Add new fields to SQLAlchemy model class
+  - **Database migration**: Create and run migration script to add columns
+  - **Modal forms**: Add/edit forms must include new fields with proper validation
+  - **Table headers**: Update display logic to show new fields
+  - **API endpoints**: Update all CRUD endpoints to handle new fields
+  - **Data processing**: Update hybrid event processor and extraction logic
+  - **Form validation**: Add client-side and server-side validation for new fields
+  - **JavaScript functions**: Update all functions that reference field names
+  - **Calendar integration**: Update calendar event creation to include new fields
+  - **Deployment database**: Run migration on production database (Railway PostgreSQL)
+  - **Backward compatibility**: Maintain legacy field support during transition
+  - **Testing**: Test all forms, APIs, and integrations with new schema
+  - **🚨 CRITICAL**: Monitor ALL processes that populate form fields:
+    - **LLM prompts**: Update extraction prompts to request new fields
+    - **Response parsing**: Update JSON parsing logic to handle new fields
+    - **Fallback extraction**: Update regex patterns and fallback logic
+    - **Data flow tracing**: Follow data from extraction → processing → storage → display
+    - **Field mapping**: Ensure all field references are updated consistently
+    - **Logging**: Update log messages to reflect new field names
 - **🚨 Timezone handling**: Always use CITY timezone for event date/time processing:
   - Image upload event extraction MUST use city timezone, not server timezone
   - Date/time parsing should consider the event's location timezone

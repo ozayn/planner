@@ -1414,8 +1414,18 @@
             <form id="imageUploadForm" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="eventImage">Select Image:</label>
-                    <input type="file" id="eventImage" name="image" accept="image/*" required>
+                    <input type="file" id="eventImage" name="image" accept="image/*" required onchange="console.log('File selected:', this.files[0]?.name)">
                     <small>Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ocrEngine">OCR Engine:</label>
+                    <select id="ocrEngine" name="ocr_engine">
+                        <option value="auto">🤖 Auto (Environment Default)</option>
+                        <option value="tesseract">🔍 Tesseract (Free, Local)</option>
+                        <option value="google_vision">👁️ Google Vision (Premium, Cloud)</option>
+                    </select>
+                    <small>Choose OCR engine for text extraction. Auto uses environment defaults.</small>
                 </div>
                 
                 <div class="modal-actions">
@@ -1612,9 +1622,15 @@
                            </select>
                        </div>
                     
-                    <div class="form-group">
-                        <label for="manualLocation">Location:</label>
-                        <input type="text" id="manualLocation" placeholder="Enter event location">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="manualStartLocation">Start Location:</label>
+                            <input type="text" id="manualStartLocation" placeholder="Enter start location">
+                        </div>
+                        <div class="form-group">
+                            <label for="manualEndLocation">End Location:</label>
+                            <input type="text" id="manualEndLocation" placeholder="Enter end location (optional)">
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -1673,10 +1689,44 @@
                            </select>
                        </div>
                        
-                       <div class="form-group">
-                           <label for="manualSourceUrl">Source URL:</label>
-                           <input type="url" id="manualSourceUrl" placeholder="https://instagram.com/...">
-                       </div>
+                    <div class="form-group">
+                        <label for="manualSourceUrl">Source URL:</label>
+                        <input type="url" id="manualSourceUrl" placeholder="https://instagram.com/...">
+                    </div>
+                    
+                    <!-- Social Media Fields -->
+                    <div class="form-group">
+                        <label for="manualSocialMediaPlatform">Social Media Platform:</label>
+                        <select id="manualSocialMediaPlatform">
+                            <option value="">Select Platform</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="meetup">Meetup</option>
+                            <option value="eventbrite">Eventbrite</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="twitter">Twitter</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualSocialMediaHandle">Social Media Handle:</label>
+                        <input type="text" id="manualSocialMediaHandle" placeholder="username (without @)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualSocialMediaPageName">Page/Group Name:</label>
+                        <input type="text" id="manualSocialMediaPageName" placeholder="DC Street Meet">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualSocialMediaPostedBy">Posted By:</label>
+                        <input type="text" id="manualSocialMediaPostedBy" placeholder="Who posted this content">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualSocialMediaUrl">Social Media URL:</label>
+                        <input type="url" id="manualSocialMediaUrl" placeholder="https://instagram.com/p/...">
+                    </div>
                 </div>
                 
                 <div class="modal-actions" style="margin-top: 15px;">
@@ -3651,7 +3701,22 @@
                     end_time: event.end_time,
                     location: event.start_location || event.venue_name || '',
                     event_type: event.event_type,
-                    city_id: event.city_id  // Include city_id for timezone lookup
+                    city_id: event.city_id,  // Include city_id for timezone lookup
+                    // Enhanced fields for better calendar integration
+                    start_location: event.start_location,
+                    end_location: event.end_location,
+                    social_media_platform: event.social_media_platform,
+                    social_media_handle: event.social_media_handle,
+                    social_media_page_name: event.social_media_page_name,
+                    social_media_posted_by: event.social_media_posted_by,
+                    social_media_url: event.social_media_url,
+                    url: event.url,
+                    source: event.source,
+                    source_url: event.source_url,
+                    organizer: event.organizer,
+                    price: event.price,
+                    // Legacy Instagram fields for backward compatibility
+                    instagram_handle: event.instagram_handle
                 };
                 
                 // Call the calendar API
@@ -3818,12 +3883,96 @@
                 formattedEnd: endDateTime
             });
             
+            // Build enhanced description with social media and additional information
+            let descriptionParts = [];
+            if (eventData.description) {
+                descriptionParts.push(eventData.description);
+            }
+            
+            // Add event type
+            if (eventData.event_type) {
+                descriptionParts.push(`Event Type: ${eventData.event_type.charAt(0).toUpperCase() + eventData.event_type.slice(1)}`);
+            }
+            
+            // Add end location if different from start location
+            if (eventData.end_location && eventData.end_location !== eventData.start_location) {
+                descriptionParts.push(`End Location: ${eventData.end_location}`);
+            }
+            
+            // Add social media information
+            if (eventData.social_media_platform && eventData.social_media_handle) {
+                const platformName = eventData.social_media_platform.charAt(0).toUpperCase() + eventData.social_media_platform.slice(1);
+                descriptionParts.push(`${platformName}: @${eventData.social_media_handle}`);
+            }
+            
+            if (eventData.social_media_page_name) {
+                descriptionParts.push(`Page/Group: ${eventData.social_media_page_name}`);
+            }
+            
+            if (eventData.social_media_posted_by) {
+                descriptionParts.push(`Posted By: ${eventData.social_media_posted_by}`);
+            }
+            
+            if (eventData.social_media_url) {
+                descriptionParts.push(`Social Media URL: ${eventData.social_media_url}`);
+            }
+            
+            // Add website URL
+            if (eventData.url) {
+                descriptionParts.push(`Website: ${eventData.url}`);
+            }
+            
+            // Add source information
+            if (eventData.source) {
+                descriptionParts.push(`Source: ${eventData.source}`);
+            }
+            
+            if (eventData.source_url) {
+                descriptionParts.push(`Source URL: ${eventData.source_url}`);
+            }
+            
+            // Add organizer and pricing
+            if (eventData.organizer) {
+                descriptionParts.push(`Organizer: ${eventData.organizer}`);
+            }
+            
+            if (eventData.price) {
+                descriptionParts.push(`Price: $${eventData.price}`);
+            }
+            
+            const enhancedDescription = descriptionParts.join('\n\n');
+            
+            // Use start_location as the primary calendar location, fallback to description if empty
+            let calendarLocation = eventData.start_location || '';
+            
+            // If start_location is empty, try to extract from description
+            if (!calendarLocation && eventData.description) {
+                // Look for location patterns in the description
+                const locationPatterns = [
+                    // "Join us at the [Location]" pattern
+                    /(?:join us at|meet at|at|location:)\s*([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i,
+                    // Direct location patterns
+                    /([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i
+                ];
+                
+                for (const pattern of locationPatterns) {
+                    const match = eventData.description.match(pattern);
+                    if (match) {
+                        calendarLocation = match[1].trim();
+                        // Clean up common prefixes
+                        calendarLocation = calendarLocation.replace(/^(the|at|join us at|meet at|location:)\s*/i, '');
+                        break;
+                    }
+                }
+            }
+            
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: eventData.title,
                 dates: `${startDateTime}/${endDateTime}`,
-                details: eventData.description,
-                location: eventData.location
+                details: enhancedDescription,
+                location: calendarLocation,
+                ctz: eventData.city_timezone || 'America/New_York'  // Add timezone
             });
             
             const url = `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -3920,6 +4069,10 @@
             // Also load cities so they're available for venue dropdown
             console.log('Loading cities for venue dropdown...');
             loadCities();
+            
+            // Setup image upload form
+            console.log('Setting up image upload form...');
+            setupImageUploadForm();
             
             // Add form submission handlers
             const addCityForm = document.getElementById('addCityForm');
@@ -4941,9 +5094,17 @@
         }
         
         function openImageUploadModal() {
+            console.log('Opening image upload modal...');
             document.getElementById('imageUploadModal').style.display = 'block';
             document.getElementById('extractedDataDisplay').style.display = 'none';
             document.getElementById('imageUploadForm').reset();
+            
+            // Clear any previous file selection
+            const fileInput = document.getElementById('eventImage');
+            if (fileInput) {
+                fileInput.value = '';
+                console.log('File input cleared');
+            }
             
             // Reset manual input fields
             document.getElementById('manualEventTitle').value = '';
@@ -4953,12 +5114,19 @@
             document.getElementById('manualStartTime').value = '';
             document.getElementById('manualEndTime').value = '';
             document.getElementById('manualEventType').value = 'tour';
-            document.getElementById('manualLocation').value = '';
+            document.getElementById('manualStartLocation').value = '';
+            document.getElementById('manualEndLocation').value = '';
             document.getElementById('manualPrice').value = '';
             document.getElementById('manualUrl').value = '';
             document.getElementById('manualCityId').value = '';
             document.getElementById('manualEventSource').value = '';
             document.getElementById('manualSourceUrl').value = '';
+            // Reset social media fields
+            document.getElementById('manualSocialMediaPlatform').value = '';
+            document.getElementById('manualSocialMediaHandle').value = '';
+            document.getElementById('manualSocialMediaPageName').value = '';
+            document.getElementById('manualSocialMediaPostedBy').value = '';
+            document.getElementById('manualSocialMediaUrl').value = '';
             
             // Populate city dropdown with a small delay to ensure modal is fully rendered
             setTimeout(() => {
@@ -4986,43 +5154,81 @@
         }
         
         // Handle image upload form submission
-        document.getElementById('imageUploadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            const imageFile = document.getElementById('eventImage').files[0];
-            
-            if (!imageFile) {
-                alert('Please select an image file');
-                return;
-            }
-            
-            formData.append('image', imageFile);
-            
-            try {
-                const response = await fetch('/api/admin/upload-event-image', {
-                    method: 'POST',
-                    body: formData
+        function setupImageUploadForm() {
+            const imageUploadForm = document.getElementById('imageUploadForm');
+            if (imageUploadForm) {
+                imageUploadForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    console.log('Form submission started');
+                    
+                    const formData = new FormData();
+                    const imageFile = document.getElementById('eventImage').files[0];
+                    
+                    if (!imageFile) {
+                        alert('Please select an image file');
+                        return;
+                    }
+                    
+                    console.log('Image file selected:', imageFile.name);
+                    console.log('Image file size:', imageFile.size);
+                    console.log('Image file type:', imageFile.type);
+                    console.log('Image file lastModified:', new Date(imageFile.lastModified));
+                    formData.append('image', imageFile);
+                    
+                    // Add OCR engine selection
+                    const ocrEngine = document.getElementById('ocrEngine').value;
+                    console.log('OCR Engine selected:', ocrEngine);
+                    formData.append('ocr_engine', ocrEngine);
+                    
+                    try {
+                        console.log('Sending request to API...');
+                        const response = await fetch('/api/admin/upload-event-image', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        console.log('Response received:', response.status);
+                        const result = await response.json();
+                        console.log('Result parsed:', result);
+                        
+                        if (response.ok) {
+                            console.log('Upload successful, result:', result);
+                            if (result.extracted_data) {
+                                console.log('Calling displayExtractedData...');
+                                displayExtractedData(result.extracted_data);
+                            } else {
+                                console.error('No extracted_data in result:', result);
+                            }
+                        } else {
+                            console.error('Upload failed:', result);
+                            alert('Error processing image: ' + result.error);
+                        }
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        alert('Error uploading image: ' + error.message);
+                    }
                 });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    displayExtractedData(result.extracted_data);
-                } else {
-                    alert('Error processing image: ' + result.error);
-                }
-            } catch (error) {
-                alert('Error uploading image: ' + error.message);
+            } else {
+                console.error('imageUploadForm not found');
             }
-        });
+        }
         
         function displayExtractedData(data) {
+            console.log('displayExtractedData called with:', data);
             const displayDiv = document.getElementById('extractedDataDisplay');
             const contentDiv = document.getElementById('extractedDataContent');
             
+            console.log('DOM elements found:', { displayDiv, contentDiv });
+            
+            if (!displayDiv || !contentDiv) {
+                console.error('Required elements not found:', { displayDiv, contentDiv });
+                return;
+            }
+            
+            console.log('About to populate manual fields...');
             // First, populate the form fields with extracted data
             populateManualFields(data);
+            console.log('Manual fields populated');
             
             let html = '<div class="extracted-data-grid">';
             
@@ -5041,6 +5247,12 @@
             if (data.url) html += `<div><strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>`;
             if (data.city) html += `<div><strong>City:</strong> ${data.city}</div>`;
             if (data.state) html += `<div><strong>State:</strong> ${data.state}</div>`;
+            // Social media fields
+            if (data.social_media_platform) html += `<div><strong>Social Media Platform:</strong> ${data.social_media_platform}</div>`;
+            if (data.social_media_handle) html += `<div><strong>Social Media Handle:</strong> @${data.social_media_handle}</div>`;
+            if (data.social_media_page_name) html += `<div><strong>Page/Group Name:</strong> ${data.social_media_page_name}</div>`;
+            if (data.social_media_posted_by) html += `<div><strong>Posted By:</strong> ${data.social_media_posted_by}</div>`;
+            if (data.social_media_url) html += `<div><strong>Social Media URL:</strong> <a href="${data.social_media_url}" target="_blank">${data.social_media_url}</a></div>`;
             if (data.country) html += `<div><strong>Country:</strong> ${data.country}</div>`;
             if (data.city_id) html += `<div><strong>City ID:</strong> ${data.city_id}</div>`;
             if (data.source) html += `<div><strong>Source:</strong> ${data.source}</div>`;
@@ -5051,13 +5263,18 @@
             html += '</div>';
             
             contentDiv.innerHTML = html;
+            console.log('Content HTML set, about to show display div');
             displayDiv.style.display = 'block';
+            console.log('Display div shown');
             
-            // Populate manual input fields with extracted data
+            // Populate manual input fields with extracted data (second time for safety)
+            console.log('Populating manual fields again...');
             populateManualFields(data);
+            console.log('Manual fields populated again');
             
             // Store extracted data for event creation
             window.extractedEventData = data;
+            console.log('Extracted data stored in window.extractedEventData');
         }
         
         async function populateCitySelect(selectId, targetCity = null, targetState = null) {
@@ -5110,10 +5327,17 @@
             console.log('=== POPULATING FORM WITH EXTRACTED DATA ===');
             console.log('Extracted data:', data);
             
+            if (!data) {
+                console.error('No data provided to populateManualFields');
+                return;
+            }
+            
             const fields = [
                 'manualEventTitle', 'manualEventDescription', 'manualStartDate', 'manualEndDate',
-                'manualStartTime', 'manualEndTime', 'manualEventType', 'manualLocation',
-                'manualPrice', 'manualUrl', 'manualEventSource', 'manualSourceUrl'
+                'manualStartTime', 'manualEndTime', 'manualEventType', 'manualStartLocation', 'manualEndLocation',
+                'manualPrice', 'manualUrl', 'manualEventSource', 'manualSourceUrl',
+                'manualSocialMediaPlatform', 'manualSocialMediaHandle', 'manualSocialMediaPageName',
+                'manualSocialMediaPostedBy', 'manualSocialMediaUrl'
             ];
             
             // Helper function to safely set field value
@@ -5152,7 +5376,8 @@
                 setFieldValue('manualEventType', 'tour'); // Default
             }
             
-            setFieldValue('manualLocation', data.location);
+            setFieldValue('manualStartLocation', data.start_location);
+            setFieldValue('manualEndLocation', data.end_location);
             setFieldValue('manualPrice', data.price);
             // Handle Instagram URL - convert handle to full URL
             if (data.instagram_handle) {
@@ -5167,6 +5392,23 @@
             }
             if (data.source_url) {
                 setFieldValue('manualSourceUrl', data.source_url);
+            }
+            
+            // Social media fields
+            if (data.social_media_platform) {
+                setFieldValue('manualSocialMediaPlatform', data.social_media_platform);
+            }
+            if (data.social_media_handle) {
+                setFieldValue('manualSocialMediaHandle', data.social_media_handle);
+            }
+            if (data.social_media_page_name) {
+                setFieldValue('manualSocialMediaPageName', data.social_media_page_name);
+            }
+            if (data.social_media_posted_by) {
+                setFieldValue('manualSocialMediaPostedBy', data.social_media_posted_by);
+            }
+            if (data.social_media_url) {
+                setFieldValue('manualSocialMediaUrl', data.social_media_url);
             }
             
             // Set default date to today if no date extracted
@@ -5262,12 +5504,19 @@
                 start_time: startTime,
                 end_time: endTime,
                 event_type: document.getElementById('manualEventType').value,
-                location: document.getElementById('manualLocation').value.trim(),
+                start_location: document.getElementById('manualStartLocation').value.trim(),
+                end_location: document.getElementById('manualEndLocation').value.trim(),
                 price: document.getElementById('manualPrice').value ? parseFloat(document.getElementById('manualPrice').value) : null,
                 url: document.getElementById('manualUrl').value.trim() || null,
                 city_id: document.getElementById('manualCityId').value || null,
                 source: document.getElementById('manualEventSource').value || null,
                 source_url: document.getElementById('manualSourceUrl').value.trim() || null,
+                // Social media fields
+                social_media_platform: document.getElementById('manualSocialMediaPlatform').value || null,
+                social_media_handle: document.getElementById('manualSocialMediaHandle').value || null,
+                social_media_page_name: document.getElementById('manualSocialMediaPageName').value || null,
+                social_media_posted_by: document.getElementById('manualSocialMediaPostedBy').value || null,
+                social_media_url: document.getElementById('manualSocialMediaUrl').value || null,
                 create_calendar_event: false
             };
             

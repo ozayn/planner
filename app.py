@@ -427,6 +427,13 @@ class Event(db.Model):
     equipment_needed = db.Column(db.Text)
     organizer = db.Column(db.String(200))
     
+    # Social media and source fields (generic for multiple platforms)
+    social_media_platform = db.Column(db.String(50))  # 'instagram', 'meetup', 'eventbrite', 'facebook', etc.
+    social_media_handle = db.Column(db.String(100))   # Handle without @ (e.g., 'dupontphotowalk')
+    social_media_page_name = db.Column(db.String(100))  # Page/group name (e.g., 'DC Street Meet')
+    social_media_posted_by = db.Column(db.String(100))  # Who posted the content
+    social_media_url = db.Column(db.String(500))       # Direct URL to the post/event
+    
     def to_dict(self):
         """Convert event to dictionary with all relevant fields"""
         # Handle image_url - convert photo data to public Google Maps URL (no API key required)
@@ -472,7 +479,7 @@ class Event(db.Model):
             'id': self.id,
             'title': self.title,
             'description': self.description,
-            'start_date': self.start_date.isoformat(),
+            'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'start_time': self.start_time.strftime('%H:%M') if self.start_time else None,
             'end_time': self.end_time.strftime('%H:%M') if self.end_time else None,
@@ -502,6 +509,13 @@ class Event(db.Model):
             'difficulty_level': self.difficulty_level,
             'equipment_needed': self.equipment_needed,
             'organizer': self.organizer,
+            'source': self.source,
+            'source_url': self.source_url,
+            'social_media_platform': self.social_media_platform,
+            'social_media_handle': self.social_media_handle,
+            'social_media_page_name': self.social_media_page_name,
+            'social_media_posted_by': self.social_media_posted_by,
+            'social_media_url': self.social_media_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -3719,9 +3733,12 @@ def upload_event_image():
         file_path = os.path.join(upload_dir, filename)
         file.save(file_path)
         
+        # Get OCR engine preference from form
+        ocr_engine = request.form.get('ocr_engine', 'auto')
+        
         # Process image to extract event data
         from scripts.hybrid_event_processor import HybridEventProcessor
-        processor = HybridEventProcessor()
+        processor = HybridEventProcessor(ocr_engine_preference=ocr_engine)
         extracted_data = processor.process_image_with_llm(file_path)
         
         # Clean up uploaded file
@@ -3748,9 +3765,11 @@ def upload_event_image():
                 'source': extracted_data.source,
                 'raw_text': extracted_data.raw_text,
                 'llm_reasoning': extracted_data.llm_reasoning,
-                'instagram_page': extracted_data.instagram_page,
-                'instagram_handle': extracted_data.instagram_handle,
-                'instagram_posted_by': extracted_data.instagram_posted_by
+                'social_media_platform': extracted_data.social_media_platform,
+                'social_media_handle': extracted_data.social_media_handle,
+                'social_media_page_name': extracted_data.social_media_page_name,
+                'social_media_posted_by': extracted_data.social_media_posted_by,
+                'social_media_url': extracted_data.social_media_url
             }
         })
         
@@ -3802,6 +3821,14 @@ def create_event_from_data():
                     return jsonify({'error': 'Invalid time format. Use HH:MM or HH:MM:SS'}), 400
         
         # Create event
+        start_location = data.get('start_location', '')
+        end_location = data.get('end_location', '')
+        location = data.get('location', '')
+        
+        # If location is not defined, set it to start_location
+        if not location and start_location:
+            location = start_location
+        
         event = Event(
             title=data['title'],
             description=data.get('description', ''),
@@ -3810,12 +3837,19 @@ def create_event_from_data():
             start_time=start_time,
             end_time=end_time,
             event_type=data.get('event_type', 'tour'),
-            start_location=data.get('location', ''),
+            start_location=start_location,
+            end_location=end_location,
             url=data.get('url', ''),
             city_id=data.get('city_id'),
             venue_id=data.get('venue_id'),
             source=data.get('source'),
-            source_url=data.get('source_url')
+            source_url=data.get('source_url'),
+            # Social media fields
+            social_media_platform=data.get('social_media_platform'),
+            social_media_handle=data.get('social_media_handle'),
+            social_media_page_name=data.get('social_media_page_name'),
+            social_media_posted_by=data.get('social_media_posted_by'),
+            social_media_url=data.get('social_media_url')
         )
         
         # Add event type specific fields
@@ -3914,7 +3948,7 @@ def add_event_to_calendar():
             if city and city.timezone:
                 timezone = city.timezone
         
-        # Create calendar event data
+        # Create calendar event data with enhanced information
         calendar_event = {
             'title': title,
             'description': description,
@@ -3924,7 +3958,22 @@ def add_event_to_calendar():
             'end_time': end_time,
             'location': location,
             'event_type': event_type,
-            'timezone': timezone
+            'timezone': timezone,
+            # Additional fields for enhanced calendar integration
+            'start_location': data.get('start_location'),
+            'end_location': data.get('end_location'),
+            'social_media_platform': data.get('social_media_platform'),
+            'social_media_handle': data.get('social_media_handle'),
+            'social_media_page_name': data.get('social_media_page_name'),
+            'social_media_posted_by': data.get('social_media_posted_by'),
+            'social_media_url': data.get('social_media_url'),
+            'url': data.get('url'),
+            'source': data.get('source'),
+            'source_url': data.get('source_url'),
+            'organizer': data.get('organizer'),
+            'price': data.get('price'),
+            # Legacy Instagram fields for backward compatibility
+            'instagram_handle': data.get('instagram_handle')
         }
         
         # Generate iCal format for calendar integration
@@ -3942,6 +3991,51 @@ def add_event_to_calendar():
     except Exception as e:
         app_logger.error(f"Error adding event to calendar: {e}")
         return jsonify({'error': str(e)}), 500
+
+def generate_timezone_info(timezone_str):
+    """Generate VTIMEZONE information for iCal format"""
+    import pytz
+    from datetime import datetime
+    
+    try:
+        tz = pytz.timezone(timezone_str)
+        now = datetime.now(tz)
+        
+        # Get timezone abbreviation and offset
+        tz_abbr = now.strftime('%Z')
+        tz_offset = now.strftime('%z')
+        
+        # Format offset for iCal (e.g., -0500 -> -0500)
+        if len(tz_offset) == 5:
+            offset_formatted = tz_offset
+        else:
+            offset_formatted = tz_offset[:3] + '00'
+        
+        # For simplicity, we'll use a basic timezone definition
+        # In a production system, you'd want to handle DST rules properly
+        return f"""BEGIN:VTIMEZONE
+TZID:{timezone_str}
+BEGIN:STANDARD
+DTSTART:20071104T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+TZOFFSETFROM:{offset_formatted}
+TZOFFSETTO:{offset_formatted}
+TZNAME:{tz_abbr}
+END:STANDARD
+END:VTIMEZONE"""
+        
+    except Exception as e:
+        # Fallback to UTC if timezone is invalid
+        return f"""BEGIN:VTIMEZONE
+TZID:UTC
+BEGIN:STANDARD
+DTSTART:20071104T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0000
+TZNAME:UTC
+END:STANDARD
+END:VTIMEZONE"""
 
 def generate_ical_event(event_data):
     """Generate iCal format for calendar event"""
@@ -3989,17 +4083,66 @@ def generate_ical_event(event_data):
     import uuid
     event_id = str(uuid.uuid4())
     
-    # Create iCal content with floating time (no timezone)
+    # Build enhanced description with additional information
+    description_parts = []
+    if event_data.get('description'):
+        description_parts.append(event_data['description'])
+    
+    # Add event type
+    if event_data.get('event_type'):
+        description_parts.append(f"Event Type: {event_data['event_type'].title()}")
+    
+    # Add end location if different from start location
+    if event_data.get('end_location') and event_data.get('end_location') != event_data.get('start_location'):
+        description_parts.append(f"End Location: {event_data['end_location']}")
+    
+    # Add social media and web links
+    if event_data.get('social_media_platform') and event_data.get('social_media_handle'):
+        platform_name = event_data['social_media_platform'].title()
+        description_parts.append(f"{platform_name}: @{event_data['social_media_handle']}")
+    elif event_data.get('instagram_handle'):
+        # Legacy Instagram support
+        description_parts.append(f"Instagram: @{event_data['instagram_handle']}")
+    
+    if event_data.get('social_media_url'):
+        description_parts.append(f"Social Media URL: {event_data['social_media_url']}")
+    elif event_data.get('url'):
+        description_parts.append(f"Website: {event_data['url']}")
+    
+    # Add source information
+    if event_data.get('source'):
+        description_parts.append(f"Source: {event_data['source']}")
+    
+    if event_data.get('source_url'):
+        description_parts.append(f"Source URL: {event_data['source_url']}")
+    
+    # Add organizer and pricing
+    if event_data.get('organizer'):
+        description_parts.append(f"Organizer: {event_data['organizer']}")
+    
+    if event_data.get('price'):
+        description_parts.append(f"Price: ${event_data['price']}")
+    
+    enhanced_description = '\\n\\n'.join(description_parts) if description_parts else event_data.get('description', '')
+    
+    # Use start_location as the calendar location if available
+    calendar_location = event_data.get('start_location') or event_data.get('location', '')
+    
+    # Generate timezone information for iCal
+    timezone_info = generate_timezone_info(timezone_str)
+    
+    # Create iCal content with timezone information
     ical_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Event Planner//Event Planner//EN
+{timezone_info}
 BEGIN:VEVENT
 UID:{event_id}@eventplanner.com
-DTSTART:{start_datetime_str}
-DTEND:{end_datetime_str}
+DTSTART;TZID={timezone_str}:{start_datetime_str}
+DTEND;TZID={timezone_str}:{end_datetime_str}
 SUMMARY:{event_data['title']}
-DESCRIPTION:{event_data['description']}
-LOCATION:{event_data['location']}
+DESCRIPTION:{enhanced_description}
+LOCATION:{calendar_location}
 END:VEVENT
 END:VCALENDAR"""
     
