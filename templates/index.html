@@ -1949,33 +1949,38 @@
             document.getElementById('dateRangeSelect').value = 'this_week';
             document.getElementById('customDateGroup').style.display = 'none';
             
-            // Reset venue type tabs (all active)
+            // Reset venue type tabs (all inactive - nothing selected)
             const venueTypeTabs = document.querySelectorAll('.venue-type-tab');
-            venueTypeTabs.forEach(tab => tab.classList.add('active'));
+            venueTypeTabs.forEach(tab => tab.classList.remove('active'));
             
-            // Reset platform type tabs (all active)
+            // Reset platform type tabs (all inactive - nothing selected)
             const platformTabs = document.querySelectorAll('.form-group:has(label:contains("Source Platforms")) .venue-type-tab');
-            platformTabs.forEach(tab => tab.classList.add('active'));
+            platformTabs.forEach(tab => tab.classList.remove('active'));
             
-            // Reset content type tabs (all active)
+            // Reset content type tabs (all inactive - nothing selected)
             const contentTabs = document.querySelectorAll('.form-group:has(label:contains("Content Types")) .venue-type-tab');
-            contentTabs.forEach(tab => tab.classList.add('active'));
+            contentTabs.forEach(tab => tab.classList.remove('active'));
             
-            // Reset toggle button states
+            // Reset toggle button states (should show "Select All" when nothing is selected)
             const toggleAllVenues = document.getElementById('toggleAllVenues');
             if (toggleAllVenues) {
-                toggleAllVenues.textContent = 'Deselect All';
-                toggleAllVenues.dataset.state = 'all';
+                toggleAllVenues.textContent = 'Select All';
+                toggleAllVenues.dataset.state = 'none';
             }
             const toggleAllPlatforms = document.getElementById('toggleAllPlatforms');
             if (toggleAllPlatforms) {
-                toggleAllPlatforms.textContent = 'Deselect All';
-                toggleAllPlatforms.dataset.state = 'all';
+                toggleAllPlatforms.textContent = 'Select All';
+                toggleAllPlatforms.dataset.state = 'none';
             }
             const toggleAllContent = document.getElementById('toggleAllContent');
             if (toggleAllContent) {
-                toggleAllContent.textContent = 'Deselect All';
-                toggleAllContent.dataset.state = 'all';
+                toggleAllContent.textContent = 'Select All';
+                toggleAllContent.dataset.state = 'none';
+            }
+            const toggleAllSources = document.getElementById('toggleAllSources');
+            if (toggleAllSources) {
+                toggleAllSources.textContent = 'Select All';
+                toggleAllSources.dataset.state = 'none';
             }
             
             // Reset price filter to both selected (default)
@@ -2365,14 +2370,44 @@
 
         // Select all venue types
         function selectAllVenueTypes() {
-            const tabs = document.querySelectorAll('.venue-type-tab');
-            tabs.forEach(tab => tab.classList.add('active'));
+            // Only select venue type tabs, not platform or content tabs
+            const venueTypeIds = [
+                'venueTypeMuseum',
+                'venueTypeHistoric', 
+                'venueTypeArts',
+                'venueTypeCinema',
+                'venueTypeParks',
+                'venueTypeEmbassy',
+                'venueTypeOther'
+            ];
+            
+            venueTypeIds.forEach(id => {
+                const tab = document.querySelector(`[data-id="${id}"]`);
+                if (tab) {
+                    tab.classList.add('active');
+                }
+            });
         }
 
         // Deselect all venue types
         function deselectAllVenueTypes() {
-            const tabs = document.querySelectorAll('.venue-type-tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
+            // Only deselect venue type tabs, not platform or content tabs
+            const venueTypeIds = [
+                'venueTypeMuseum',
+                'venueTypeHistoric', 
+                'venueTypeArts',
+                'venueTypeCinema',
+                'venueTypeParks',
+                'venueTypeEmbassy',
+                'venueTypeOther'
+            ];
+            
+            venueTypeIds.forEach(id => {
+                const tab = document.querySelector(`[data-id="${id}"]`);
+                if (tab) {
+                    tab.classList.remove('active');
+                }
+            });
         }
 
         // Toggle all platform types
@@ -2393,20 +2428,40 @@
 
         // Select all platform types
         function selectAllPlatformTypes() {
-            const platformGroup = document.querySelector('label:contains("Source Platforms")')?.closest('.form-group');
-            if (platformGroup) {
-                const tabs = platformGroup.querySelectorAll('.venue-type-tab');
-                tabs.forEach(tab => tab.classList.add('active'));
-            }
+            const platformTypeIds = [
+                'platformTypeInstagram',
+                'platformTypeFacebook',
+                'platformTypeWebsite',
+                'platformTypeMeetup',
+                'platformTypeEventbrite',
+                'platformTypeOther'
+            ];
+            
+            platformTypeIds.forEach(id => {
+                const tab = document.querySelector(`[data-id="${id}"]`);
+                if (tab) {
+                    tab.classList.add('active');
+                }
+            });
         }
 
         // Deselect all platform types
         function deselectAllPlatformTypes() {
-            const platformGroup = document.querySelector('label:contains("Source Platforms")')?.closest('.form-group');
-            if (platformGroup) {
-                const tabs = platformGroup.querySelectorAll('.venue-type-tab');
-                tabs.forEach(tab => tab.classList.remove('active'));
-            }
+            const platformTypeIds = [
+                'platformTypeInstagram',
+                'platformTypeFacebook',
+                'platformTypeWebsite',
+                'platformTypeMeetup',
+                'platformTypeEventbrite',
+                'platformTypeOther'
+            ];
+            
+            platformTypeIds.forEach(id => {
+                const tab = document.querySelector(`[data-id="${id}"]`);
+                if (tab) {
+                    tab.classList.remove('active');
+                }
+            });
         }
 
         // Toggle all content types
@@ -2427,20 +2482,40 @@
 
         // Select all content types
         function selectAllContentTypes() {
-            const contentGroup = document.querySelector('label:contains("Content Types")')?.closest('.form-group');
-            if (contentGroup) {
-                const tabs = contentGroup.querySelectorAll('.venue-type-tab');
-                tabs.forEach(tab => tab.classList.add('active'));
-            }
+            const contentTypeIds = [
+                'contentTypeArts',
+                'contentTypeMusic',
+                'contentTypePhoto',
+                'contentTypeEvents',
+                'contentTypeFood',
+                'contentTypeOther'
+            ];
+            
+            contentTypeIds.forEach(id => {
+                const tab = document.querySelector(`[data-id="${id}"]`);
+                if (tab) {
+                    tab.classList.add('active');
+                }
+            });
         }
 
         // Deselect all content types
         function deselectAllContentTypes() {
-            const contentGroup = document.querySelector('label:contains("Content Types")')?.closest('.form-group');
-            if (contentGroup) {
-                const tabs = contentGroup.querySelectorAll('.venue-type-tab');
-                tabs.forEach(tab => tab.classList.remove('active'));
-            }
+            const contentTypeIds = [
+                'contentTypeArts',
+                'contentTypeMusic',
+                'contentTypePhoto',
+                'contentTypeEvents',
+                'contentTypeFood',
+                'contentTypeOther'
+            ];
+            
+            contentTypeIds.forEach(id => {
+                const tab = document.querySelector(`[data-id="${id}"]`);
+                if (tab) {
+                    tab.classList.remove('active');
+                }
+            });
         }
 
         // Get selected platform types
