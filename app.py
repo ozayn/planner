@@ -982,58 +982,42 @@ def get_events():
     else:
         return jsonify({'error': 'Invalid time range'}), 400
     
-    # Query events based on type
+    # Query events based on type - Updated to handle all event types
     events = []
     
     # Get venues for this city once (used by events)
     city_venues = Venue.query.filter_by(city_id=city_id).all()
     venue_ids = [v.id for v in city_venues]
     
-    if not event_type or event_type == 'tour':
-        tour_events = Event.query.filter(
-            Event.event_type == 'tour',
-            Event.venue_id.in_(venue_ids),
-            Event.start_date >= start_date,
-            Event.start_date <= end_date
-        ).all()
-        events.extend([event.to_dict() for event in tour_events])
+    # Base query for events in this city and date range
+    base_query = Event.query.filter(
+        Event.city_id == city_id,
+        Event.start_date >= start_date,
+        Event.start_date <= end_date
+    )
     
+    # If specific event type requested, filter by it
+    if event_type:
+        base_query = base_query.filter(Event.event_type == event_type)
+    
+    # Get all matching events
+    all_events = base_query.all()
+    events.extend([event.to_dict() for event in all_events])
+    
+    # For exhibitions, also include those that are currently running (span multiple days)
     if not event_type or event_type == 'exhibition':
-        if time_range == 'today':
-            # For today, only show exhibitions that are currently running
-            exhibition_events = Event.query.filter(
-                Event.event_type == 'exhibition',
-                Event.venue_id.in_(venue_ids),
-                Event.start_date <= start_date,
-                Event.end_date >= start_date
-            ).all()
-        else:
-            # For other time ranges, show exhibitions that overlap with the range
-            exhibition_events = Event.query.filter(
-                Event.event_type == 'exhibition',
-                Event.venue_id.in_(venue_ids),
-                Event.start_date <= end_date,
-                Event.end_date >= start_date
-            ).all()
-        events.extend([event.to_dict() for event in exhibition_events])
-    
-    if not event_type or event_type == 'festival':
-        festival_events = Event.query.filter(
-            Event.event_type == 'festival',
+        exhibition_query = Event.query.filter(
+            Event.event_type == 'exhibition',
             Event.city_id == city_id,
             Event.start_date <= end_date,
             Event.end_date >= start_date
-        ).all()
-        events.extend([event.to_dict() for event in festival_events])
-    
-    if not event_type or event_type == 'photowalk':
-        photowalk_events = Event.query.filter(
-            Event.event_type == 'photowalk',
-            Event.city_id == city_id,
-            Event.start_date >= start_date,
-            Event.start_date <= end_date
-        ).all()
-        events.extend([event.to_dict() for event in photowalk_events])
+        )
+        
+        # Avoid duplicates
+        existing_event_ids = {event['id'] for event in events}
+        exhibition_events = [event for event in exhibition_query.all() 
+                           if event.id not in existing_event_ids]
+        events.extend([event.to_dict() for event in exhibition_events])
     
     return jsonify(events)
 
