@@ -1399,6 +1399,7 @@ def trigger_scraping():
         import json
         from datetime import datetime
         from scripts.venue_event_scraper import VenueEventScraper
+        from scripts.source_event_scraper import SourceEventScraper
         
         # Get parameters from request
         data = request.get_json() or {}
@@ -1421,6 +1422,12 @@ def trigger_scraping():
         
         app_logger.info(f"Starting scraping for {city_name}, event_type: {event_type}, venues: {len(venue_ids)}, sources: {len(source_ids)}")
         
+        # Validate that at least one venue or source is selected
+        if not venue_ids and not source_ids:
+            return jsonify({
+                'error': 'Please select at least one venue or source to scrape'
+            }), 400
+        
         # Initialize progress tracking
         progress_data = {
             'current_step': 1,
@@ -1433,32 +1440,64 @@ def trigger_scraping():
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        # Step 1: Run venue event scraper directly
-        progress_data.update({
-            'current_step': 2,
-            'percentage': 30,
-            'message': f'Scraping events from {len(venue_ids)} venues...'
-        })
+        # Step 1: Scrape from venues and sources
+        all_events = []
         
-        with open('scraping_progress.json', 'w') as f:
-            json.dump(progress_data, f)
+        # Scrape venues if any selected
+        if venue_ids:
+            progress_data.update({
+                'current_step': 2,
+                'percentage': 20,
+                'message': f'Scraping events from {len(venue_ids)} venues...'
+            })
+            
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+            
+            venue_scraper = VenueEventScraper()
+            venue_events = venue_scraper.scrape_venue_events(
+                city_id=city_id,
+                event_type=event_type,
+                time_range=time_range,
+                venue_ids=venue_ids
+            )
+            all_events.extend(venue_events)
+            app_logger.info(f"Scraped {len(venue_events)} events from venues")
         
-        scraper = VenueEventScraper()
-        events_scraped = scraper.scrape_venue_events(
-            city_id=city_id,
-            event_type=event_type,
-            time_range=time_range,
-            venue_ids=venue_ids
-        )
+        # Scrape sources if any selected
+        if source_ids:
+            progress_data.update({
+                'current_step': 2,
+                'percentage': 50,
+                'message': f'Scraping events from {len(source_ids)} sources...'
+            })
+            
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+            
+            source_scraper = SourceEventScraper()
+            source_events = source_scraper.scrape_source_events(
+                source_ids=source_ids,
+                city_id=city_id,
+                event_type=event_type,
+                time_range=time_range
+            )
+            all_events.extend(source_events)
+            app_logger.info(f"Scraped {len(source_events)} events from sources")
+        
+        events_scraped = all_events
+        app_logger.info(f"Total events scraped: {len(events_scraped)}")
         
         # Save scraped events to file for loading
         scraped_data = {
             "metadata": {
                 "scraped_at": datetime.now().isoformat(),
                 "total_events": len(events_scraped),
-                "scraper_version": "2.0",
+                "scraper_version": "3.0",
                 "venue_ids": venue_ids,
-                "city_id": city_id
+                "source_ids": source_ids,
+                "city_id": city_id,
+                "event_type": event_type
             },
             "events": events_scraped
         }
@@ -1555,7 +1594,9 @@ def trigger_scraping():
             'city': city_name,
             'event_type': event_type,
             'time_range': time_range,
-            'venue_count': len(venue_ids)
+            'venue_count': len(venue_ids),
+            'source_count': len(source_ids),
+            'total_scraped': len(venue_ids) + len(source_ids)
         })
         
     except Exception as e:
