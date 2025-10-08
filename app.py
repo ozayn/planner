@@ -982,42 +982,58 @@ def get_events():
     else:
         return jsonify({'error': 'Invalid time range'}), 400
     
-    # Query events based on type - Updated to handle all event types
+    # Query events based on type
     events = []
     
     # Get venues for this city once (used by events)
     city_venues = Venue.query.filter_by(city_id=city_id).all()
     venue_ids = [v.id for v in city_venues]
     
-    # Base query for events in this city and date range
-    base_query = Event.query.filter(
-        Event.city_id == city_id,
-        Event.start_date >= start_date,
-        Event.start_date <= end_date
-    )
+    if not event_type or event_type == 'tour':
+        tour_events = Event.query.filter(
+            Event.event_type == 'tour',
+            Event.venue_id.in_(venue_ids),
+            Event.start_date >= start_date,
+            Event.start_date <= end_date
+        ).all()
+        events.extend([event.to_dict() for event in tour_events])
     
-    # If specific event type requested, filter by it
-    if event_type:
-        base_query = base_query.filter(Event.event_type == event_type)
-    
-    # Get all matching events
-    all_events = base_query.all()
-    events.extend([event.to_dict() for event in all_events])
-    
-    # For exhibitions, also include those that are currently running (span multiple days)
     if not event_type or event_type == 'exhibition':
-        exhibition_query = Event.query.filter(
-            Event.event_type == 'exhibition',
+        if time_range == 'today':
+            # For today, only show exhibitions that are currently running
+            exhibition_events = Event.query.filter(
+                Event.event_type == 'exhibition',
+                Event.venue_id.in_(venue_ids),
+                Event.start_date <= start_date,
+                Event.end_date >= start_date
+            ).all()
+        else:
+            # For other time ranges, show exhibitions that overlap with the range
+            exhibition_events = Event.query.filter(
+                Event.event_type == 'exhibition',
+                Event.venue_id.in_(venue_ids),
+                Event.start_date <= end_date,
+                Event.end_date >= start_date
+            ).all()
+        events.extend([event.to_dict() for event in exhibition_events])
+    
+    if not event_type or event_type == 'festival':
+        festival_events = Event.query.filter(
+            Event.event_type == 'festival',
             Event.city_id == city_id,
             Event.start_date <= end_date,
             Event.end_date >= start_date
-        )
-        
-        # Avoid duplicates
-        existing_event_ids = {event['id'] for event in events}
-        exhibition_events = [event for event in exhibition_query.all() 
-                           if event.id not in existing_event_ids]
-        events.extend([event.to_dict() for event in exhibition_events])
+        ).all()
+        events.extend([event.to_dict() for event in festival_events])
+    
+    if not event_type or event_type == 'photowalk':
+        photowalk_events = Event.query.filter(
+            Event.event_type == 'photowalk',
+            Event.city_id == city_id,
+            Event.start_date >= start_date,
+            Event.start_date <= end_date
+        ).all()
+        events.extend([event.to_dict() for event in photowalk_events])
     
     return jsonify(events)
 
@@ -1383,7 +1399,6 @@ def trigger_scraping():
         import json
         from datetime import datetime
         from scripts.venue_event_scraper import VenueEventScraper
-        from scripts.seed_dc_data import load_scraped_events
         
         # Get parameters from request
         data = request.get_json() or {}
@@ -1436,7 +1451,22 @@ def trigger_scraping():
             venue_ids=venue_ids
         )
         
-        # Step 2: Load events into database
+        # Save scraped events to file for loading
+        scraped_data = {
+            "metadata": {
+                "scraped_at": datetime.now().isoformat(),
+                "total_events": len(events_scraped),
+                "scraper_version": "2.0",
+                "venue_ids": venue_ids,
+                "city_id": city_id
+            },
+            "events": events_scraped
+        }
+        
+        with open('dc_scraped_data.json', 'w') as f:
+            json.dump(scraped_data, f, indent=2)
+        
+        # Step 2: Load events into database directly (already in app context)
         progress_data.update({
             'current_step': 3,
             'percentage': 70,
@@ -1446,11 +1476,63 @@ def trigger_scraping():
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        # Load scraped events into database
-        success = load_scraped_events()
+        # Load events directly into database (we're already in app context)
+        events_loaded = 0
+        for event_data in events_scraped:
+            try:
+                # Create new event
+                event = Event()
+                event.title = event_data.get('title', 'Untitled Event')
+                event.description = event_data.get('description', '')
+                event.event_type = event_data.get('event_type', 'tour')
+                event.url = event_data.get('url', '')
+                event.image_url = event_data.get('image_url', '')
+                
+                # Dates and times
+                start_date_str = event_data.get('start_date')
+                if start_date_str:
+                    from datetime import datetime as dt
+                    event.start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
+                else:
+                    from datetime import date
+                    event.start_date = date.today()
+                
+                end_date_str = event_data.get('end_date')
+                if end_date_str:
+                    event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
+                
+                # Times
+                start_time_str = event_data.get('start_time')
+                if start_time_str and start_time_str != 'None':
+                    event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
+                
+                end_time_str = event_data.get('end_time')
+                if end_time_str and end_time_str != 'None':
+                    event.end_time = dt.strptime(end_time_str, '%H:%M:%S').time()
+                
+                # Location and venue
+                event.start_location = event_data.get('start_location', '')
+                event.venue_id = event_data.get('venue_id')
+                event.city_id = event_data.get('city_id', city_id)
+                
+                # Source info
+                event.source = 'website'
+                event.source_url = event_data.get('source_url', '')
+                event.organizer = event_data.get('organizer', '')
+                
+                db.session.add(event)
+                events_loaded += 1
+            except Exception as e:
+                app_logger.error(f"Error loading event: {e}")
+                continue
         
-        if not success:
-            app_logger.error("Failed to load events into database")
+        # Commit all events
+        try:
+            db.session.commit()
+            app_logger.info(f"Successfully loaded {events_loaded} events into database")
+        except Exception as e:
+            db.session.rollback()
+            app_logger.error(f"Failed to commit events: {e}")
             return jsonify({
                 'error': 'Database loading failed'
             }), 500
@@ -1459,25 +1541,21 @@ def trigger_scraping():
         progress_data.update({
             'current_step': 3,
             'percentage': 100,
-            'message': f'Scraping complete! Found {events_scraped} events.'
+            'message': f'Scraping complete! Found {events_loaded} events.'
         })
         
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        events_added = events_scraped
-        
-        app_logger.info(f"Scraping completed: {events_added} events added")
+        app_logger.info(f"Scraping completed: {events_loaded} events added")
         
         return jsonify({
             'message': f'Scraping completed successfully for {city_name}',
-            'events_added': events_added,
+            'events_added': events_loaded,
             'city': city_name,
             'event_type': event_type,
             'time_range': time_range,
-            'venue_count': len(venue_ids),
-            'scraper_output': scraper_result.stdout,
-            'seed_output': seed_result.stdout
+            'venue_count': len(venue_ids)
         })
         
     except Exception as e:

@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-09-18",
+    "created": "2025-10-04",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 37,
-    "last_updated": "2025-09-18 18:50:46"
+    "total_sources": 49,
+    "last_updated": "2025-10-08 16:05:00"
   },
   "sources": {
     "1": {
@@ -19,12 +19,12 @@
       "event_types": "[\"cultural_events\", \"language_classes\", \"art_exhibitions\", \"film_screenings\", \"lectures\", \"workshops\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "daily",
-      "notes": "Highly reliable French cultural institution. Regular posting of cultural events, language classes, and French cultural activities. Excellent source for Francophone community events.",
-      "scraping_pattern": "Look for posts about cultural events, art exhibitions, film screenings, language classes, and French cultural activities. Monitor hashtags like #FrenchCulture, #AllianceFrançaise, #WashingtonDC, #CulturalEvents.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.001010",
-      "updated_at": "2025-09-18T22:50:39.754656"
+      "created_at": "2025-09-25T17:46:04.292014",
+      "updated_at": "2025-09-25T17:46:04.292021"
     },
     "2": {
       "name": "City Cast DC",
@@ -38,12 +38,12 @@
       "event_types": "[\"political_events\", \"community_events\", \"cultural_events\", \"local_news\", \"interviews\", \"podcasts\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "daily",
-      "notes": "Highly reliable local news source. Daily posting of DC news, events, and community happenings. Excellent for political and cultural events in DC.",
-      "scraping_pattern": "Look for posts about local events, political happenings, community news, and DC culture. Monitor hashtags like #DCPolitics, #WashingtonDC, #LocalNews, #CommunityEvents.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.002366",
-      "updated_at": "2025-09-18T22:50:39.754680"
+      "created_at": "2025-09-25T17:46:04.292082",
+      "updated_at": "2025-09-25T17:46:04.292083"
     },
     "3": {
       "name": "DC 4 Free",
@@ -57,12 +57,12 @@
       "event_types": "[\"free_events\", \"community_events\", \"cultural_events\", \"family_events\", \"outdoor_events\", \"festivals\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "weekly",
-      "notes": "Good source for free events and activities in DC. Regular posting of budget-friendly entertainment options and community events.",
-      "scraping_pattern": "Look for posts about free events, activities, and attractions. Monitor hashtags like #FreeEvents, #DC4Free, #BudgetFriendly, #CommunityEvents.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.002945",
-      "updated_at": "2025-09-18T22:50:39.754695"
+      "created_at": "2025-09-25T17:46:04.292115",
+      "updated_at": "2025-09-25T17:46:04.292116"
     },
     "4": {
       "name": "DC Art All Night",
@@ -76,12 +76,12 @@
       "event_types": "[\"art_events\", \"gallery_openings\", \"cultural_events\", \"artist_showcases\", \"art_walks\", \"exhibitions\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "monthly",
-      "notes": "Annual event with strong community presence. Good source for art-related events and local artist showcases in DC.",
-      "scraping_pattern": "Look for posts about art events, gallery openings, and artist showcases. Monitor hashtags like #DCArt, #ArtAllNight, #LocalArtists, #GalleryOpenings.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.003436",
-      "updated_at": "2025-09-18T22:50:39.754706"
+      "created_at": "2025-09-25T17:46:04.292134",
+      "updated_at": "2025-09-25T17:46:04.292135"
     },
     "5": {
       "name": "DC Arts Events",
@@ -95,12 +95,12 @@
       "event_types": "[\"theater\", \"music\", \"dance\", \"visual_arts\", \"cultural_events\", \"performances\", \"exhibitions\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "daily",
-      "notes": "Reliable source for comprehensive arts coverage in DC. Regular posting of theater, music, dance, and visual arts events.",
-      "scraping_pattern": "Look for posts about theater, music, dance, and visual arts events. Monitor hashtags like #DCArts, #Theater, #Music, #Dance, #VisualArts.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.003891",
-      "updated_at": "2025-09-18T22:50:39.754718"
+      "created_at": "2025-09-25T17:46:04.292152",
+      "updated_at": "2025-09-25T17:46:04.292153"
     },
     "6": {
       "name": "DC Improv",
@@ -114,12 +114,12 @@
       "event_types": "[\"comedy\", \"stand_up\", \"improv\", \"entertainment\", \"live_shows\", \"comedy_clubs\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "daily",
-      "notes": "Highly reliable comedy venue. Daily posting of comedy shows, stand-up events, and entertainment. Excellent source for comedy and entertainment events.",
-      "scraping_pattern": "Look for posts about comedy shows, stand-up events, and entertainment. Monitor hashtags like #Comedy, #StandUp, #Improv, #Entertainment, #LiveShows.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.004335",
-      "updated_at": "2025-09-18T22:50:39.754726"
+      "created_at": "2025-09-25T17:46:04.292176",
+      "updated_at": "2025-09-25T17:46:04.292177"
     },
     "7": {
       "name": "DC Public Library",
@@ -133,12 +133,12 @@
       "event_types": "[\"library_events\", \"workshops\", \"community_events\", \"educational_programs\", \"book_clubs\", \"children_events\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "daily",
-      "notes": "Highly reliable public institution. Daily posting of free programs, workshops, and community events. Excellent source for educational and community programming.",
-      "scraping_pattern": "Look for posts about library programs, workshops, and community events. Monitor hashtags like #Library, #FreePrograms, #Workshops, #CommunityEvents.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.004765",
-      "updated_at": "2025-09-18T22:50:39.754734"
+      "created_at": "2025-09-25T17:46:04.292194",
+      "updated_at": "2025-09-25T17:46:04.292194"
     },
     "8": {
       "name": "DC Spot",
@@ -152,12 +152,12 @@
       "event_types": "[\"restaurant_events\", \"nightlife\", \"cultural_events\", \"entertainment\", \"lifestyle\", \"local_recommendations\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "weekly",
-      "notes": "Good source for lifestyle and entertainment in DC. Regular posting of restaurant events, nightlife, and cultural happenings.",
-      "scraping_pattern": "Look for posts about restaurants, nightlife, and cultural events. Monitor hashtags like #DCRestaurants, #Nightlife, #Entertainment, #Lifestyle.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.005197",
-      "updated_at": "2025-09-18T22:50:39.754742"
+      "created_at": "2025-09-25T17:46:04.292209",
+      "updated_at": "2025-09-25T17:46:04.292209"
     },
     "9": {
       "name": "DC Women Photographers",
@@ -171,12 +171,12 @@
       "event_types": "[\"photography_workshops\", \"exhibitions\", \"networking_events\", \"photography_education\", \"women_events\", \"professional_development\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "weekly",
-      "notes": "Reliable source for photography events and women-focused programming. Regular posting of workshops, exhibitions, and networking events.",
-      "scraping_pattern": "Look for posts about photography workshops, exhibitions, and networking events. Monitor hashtags like #Photography, #WomenPhotographers, #Workshops, #Exhibitions.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.005577",
-      "updated_at": "2025-09-18T22:50:39.754749"
+      "created_at": "2025-09-25T17:46:04.292221",
+      "updated_at": "2025-09-25T17:46:04.292221"
     },
     "10": {
       "name": "Eastern Market DC",
@@ -190,12 +190,12 @@
       "event_types": "[\"market_events\", \"food_events\", \"artisan_events\", \"community_events\", \"farmers_market\", \"local_vendors\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "daily",
-      "notes": "Highly reliable community market. Daily posting of market events, vendor highlights, and community activities. Excellent source for local food and artisan events.",
-      "scraping_pattern": "Look for posts about market events, vendor highlights, and community activities. Monitor hashtags like #EasternMarket, #FarmersMarket, #LocalVendors, #CommunityEvents.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.005958",
-      "updated_at": "2025-09-18T22:50:39.754756"
+      "created_at": "2025-09-25T17:46:04.292233",
+      "updated_at": "2025-09-25T17:46:04.292233"
     },
     "11": {
       "name": "Events DC",
@@ -213,8 +213,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.006336",
-      "updated_at": "2025-09-15T19:29:03.006337"
+      "created_at": "2025-09-25T17:46:04.292244",
+      "updated_at": "2025-09-25T17:46:04.292245"
     },
     "12": {
       "name": "Film Festival DC",
@@ -232,8 +232,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.006716",
-      "updated_at": "2025-09-15T19:29:03.006717"
+      "created_at": "2025-09-25T17:46:04.292256",
+      "updated_at": "2025-09-25T17:46:04.292257"
     },
     "13": {
       "name": "International Spy Museum",
@@ -251,8 +251,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.007089",
-      "updated_at": "2025-09-15T19:29:03.007090"
+      "created_at": "2025-09-25T17:46:04.292268",
+      "updated_at": "2025-09-25T17:46:04.292268"
     },
     "14": {
       "name": "Joy Raft DC",
@@ -270,8 +270,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.007457",
-      "updated_at": "2025-09-15T19:29:03.007458"
+      "created_at": "2025-09-25T17:46:04.292279",
+      "updated_at": "2025-09-25T17:46:04.292280"
     },
     "15": {
       "name": "Leica Store DC",
@@ -289,8 +289,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.007904",
-      "updated_at": "2025-09-15T19:29:03.007905"
+      "created_at": "2025-09-25T17:46:04.292291",
+      "updated_at": "2025-09-25T17:46:04.292291"
     },
     "16": {
       "name": "National Air and Space Museum",
@@ -308,8 +308,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.008276",
-      "updated_at": "2025-09-15T19:29:03.008277"
+      "created_at": "2025-09-25T17:46:04.292303",
+      "updated_at": "2025-09-25T17:46:04.292303"
     },
     "17": {
       "name": "National Gallery of Art",
@@ -327,8 +327,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.008645",
-      "updated_at": "2025-09-15T19:29:03.008646"
+      "created_at": "2025-09-25T17:46:04.292314",
+      "updated_at": "2025-09-25T17:46:04.292315"
     },
     "18": {
       "name": "National Portrait Gallery",
@@ -346,8 +346,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.009014",
-      "updated_at": "2025-09-15T19:29:03.009015"
+      "created_at": "2025-09-25T17:46:04.292326",
+      "updated_at": "2025-09-25T17:46:04.292326"
     },
     "19": {
       "name": "Portrait Meet DC",
@@ -365,8 +365,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.009385",
-      "updated_at": "2025-09-15T19:29:03.009386"
+      "created_at": "2025-09-25T17:46:04.292337",
+      "updated_at": "2025-09-25T17:46:04.292338"
     },
     "20": {
       "name": "Secret Washington DC",
@@ -384,8 +384,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.009750",
-      "updated_at": "2025-09-15T19:29:03.009751"
+      "created_at": "2025-09-25T17:46:04.292348",
+      "updated_at": "2025-09-25T17:46:04.292349"
     },
     "21": {
       "name": "Smithsonian",
@@ -403,8 +403,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.010112",
-      "updated_at": "2025-09-15T19:29:03.010113"
+      "created_at": "2025-09-25T17:46:04.292360",
+      "updated_at": "2025-09-25T17:46:04.292360"
     },
     "22": {
       "name": "Smithsonian Arthur M. Sackler Gallery",
@@ -422,8 +422,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.010476",
-      "updated_at": "2025-09-15T19:29:03.010477"
+      "created_at": "2025-09-25T17:46:04.292371",
+      "updated_at": "2025-09-25T17:46:04.292372"
     },
     "23": {
       "name": "Smithsonian Freer Gallery of Art",
@@ -441,8 +441,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.010848",
-      "updated_at": "2025-09-15T19:29:03.010849"
+      "created_at": "2025-09-25T17:46:04.292383",
+      "updated_at": "2025-09-25T17:46:04.292383"
     },
     "24": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -460,8 +460,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.011208",
-      "updated_at": "2025-09-15T19:29:03.011208"
+      "created_at": "2025-09-25T17:46:04.292395",
+      "updated_at": "2025-09-25T17:46:04.292395"
     },
     "25": {
       "name": "Smithsonian National Museum of African American History and Culture",
@@ -479,8 +479,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.011538",
-      "updated_at": "2025-09-15T19:29:03.011539"
+      "created_at": "2025-09-25T17:46:04.292406",
+      "updated_at": "2025-09-25T17:46:04.292406"
     },
     "26": {
       "name": "Smithsonian National Museum of American History",
@@ -498,8 +498,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.011868",
-      "updated_at": "2025-09-15T19:29:03.011869"
+      "created_at": "2025-09-25T17:46:04.292417",
+      "updated_at": "2025-09-25T17:46:04.292418"
     },
     "27": {
       "name": "Smithsonian National Museum of Natural History",
@@ -517,8 +517,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.012225",
-      "updated_at": "2025-09-15T19:29:03.012226"
+      "created_at": "2025-09-25T17:46:04.292429",
+      "updated_at": "2025-09-25T17:46:04.292429"
     },
     "28": {
       "name": "Smithsonian National Museum of the American Indian",
@@ -536,8 +536,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.012559",
-      "updated_at": "2025-09-15T19:29:03.012560"
+      "created_at": "2025-09-25T17:46:04.292440",
+      "updated_at": "2025-09-25T17:46:04.292441"
     },
     "29": {
       "name": "Street Meet DC",
@@ -555,8 +555,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.012908",
-      "updated_at": "2025-09-15T19:29:03.012909"
+      "created_at": "2025-09-25T17:46:04.292451",
+      "updated_at": "2025-09-25T17:46:04.292452"
     },
     "30": {
       "name": "The Phillips Collection",
@@ -574,8 +574,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.013241",
-      "updated_at": "2025-09-15T19:29:03.013242"
+      "created_at": "2025-09-25T17:46:04.292463",
+      "updated_at": "2025-09-25T17:46:04.292463"
     },
     "31": {
       "name": "United States Holocaust Memorial Museum",
@@ -593,8 +593,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.013568",
-      "updated_at": "2025-09-15T19:29:03.013569"
+      "created_at": "2025-09-25T17:46:04.292474",
+      "updated_at": "2025-09-25T17:46:04.292475"
     },
     "32": {
       "name": "Visit Washington DC",
@@ -612,8 +612,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.013895",
-      "updated_at": "2025-09-15T19:29:03.013896"
+      "created_at": "2025-09-25T17:46:04.292486",
+      "updated_at": "2025-09-25T17:46:04.292486"
     },
     "33": {
       "name": "Washington DC Photography Meetup",
@@ -631,8 +631,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.014227",
-      "updated_at": "2025-09-15T19:29:03.014228"
+      "created_at": "2025-09-25T17:46:04.292497",
+      "updated_at": "2025-09-25T17:46:04.292498"
     },
     "34": {
       "name": "Washington Improv Theater",
@@ -650,8 +650,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.014553",
-      "updated_at": "2025-09-15T19:29:03.014554"
+      "created_at": "2025-09-25T17:46:04.292509",
+      "updated_at": "2025-09-25T17:46:04.292509"
     },
     "35": {
       "name": "Washington National Cathedral",
@@ -669,8 +669,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.014880",
-      "updated_at": "2025-09-15T19:29:03.014881"
+      "created_at": "2025-09-25T17:46:04.292520",
+      "updated_at": "2025-09-25T17:46:04.292521"
     },
     "36": {
       "name": "Washingtonian Magazine",
@@ -688,8 +688,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-15T19:29:03.015167",
-      "updated_at": "2025-09-15T19:29:03.015168"
+      "created_at": "2025-09-25T17:46:04.292532",
+      "updated_at": "2025-09-25T17:46:04.292532"
     },
     "37": {
       "name": "Baltimore Scenes",
@@ -702,13 +702,241 @@
       "covered_cities": "",
       "event_types": "[\"photography\", \"community_events\", \"street_photography\", \"local_events\", \"art_shows\", \"cultural_events\"]",
       "is_active": true,
-      "reliability_score": 7.5,
-      "posting_frequency": "weekly",
-      "notes": "Baltimore-focused photography community account. Good source for local photography events, meetups, and community highlights. Regular posting of local scenes and events.",
-      "scraping_pattern": "Look for posts with hashtags like #Baltimore, #BaltimorePhotography, #BaltimoreEvents, #Maryland, #DMVPhotography. Focus on event announcements and community highlights.",
+      "reliability_score": 5.0,
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-18T22:01:19.269825",
-      "updated_at": "2025-09-18T22:45:24.358563"
+      "created_at": "2025-09-25T17:46:04.292543",
+      "updated_at": "2025-09-25T17:46:04.292543"
+    },
+    "38": {
+      "name": "NYC Arts",
+      "handle": "@nycarts",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/nycarts/",
+      "description": "Official NYC arts and culture account showcasing events, exhibitions, and cultural happenings across all five boroughs.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"art_exhibitions\", \"cultural_events\", \"gallery_openings\", \"artist_showcases\", \"visual_arts\", \"theater\", \"music\", \"dance\", \"performances\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "daily",
+      "notes": "Official NYC government arts account. Highly reliable source for major cultural events and exhibitions across NYC.",
+      "scraping_pattern": "Look for posts about art exhibitions, gallery openings, cultural events, and artist showcases. Monitor hashtags like #NYCArts, #NYCCulture, #ArtExhibitions, #GalleryOpenings.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.325947",
+      "updated_at": "2025-10-04T14:05:15.325952"
+    },
+    "39": {
+      "name": "Time Out New York",
+      "handle": "@timeoutnewyork",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/timeoutnewyork/",
+      "description": "Time Out New York covers the best events, restaurants, attractions, and cultural happenings in New York City.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"cultural_events\", \"food_events\", \"music\", \"theater\", \"art_exhibitions\", \"festivals\", \"community_events\", \"nightlife\", \"family_events\"]",
+      "is_active": true,
+      "reliability_score": 4.8,
+      "posting_frequency": "daily",
+      "notes": "Established NYC culture and events publication. Excellent source for comprehensive event coverage across all categories.",
+      "scraping_pattern": "Look for posts about events, exhibitions, concerts, theater, food events, and cultural happenings. Monitor hashtags like #TimeOutNYC, #NYCEvents, #NYCCulture, #NYCFood.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.327077",
+      "updated_at": "2025-10-04T14:05:15.327078"
+    },
+    "40": {
+      "name": "The Metropolitan Museum of Art",
+      "handle": "@metmuseum",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/metmuseum/",
+      "description": "The Met Museum's official Instagram showcasing exhibitions, events, and behind-the-scenes content from one of the world's greatest museums.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"art_exhibitions\", \"museum_events\", \"lectures\", \"workshops\", \"cultural_events\", \"artist_talks\", \"gallery_tours\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "daily",
+      "notes": "Official Met Museum account. Premier source for major art exhibitions, museum events, and cultural programming.",
+      "scraping_pattern": "Look for posts about new exhibitions, museum events, lectures, workshops, and special programming. Monitor hashtags like #MetMuseum, #ArtExhibitions, #NYCArt, #MuseumEvents.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.327419",
+      "updated_at": "2025-10-04T14:05:15.327420"
+    },
+    "41": {
+      "name": "MoMA",
+      "handle": "@themuseumofmodernart",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/themuseumofmodernart/",
+      "description": "Museum of Modern Art's official Instagram featuring contemporary art exhibitions, events, and modern art highlights.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"art_exhibitions\", \"contemporary_art\", \"museum_events\", \"artist_talks\", \"film_screenings\", \"performance_art\", \"workshops\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "daily",
+      "notes": "Official MoMA account. Leading source for contemporary art exhibitions, modern art events, and cutting-edge cultural programming.",
+      "scraping_pattern": "Look for posts about contemporary art exhibitions, modern art events, artist talks, film screenings, and performance art. Monitor hashtags like #MoMA, #ModernArt, #ContemporaryArt, #NYCArt.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.327671",
+      "updated_at": "2025-10-04T14:05:15.327671"
+    },
+    "42": {
+      "name": "Brooklyn Museum",
+      "handle": "@brooklynmuseum",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/brooklynmuseum/",
+      "description": "Brooklyn Museum's official Instagram showcasing diverse exhibitions, community events, and cultural programming.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"art_exhibitions\", \"cultural_events\", \"community_events\", \"artist_showcases\", \"workshops\", \"lectures\", \"family_events\"]",
+      "is_active": true,
+      "reliability_score": 4.9,
+      "posting_frequency": "daily",
+      "notes": "Official Brooklyn Museum account. Great source for diverse art exhibitions, community events, and Brooklyn cultural programming.",
+      "scraping_pattern": "Look for posts about art exhibitions, community events, artist showcases, workshops, and cultural programming. Monitor hashtags like #BrooklynMuseum, #BrooklynArt, #NYCArt, #CommunityEvents.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.327878",
+      "updated_at": "2025-10-04T14:05:15.327879"
+    },
+    "43": {
+      "name": "NYC Parks",
+      "handle": "@nycparks",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/nycparks/",
+      "description": "NYC Parks official Instagram featuring outdoor events, park activities, and nature-based programming across the city.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"outdoor_events\", \"park_events\", \"nature_events\", \"family_events\", \"fitness_events\", \"community_events\", \"seasonal_events\"]",
+      "is_active": true,
+      "reliability_score": 4.8,
+      "posting_frequency": "daily",
+      "notes": "Official NYC Parks account. Excellent source for outdoor events, park activities, and nature-based programming across all boroughs.",
+      "scraping_pattern": "Look for posts about park events, outdoor activities, nature programming, fitness events, and seasonal celebrations. Monitor hashtags like #NYCParks, #OutdoorEvents, #ParkEvents, #NYCNature.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.328074",
+      "updated_at": "2025-10-04T14:05:15.328075"
+    },
+    "44": {
+      "name": "Lincoln Center",
+      "handle": "@lincolncenter",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/lincolncenter/",
+      "description": "Lincoln Center's official Instagram showcasing world-class performing arts events, concerts, and cultural programming.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"music\", \"theater\", \"dance\", \"opera\", \"classical_music\", \"performances\", \"cultural_events\", \"concerts\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "daily",
+      "notes": "Official Lincoln Center account. Premier source for world-class performing arts events, classical music, opera, and cultural performances.",
+      "scraping_pattern": "Look for posts about concerts, performances, opera, classical music, theater, and dance events. Monitor hashtags like #LincolnCenter, #ClassicalMusic, #NYCTheater, #PerformingArts.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.328292",
+      "updated_at": "2025-10-04T14:05:15.328292"
+    },
+    "45": {
+      "name": "Brooklyn Academy of Music",
+      "handle": "@bam_brooklyn",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/bam_brooklyn/",
+      "description": "BAM's official Instagram featuring cutting-edge performances, contemporary art, and avant-garde cultural events.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"contemporary_art\", \"avant_garde\", \"experimental_theater\", \"dance\", \"music\", \"film_screenings\", \"cultural_events\", \"performances\"]",
+      "is_active": true,
+      "reliability_score": 4.9,
+      "posting_frequency": "daily",
+      "notes": "Official BAM account. Leading source for cutting-edge performances, experimental art, and avant-garde cultural programming.",
+      "scraping_pattern": "Look for posts about experimental performances, contemporary art, avant-garde events, film screenings, and cutting-edge cultural programming. Monitor hashtags like #BAM, #ExperimentalArt, #AvantGarde, #BrooklynCulture.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.328481",
+      "updated_at": "2025-10-04T14:05:15.328482"
+    },
+    "46": {
+      "name": "NYC.com",
+      "handle": "nyc.com",
+      "source_type": "website",
+      "url": "https://www.nyc.com",
+      "description": "Comprehensive NYC events calendar covering attractions, events, restaurants, and activities across all five boroughs.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"cultural_events\", \"attractions\", \"food_events\", \"music\", \"theater\", \"art_exhibitions\", \"festivals\", \"community_events\", \"family_events\"]",
+      "is_active": true,
+      "reliability_score": 4.5,
+      "posting_frequency": "daily",
+      "notes": "Comprehensive NYC events website. Good source for broad coverage of events and attractions across all categories.",
+      "scraping_pattern": "Look for event listings, attraction information, restaurant events, and activity recommendations. Monitor for event announcements and cultural programming updates.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.328680",
+      "updated_at": "2025-10-04T14:05:15.328681"
+    },
+    "47": {
+      "name": "Gothamist",
+      "handle": "@gothamist",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/gothamist/",
+      "description": "Gothamist covers NYC news, events, and culture with a focus on local happenings and community events.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"community_events\", \"cultural_events\", \"local_news\", \"political_events\", \"festivals\", \"neighborhood_events\", \"free_events\"]",
+      "is_active": true,
+      "reliability_score": 4.6,
+      "posting_frequency": "daily",
+      "notes": "Local NYC news and culture publication. Good source for community events, neighborhood happenings, and local cultural programming.",
+      "scraping_pattern": "Look for posts about community events, neighborhood happenings, local culture, festivals, and free events. Monitor hashtags like #Gothamist, #NYCLocal, #CommunityEvents, #NeighborhoodEvents.",
+      "last_checked": null,
+      "created_at": "2025-10-04T14:05:15.328890",
+      "updated_at": "2025-10-04T14:05:15.328890"
+    },
+    "48": {
+      "name": "Big Onion Walking Tours",
+      "handle": "bigonion.com",
+      "source_type": "website",
+      "url": "https://bigonion.com/our-tours/",
+      "description": "Big Onion Walking Tours offers historical and cultural walking tours throughout NYC. Founded in 1991, they provide in-depth guided tours exploring neighborhoods including Greenwich Village, Lower East Side, Brooklyn, Harlem, Financial District, and more. Tours focus on history, architecture, immigration, labor, social justice, and Revolutionary War era.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"tours\", \"walking_tours\", \"historical_tours\", \"cultural_events\", \"neighborhood_tours\", \"architecture_tours\", \"food_tours\", \"educational_events\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "weekly",
+      "notes": "Award-winning historical walking tour company. 'Best Place To Take Out Of Town Guests' - Village Voice 2014. Tours led by graduate students and historians. Covers all major NYC neighborhoods with themed tours including Revolutionary NY, Gangs of NY, Immigrant NY, Greenwich Village, Brooklyn Bridge, Harlem Renaissance, Jewish Lower East Side, and multi-ethnic food tours.",
+      "scraping_pattern": "Check the tours page for scheduled walking tours across NYC neighborhoods. Look for tour dates, times, meeting locations, and special themed tours. Tours typically include: Lower Manhattan, Greenwich Village, Brooklyn Heights, Central Park, Harlem, Lower East Side, Chelsea, East Village, Upper East Side, and specialty food/holiday tours.",
+      "last_checked": null,
+      "created_at": "2025-10-08T16:00:00.000000",
+      "updated_at": "2025-10-08T16:00:00.000000"
+    },
+    "49": {
+      "name": "Ellis Island Hard Hat Tours",
+      "handle": "saveellisisland.org",
+      "source_type": "website",
+      "url": "https://shop.saveellisisland.org/products/novelty-hard-hat-tour",
+      "description": "Save Ellis Island offers exclusive 90-minute Hard Hat Tours of the abandoned south side of Ellis Island, including the Contagious Disease Hospital abandoned since 1954. Tours run 7 days a week year-round with multiple daily time slots. Explore areas off-limits to the public including the morgue, laundry facility, kitchen, wards, and doctors residence. Features the Unframed Ellis Island exhibit by French artist JR.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"tours\", \"historical_tours\", \"architectural_tours\", \"photography_tours\", \"educational_events\", \"cultural_events\", \"museum_tours\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "daily",
+      "notes": "Unique Hard Hat Tours of Ellis Island's abandoned hospital buildings. Tours run daily from 10:30am to 4pm with 6 different time slots. Minimum age 10 years old. $55 per tour (ferry tickets sold separately). Proceeds support preservation efforts. Also offers Group Tours, Photography Tours, and School Programs. Contact: 201-332-8485 or reservations@saveellisisland.org",
+      "scraping_pattern": "Check tour availability and schedule for Hard Hat Tours. Daily tours at: 10:30am-12pm (Early Bird), 11:30am-1pm, 12pm-1:30pm, 12:30pm-2pm, 1:30pm-3pm, 2:30pm-4pm. Monitor special photography tours, group tours, and school programs. Look for seasonal events and special exhibits.",
+      "last_checked": null,
+      "created_at": "2025-10-08T16:05:00.000000",
+      "updated_at": "2025-10-08T16:05:00.000000"
     }
   }
 }

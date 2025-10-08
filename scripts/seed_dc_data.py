@@ -24,6 +24,9 @@ def load_scraped_events():
         return False
     
     try:
+        # Ensure we're in an app context
+        from flask import current_app
+        
         # Load scraped data
         with open('dc_scraped_data.json', 'r') as f:
             scraped_data = json.load(f)
@@ -31,8 +34,12 @@ def load_scraped_events():
         events_data = scraped_data.get('events', [])
         print(f"📊 Found {len(events_data)} events to load")
         
-        # Get Washington DC city
-        dc_city = City.query.filter_by(name='Washington').first()
+        # Get city from scraped data metadata (fallback to Washington)
+        city_id = scraped_data.get('metadata', {}).get('city_id')
+        if city_id:
+            dc_city = db.session.get(City, city_id)
+        else:
+            dc_city = City.query.filter_by(name='Washington').first()
         if not dc_city:
             print("❌ Washington DC city not found in database")
             return False

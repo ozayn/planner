@@ -52,8 +52,15 @@ class VenueEventScraper:
         })
         self.scraped_events = []
         
-    def scrape_venue_events(self, venue_ids=None, city_id=None):
-        """Scrape events from selected venues"""
+    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range=None):
+        """Scrape events from selected venues
+        
+        Args:
+            venue_ids: List of venue IDs to scrape
+            city_id: City ID to scrape venues from
+            event_type: Type of events to scrape (tour, exhibition, festival, photowalk)
+            time_range: Time range for events (today, tomorrow, this_week, next_week, this_month)
+        """
         try:
             with app.app_context():
                 # Get venues to scrape
