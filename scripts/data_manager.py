@@ -302,6 +302,31 @@ def load_sources_from_json():
                     if not city:
                         print(f"      ⚠️  City ID {city_id} not found in database, skipping...")
                         continue
+                    
+                    # Create source object
+                    source = Source(
+                        name=source_data.get('name'),
+                        handle=source_data.get('handle'),
+                        source_type=source_data.get('source_type'),
+                        url=source_data.get('url'),
+                        description=source_data.get('description'),
+                        city_id=city_id,
+                        covers_multiple_cities=source_data.get('covers_multiple_cities', False),
+                        covered_cities=source_data.get('covered_cities', ''),
+                        event_types=source_data.get('event_types', '[]'),
+                        is_active=source_data.get('is_active', True),
+                        reliability_score=source_data.get('reliability_score', 3.0),
+                        posting_frequency=source_data.get('posting_frequency', ''),
+                        notes=source_data.get('notes', ''),
+                        scraping_pattern=source_data.get('scraping_pattern', ''),
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    # Add to database
+                    db.session.add(source)
+                    total_sources_added += 1
+                    print(f"      ✅ Added to database (city_id: {city_id})")
             else:
                 # Old structure: organized by cities
                 for city_id, city_data in data.items():
