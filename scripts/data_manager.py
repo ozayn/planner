@@ -141,9 +141,12 @@ def load_venues_from_json():
     with open(venues_file, 'r') as f:
         data = json.load(f)
     
+    # Get venues data (handle both old and new JSON structure)
+    venues_data = data.get('venues', data)  # Try 'venues' key first, fallback to root
+    
     # Count total venues
-    total_venues = sum(len(city_data['venues']) for city_data in data.values() if isinstance(city_data, dict) and 'venues' in city_data)
-    total_cities = len([k for k, v in data.items() if isinstance(v, dict) and 'venues' in v])
+    total_venues = sum(len(city_data['venues']) for city_data in venues_data.values() if isinstance(city_data, dict) and 'venues' in city_data)
+    total_cities = len([k for k, v in venues_data.items() if isinstance(v, dict) and 'venues' in v])
     
     print(f"📊 Found {total_venues} venues across {total_cities} cities")
     print("=" * 60)
@@ -159,7 +162,7 @@ def load_venues_from_json():
             # Process each city
             total_venues_added = 0
             
-            for city_id, city_data in data.items():
+            for city_id, city_data in venues_data.items():
                 if not isinstance(city_data, dict) or 'venues' not in city_data:
                     continue
                     
