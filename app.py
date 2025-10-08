@@ -2613,6 +2613,71 @@ def export_cities_to_json():
         print(f"❌ Error exporting cities: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/reload-sources', methods=['POST'])
+def reload_sources_from_json():
+    """Reload sources from sources.json into database"""
+    try:
+        import json
+        from pathlib import Path
+        
+        app_logger.info("🔄 Reloading sources from sources.json...")
+        
+        sources_file = Path("data/sources.json")
+        if not sources_file.exists():
+            return jsonify({'error': 'sources.json not found'}), 404
+        
+        with open(sources_file, 'r') as f:
+            data = json.load(f)
+        
+        sources_data = data.get('sources', {})
+        total_sources = len(sources_data)
+        
+        app_logger.info(f"📊 Found {total_sources} sources in JSON")
+        
+        # Clear existing sources
+        app_logger.info("🧹 Clearing existing sources...")
+        Source.query.delete()
+        db.session.commit()
+        
+        # Load new sources
+        sources_loaded = 0
+        for source_id, source_info in sources_data.items():
+            try:
+                source = Source(
+                    name=source_info.get('name'),
+                    handle=source_info.get('handle'),
+                    source_type=source_info.get('source_type'),
+                    url=source_info.get('url'),
+                    description=source_info.get('description'),
+                    city_id=source_info.get('city_id'),
+                    covers_multiple_cities=source_info.get('covers_multiple_cities', False),
+                    covered_cities=source_info.get('covered_cities', ''),
+                    event_types=source_info.get('event_types', '[]'),
+                    is_active=source_info.get('is_active', True),
+                    reliability_score=source_info.get('reliability_score', 3.0),
+                    posting_frequency=source_info.get('posting_frequency', ''),
+                    notes=source_info.get('notes', ''),
+                    scraping_pattern=source_info.get('scraping_pattern', '')
+                )
+                db.session.add(source)
+                sources_loaded += 1
+            except Exception as e:
+                app_logger.error(f"Error loading source {source_info.get('name')}: {e}")
+                continue
+        
+        db.session.commit()
+        app_logger.info(f"✅ Successfully loaded {sources_loaded} sources")
+        
+        return jsonify({
+            'message': f'Successfully reloaded {sources_loaded} sources',
+            'total_sources': sources_loaded
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error reloading sources: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/export-sources', methods=['POST'])
 def export_sources_to_json():
     """Export all sources from database to JSON file (matches sources.json format)"""
