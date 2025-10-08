@@ -1732,7 +1732,8 @@
             
             if (cityId) {
                 // Update currentCity for discovered events
-                currentCity = { id: parseInt(cityId) };
+                const selectedOption = citySelect.options[citySelect.selectedIndex];
+                currentCity = selectedOption ? selectedOption.textContent : 'Selected City';
                 
                 // Show source type controls when city is selected
                 if (platformGroup) platformGroup.style.display = 'block';
@@ -3138,7 +3139,7 @@
                     <div class="events-date-info">
                         <h3>🗓️ Events Found</h3>
                         <p class="search-date">Search performed on ${currentDate} at ${currentTime}</p>
-                        <p class="events-count">Found ${events.length} ${currentEventType} in ${currentCity}</p>
+                        <p class="events-count">Found ${events.length} ${currentEventType || 'event'}${events.length !== 1 ? 's' : ''} in ${currentCity || 'selected city'}</p>
                     </div>
                 </div>
             `;
@@ -3893,7 +3894,8 @@
             
             // Load discovered events if a city is already selected
             if (citySelect.value) {
-                currentCity = { id: parseInt(citySelect.value) };
+                const selectedOption = citySelect.options[citySelect.selectedIndex];
+                currentCity = selectedOption ? selectedOption.textContent : 'Selected City';
                 loadDiscoveredEvents();
             }
 
