@@ -477,18 +477,33 @@ class VenueEventScraper:
         # Filter out overly generic single-word titles
         generic_titles = [
             'tour', 'tours', 'visit', 'admission', 'hours', 
-            'tickets', 'information', 'about', 'overview', 'home'
+            'tickets', 'information', 'about', 'overview', 'home',
+            'location', 'contact', 'directions', 'address'
         ]
         if title in generic_titles:
             return False
         
-        # Very lenient validation - accept almost anything with a title
-        # Only filter out if it's completely empty or just generic words
-        if len(title) < 3:
+        # Filter out very short or generic titles
+        if len(title) < 5:
             return False
         
-        # Accept any event that has a title longer than 3 characters
-        # Even TBD events are valid if they have location/details
+        # Must have either a specific time OR a URL OR a meaningful description
+        has_specific_time = event_data.get('start_time') is not None
+        has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
+        has_meaningful_description = description and len(description) >= 30
+        
+        # Reject if it has none of the above
+        if not (has_specific_time or has_url or has_meaningful_description):
+            return False
+        
+        # Additional quality checks
+        # Reject if description is just a location/address without event info
+        location_indicators = ['meet your driver', 'meet at', 'pickup location', 'departure point']
+        if any(indicator in description for indicator in location_indicators):
+            # Only allow if it also has other meaningful content
+            if not (has_specific_time or has_url or len(description) >= 100):
+                return False
+        
         return True
     
     def _scrape_instagram_events(self, venue):
