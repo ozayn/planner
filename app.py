@@ -1485,7 +1485,20 @@ def trigger_scraping():
             all_events.extend(source_events)
             app_logger.info(f"Scraped {len(source_events)} events from sources")
         
-        events_scraped = all_events
+        # Final deduplication across all scraped events
+        unique_events = {}
+        for event in all_events:
+            # Create unique key based on title, date, and location
+            title_clean = event.get('title', '').lower().strip()
+            date_key = event.get('start_time', '')[:10] if event.get('start_time') else ''
+            location_key = event.get('venue_id', '') or event.get('source_id', '')
+            event_key = f"{title_clean}_{date_key}_{location_key}"
+            
+            if event_key not in unique_events:
+                unique_events[event_key] = event
+        
+        events_scraped = list(unique_events.values())
+        app_logger.info(f"After deduplication: {len(events_scraped)} unique events (removed {len(all_events) - len(events_scraped)} duplicates)")
         app_logger.info(f"Total events scraped: {len(events_scraped)}")
         
         # Save scraped events to file for loading

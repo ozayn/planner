@@ -71,12 +71,20 @@ class SourceEventScraper:
                             logger.info(f"Source type '{source.source_type}' not yet supported for {source.name}")
                             events = []
                         
-                        # Add unique events only
+                        # Add unique events only with better deduplication
                         for event in events:
-                            event_key = f"{event['title']}_{event.get('start_date')}"
+                            # Create a more comprehensive unique key
+                            title_clean = event['title'].lower().strip()
+                            date_key = event.get('start_time', '')[:10] if event.get('start_time') else ''
+                            source_key = f"{source.name}_{source.id}"
+                            event_key = f"{title_clean}_{date_key}_{source_key}"
+                            
                             if event_key not in unique_events:
                                 unique_events.add(event_key)
                                 self.scraped_events.append(event)
+                                logger.debug(f"✅ Added unique event: {event['title']}")
+                            else:
+                                logger.debug(f"⚠️ Skipped duplicate event: {event['title']}")
                         
                         # Rate limiting
                         import time

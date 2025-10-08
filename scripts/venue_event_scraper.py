@@ -99,12 +99,19 @@ class VenueEventScraper:
                         update_progress(2, 4, f"Scraping {venue.name}...")
                         events = self._scrape_venue_website(venue)
                         
-                        # Add unique events only
+                        # Add unique events only with better deduplication
                         for event in events:
-                            event_key = f"{event['title']}_{event['venue_id']}"
+                            # Create a more comprehensive unique key
+                            title_clean = event['title'].lower().strip()
+                            date_key = event.get('start_time', '')[:10] if event.get('start_time') else ''
+                            event_key = f"{title_clean}_{date_key}_{venue.id}"
+                            
                             if event_key not in unique_events:
                                 unique_events.add(event_key)
                                 self.scraped_events.append(event)
+                                logger.debug(f"✅ Added unique event: {event['title']}")
+                            else:
+                                logger.debug(f"⚠️ Skipped duplicate event: {event['title']}")
                         
                         # Also try social media if available
                         if venue.instagram_url:
