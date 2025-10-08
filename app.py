@@ -2722,6 +2722,8 @@ def reload_cities_from_json():
             data = json.load(f)
         
         cities_data = data.get('cities', data)
+        if not cities_data:
+            return jsonify({'error': 'No cities found in cities.json'}), 404
         total_cities = len(cities_data)
         
         app_logger.info(f"📊 Found {total_cities} cities in JSON")
@@ -2738,12 +2740,8 @@ def reload_cities_from_json():
                 city = City(
                     name=city_info.get('name'),
                     country=city_info.get('country'),
-                    state_province=city_info.get('state_province'),
-                    latitude=city_info.get('latitude'),
-                    longitude=city_info.get('longitude'),
-                    timezone=city_info.get('timezone'),
-                    population=city_info.get('population'),
-                    description=city_info.get('description', '')
+                    state=city_info.get('state'),
+                    timezone=city_info.get('timezone')
                 )
                 db.session.add(city)
                 cities_loaded += 1
