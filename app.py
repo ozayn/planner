@@ -1532,22 +1532,42 @@ def trigger_scraping():
         events_loaded = 0
         for event_data in events_scraped:
             try:
+                # Check for existing duplicate events before adding
+                title = event_data.get('title', 'Untitled Event')
+                venue_id = event_data.get('venue_id')
+                city_id_event = event_data.get('city_id', city_id)
+                start_date_str = event_data.get('start_date')
+                
+                # Create a unique key for duplicate checking
+                from datetime import datetime as dt
+                if start_date_str:
+                    start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
+                else:
+                    from datetime import date
+                    start_date = date.today()
+                
+                # Check if identical event already exists
+                existing_event = Event.query.filter_by(
+                    title=title,
+                    venue_id=venue_id,
+                    city_id=city_id_event,
+                    start_date=start_date
+                ).first()
+                
+                if existing_event:
+                    app_logger.info(f"⚠️ Skipped duplicate event in database: '{title}'")
+                    continue
+                
                 # Create new event
                 event = Event()
-                event.title = event_data.get('title', 'Untitled Event')
+                event.title = title
                 event.description = event_data.get('description', '')
                 event.event_type = event_data.get('event_type', 'tour')
                 event.url = event_data.get('url', '')
                 event.image_url = event_data.get('image_url', '')
                 
                 # Dates and times
-                start_date_str = event_data.get('start_date')
-                if start_date_str:
-                    from datetime import datetime as dt
-                    event.start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
-                else:
-                    from datetime import date
-                    event.start_date = date.today()
+                event.start_date = start_date
                 
                 end_date_str = event_data.get('end_date')
                 if end_date_str:
@@ -1564,8 +1584,8 @@ def trigger_scraping():
                 
                 # Location and venue
                 event.start_location = event_data.get('start_location', '')
-                event.venue_id = event_data.get('venue_id')
-                event.city_id = event_data.get('city_id', city_id)
+                event.venue_id = venue_id
+                event.city_id = city_id_event
                 
                 # Source info
                 event.source = 'website'
@@ -1574,6 +1594,7 @@ def trigger_scraping():
                 
                 db.session.add(event)
                 events_loaded += 1
+                app_logger.info(f"✅ Added new event to database: '{title}'")
             except Exception as e:
                 app_logger.error(f"Error loading event: {e}")
                 continue
@@ -2624,6 +2645,64 @@ def export_cities_to_json():
         
     except Exception as e:
         print(f"❌ Error exporting cities: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/clean-duplicates', methods=['POST'])
+def clean_duplicate_events():
+    """Remove duplicate events from database"""
+    try:
+        from sqlalchemy import func
+        
+        app_logger.info("🧹 Cleaning duplicate events from database...")
+        
+        # Find duplicates based on title, venue_id, city_id, start_date
+        duplicates = db.session.query(
+            Event.title,
+            Event.venue_id,
+            Event.city_id,
+            Event.start_date,
+            func.count(Event.id).label('count')
+        ).group_by(
+            Event.title,
+            Event.venue_id,
+            Event.city_id,
+            Event.start_date
+        ).having(func.count(Event.id) > 1).all()
+        
+        total_duplicates = 0
+        for duplicate in duplicates:
+            title, venue_id, city_id, start_date, count = duplicate
+            
+            # Keep the first event, delete the rest
+            events_to_keep = Event.query.filter_by(
+                title=title,
+                venue_id=venue_id,
+                city_id=city_id,
+                start_date=start_date
+            ).order_by(Event.id).limit(1).all()
+            
+            events_to_delete = Event.query.filter_by(
+                title=title,
+                venue_id=venue_id,
+                city_id=city_id,
+                start_date=start_date
+            ).order_by(Event.id).offset(1).all()
+            
+            for event in events_to_delete:
+                db.session.delete(event)
+                total_duplicates += 1
+        
+        db.session.commit()
+        app_logger.info(f"✅ Removed {total_duplicates} duplicate events")
+        
+        return jsonify({
+            'message': f'Successfully removed {total_duplicates} duplicate events',
+            'duplicates_removed': total_duplicates
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error cleaning duplicates: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/reload-sources', methods=['POST'])
