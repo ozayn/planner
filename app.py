@@ -2705,6 +2705,65 @@ def clean_duplicate_events():
         app_logger.error(f"Error cleaning duplicates: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/reload-cities', methods=['POST'])
+def reload_cities_from_json():
+    """Reload cities from cities.json into database"""
+    try:
+        import json
+        from pathlib import Path
+        
+        app_logger.info("🔄 Reloading cities from cities.json...")
+        
+        cities_file = Path("data/cities.json")
+        if not cities_file.exists():
+            return jsonify({'error': 'cities.json not found'}), 404
+        
+        with open(cities_file, 'r') as f:
+            data = json.load(f)
+        
+        cities_data = data.get('cities', data)
+        total_cities = len(cities_data)
+        
+        app_logger.info(f"📊 Found {total_cities} cities in JSON")
+        
+        # Clear existing cities
+        app_logger.info("🧹 Clearing existing cities...")
+        City.query.delete()
+        db.session.commit()
+        
+        # Load new cities
+        cities_loaded = 0
+        for city_id, city_info in cities_data.items():
+            try:
+                city = City(
+                    name=city_info.get('name'),
+                    country=city_info.get('country'),
+                    state_province=city_info.get('state_province'),
+                    latitude=city_info.get('latitude'),
+                    longitude=city_info.get('longitude'),
+                    timezone=city_info.get('timezone'),
+                    population=city_info.get('population'),
+                    description=city_info.get('description', '')
+                )
+                db.session.add(city)
+                cities_loaded += 1
+            except Exception as e:
+                app_logger.error(f"Error loading city {city_info.get('name')}: {e}")
+                continue
+        
+        db.session.commit()
+        app_logger.info(f"✅ Successfully loaded {cities_loaded} cities")
+        
+        return jsonify({
+            'message': f'Successfully reloaded {cities_loaded} cities',
+            'total_cities': cities_loaded
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error reloading cities: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/reload-sources', methods=['POST'])
 def reload_sources_from_json():
     """Reload sources from sources.json into database"""
