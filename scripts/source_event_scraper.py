@@ -201,9 +201,11 @@ class SourceEventScraper:
             
             # Validate event quality
             if not self._is_valid_event(event_data):
-                logger.debug(f"Skipping low-quality event: {title}")
+                logger.info(f"⚠️ Filtered out: '{title}' - Reason: Quality check failed")
+                logger.debug(f"   Has time: {event_data.get('start_time') is not None}, Has URL: {event_data.get('url') != event_data.get('source_url')}, Description length: {len(description or '')}")
                 return None
             
+            logger.info(f"✅ Valid event found: '{title}'")
             return event_data
             
         except Exception as e:

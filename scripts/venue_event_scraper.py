@@ -288,9 +288,11 @@ class VenueEventScraper:
             
             # Validate event quality before returning
             if not self._is_valid_event(event_data):
-                logger.debug(f"Skipping low-quality event: {title}")
+                logger.info(f"⚠️ Filtered out: '{title}' - Reason: Quality check failed")
+                logger.debug(f"   Has time: {event_data.get('start_time') is not None}, Has URL: {event_data.get('url') != event_data.get('source_url')}, Description length: {len(description)}")
                 return None
             
+            logger.info(f"✅ Valid event found: '{title}'")
             return event_data
             
         except Exception as e:
@@ -465,38 +467,30 @@ class VenueEventScraper:
         title = event_data.get('title', '').lower()
         description = event_data.get('description', '').lower()
         
-        # Filter out overly generic titles
+        # Filter out overly generic single-word titles
         generic_titles = [
-            'tour', 'tours', 'visit', 'admission', 'hours', 'general admission',
-            'tickets', 'information', 'about', 'overview'
+            'tour', 'tours', 'visit', 'admission', 'hours', 
+            'tickets', 'information', 'about', 'overview', 'home'
         ]
         if title.strip() in generic_titles:
             return False
         
-        # Must have either a specific time OR a URL to more info
+        # Must have either a specific time OR a URL to more info OR a decent description
         has_specific_time = event_data.get('start_time') is not None
         has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
+        has_description = description and len(description) >= 20
         
-        # If no specific time, must have URL and decent description
-        if not has_specific_time:
-            if not has_url:
-                return False
-            # Must have a description if no specific time
-            if not description or len(description) < 20:
-                return False
+        # Allow if it has at least one of: time, URL, or description
+        if not (has_specific_time or has_url or has_description):
+            return False
         
-        # Filter out "availability" descriptions (not actual events)
-        availability_keywords = [
-            'available daily', 'open daily', 'varies by', 'tbd', 'to be determined',
-            'check website', 'visit website', 'call for', 'contact for'
-        ]
+        # Less strict on "TBD" - only filter if it has ONLY TBD and nothing else useful
         combined_text = f"{title} {description}".lower()
-        if any(keyword in combined_text for keyword in availability_keywords):
-            # Only allow if it has a specific URL to booking/schedule page
-            if not (has_url and ('schedule' in event_data['url'].lower() or 
-                                 'book' in event_data['url'].lower() or
-                                 'tour' in event_data['url'].lower())):
-                return False
+        if 'tbd' in combined_text or 'to be determined' in combined_text:
+            # Allow if it has a booking/schedule URL or decent description
+            if has_url or (has_description and len(description) >= 50):
+                return True
+            return False
         
         return True
     
