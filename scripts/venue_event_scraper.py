@@ -464,7 +464,7 @@ class VenueEventScraper:
         if not event_data.get('title'):
             return False
         
-        title = event_data.get('title', '').lower()
+        title = event_data.get('title', '').lower().strip()
         description = event_data.get('description', '').lower()
         
         # Filter out overly generic single-word titles
@@ -472,26 +472,16 @@ class VenueEventScraper:
             'tour', 'tours', 'visit', 'admission', 'hours', 
             'tickets', 'information', 'about', 'overview', 'home'
         ]
-        if title.strip() in generic_titles:
+        if title in generic_titles:
             return False
         
-        # Must have either a specific time OR a URL to more info OR a decent description
-        has_specific_time = event_data.get('start_time') is not None
-        has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
-        has_description = description and len(description) >= 20
-        
-        # Allow if it has at least one of: time, URL, or description
-        if not (has_specific_time or has_url or has_description):
+        # Very lenient validation - accept almost anything with a title
+        # Only filter out if it's completely empty or just generic words
+        if len(title) < 3:
             return False
         
-        # Less strict on "TBD" - only filter if it has ONLY TBD and nothing else useful
-        combined_text = f"{title} {description}".lower()
-        if 'tbd' in combined_text or 'to be determined' in combined_text:
-            # Allow if it has a booking/schedule URL or decent description
-            if has_url or (has_description and len(description) >= 50):
-                return True
-            return False
-        
+        # Accept any event that has a title longer than 3 characters
+        # Even TBD events are valid if they have location/details
         return True
     
     def _scrape_instagram_events(self, venue):

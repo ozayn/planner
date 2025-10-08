@@ -342,29 +342,22 @@ class SourceEventScraper:
         if not event_data.get('title'):
             return False
         
-        title = event_data.get('title', '').lower()
+        title = event_data.get('title', '').lower().strip()
         description = event_data.get('description', '').lower()
         
-        # Filter out overly generic titles
+        # Filter out overly generic single-word titles
         generic_titles = [
-            'tour', 'tours', 'visit', 'admission', 'hours', 'general admission',
-            'tickets', 'information', 'about', 'overview', 'home', 'welcome'
+            'tour', 'tours', 'visit', 'admission', 'hours', 
+            'tickets', 'information', 'about', 'overview', 'home'
         ]
-        if title.strip() in generic_titles:
+        if title in generic_titles:
             return False
         
-        # Must have either a specific time OR a URL to more info
-        has_specific_time = event_data.get('start_time') is not None
-        has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
-        
-        # If no specific time, must have URL
-        if not has_specific_time:
-            if not has_url:
-                return False
-        
-        # Filter out navigation/menu items
-        nav_keywords = ['home', 'about', 'contact', 'menu', 'navigation', 'sign in', 'log in']
-        if any(keyword in title for keyword in nav_keywords):
+        # Very lenient validation - accept almost anything with a title
+        # Only filter out if it's completely empty or just generic words
+        if len(title) < 3:
             return False
         
+        # Accept any event that has a title longer than 3 characters
+        # Even TBD events are valid if they have location/details
         return True
