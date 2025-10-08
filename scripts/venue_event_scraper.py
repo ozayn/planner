@@ -286,6 +286,11 @@ class VenueEventScraper:
                 'organizer': venue.name
             }
             
+            # Validate event quality before returning
+            if not self._is_valid_event(event_data):
+                logger.debug(f"Skipping low-quality event: {title}")
+                return None
+            
             return event_data
             
         except Exception as e:
@@ -326,27 +331,46 @@ class VenueEventScraper:
         return None
     
     def _extract_image(self, element, venue):
-        """Extract image from event element"""
+        """Extract image from event element with enhanced detection"""
+        import re
+        
         # Look for images in the element
         img = element.find('img')
-        if img and img.get('src'):
-            img_src = img['src']
-            # Convert relative URLs to absolute
-            if img_src.startswith('/'):
-                img_src = urljoin(venue.website_url, img_src)
-            elif not img_src.startswith('http'):
-                img_src = urljoin(venue.website_url, img_src)
+        if img:
+            # Try multiple image source attributes (lazy loading, responsive images, etc.)
+            img_src = (img.get('src') or 
+                      img.get('data-src') or 
+                      img.get('data-lazy-src') or
+                      img.get('data-original'))
             
-            # Skip Google Maps photo references (long base64-like strings)
-            if len(img_src) > 100 and not img_src.startswith('http'):
-                return None
+            # Also check srcset for responsive images
+            if not img_src and img.get('srcset'):
+                srcset = img.get('srcset')
+                # Extract first URL from srcset
+                srcset_match = re.search(r'([^\s,]+\.(?:jpg|jpeg|png|gif|webp))', srcset, re.IGNORECASE)
+                if srcset_match:
+                    img_src = srcset_match.group(1)
+            
+            if img_src:
+                # Convert relative URLs to absolute
+                if img_src.startswith('/'):
+                    img_src = urljoin(venue.website_url, img_src)
+                elif not img_src.startswith('http'):
+                    img_src = urljoin(venue.website_url, img_src)
                 
-            return img_src
+                # Skip Google Maps photo references (long base64-like strings)
+                if len(img_src) > 100 and not img_src.startswith('http'):
+                    return None
+                
+                # Skip data URIs and placeholder images
+                if img_src.startswith('data:') or 'placeholder' in img_src.lower():
+                    pass
+                else:
+                    return img_src
         
         # Look for background images in CSS
         style = element.get('style', '')
         if 'background-image' in style:
-            import re
             bg_match = re.search(r'background-image:\s*url\(["\']?([^"\']+)["\']?\)', style)
             if bg_match:
                 img_src = bg_match.group(1)
@@ -360,6 +384,21 @@ class VenueEventScraper:
                     return None
                     
                 return img_src
+        
+        # Look for picture element (modern responsive images)
+        picture = element.find('picture')
+        if picture:
+            source = picture.find('source')
+            if source and source.get('srcset'):
+                srcset = source.get('srcset')
+                srcset_match = re.search(r'([^\s,]+\.(?:jpg|jpeg|png|gif|webp))', srcset, re.IGNORECASE)
+                if srcset_match:
+                    img_src = srcset_match.group(1)
+                    if img_src.startswith('/'):
+                        img_src = urljoin(venue.website_url, img_src)
+                    elif not img_src.startswith('http'):
+                        img_src = urljoin(venue.website_url, img_src)
+                    return img_src
         
         # Use venue's default image only if it's a proper URL
         if venue.image_url and venue.image_url.startswith('http') and len(venue.image_url) < 200:
@@ -415,6 +454,51 @@ class VenueEventScraper:
             return 'festival'
         else:
             return 'tour'  # Default to tour for most venues
+    
+    def _is_valid_event(self, event_data):
+        """Validate event quality to filter out generic/incomplete events"""
+        
+        # Must have a title
+        if not event_data.get('title'):
+            return False
+        
+        title = event_data.get('title', '').lower()
+        description = event_data.get('description', '').lower()
+        
+        # Filter out overly generic titles
+        generic_titles = [
+            'tour', 'tours', 'visit', 'admission', 'hours', 'general admission',
+            'tickets', 'information', 'about', 'overview'
+        ]
+        if title.strip() in generic_titles:
+            return False
+        
+        # Must have either a specific time OR a URL to more info
+        has_specific_time = event_data.get('start_time') is not None
+        has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
+        
+        # If no specific time, must have URL and decent description
+        if not has_specific_time:
+            if not has_url:
+                return False
+            # Must have a description if no specific time
+            if not description or len(description) < 20:
+                return False
+        
+        # Filter out "availability" descriptions (not actual events)
+        availability_keywords = [
+            'available daily', 'open daily', 'varies by', 'tbd', 'to be determined',
+            'check website', 'visit website', 'call for', 'contact for'
+        ]
+        combined_text = f"{title} {description}".lower()
+        if any(keyword in combined_text for keyword in availability_keywords):
+            # Only allow if it has a specific URL to booking/schedule page
+            if not (has_url and ('schedule' in event_data['url'].lower() or 
+                                 'book' in event_data['url'].lower() or
+                                 'tour' in event_data['url'].lower())):
+                return False
+        
+        return True
     
     def _scrape_instagram_events(self, venue):
         """Scrape events from Instagram (placeholder)"""

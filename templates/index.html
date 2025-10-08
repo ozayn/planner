@@ -3203,6 +3203,11 @@
                     </div>
                     
                     <div class="event-actions">
+                        ${event.url && event.url !== event.source_url ? `
+                        <button class="action-btn event-link-btn" onclick="window.open('${event.url}', '_blank')" title="View Event Details">
+                            🔗
+                        </button>
+                        ` : ''}
                         <button class="action-btn calendar-btn" onclick="addToCalendar(${event.id})" title="Add to Google Calendar">
                             🗓️+
                         </button>
