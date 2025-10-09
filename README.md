@@ -69,6 +69,31 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **✅ Error Handling**: Migration failures are logged but don't crash the app
 - **Manual Sync**: If needed, run `python3 scripts/sync_schema.py` with Railway environment
 
+### **🔄 Railway Database Loading (SOLVED)**
+- **Problem**: Railway PostgreSQL database empty after deployment
+- **Root Cause**: JSON city IDs (1, 2, 3) don't match auto-generated database IDs
+- **Solution**: Added comprehensive data loading endpoint with city ID mapping
+- **Endpoint**: `POST /api/admin/load-all-data` - Loads cities, venues, and sources in one call
+- **How It Works**:
+  1. Creates database tables if missing (`db.create_all()`)
+  2. Loads cities from `cities.json` (auto-generated IDs)
+  3. Creates city ID mapping (JSON ID → Database ID)
+  4. Loads venues using city name lookup (not JSON ID)
+  5. Loads sources using city ID mapping (not JSON ID)
+  6. Commits each section separately to avoid foreign key errors
+- **Column Size Fix**: Increased `image_url` and `url` fields from 500 to 1000 chars for long Google Maps photo references
+- **Fix Column Sizes First**: Run `POST /api/admin/fix-column-sizes` before loading data if tables already exist
+- **Autoflush Fix**: Each delete operation commits separately before adding new records
+- **To Reload Railway Database**:
+  ```bash
+  # Step 1: Fix column sizes (only needed once)
+  curl -X POST https://planner.ozayn.com/api/admin/fix-column-sizes
+  
+  # Step 2: Load all data
+  curl -X POST https://planner.ozayn.com/api/admin/load-all-data
+  ```
+- **Expected Result**: 25 cities, 178 venues, 49 sources (252 total items)
+
 ### **📚 Lessons Learned from Schema Issues**
 - **Problem**: Railway PostgreSQL doesn't automatically create new columns when SQLAlchemy models are updated
 - **Root Cause**: SQLAlchemy only creates tables, not column additions, on existing databases
@@ -88,6 +113,26 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
   - Image upload event extraction MUST use city timezone, not server timezone
   - Date/time parsing should consider the event's location timezone
   - Never use `datetime.now()` or `date.today()` without timezone context
+
+### **🎯 Event Scraping System**
+- **✅ Dual Scraping**: Scrapes both venue websites AND event source websites
+- **✅ Quality Filtering**: Automatically filters out generic/incomplete events
+  - Rejects events with only "TBD" times and no details
+  - Filters generic titles like "Location", "Tour", "Hours"
+  - Requires meaningful content (time OR URL OR 30+ char description)
+- **✅ Smart Deduplication**: Multiple layers of duplicate prevention
+  - Per-scraper deduplication (within venue/source scraper)
+  - Cross-scraper deduplication (between venue and source results)
+  - Database deduplication (prevents same event from being added twice)
+- **✅ Enhanced Image Extraction**: Captures event images from multiple sources
+  - Lazy-loaded images (data-src, data-lazy-src)
+  - Responsive images (srcset, picture elements)
+  - CSS background images
+  - Fallback to venue images
+- **✅ Event Links**: Direct links (🔗) to event pages for booking/details
+- **✅ Flexible Selection**: Can scrape venues only, sources only, or both
+- **Website Sources Supported**: Big Onion Tours, Ellis Island Hard Hat Tours, NYC.com, etc.
+- **Instagram Sources**: Logged but not yet implemented (requires API setup)
 
 ### **🔧 Testing & Debugging**
 - **Test in both environments**: Always test locally AND on Railway deployment
@@ -112,15 +157,19 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 ### **📊 Current System Status**
 - **Cities**: 25 loaded
 - **Venues**: 178 loaded  
-- **Sources**: 37 loaded
+- **Sources**: 49 loaded (including Big Onion Walking Tours & Ellis Island Hard Hat Tours)
+- **Event Scraping**: ✅ Scrapes both venues and sources
+- **Quality Filtering**: ✅ Filters out generic/incomplete events
+- **Deduplication**: ✅ Prevents duplicate events in database
 - **Hybrid Processing**: ✅ Production ready
 - **Instagram Recognition**: ✅ Working perfectly
+- **Railway Database**: ✅ Fully synced with local data
 
 ## ✨ Features
 
-- **🌍 Global Cities**: Support for 22 major cities worldwide with 147+ venues
+- **🌍 Global Cities**: Support for 25 major cities worldwide with 178 venues
 - **🏛️ Venue Management**: Comprehensive venue database with images, hours, and details
-- **📰 Event Sources**: 36+ event sources for Washington DC with smart scraping
+- **📰 Event Sources**: 49 event sources (36 DC, 11 NYC, 2 other cities) with smart scraping
 - **🎨 Minimal Design**: Pastel colors, artistic fonts, icon-based UI
 - **🔧 Admin Interface**: Full CRUD operations for cities, venues, and sources
 - **🛡️ Bulletproof Setup**: Automated restart script with dependency management
