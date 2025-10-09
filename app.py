@@ -2930,16 +2930,34 @@ def load_all_data_to_database():
         # Clear and reload sources
         Source.query.delete()
         db.session.commit()  # Commit the delete before adding new sources
+        
+        # Create a mapping of JSON city IDs to actual database city IDs
+        city_id_mapping = {}
+        for json_city_id, city_info in cities_json.items():
+            city = City.query.filter_by(name=city_info.get('name')).first()
+            if city:
+                city_id_mapping[int(json_city_id)] = city.id
+        
+        app_logger.info(f"📍 City ID mapping created: {city_id_mapping}")
+        
         sources_loaded = 0
         for source_id, source_info in sources_json.items():
             try:
+                # Map JSON city_id to actual database city_id
+                json_city_id = source_info.get('city_id')
+                actual_city_id = city_id_mapping.get(json_city_id)
+                
+                if not actual_city_id:
+                    app_logger.warning(f"Skipping source {source_info.get('name')} - city_id {json_city_id} not found")
+                    continue
+                
                 source = Source(
                     name=source_info.get('name'),
                     handle=source_info.get('handle'),
                     source_type=source_info.get('source_type'),
                     url=source_info.get('url'),
                     description=source_info.get('description'),
-                    city_id=source_info.get('city_id'),
+                    city_id=actual_city_id,  # Use actual database city_id
                     covers_multiple_cities=source_info.get('covers_multiple_cities', False),
                     covered_cities=source_info.get('covered_cities', ''),
                     event_types=source_info.get('event_types', '[]'),
