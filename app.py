@@ -2762,6 +2762,49 @@ def reload_cities_from_json():
         app_logger.error(f"Error reloading cities: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/fix-column-sizes', methods=['POST'])
+def fix_column_sizes():
+    """Fix column sizes for long URLs - needed for Railway PostgreSQL"""
+    try:
+        app_logger.info("🔧 Fixing column sizes for long URLs...")
+        
+        # Check if we're on PostgreSQL (Railway)
+        if 'postgresql' in str(db.engine.url):
+            from sqlalchemy import text
+            
+            # Alter column sizes
+            alterations = [
+                "ALTER TABLE venues ALTER COLUMN image_url TYPE VARCHAR(1000)",
+                "ALTER TABLE events ALTER COLUMN image_url TYPE VARCHAR(1000)",
+                "ALTER TABLE events ALTER COLUMN url TYPE VARCHAR(1000)",
+                "ALTER TABLE events ALTER COLUMN source_url TYPE VARCHAR(1000)"
+            ]
+            
+            for sql in alterations:
+                try:
+                    db.session.execute(text(sql))
+                    app_logger.info(f"✅ Executed: {sql}")
+                except Exception as e:
+                    app_logger.warning(f"⚠️ Could not execute {sql}: {e}")
+            
+            db.session.commit()
+            app_logger.info("✅ Column sizes updated successfully")
+            
+            return jsonify({
+                'message': 'Column sizes updated successfully',
+                'database_type': 'PostgreSQL'
+            })
+        else:
+            return jsonify({
+                'message': 'No changes needed - SQLite does not enforce string lengths',
+                'database_type': 'SQLite'
+            })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error fixing column sizes: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/load-all-data', methods=['POST'])
 def load_all_data_to_database():
     """Load all data (cities, venues, sources) from JSON files into database"""
