@@ -180,11 +180,14 @@ class VenueEventScraper:
         """Extract events from HTML content"""
         events = []
         
+        logger.info(f"🔍 Parsing HTML for {venue.name}...")
+        
         # Look for tour-specific content first
         tour_keywords = ['public guided tour', 'private guided tour', 'premium guided tour', 'accessibility tour', 'multilingual app']
         
         # Find headings that contain tour information
         tour_headings = soup.find_all(['h1', 'h2', 'h3', 'h4'], string=lambda text: text and any(keyword in text.lower() for keyword in tour_keywords))
+        logger.info(f"   Found {len(tour_headings)} tour headings")
         
         for heading in tour_headings:
             # Get the parent section
@@ -209,8 +212,12 @@ class VenueEventScraper:
             '[class*="event"]', '[class*="program"]', '[class*="tour"]'
         ]
         
+        total_elements_found = 0
         for selector in event_selectors:
             event_elements = soup.select(selector)
+            if event_elements:
+                logger.info(f"   Selector '{selector}' found {len(event_elements)} elements")
+                total_elements_found += len(event_elements)
             
             for element in event_elements:
                 try:
@@ -221,6 +228,7 @@ class VenueEventScraper:
                     logger.debug(f"Error parsing event element: {e}")
                     continue
         
+        logger.info(f"   Total event elements found: {total_elements_found}, Valid events extracted: {len(events)}")
         return events
     
     def _parse_event_element(self, element, venue, tour_url=None):

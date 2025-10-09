@@ -127,6 +127,8 @@ class SourceEventScraper:
         """Extract events from HTML content"""
         events = []
         
+        logger.info(f"🔍 Parsing HTML for {source.name}...")
+        
         # Common selectors for events on tour/event websites
         event_selectors = [
             '.tour', '.tours', '.tour-item', '.tour-card',
@@ -135,8 +137,12 @@ class SourceEventScraper:
             '[class*="tour"]', '[class*="event"]', '[class*="schedule"]'
         ]
         
+        total_elements_found = 0
         for selector in event_selectors:
             event_elements = soup.select(selector)
+            if event_elements:
+                logger.info(f"   Selector '{selector}' found {len(event_elements)} elements")
+                total_elements_found += len(event_elements)
             
             for element in event_elements:
                 try:
@@ -147,6 +153,7 @@ class SourceEventScraper:
                     logger.debug(f"Error parsing event element: {e}")
                     continue
         
+        logger.info(f"   Total event elements found: {total_elements_found}, Valid events extracted: {len(events)}")
         return events
     
     def _parse_event_element(self, element, source):

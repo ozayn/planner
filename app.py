@@ -1429,11 +1429,17 @@ def trigger_scraping():
             }), 400
         
         # Initialize progress tracking
+        scraping_summary = []
+        if venue_ids:
+            scraping_summary.append(f'{len(venue_ids)} venues')
+        if source_ids:
+            scraping_summary.append(f'{len(source_ids)} sources')
+        
         progress_data = {
             'current_step': 1,
             'total_steps': 3,
             'percentage': 10,
-            'message': f'Starting scraping for {city_name}...',
+            'message': f'Starting scraping for {city_name} ({", ".join(scraping_summary)})...',
             'timestamp': datetime.now().isoformat()
         }
         
