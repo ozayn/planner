@@ -341,7 +341,7 @@ class Venue(db.Model):
     address = db.Column(db.Text)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
-    image_url = db.Column(db.String(500))
+    image_url = db.Column(db.String(1000))  # Increased for long Google Maps photo references
     instagram_url = db.Column(db.String(200))
     facebook_url = db.Column(db.String(200))
     twitter_url = db.Column(db.String(200))
@@ -443,12 +443,12 @@ class Event(db.Model):
     end_date = db.Column(db.Date)
     start_time = db.Column(db.Time)
     end_time = db.Column(db.Time)
-    image_url = db.Column(db.String(500))
-    url = db.Column(db.String(500))
+    image_url = db.Column(db.String(1000))  # Increased for long Google Maps photo references
+    url = db.Column(db.String(1000))  # Increased for long URLs
     is_selected = db.Column(db.Boolean, default=True)
     event_type = db.Column(db.String(50), nullable=False)  # 'tour', 'exhibition', 'festival', 'photowalk'
     source = db.Column(db.String(50))  # 'instagram', 'facebook', 'website', etc.
-    source_url = db.Column(db.String(500))  # URL of the source (e.g., Instagram post URL)
+    source_url = db.Column(db.String(1000))  # URL of the source (e.g., Instagram post URL) - increased for long URLs
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
