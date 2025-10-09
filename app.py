@@ -2762,6 +2762,169 @@ def reload_cities_from_json():
         app_logger.error(f"Error reloading cities: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/load-all-data', methods=['POST'])
+def load_all_data_to_database():
+    """Load all data (cities, venues, sources) from JSON files into database"""
+    try:
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        app_logger.info("🚀 Loading all data from JSON files...")
+        
+        # Step 1: Create tables if they don't exist
+        try:
+            db.create_all()
+            app_logger.info("✅ Database tables created/verified")
+        except Exception as e:
+            app_logger.error(f"Error creating tables: {e}")
+            return jsonify({'error': f'Table creation failed: {str(e)}'}), 500
+        
+        # Step 2: Load cities
+        cities_file = Path("data/cities.json")
+        if not cities_file.exists():
+            return jsonify({'error': 'cities.json not found'}), 404
+        
+        with open(cities_file, 'r') as f:
+            cities_data = json.load(f)
+        
+        cities_json = cities_data.get('cities', {})
+        app_logger.info(f"📊 Found {len(cities_json)} cities in JSON")
+        
+        # Clear and reload cities
+        City.query.delete()
+        cities_loaded = 0
+        for city_id, city_info in cities_json.items():
+            try:
+                city = City(
+                    name=city_info.get('name'),
+                    country=city_info.get('country'),
+                    state=city_info.get('state'),
+                    timezone=city_info.get('timezone', 'UTC')
+                )
+                db.session.add(city)
+                cities_loaded += 1
+            except Exception as e:
+                app_logger.error(f"Error loading city {city_info.get('name')}: {e}")
+                continue
+        
+        db.session.commit()
+        app_logger.info(f"✅ Loaded {cities_loaded} cities")
+        
+        # Step 3: Load venues
+        venues_file = Path("data/venues.json")
+        if not venues_file.exists():
+            return jsonify({'error': 'venues.json not found'}), 404
+        
+        with open(venues_file, 'r') as f:
+            venues_data = json.load(f)
+        
+        venues_json = venues_data.get('venues', {})
+        app_logger.info(f"📊 Found venues across {len(venues_json)} cities")
+        
+        # Clear and reload venues
+        Venue.query.delete()
+        venues_loaded = 0
+        for city_id, city_data in venues_json.items():
+            if not isinstance(city_data, dict) or 'venues' not in city_data:
+                continue
+                
+            city_name = city_data['name']
+            venues = city_data['venues']
+            
+            # Find city in database
+            city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
+            if not city:
+                app_logger.warning(f"City not found: {city_name}")
+                continue
+            
+            for venue_data in venues:
+                try:
+                    venue = Venue(
+                        name=venue_data.get('name'),
+                        venue_type=venue_data.get('venue_type', 'museum'),
+                        address=venue_data.get('address', ''),
+                        latitude=venue_data.get('latitude'),
+                        longitude=venue_data.get('longitude'),
+                        image_url=venue_data.get('image_url', ''),
+                        instagram_url=venue_data.get('instagram_url', ''),
+                        facebook_url=venue_data.get('facebook_url', ''),
+                        twitter_url=venue_data.get('twitter_url', ''),
+                        youtube_url=venue_data.get('youtube_url', ''),
+                        tiktok_url=venue_data.get('tiktok_url', ''),
+                        website_url=venue_data.get('website_url', ''),
+                        description=venue_data.get('description', ''),
+                        city_id=city.id,
+                        opening_hours=venue_data.get('opening_hours', ''),
+                        holiday_hours=venue_data.get('holiday_hours', ''),
+                        phone_number=venue_data.get('phone_number', ''),
+                        email=venue_data.get('email', ''),
+                        tour_info=venue_data.get('tour_info', ''),
+                        admission_fee=venue_data.get('admission_fee', '')
+                    )
+                    db.session.add(venue)
+                    venues_loaded += 1
+                except Exception as e:
+                    app_logger.error(f"Error loading venue {venue_data.get('name')}: {e}")
+                    continue
+        
+        db.session.commit()
+        app_logger.info(f"✅ Loaded {venues_loaded} venues")
+        
+        # Step 4: Load sources
+        sources_file = Path("data/sources.json")
+        if not sources_file.exists():
+            return jsonify({'error': 'sources.json not found'}), 404
+        
+        with open(sources_file, 'r') as f:
+            sources_data = json.load(f)
+        
+        sources_json = sources_data.get('sources', {})
+        app_logger.info(f"📊 Found {len(sources_json)} sources in JSON")
+        
+        # Clear and reload sources
+        Source.query.delete()
+        sources_loaded = 0
+        for source_id, source_info in sources_json.items():
+            try:
+                source = Source(
+                    name=source_info.get('name'),
+                    handle=source_info.get('handle'),
+                    source_type=source_info.get('source_type'),
+                    url=source_info.get('url'),
+                    description=source_info.get('description'),
+                    city_id=source_info.get('city_id'),
+                    covers_multiple_cities=source_info.get('covers_multiple_cities', False),
+                    covered_cities=source_info.get('covered_cities', ''),
+                    event_types=source_info.get('event_types', '[]'),
+                    is_active=source_info.get('is_active', True),
+                    reliability_score=source_info.get('reliability_score', 3.0),
+                    posting_frequency=source_info.get('posting_frequency', ''),
+                    notes=source_info.get('notes', ''),
+                    scraping_pattern=source_info.get('scraping_pattern', '')
+                )
+                db.session.add(source)
+                sources_loaded += 1
+            except Exception as e:
+                app_logger.error(f"Error loading source {source_info.get('name')}: {e}")
+                continue
+        
+        db.session.commit()
+        app_logger.info(f"✅ Loaded {sources_loaded} sources")
+        
+        return jsonify({
+            'message': f'Successfully loaded all data',
+            'cities_loaded': cities_loaded,
+            'venues_loaded': venues_loaded,
+            'sources_loaded': sources_loaded,
+            'total_items': cities_loaded + venues_loaded + sources_loaded
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error loading all data: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/reload-sources', methods=['POST'])
 def reload_sources_from_json():
     """Reload sources from sources.json into database"""

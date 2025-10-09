@@ -7,7 +7,7 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 ### **🔑 Critical Setup Steps**
 - **ALWAYS activate virtual environment first**: `source venv/bin/activate`
 - **Use port 5001, never 5000**: App runs on `http://localhost:5001`
-- **Use `python3` not `python`**: System Python vs venv Python
+- **🚨 ALWAYS use `python3` not `python`**: System Python vs venv Python - this is critical!
 - **Environment variables**: Add API keys to `.env` file (never commit this file)
 
 ### **🤖 Hybrid OCR + LLM System**
@@ -67,7 +67,7 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **✅ No Manual Steps**: Schema changes are automatically deployed when you push code to GitHub
 - **✅ Type Conversion**: SQLite types are automatically converted to PostgreSQL equivalents
 - **✅ Error Handling**: Migration failures are logged but don't crash the app
-- **Manual Sync**: If needed, run `python scripts/sync_schema.py` with Railway environment
+- **Manual Sync**: If needed, run `python3 scripts/sync_schema.py` with Railway environment
 
 ### **📚 Lessons Learned from Schema Issues**
 - **Problem**: Railway PostgreSQL doesn't automatically create new columns when SQLAlchemy models are updated
@@ -82,7 +82,7 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Cause**: Missing columns in Railway PostgreSQL database
 - **Check**: Look for errors like "column events.social_media_platform does not exist" in Railway logs
 - **Solution**: The auto-migration should fix this automatically on next deployment
-- **Manual Fix**: If auto-migration fails, run `python scripts/sync_schema.py` with Railway environment
+- **Manual Fix**: If auto-migration fails, run `python3 scripts/sync_schema.py` with Railway environment
 - **Verification**: Check API endpoints return correct counts: `/api/admin/cities`, `/api/admin/venues`, etc.
 - **🚨 Timezone handling**: Always use CITY timezone for event date/time processing:
   - Image upload event extraction MUST use city timezone, not server timezone
@@ -145,7 +145,7 @@ python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install with setup.py (recommended)
-python setup.py install
+python3 setup.py install
 
 # Or install dependencies manually
 pip install -r requirements.txt
@@ -155,10 +155,10 @@ cp .env.example .env
 # Edit .env with your API keys
 
 # Initialize database
-python scripts/data_manager.py load
+python3 scripts/data_manager.py load
 
 # Start the app
-python app.py
+python3 app.py
 ```
 
 ### Option 2: Manual Setup Only
@@ -182,10 +182,10 @@ cp .env.example .env
 # Edit .env with your API keys
 
 # Initialize database
-python scripts/data_manager.py load
+python3 scripts/data_manager.py load
 
 # Start the app
-python app.py
+python3 app.py
 ```
 
 Visit: `http://localhost:5001`
@@ -378,8 +378,8 @@ This project follows professional Python development practices:
 ### Quick Fixes
 - **🚨 Image processing broken?** → [QUICK_FIX_GUIDE.md](docs/QUICK_FIX_GUIDE.md)
 - **Port 5000 in use**: App runs on port 5001 by default
-- **Database errors**: Run `python scripts/data_manager.py load` to reload data
-- **Python not found**: Use `python3` instead of `python`
+- **Database errors**: Run `python3 scripts/data_manager.py load` to reload data
+- **🚨 Python not found**: ALWAYS use `python3` instead of `python` - this is critical!
 - **Dependencies not found**: Make sure virtual environment is activated with `source venv/bin/activate`
 - **API key errors**: Add your API keys to `.env` file (GROQ_API_KEY, OPENAI_API_KEY, etc.)
 
