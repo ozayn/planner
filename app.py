@@ -2836,6 +2836,7 @@ def load_all_data_to_database():
         
         # Clear and reload cities
         City.query.delete()
+        db.session.commit()  # Commit the delete before adding new cities
         cities_loaded = 0
         for city_id, city_info in cities_json.items():
             try:
@@ -2867,6 +2868,7 @@ def load_all_data_to_database():
         
         # Clear and reload venues
         Venue.query.delete()
+        db.session.commit()  # Commit the delete before adding new venues
         venues_loaded = 0
         for city_id, city_data in venues_json.items():
             if not isinstance(city_data, dict) or 'venues' not in city_data:
@@ -2927,6 +2929,7 @@ def load_all_data_to_database():
         
         # Clear and reload sources
         Source.query.delete()
+        db.session.commit()  # Commit the delete before adding new sources
         sources_loaded = 0
         for source_id, source_info in sources_json.items():
             try:
