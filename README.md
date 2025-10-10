@@ -5,9 +5,11 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 ## 🚨 **IMPORTANT REMINDERS**
 
 ### **🔑 Critical Setup Steps**
-- **ALWAYS activate virtual environment first**: `source venv/bin/activate`
+- **⚠️ ALWAYS activate virtual environment first**: `source venv/bin/activate && python`
+- **❌ NEVER use `python3` directly**: Causes "no module named bs4" and other dependency errors
+- **✅ CORRECT**: `source venv/bin/activate && python scripts/venue_event_scraper.py`
+- **❌ WRONG**: `python3 scripts/venue_event_scraper.py` (uses system Python without dependencies)
 - **Use port 5001, never 5000**: App runs on `http://localhost:5001`
-- **Use `python3` not `python`**: System Python vs venv Python
 - **Environment variables**: Add API keys to `.env` file (never commit this file)
 
 ### **🤖 Hybrid OCR + LLM System**
@@ -34,7 +36,7 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
   - Production: New York = city_id 452, Washington = city_id 451
 - **Syncing Workflow** (follow these exact steps):
   1. Make data changes locally (e.g., update venue URLs in local database)
-  2. Export to JSON: `python3 scripts/update_venues_json.py` (or cities, sources)
+  2. Export to JSON: `source venv/bin/activate && python scripts/update_venues_json.py` (or cities, sources)
   3. Commit and push JSON files: `git add data/*.json && git commit -m "Update venue data" && git push`
   4. Wait 2-3 minutes for Railway auto-deploy
   5. Call reload endpoint: `curl -X POST https://planner.ozayn.com/api/admin/reload-venues-from-json`
@@ -50,6 +52,21 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Data Flow**: Local DB → JSON files → Git → Railway → Reload API → Production DB
 - **Common Issue**: If URLs don't update, check that JSON was committed/pushed and Railway finished deploying
 - **Fix Script Available**: Use `scripts/fix_all_venue_urls.py` to fix known fake URLs in batch
+
+### **🐛 Troubleshooting Common Issues**
+- **"no module named bs4" Error**:
+  - **Cause**: Using system Python instead of virtual environment
+  - **Solution**: `source venv/bin/activate && python` instead of `python3`
+  - **Check**: `which python` should show `/Users/oz/Dropbox/2025/planner/venv/bin/python`
+- **"no module named requests" Error**:
+  - **Cause**: Same issue - virtual environment not activated
+  - **Solution**: Always use `source venv/bin/activate && python`
+- **Port 5000 already in use**:
+  - **Cause**: Another app using port 5000
+  - **Solution**: Use port 5001 (already configured in app.py)
+- **Railway deployment fails**:
+  - **Cause**: Missing dependencies or environment variables
+  - **Solution**: Check requirements.txt and .env file are committed
 
 ### **🔒 Security & API Keys**
 - **NEVER commit `.env` file**: Contains sensitive API keys and secrets
