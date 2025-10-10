@@ -19,15 +19,60 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Instagram Context**: Extracts page names, handles, and poster info
 - **Intelligent Processing**: 90% confidence with Vision API, 80% with Tesseract
 
-### **🔗 Create Events from URL (NEW!)**
+### **🔗 Create Events from URL (⚠️ NEEDS DEBUGGING)**
+**STATUS**: Feature implemented but Auto-Fill button not working in production
+
+#### **What Should Work**:
 - **📋 Paste Any Event URL**: Automatically scrape and create events from web pages
+- **🔍 Auto-Fill Button**: Click to extract event details before creating
 - **📅 Smart Time Periods**: Choose today, tomorrow, this week, this month, or custom dates
 - **🔄 Recurring Event Handling**: Detects schedules like "Fridays 6:30pm - 7:30pm" or "Weekdays 3pm"
 - **📊 Multi-Event Creation**: Automatically creates events for all matching days in period
 - **🎯 Intelligent Extraction**: Pulls title, description, times, and images from page
 - **🛡️ Bot Protection Bypass**: Uses cloudscraper with retry logic (Railway-compatible)
 - **✅ Duplicate Prevention**: Skips events that already exist in database
-- **Example**: Paste Friday tour URL + select "this month" → creates event for every Friday in the month
+
+#### **Known Issues to Fix**:
+1. **Auto-Fill Button Not Working**:
+   - Button click doesn't trigger extraction
+   - API endpoint `/api/admin/extract-event-from-url` exists and works via curl
+   - Frontend JavaScript has event parameter issues
+   - Need to debug: Check browser console for errors
+   - Test endpoint: `curl -X POST http://localhost:5001/api/admin/extract-event-from-url -H "Content-Type: application/json" -d '{"url": "https://engage.metmuseum.org/events/public-guided-tours/museum-highlights/museum-highlights-630pm/"}'`
+
+2. **Venue Dropdown Loading**:
+   - Fixed: Changed from `/api/venues` to `/api/admin/venues`
+   - Should work now but needs verification
+
+#### **Debugging Steps**:
+1. Open browser console (F12)
+2. Click "🔗 From URL" button
+3. Paste URL in field
+4. Click "🔍 Auto-Fill" button
+5. Check console for errors
+6. Look for: `autoFillFromUrl` function errors, fetch errors, or event parameter issues
+
+#### **Backend Works**:
+- ✅ `/api/admin/extract-event-from-url` endpoint functional
+- ✅ `extract_event_data_from_url()` function works
+- ✅ Cloudscraper bypasses bot protection
+- ✅ Schedule detection works ("Fridays 6:30pm - 7:30pm")
+- ✅ `/api/admin/scrape-event-from-url` creates events correctly
+
+#### **Frontend Needs Work**:
+- ❌ Auto-Fill button click handler
+- ❌ Event parameter passing
+- ❌ Preview section display
+- ⚠️ Form submission with extracted data (untested)
+
+#### **Next Steps to Fix**:
+1. Debug why `autoFillFromUrl(event)` isn't executing
+2. Check if function is defined in global scope
+3. Verify button onclick is properly attached
+4. Test with simple alert() first to confirm button works
+5. Add more console.log statements to trace execution
+6. Consider using addEventListener instead of onclick
+7. Test the full workflow once Auto-Fill works
 
 ### **🎯 Event Scraping Intelligence**
 - **Today-Focused**: Scrapes events for TODAY only (more relevant and useful)
