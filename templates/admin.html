@@ -4824,12 +4824,20 @@
             };
             
             let html = `
+                <!-- Event Header -->
+                <div style="background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 26px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${event.title || 'Untitled Event'}</h2>
+                    <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
+                        ${event.event_type ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">${event.event_type}</span>` : ''}
+                        ${event.venue_name ? `<span style="opacity: 0.8;">📍 ${event.venue_name}</span>` : ''}
+                    </div>
+                </div>
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
                         <h4 style="margin-bottom: 10px; color: #4a5568;">📋 Basic Information</h4>
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             <div style="margin-bottom: 8px;"><strong>ID:</strong> ${event.id}</div>
-                            ${addField('Title', event.title)}
                             ${addField('Type', event.event_type)}
                             ${addField('Description', event.description)}
                             <div style="margin-bottom: 8px;"><strong>Selected:</strong> ${event.is_selected ? 'Yes' : 'No'}</div>
@@ -4977,12 +4985,20 @@
             };
             
             let html = `
+                <!-- Venue Header -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${venue.name}</h2>
+                    <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
+                        ${venue.venue_type ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">${venue.venue_type}</span>` : ''}
+                        ${venue.city_name ? `<span style="opacity: 0.8;">📍 ${venue.city_name}</span>` : ''}
+                    </div>
+                </div>
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
                         <h4 style="margin-bottom: 10px; color: #4a5568;">🏢 Basic Information</h4>
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             <div style="margin-bottom: 8px;"><strong>ID:</strong> ${venue.id}</div>
-                            ${addField('Name', venue.name)}
                             ${addField('Type', venue.venue_type)}
                             ${addField('Description', venue.description)}
                             ${addField('City', venue.city_name)}
@@ -5061,6 +5077,15 @@
             };
             
             let html = `
+                <!-- City Header -->
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${city.display_name || city.name}</h2>
+                    <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
+                        ${city.timezone ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">🌍 ${city.timezone}</span>` : ''}
+                        ${city.state ? `<span style="opacity: 0.8;">📍 ${city.state}, ${city.country}</span>` : `<span style="opacity: 0.8;">📍 ${city.country}</span>`}
+                    </div>
+                </div>
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
                         <h4 style="margin-bottom: 10px; color: #4a5568;">🏙️ Basic Information</h4>
