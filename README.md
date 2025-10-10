@@ -95,6 +95,68 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
   - **Cause**: Missing dependencies or environment variables
   - **Solution**: Check requirements.txt and .env file are committed
 
+### **⚠️ JavaScript Variable Scope - Admin Table Sorting**
+**CRITICAL LESSON LEARNED**: Never declare local variables that shadow window-scoped data arrays!
+
+#### **The Bug Pattern (DO NOT DO THIS)**:
+```javascript
+// ❌ WRONG - Creates local variable that shadows window scope
+let allSources = [];
+
+async function loadSources() {
+    allSources = await fetch('/api/admin/sources').then(r => r.json());
+    // Problem: sortTable() looks for window.allSources but finds local allSources
+}
+
+function sortTable(tableId, field) {
+    dataArray = window.allSources;  // ❌ Undefined! Local variable shadows it
+}
+```
+
+#### **The Correct Pattern (DO THIS)**:
+```javascript
+// ✅ CORRECT - No local declaration, uses window scope directly
+
+async function loadSources() {
+    window.allSources = await fetch('/api/admin/sources').then(r => r.json());
+    // Now sortTable() can find window.allSources correctly
+}
+
+function sortTable(tableId, field) {
+    dataArray = window.allSources;  // ✅ Works! Finds window-scoped variable
+}
+```
+
+#### **Why This Matters**:
+- **Admin table sorting** relies on `window.allEvents`, `window.allVenues`, `window.allCities`, `window.allSources`
+- **Local variable declarations** (`let`, `const`, `var`) create **shadowing** in that scope
+- **Symptom**: Sorting appears broken, console shows "Data arrays not available"
+- **Fix**: Remove local declarations, always use `window.variableName` explicitly
+
+#### **Checklist for New Admin Tables**:
+- [ ] ❌ NO `let allTableName = []` declarations
+- [ ] ✅ USE `window.allTableName` in load function
+- [ ] ✅ USE `window.allTableName` in all references
+- [ ] ✅ USE `window.filteredTableName` for filtered data
+- [ ] ✅ TEST sorting immediately after adding new table
+
+#### **Real Example - Sources Table Bug**:
+```javascript
+// Before (BROKEN):
+let allSources = [];  // ❌ This line broke sorting!
+async function loadSources() {
+    allSources = await response.json();  // Sets local, not window
+}
+
+// After (FIXED):
+// No declaration here!
+async function loadSources() {
+    window.allSources = await response.json();  // ✅ Sets window scope
+}
+```
+
+**Remember**: Events, Venues, and Cities tables work because they DON'T have local declarations!
+
 ### **🔒 Security & API Keys**
 - **NEVER commit `.env` file**: Contains sensitive API keys and secrets
 - **NEVER hardcode API keys**: Always use environment variables
