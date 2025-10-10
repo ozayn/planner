@@ -19,6 +19,16 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Instagram Context**: Extracts page names, handles, and poster info
 - **Intelligent Processing**: 90% confidence with Vision API, 80% with Tesseract
 
+### **🔗 Create Events from URL (NEW!)**
+- **📋 Paste Any Event URL**: Automatically scrape and create events from web pages
+- **📅 Smart Time Periods**: Choose today, tomorrow, this week, this month, or custom dates
+- **🔄 Recurring Event Handling**: Detects schedules like "Fridays 6:30pm - 7:30pm" or "Weekdays 3pm"
+- **📊 Multi-Event Creation**: Automatically creates events for all matching days in period
+- **🎯 Intelligent Extraction**: Pulls title, description, times, and images from page
+- **🛡️ Bot Protection Bypass**: Uses cloudscraper with retry logic (Railway-compatible)
+- **✅ Duplicate Prevention**: Skips events that already exist in database
+- **Example**: Paste Friday tour URL + select "this month" → creates event for every Friday in the month
+
 ### **🎯 Event Scraping Intelligence**
 - **Today-Focused**: Scrapes events for TODAY only (more relevant and useful)
 - **Smart Schedule Detection**: 
