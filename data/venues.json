@@ -4,7 +4,7 @@
     "created": "2025-10-10",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 178,
-    "last_updated": "2025-10-10 14:56:24"
+    "last_updated": "2025-10-10 15:39:46"
   },
   "venues": {
     "1": {
@@ -40,7 +40,7 @@
       "opening_hours": "8:30 AM - 4:30 PM",
       "phone_number": "(202) 226-8000",
       "email": "visitor.services@aoc.gov",
-      "website_url": "https://www.capitolbuilding.com",
+      "website_url": "https://www.capitol.gov",
       "instagram_url": "https://www.instagram.com/930club",
       "facebook_url": "https://www.facebook.com/930Club",
       "twitter_url": "https://twitter.com/CapitolBuilding",
@@ -51,7 +51,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666142",
-      "updated_at": "2025-10-08T20:42:31.666143"
+      "updated_at": "2025-10-10T19:39:39.440650"
     },
     "3": {
       "name": "Capitol Hill",
@@ -63,7 +63,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 543-8919",
       "email": "info@capitolhill.org",
-      "website_url": "https://www.capitolhill.com",
+      "website_url": "https://www.capitol.gov",
       "instagram_url": "https://www.instagram.com/capitolhill",
       "facebook_url": "https://www.facebook.com/CapitolHillDC",
       "twitter_url": "https://twitter.com/CapitolHill",
@@ -74,7 +74,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666175",
-      "updated_at": "2025-10-08T20:42:31.666176"
+      "updated_at": "2025-10-10T19:39:39.440653"
     },
     "4": {
       "name": "Capitol Hill Arts Workshop",
@@ -1926,7 +1926,7 @@
       "opening_hours": "9:00 AM - 6:30 PM",
       "phone_number": "(415) 561-4900",
       "email": "info@nps.gov",
-      "website_url": "https://www.alcatrazisland.com",
+      "website_url": "https://www.nps.gov/alca/index.htm",
       "instagram_url": "https://www.instagram.com/alcatrazisland",
       "facebook_url": "https://www.facebook.com/AlcatrazIsland",
       "twitter_url": "https://twitter.com/AlcatrazIsland",
@@ -1937,7 +1937,7 @@
       "latitude": 37.8267,
       "longitude": -122.423,
       "created_at": "2025-10-08T20:42:31.671173",
-      "updated_at": "2025-10-08T20:42:31.671174"
+      "updated_at": "2025-10-10T19:39:39.440654"
     },
     "85": {
       "name": "Golden Gate Bridge",
@@ -1949,7 +1949,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(415) 921-5858",
       "email": "info@goldengate.org",
-      "website_url": "https://www.goldengatebridge.com",
+      "website_url": "https://www.goldengatebridge.org",
       "instagram_url": "https://www.instagram.com/goldengatebridge",
       "facebook_url": "https://www.facebook.com/GoldenGateBridge",
       "twitter_url": "https://twitter.com/GoldenGateBridge",
@@ -1960,7 +1960,7 @@
       "latitude": 37.8199,
       "longitude": -122.4783,
       "created_at": "2025-10-08T20:42:31.671200",
-      "updated_at": "2025-10-08T20:42:31.671201"
+      "updated_at": "2025-10-10T19:39:39.440655"
     },
     "86": {
       "name": "Palace of Fine Arts",
@@ -2041,7 +2041,7 @@
       "opening_hours": "10:30 AM - 5:00 PM",
       "phone_number": "(312) 443-3600",
       "email": "info@artic.edu",
-      "website_url": "https://www.artinstituteofchicago.com",
+      "website_url": "https://www.artic.edu",
       "instagram_url": "https://www.instagram.com/artinstitutechi",
       "facebook_url": "https://www.facebook.com/artic.edu",
       "twitter_url": "https://twitter.com/artinstitutechi",
@@ -2052,7 +2052,7 @@
       "latitude": 41.8796,
       "longitude": -87.6237,
       "created_at": "2025-10-08T20:42:31.671577",
-      "updated_at": "2025-10-08T20:42:31.671578"
+      "updated_at": "2025-10-10T19:39:39.440656"
     },
     "90": {
       "name": "Field Museum",
@@ -2064,7 +2064,7 @@
       "opening_hours": "9:00 AM - 5:00 PM",
       "phone_number": "(312) 922-9410",
       "email": "info@fieldmuseum.org",
-      "website_url": "https://www.fieldmuseum.com",
+      "website_url": "https://www.fieldmuseum.org",
       "instagram_url": "https://www.instagram.com/fieldmuseum",
       "facebook_url": "https://www.facebook.com/fieldmuseum",
       "twitter_url": "https://twitter.com/fieldmuseum",
@@ -2075,7 +2075,7 @@
       "latitude": 41.8661,
       "longitude": -87.6167,
       "created_at": "2025-10-08T20:42:31.671603",
-      "updated_at": "2025-10-08T20:42:31.671604"
+      "updated_at": "2025-10-10T19:39:39.440656"
     },
     "91": {
       "name": "Millennium Park",
@@ -2294,7 +2294,7 @@
       "opening_hours": "10:00 AM - 6:00 PM",
       "phone_number": "(206) 770-2700",
       "email": "info@mopop.org",
-      "website_url": "https://www.museumofpopculturemopop.com",
+      "website_url": "https://www.mopop.org",
       "instagram_url": "https://www.instagram.com/mopop",
       "facebook_url": "https://www.facebook.com/MoPOPSeattle",
       "twitter_url": "https://twitter.com/MoPOP",
@@ -2305,7 +2305,7 @@
       "latitude": 47.6205,
       "longitude": -122.3493,
       "created_at": "2025-10-08T20:42:31.672438",
-      "updated_at": "2025-10-08T20:42:31.672439"
+      "updated_at": "2025-10-10T19:39:39.440656"
     },
     "101": {
       "name": "Pike Place Market",
@@ -2386,7 +2386,7 @@
       "opening_hours": "10:00 AM - 6:00 PM",
       "phone_number": "(305) 434-9600",
       "email": "info@frostscience.org",
-      "website_url": "https://www.frostsciencemuseum.com",
+      "website_url": "https://www.frostscience.org",
       "instagram_url": "https://www.instagram.com/frostscience",
       "facebook_url": "https://www.facebook.com/FrostScience",
       "twitter_url": "https://twitter.com/FrostScience",
@@ -2397,7 +2397,7 @@
       "latitude": 25.7864,
       "longitude": -80.1869,
       "created_at": "2025-10-08T20:42:31.672818",
-      "updated_at": "2025-10-08T20:42:31.672820"
+      "updated_at": "2025-10-10T19:39:39.440657"
     },
     "105": {
       "name": "Pérez Art Museum Miami (PAMM)",
@@ -2409,7 +2409,7 @@
       "opening_hours": "11:00 AM - 6:00 PM",
       "phone_number": "(305) 375-3000",
       "email": "info@pamm.org",
-      "website_url": "https://www.pérezartmuseummiamipamm.com",
+      "website_url": "https://www.pamm.org",
       "instagram_url": "https://www.instagram.com/pamm",
       "facebook_url": "https://www.facebook.com/PAMM",
       "twitter_url": "https://twitter.com/PAMM",
@@ -2420,7 +2420,7 @@
       "latitude": 25.7864,
       "longitude": -80.1869,
       "created_at": "2025-10-08T20:42:31.672852",
-      "updated_at": "2025-10-08T20:42:31.672853"
+      "updated_at": "2025-10-10T19:39:39.440657"
     },
     "106": {
       "name": "South Beach",
@@ -2501,7 +2501,7 @@
       "opening_hours": "10:00 AM - 5:00 PM",
       "phone_number": "+44 20 7323 8299",
       "email": "info@britishmuseum.org",
-      "website_url": "https://www.britishmuseum.com",
+      "website_url": "https://www.britishmuseum.org",
       "instagram_url": "https://www.instagram.com/britishmuseum",
       "facebook_url": "https://www.facebook.com/britishmuseum",
       "twitter_url": "https://twitter.com/britishmuseum",
@@ -2512,7 +2512,7 @@
       "latitude": 51.5194,
       "longitude": -0.127,
       "created_at": "2025-10-08T20:42:31.673226",
-      "updated_at": "2025-10-08T20:42:31.673227"
+      "updated_at": "2025-10-10T19:39:39.440658"
     },
     "110": {
       "name": "National Gallery",
