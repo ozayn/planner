@@ -4561,7 +4561,7 @@
         }
         
         // Source Management Functions
-        let allSources = [];
+        // Note: allSources is stored in window.allSources (no local declaration)
         
         async function loadSources() {
             try {
@@ -4572,8 +4572,9 @@
                     throw new Error('Failed to load sources');
                 }
                 
-                allSources = await response.json();
-                console.log('Sources loaded:', allSources.length);
+                window.allSources = await response.json();
+                console.log('Sources loaded:', window.allSources.length);
+                console.log('window.allSources is now:', window.allSources);
                 
                 renderSourcesTable();
                 populateSourceFilters();
@@ -4588,12 +4589,12 @@
         }
         
         function renderSourcesTable() {
-            const data = window.filteredSources || allSources || [];
+            const data = window.filteredSources || window.allSources || [];
             renderDynamicTable('sourcesTable', data, 'sources');
         }
         
         function editSource(id) {
-            const source = allSources.find(s => s.id == id);
+            const source = window.allSources.find(s => s.id == id);
             if (!source) {
                 alert('Source not found');
                 return;
@@ -4638,13 +4639,13 @@
         }
         
         function applySourceFilters() {
-            if (!allSources) return;
+            if (!window.allSources) return;
             
             const searchTerm = document.getElementById('sourceSearch').value.toLowerCase();
             const typeFilter = document.getElementById('sourceTypeFilter').value;
             const cityFilter = document.getElementById('sourceCityFilter').value;
             
-            window.filteredSources = allSources.filter(source => {
+            window.filteredSources = window.allSources.filter(source => {
                 const matchesSearch = !searchTerm || 
                     source.name.toLowerCase().includes(searchTerm) ||
                     source.handle.toLowerCase().includes(searchTerm) ||
@@ -4665,8 +4666,8 @@
                 if (cityFilter) activeFilters.push(`City: ${document.getElementById('sourceCityFilter').selectedOptions[0]?.text || cityFilter}`);
                 
                 summary.textContent = activeFilters.length > 0 ? 
-                    `Showing ${window.filteredSources.length} of ${allSources.length} sources (${activeFilters.join(', ')})` : 
-                    `Showing all ${allSources.length} sources`;
+                    `Showing ${window.filteredSources.length} of ${window.allSources.length} sources (${activeFilters.join(', ')})` : 
+                    `Showing all ${window.allSources.length} sources`;
             }
             
             renderSourcesTable();
@@ -4683,7 +4684,7 @@
             
             const summary = document.getElementById('sourceFilterSummary');
             if (summary) {
-                summary.textContent = `Showing all ${allSources.length} sources`;
+                summary.textContent = `Showing all ${window.allSources.length} sources`;
             }
         }
         
@@ -4730,7 +4731,7 @@
                 
                 // Get unique cities from sources
                 const cityMap = new Map();
-                allSources.forEach(source => {
+                window.allSources.forEach(source => {
                     if (source.city_id && source.city_name) {
                         cityMap.set(source.city_id, source.city_name);
                     }
