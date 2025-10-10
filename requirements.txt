@@ -68,6 +68,8 @@ numpy==2.3.3
 beautifulsoup4==4.13.5
 lxml==6.0.1
 soupsieve==2.8
+cloudscraper==1.2.71
+requests-toolbelt==1.0.0
 
 # JSON and YAML
 PyYAML==6.0.2

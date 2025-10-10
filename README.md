@@ -21,12 +21,15 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 
 ### **🎯 Event Scraping Intelligence**
 - **Today-Focused**: Scrapes events for TODAY only (more relevant and useful)
-- **Smart Schedule Logic**: 
-  - Weekdays: 3:00 PM tours (Monday-Friday)
-  - Sundays: 1:00 PM tours
-  - Saturdays: No tours (correctly filtered out)
+- **Smart Schedule Detection**: 
+  - **Reads actual webpage content** to find schedule (e.g., "Fridays 6:30pm - 7:30pm")
+  - **Day-aware filtering**: Only shows events if today matches the specified day
+  - **Uses cloudscraper** to bypass bot protection (Railway-compatible, no browser needed)
+  - Extracts both start AND end times from page text
+  - Falls back to URL-based time extraction (e.g., "630pm" in URL → 6:30 PM)
 - **Tour Duration Assumption**: If no end time is specified, assumes 1-hour duration
   - Example: 3:00 PM start → 4:00 PM end (automatically calculated)
+  - **Essential for Google Calendar integration** - calendar events require both start and end times
   - Makes events more complete and useful for planning
 - **Enhanced Title Extraction**: Converts generic dates to descriptive titles
   - "Friday, October 10" → "Museum Highlights Tour"

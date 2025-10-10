@@ -52,14 +52,14 @@ class VenueEventScraper:
         })
         self.scraped_events = []
         
-    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range=None):
-        """Scrape events from selected venues
+    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today'):
+        """Scrape events from selected venues - focused on TODAY
         
         Args:
             venue_ids: List of venue IDs to scrape
             city_id: City ID to scrape venues from
             event_type: Type of events to scrape (tour, exhibition, festival, photowalk)
-            time_range: Time range for events (today, tomorrow, this_week, next_week, this_month)
+            time_range: Time range for events (defaults to 'today')
         """
         try:
             with app.app_context():
@@ -88,7 +88,7 @@ class VenueEventScraper:
                 
                 venues = active_venues
                 
-                logger.info(f"Scraping events from {len(venues)} venues")
+                logger.info(f"Scraping TODAY'S events from {len(venues)} venues")
                 
                 # Track unique events to prevent duplicates
                 unique_events = set()
@@ -103,8 +103,8 @@ class VenueEventScraper:
                         for event in events:
                             # Create a more comprehensive unique key
                             title_clean = event['title'].lower().strip()
-                            date_key = event.get('start_time', '')[:10] if event.get('start_time') else ''
-                            event_key = f"{title_clean}_{date_key}_{venue.id}"
+                            url_key = event.get('url', '')[:50] if event.get('url') else ''  # Use URL for better deduplication
+                            event_key = f"{title_clean}_{url_key}_{venue.id}"
                             
                             if event_key not in unique_events:
                                 unique_events.add(event_key)
@@ -152,7 +152,7 @@ class VenueEventScraper:
             
             # Look for tour-specific pages first
             tour_links = soup.find_all('a', href=lambda href: href and 'tour' in href.lower())
-            for link in tour_links[:3]:  # Check first 3 tour links
+            for link in tour_links[:5]:  # Check first 5 tour links
                 try:
                     tour_url = urljoin(venue.website_url, link['href'])
                     logger.info(f"Scraping tour page: {tour_url}")
@@ -165,6 +165,29 @@ class VenueEventScraper:
                     events.extend(tour_events)
                 except Exception as e:
                     logger.debug(f"Error scraping tour page {link['href']}: {e}")
+                    continue
+            
+            # For Met Museum, also try specific known tour URLs
+            if 'metmuseum.org' in venue.website_url:
+                known_tour_urls = [
+                    'https://engage.metmuseum.org/events/public-guided-tours/collection-tour-islamic-art/',
+                    'https://engage.metmuseum.org/events/public-guided-tours/collection-tour-egyptian-art/',
+                    'https://engage.metmuseum.org/events/public-guided-tours/collection-tour-european-paintings/',
+                    'https://engage.metmuseum.org/events/public-guided-tours/museum-highlights/',
+                ]
+                
+                for tour_url in known_tour_urls:
+                    try:
+                        logger.info(f"Scraping known tour page: {tour_url}")
+                        tour_response = self.session.get(tour_url, timeout=10)
+                        tour_response.raise_for_status()
+                        tour_soup = BeautifulSoup(tour_response.content, 'html.parser')
+                        
+                        # Extract events from tour page with tour URL context
+                        tour_events = self._extract_events_from_html(tour_soup, venue, tour_url)
+                        events.extend(tour_events)
+                    except Exception as e:
+                        logger.debug(f"Error scraping known tour page {tour_url}: {e}")
                     continue
             
             # Also check main page for events
@@ -232,9 +255,9 @@ class VenueEventScraper:
         return events
     
     def _parse_event_element(self, element, venue, tour_url=None):
-        """Parse individual event element"""
+        """Parse individual event element with enhanced intelligence"""
         try:
-            # Extract title
+            # Extract title with improved logic
             title = self._extract_text(element, [
                 'h1', 'h2', 'h3', '.title', '.event-title', '.name'
             ])
@@ -250,25 +273,16 @@ class VenueEventScraper:
                 '.description', '.summary', '.content', 'p'
             ])
             
-            # Make title more specific by including venue name
-            if title in ['Guided Museum Tour', 'Self-Guided Audio Tour', 'Tour', 'Exhibition', 'Event', 'Upcoming Public Programs', 'Upcoming Events']:
-                # Try to extract more specific information
-                if 'tour' in description.lower() if description else False:
-                    title = f"Museum Tour - {venue.name}"
-                elif 'program' in title.lower():
-                    title = f"Public Program - {venue.name}"
-                else:
-                    title = f"{title} - {venue.name}"
+            # Enhanced title improvement logic
+            title = self._improve_title(title, description, venue, tour_url)
             
-            # Extract date/time
+            # Extract date/time with enhanced parsing
             date_text = self._extract_text(element, [
                 '.date', '.time', '.datetime', '.when'
             ])
             
-            # Extract location
-            location = self._extract_text(element, [
-                '.location', '.venue', '.where', '.address'
-            ]) or venue.name
+            # Extract location/meeting point with enhanced detection
+            location = self._extract_location(element, venue)
             
             # Extract URL - use tour_url if available, otherwise extract from element
             url = tour_url  # Use the tour page URL as the primary URL
@@ -280,11 +294,14 @@ class VenueEventScraper:
             # Extract image
             image_url = self._extract_image(element, venue)
             
-            # Parse dates
-            start_date, end_date, start_time, end_time = self._parse_dates(date_text)
+            # Parse dates with enhanced schedule logic
+            start_date, end_date, start_time, end_time = self._parse_dates_enhanced(date_text, url, venue)
             
             # Determine event type based on venue type
             event_type = self._determine_event_type(venue.venue_type, title, description)
+            
+            # Extract meeting point information
+            meeting_point = self._extract_meeting_point(element, description)
             
             event_data = {
                 'title': title,
@@ -294,6 +311,7 @@ class VenueEventScraper:
                 'start_time': start_time.isoformat() if start_time else None,
                 'end_time': end_time.isoformat() if end_time else None,
                 'start_location': location,
+                'meeting_point': meeting_point,
                 'venue_id': venue.id,
                 'city_id': venue.city_id,
                 'event_type': event_type,
@@ -426,31 +444,350 @@ class VenueEventScraper:
         
         return None
     
-    def _parse_dates(self, date_text):
-        """Parse date and time from text"""
-        if not date_text:
-            return None, None, None, None
+    def _improve_title(self, title, description, venue, tour_url):
+        """Improve event title with better context and specificity"""
         
-        # Simple date parsing (can be improved)
-        today = date.today()
+        # If we have a tour_url, try to extract the real title from the page
+        if tour_url and ('metmuseum.org' in tour_url or 'engage.metmuseum.org' in tour_url):
+            try:
+                response = self.session.get(tour_url, timeout=5)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                # Try to get the real page title
+                page_title = soup.find('title')
+                if page_title:
+                    page_title_text = page_title.get_text(strip=True)
+                    if 'Collection Tour' in page_title_text:
+                        # Extract the specific tour type from the title
+                        if 'Islamic Art' in page_title_text:
+                            title = "Collection Tour: Islamic Art"
+                        elif 'Egyptian Art' in page_title_text:
+                            title = "Collection Tour: Egyptian Art"
+                        elif 'European Paintings' in page_title_text:
+                            title = "Collection Tour: European Paintings"
+                        elif 'Museum Highlights' in page_title_text:
+                            title = "Museum Highlights Tour"
+                        else:
+                            title = page_title_text
+                        logger.info(f"📝 Extracted real title from page: '{title}'")
+                        return title
+                
+                # Also try h1 tags
+                h1_tag = soup.find('h1')
+                if h1_tag:
+                    h1_text = h1_tag.get_text(strip=True)
+                    if 'Collection Tour' in h1_text:
+                        title = h1_text
+                        logger.info(f"📝 Extracted title from h1: '{title}'")
+                        return title
+                        
+            except Exception as e:
+                logger.debug(f"Error extracting title from {tour_url}: {e}")
         
-        # Look for common date patterns
+        # Fallback to original logic for generic titles
+        if title in ['Guided Museum Tour', 'Self-Guided Audio Tour', 'Tour', 'Exhibition', 'Event', 'Upcoming Public Programs', 'Upcoming Events']:
+            # Try to extract more specific information from URL or description
+            if tour_url:
+                # Extract specific tour type from URL
+                if 'islamic' in tour_url.lower():
+                    title = "Collection Tour: Islamic Art"
+                elif 'egyptian' in tour_url.lower():
+                    title = "Collection Tour: Egyptian Art"
+                elif 'european' in tour_url.lower():
+                    title = "Collection Tour: European Paintings"
+                elif 'modern' in tour_url.lower():
+                    title = "Collection Tour: Modern Art"
+                elif 'collection' in tour_url.lower():
+                    title = "Collection Tour"
+                else:
+                    title = f"Museum Tour - {venue.name}"
+            elif description:
+                # Extract from description
+                desc_lower = description.lower()
+                if 'islamic' in desc_lower:
+                    title = "Collection Tour: Islamic Art"
+                elif 'egyptian' in desc_lower:
+                    title = "Collection Tour: Egyptian Art"
+                elif 'european' in desc_lower:
+                    title = "Collection Tour: European Paintings"
+                elif 'modern' in desc_lower:
+                    title = "Collection Tour: Modern Art"
+                else:
+                    title = f"Museum Tour - {venue.name}"
+            else:
+                title = f"Museum Tour - {venue.name}"
+        
+        # Remove generic date-based titles and replace with descriptive ones
         date_patterns = [
-            r'(\d{1,2})/(\d{1,2})/(\d{4})',  # MM/DD/YYYY
-            r'(\d{4})-(\d{1,2})-(\d{1,2})',  # YYYY-MM-DD
-            r'(\w+)\s+(\d{1,2})',            # Month Day
+            r'^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+.*$',
+            r'^(\d{1,2}/\d{1,2}/\d{4})$',
+            r'^(\d{4}-\d{1,2}-\d{1,2})$',
         ]
         
-        start_date = None
-        end_date = None
+        for pattern in date_patterns:
+            if re.match(pattern, title):
+                # Replace date-based title with more descriptive one
+                if description:
+                    desc_lower = description.lower()
+                    if 'islamic' in desc_lower:
+                        title = "Islamic Art Collection Tour"
+                    elif 'egyptian' in desc_lower:
+                        title = "Egyptian Art Collection Tour"
+                    elif 'european' in desc_lower:
+                        title = "European Art Collection Tour"
+                    elif 'modern' in desc_lower:
+                        title = "Modern Art Collection Tour"
+                    elif 'highlights' in desc_lower:
+                        title = "Museum Highlights Tour"
+                    elif 'collection' in desc_lower:
+                        title = "Collection Tour"
+                    else:
+                        title = f"Museum Tour - {venue.name}"
+                else:
+                    title = f"Museum Tour - {venue.name}"
+                break
+        
+        # Also handle generic "Collection Tour" title
+        if title == "Collection Tour" and description:
+            desc_lower = description.lower()
+            if 'islamic' in desc_lower:
+                title = "Islamic Art Collection Tour"
+            elif 'egyptian' in desc_lower:
+                title = "Egyptian Art Collection Tour"
+            elif 'european' in desc_lower:
+                title = "European Art Collection Tour"
+            elif 'modern' in desc_lower:
+                title = "Modern Art Collection Tour"
+            elif 'highlights' in desc_lower:
+                title = "Museum Highlights Tour"
+            elif 'span' in desc_lower and 'years' in desc_lower:
+                title = "Museum Highlights Tour"
+        
+        return title
+
+    def _extract_location(self, element, venue):
+        """Extract location information with enhanced detection"""
+        # First try standard location selectors
+        location = self._extract_text(element, [
+            '.location', '.venue', '.where', '.address'
+        ])
+        
+        if location:
+            return location
+        
+        # If no location found, use venue name
+        return venue.name
+
+    def _extract_meeting_point(self, element, description):
+        """Extract meeting point information from element and description"""
+        meeting_point = None
+        
+        # Look for meeting point patterns in the element text
+        element_text = element.get_text() if hasattr(element, 'get_text') else str(element)
+        
+        # Common meeting point patterns
+        meeting_patterns = [
+            r'meeting\s+point[:\s]*([^.\n]+)',
+            r'departs?\s+from[:\s]*([^.\n]+)',
+            r'meet\s+at[:\s]*([^.\n]+)',
+            r'gallery\s+(\d+)',
+            r'hall\s+(\d+)',
+            r'patio[:\s]*([^.\n]+)',
+            r'lobby[:\s]*([^.\n]+)',
+        ]
+        
+        for pattern in meeting_patterns:
+            match = re.search(pattern, element_text, re.IGNORECASE)
+            if match:
+                meeting_point = match.group(1).strip()
+                break
+        
+        # Also check description
+        if not meeting_point and description:
+            for pattern in meeting_patterns:
+                match = re.search(pattern, description, re.IGNORECASE)
+                if match:
+                    meeting_point = match.group(1).strip()
+                    break
+        
+        return meeting_point
+
+    def _scrape_with_cloudscraper(self, url):
+        """Scrape a page using cloudscraper to bypass bot protection (Railway-compatible)"""
+        try:
+            import cloudscraper
+            
+            # Create a cloudscraper session
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'darwin',
+                    'desktop': True
+                }
+            )
+            
+            # Make the request
+            response = scraper.get(url, timeout=10)
+            response.raise_for_status()
+            
+            return response.text
+            
+        except Exception as e:
+            logger.debug(f"Error scraping with cloudscraper: {e}")
+            return None
+    
+    def _parse_dates_enhanced(self, date_text, url, venue):
+        """Parse dates with enhanced schedule logic for recurring events - focus on TODAY"""
+        from datetime import datetime, time
+        
+        # Default to today for all events
+        today = date.today()
+        start_date = today
+        end_date = today
         start_time = None
         end_time = None
         
-        # For now, use today as default
-        start_date = today
-        end_date = today
+        # If we have a Met Museum URL, scrape the actual page to get schedule info
+        if url and 'metmuseum.org' in url:
+            try:
+                logger.info(f"🔍 Scraping Met Museum page for schedule: {url}")
+                page_html = self._scrape_with_cloudscraper(url)
+                
+                if page_html:
+                    soup = BeautifulSoup(page_html, 'html.parser')
+                    page_text = soup.get_text()
+                    
+                    logger.info(f"📄 Page text sample: {page_text[:500]}")
+                    
+                    # Look for day-of-week patterns with times
+                    # Examples: "Fridays 6:30pm - 7:30pm", "Weekdays 3:00pm", "Sundays 1:00pm"
+                    day_time_patterns = [
+                        r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Weekday|Weekend)s?\s+(\d{1,2}):(\d{2})\s*([ap]m)\s*-\s*(\d{1,2}):(\d{2})\s*([ap]m)',
+                        r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Weekday|Weekend)s?\s+(\d{1,2}):(\d{2})\s*([ap]m)',
+                    ]
+                    
+                    for pattern in day_time_patterns:
+                        match = re.search(pattern, page_text, re.IGNORECASE)
+                        if match:
+                            day_mentioned = match.group(1).lower()
+                            weekday = today.strftime('%A').lower()
+                            
+                            logger.info(f"📅 Found schedule: {match.group(0)}")
+                            logger.info(f"📅 Day mentioned: {day_mentioned}, Today: {weekday}")
+                            
+                            # Check if today matches the mentioned day
+                            if day_mentioned in weekday or (day_mentioned == 'weekday' and weekday not in ['saturday', 'sunday']):
+                                # Extract start time
+                                hour = int(match.group(2))
+                                minute = int(match.group(3))
+                                ampm = match.group(4).upper()
+                                
+                                if ampm == 'PM' and hour != 12:
+                                    hour += 12
+                                elif ampm == 'AM' and hour == 12:
+                                    hour = 0
+                                
+                                start_time = time(hour, minute)
+                                
+                                # Extract end time if available (pattern with range)
+                                if len(match.groups()) >= 7:
+                                    end_hour = int(match.group(5))
+                                    end_minute = int(match.group(6))
+                                    end_ampm = match.group(7).upper()
+                                    
+                                    if end_ampm == 'PM' and end_hour != 12:
+                                        end_hour += 12
+                                    elif end_ampm == 'AM' and end_hour == 12:
+                                        end_hour = 0
+                                    
+                                    end_time = time(end_hour, end_minute)
+                                    logger.info(f"⏰ Extracted times from page: {start_time} - {end_time}")
+                                else:
+                                    logger.info(f"⏰ Extracted start time from page: {start_time}")
+                                
+                                break
+                            else:
+                                # Day doesn't match - skip this event
+                                logger.info(f"📅 Skipping event: {day_mentioned} tour but today is {weekday}")
+                                return None, None, None, None
+                    
+            except Exception as e:
+                logger.debug(f"Error scraping Met Museum page: {e}")
+        
+        # Fallback: Try to extract time from URL (e.g., "630pm" → 6:30 PM)
+        if not start_time and url:
+            url_time_match = re.search(r'(\d{1,2})(\d{2})(am|pm)', url.lower())
+            if url_time_match:
+                hour = int(url_time_match.group(1))
+                minute = int(url_time_match.group(2))
+                ampm = url_time_match.group(3).upper()
+                
+                if ampm == 'PM' and hour != 12:
+                    hour += 12
+                elif ampm == 'AM' and hour == 12:
+                    hour = 0
+                
+                start_time = time(hour, minute)
+                logger.info(f"⏰ Extracted time from URL: {start_time}")
+        
+        # If we have a start time but no end time, assume 1-hour duration for tours
+        if start_time and not end_time:
+            from datetime import timedelta
+            # Calculate end time (start time + 1 hour)
+            start_datetime = datetime.combine(today, start_time)
+            end_datetime = start_datetime + timedelta(hours=1)
+            end_time = end_datetime.time()
+            logger.info(f"⏰ Assuming 1-hour tour duration: {start_time} - {end_time}")
+        
+        # Look for explicit time patterns in date_text
+        if date_text:
+            time_patterns = [
+                r'(\d{1,2}):(\d{2})\s*([ap]m)',
+                r'(\d{1,2})\s*([ap]m)',
+            ]
+            
+            for pattern in time_patterns:
+                match = re.search(pattern, date_text, re.IGNORECASE)
+                if match:
+                    if len(match.groups()) == 3:  # HH:MM AM/PM
+                        hour = int(match.group(1))
+                        minute = int(match.group(2))
+                        ampm = match.group(3).upper()
+                        
+                        if ampm == 'PM' and hour != 12:
+                            hour += 12
+                        elif ampm == 'AM' and hour == 12:
+                            hour = 0
+                        
+                        start_time = time(hour, minute)
+                        break
+                    elif len(match.groups()) == 2:  # H AM/PM
+                        hour = int(match.group(1))
+                        ampm = match.group(2).upper()
+                        
+                        if ampm == 'PM' and hour != 12:
+                            hour += 12
+                        elif ampm == 'AM' and hour == 12:
+                            hour = 0
+                        
+                        start_time = time(hour, 0)
+                        break
+        
+        # Final check: If we have a start time but no end time, assume 1-hour duration for tours
+        if start_time and not end_time:
+            from datetime import timedelta
+            # Calculate end time (start time + 1 hour)
+            start_datetime = datetime.combine(today, start_time)
+            end_datetime = start_datetime + timedelta(hours=1)
+            end_time = end_datetime.time()
+            logger.info(f"⏰ Assuming 1-hour tour duration: {start_time} - {end_time}")
         
         return start_date, end_date, start_time, end_time
+
+    def _parse_dates(self, date_text):
+        """Parse date and time from text (legacy method for compatibility)"""
+        return self._parse_dates_enhanced(date_text, None, None)
     
     def _determine_event_type(self, venue_type, title, description):
         """Determine event type based on venue and content"""

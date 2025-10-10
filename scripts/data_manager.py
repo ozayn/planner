@@ -141,12 +141,9 @@ def load_venues_from_json():
     with open(venues_file, 'r') as f:
         data = json.load(f)
     
-    # Get venues data (handle both old and new JSON structure)
-    venues_data = data.get('venues', data)  # Try 'venues' key first, fallback to root
-    
     # Count total venues
-    total_venues = sum(len(city_data['venues']) for city_data in venues_data.values() if isinstance(city_data, dict) and 'venues' in city_data)
-    total_cities = len([k for k, v in venues_data.items() if isinstance(v, dict) and 'venues' in v])
+    total_venues = sum(len(city_data['venues']) for city_data in data.values() if isinstance(city_data, dict) and 'venues' in city_data)
+    total_cities = len([k for k, v in data.items() if isinstance(v, dict) and 'venues' in v])
     
     print(f"📊 Found {total_venues} venues across {total_cities} cities")
     print("=" * 60)
@@ -162,7 +159,7 @@ def load_venues_from_json():
             # Process each city
             total_venues_added = 0
             
-            for city_id, city_data in venues_data.items():
+            for city_id, city_data in data.items():
                 if not isinstance(city_data, dict) or 'venues' not in city_data:
                     continue
                     
@@ -302,31 +299,6 @@ def load_sources_from_json():
                     if not city:
                         print(f"      ⚠️  City ID {city_id} not found in database, skipping...")
                         continue
-                    
-                    # Create source object
-                    source = Source(
-                        name=source_data.get('name'),
-                        handle=source_data.get('handle'),
-                        source_type=source_data.get('source_type'),
-                        url=source_data.get('url'),
-                        description=source_data.get('description'),
-                        city_id=city_id,
-                        covers_multiple_cities=source_data.get('covers_multiple_cities', False),
-                        covered_cities=source_data.get('covered_cities', ''),
-                        event_types=source_data.get('event_types', '[]'),
-                        is_active=source_data.get('is_active', True),
-                        reliability_score=source_data.get('reliability_score', 3.0),
-                        posting_frequency=source_data.get('posting_frequency', ''),
-                        notes=source_data.get('notes', ''),
-                        scraping_pattern=source_data.get('scraping_pattern', ''),
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    
-                    # Add to database
-                    db.session.add(source)
-                    total_sources_added += 1
-                    print(f"      ✅ Added to database (city_id: {city_id})")
             else:
                 # Old structure: organized by cities
                 for city_id, city_data in data.items():
