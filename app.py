@@ -428,6 +428,8 @@ class Venue(db.Model):
             'tour_info': self.tour_info,
             'admission_fee': self.admission_fee,
             'city_id': self.city_id,
+            'city_name': self.city.name if self.city else None,
+            'city_timezone': self.city.timezone if self.city else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
