@@ -2492,6 +2492,11 @@
                     return;
             }
             
+            // Use allData if filtered is not available
+            if (!filteredArray) {
+                filteredArray = dataArray;
+            }
+            
             if (!dataArray || !filteredArray) {
                 console.error('Data arrays not available for sorting');
                 return;
