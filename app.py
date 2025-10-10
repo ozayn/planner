@@ -3240,68 +3240,64 @@ def reload_venues_from_json():
         
         venues_section = venues_data["venues"]
         updated_count = 0
-        cities_processed = 0
-        venues_found_in_json = 0
+        venues_found_in_json = len(venues_section)
         venues_matched_in_db = 0
         
-        app_logger.info(f"JSON has {len(venues_section)} cities with venues")
+        app_logger.info(f"JSON has {venues_found_in_json} venues (flat structure)")
         
-        # Update each venue
-        for city_id, city_data in venues_section.items():
-            city_name = city_data.get('name', 'Unknown')
-            city_venues = city_data.get('venues', [])
-            cities_processed += 1
-            venues_found_in_json += len(city_venues)
-            
-            app_logger.info(f"Processing city: {city_name} ({len(city_venues)} venues in JSON)")
-            
-            # Find the city
-            city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
-            if not city:
-                app_logger.warning(f"⚠️ City not found: {city_name}")
+        # Handle flat structure: each key is a venue ID, value is venue data
+        for venue_id, venue_data in venues_section.items():
+            # Check if this is actually venue data (has 'name' key)
+            if not isinstance(venue_data, dict) or 'name' not in venue_data:
+                app_logger.warning(f"⚠️ Invalid venue data at key {venue_id}")
                 continue
             
-            for venue_data in city_venues:
-                # Find existing venue by name only (city_id might differ between local and production)
-                venue = Venue.query.filter_by(name=venue_data['name']).first()
+            venue_name = venue_data.get('name', 'Unknown')
+            
+            # Find existing venue by name only (city_id might differ between local and production)
+            venue = Venue.query.filter_by(name=venue_name).first()
+            
+            if venue:
+                venues_matched_in_db += 1
+                old_url = venue.website_url
+                new_url = venue_data.get('website_url', venue.website_url)
                 
-                if venue:
-                    venues_matched_in_db += 1
-                    app_logger.info(f"✓ Updating venue: {venue.name}")
-                    app_logger.info(f"  Old URL: {venue.website_url}")
-                    app_logger.info(f"  New URL: {venue_data.get('website_url', 'N/A')}")
-                    # Update venue with JSON data
-                    venue.venue_type = venue_data.get('venue_type', venue.venue_type)
-                    venue.address = venue_data.get('address', venue.address)
-                    venue.latitude = venue_data.get('latitude', venue.latitude)
-                    venue.longitude = venue_data.get('longitude', venue.longitude)
-                    venue.image_url = venue_data.get('image_url', venue.image_url)
-                    venue.instagram_url = venue_data.get('instagram_url', venue.instagram_url)
-                    venue.facebook_url = venue_data.get('facebook_url', venue.facebook_url)
-                    venue.twitter_url = venue_data.get('twitter_url', venue.twitter_url)
-                    venue.youtube_url = venue_data.get('youtube_url', venue.youtube_url)
-                    venue.tiktok_url = venue_data.get('tiktok_url', venue.tiktok_url)
-                    venue.website_url = venue_data.get('website_url', venue.website_url)
-                    venue.description = venue_data.get('description', venue.description)
-                    venue.opening_hours = venue_data.get('opening_hours', venue.opening_hours)
-                    venue.holiday_hours = venue_data.get('holiday_hours', venue.holiday_hours)
-                    venue.phone_number = venue_data.get('phone_number', venue.phone_number)
-                    venue.email = venue_data.get('email', venue.email)
-                    venue.tour_info = venue_data.get('tour_info', venue.tour_info)
-                    venue.admission_fee = venue_data.get('admission_fee', venue.admission_fee)
-                    venue.additional_info = venue_data.get('additional_info', venue.additional_info)
-                    venue.updated_at = datetime.utcnow()
-                    updated_count += 1
+                if old_url != new_url:
+                    app_logger.info(f"✓ Updating {venue.name}: {old_url} → {new_url}")
+                
+                # Update venue with JSON data
+                venue.venue_type = venue_data.get('venue_type', venue.venue_type)
+                venue.address = venue_data.get('address', venue.address)
+                venue.latitude = venue_data.get('latitude', venue.latitude)
+                venue.longitude = venue_data.get('longitude', venue.longitude)
+                venue.image_url = venue_data.get('image_url', venue.image_url)
+                venue.instagram_url = venue_data.get('instagram_url', venue.instagram_url)
+                venue.facebook_url = venue_data.get('facebook_url', venue.facebook_url)
+                venue.twitter_url = venue_data.get('twitter_url', venue.twitter_url)
+                venue.youtube_url = venue_data.get('youtube_url', venue.youtube_url)
+                venue.tiktok_url = venue_data.get('tiktok_url', venue.tiktok_url)
+                venue.website_url = new_url
+                venue.description = venue_data.get('description', venue.description)
+                venue.opening_hours = venue_data.get('opening_hours', venue.opening_hours)
+                venue.holiday_hours = venue_data.get('holiday_hours', venue.holiday_hours)
+                venue.phone_number = venue_data.get('phone_number', venue.phone_number)
+                venue.email = venue_data.get('email', venue.email)
+                venue.tour_info = venue_data.get('tour_info', venue.tour_info)
+                venue.admission_fee = venue_data.get('admission_fee', venue.admission_fee)
+                venue.additional_info = venue_data.get('additional_info', venue.additional_info)
+                venue.updated_at = datetime.utcnow()
+                updated_count += 1
+            else:
+                app_logger.debug(f"⚠️ Venue not found in DB: {venue_name}")
         
         db.session.commit()
         app_logger.info(f"✅ Successfully reloaded {updated_count} venues from JSON")
-        app_logger.info(f"📊 Stats: {cities_processed} cities processed, {venues_found_in_json} in JSON, {venues_matched_in_db} matched in DB, {updated_count} updated")
+        app_logger.info(f"📊 Stats: {venues_found_in_json} in JSON, {venues_matched_in_db} matched in DB, {updated_count} updated")
         
         return jsonify({
             'success': True,
             'message': f'Successfully reloaded {updated_count} venues from JSON',
             'updated_count': updated_count,
-            'cities_processed': cities_processed,
             'venues_in_json': venues_found_in_json,
             'venues_matched': venues_matched_in_db
         })
