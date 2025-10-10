@@ -4997,6 +4997,10 @@
                             ${addField('Email', venue.email)}
                             ${addField('Website', venue.website, true)}
                             ${addField('Coordinates', venue.latitude && venue.longitude ? `${venue.latitude}, ${venue.longitude}` : null)}
+                            <div style="margin-bottom: 8px; padding: 8px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196f3;">
+                                <strong>🌍 City Timezone:</strong> ${venue.city_timezone || 'Not specified'}
+                                ${venue.city_timezone ? `<br><small style="color: #666;">All venue times in local timezone</small>` : ''}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5020,6 +5024,21 @@
                         </div>
                     </div>
                 </div>
+                
+                ${venue.image_url ? `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px; color: #4a5568;">🖼️ Venue Image</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <a href="${venue.image_url}" target="_blank" style="color: #2196f3; text-decoration: none;">
+                            <img src="${venue.image_url}" alt="Venue Image" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid #e0e0e0;" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                            <div style="display: none; padding: 10px; background: #f5f5f5; border-radius: 4px; color: #666;">
+                                <a href="${venue.image_url}" target="_blank" style="color: #2196f3;">View Venue Image</a>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                ` : ''}
                 
                 <div>
                     <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
@@ -5057,7 +5076,10 @@
                     <div>
                         <h4 style="margin-bottom: 10px; color: #4a5568;">🌍 Location & Timezone</h4>
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            ${addField('Timezone', city.timezone)}
+                            <div style="margin-bottom: 8px; padding: 8px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196f3;">
+                                <strong>🌍 Timezone:</strong> ${city.timezone || 'Not specified'}
+                                ${city.timezone ? `<br><small style="color: #666;">All events in this city use this timezone</small>` : ''}
+                            </div>
                             ${addField('Latitude', city.latitude)}
                             ${addField('Longitude', city.longitude)}
                         </div>
