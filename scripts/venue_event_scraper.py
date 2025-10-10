@@ -240,7 +240,10 @@ class VenueEventScraper:
             ])
             
             if not title:
+                logger.debug(f"   ❌ No title found in element")
                 return None
+            
+            logger.info(f"   📝 Extracted title: '{title}'")
             
             # Extract description first to use in title logic
             description = self._extract_text(element, [
@@ -303,8 +306,8 @@ class VenueEventScraper:
             
             # Validate event quality before returning
             if not self._is_valid_event(event_data):
-                logger.info(f"⚠️ Filtered out: '{title}' - Reason: Quality check failed")
-                logger.debug(f"   Has time: {event_data.get('start_time') is not None}, Has URL: {event_data.get('url') != event_data.get('source_url')}, Description length: {len(description)}")
+                logger.info(f"⚠️ Filtered out: '{title}'")
+                logger.info(f"   Reason: Has time={event_data.get('start_time') is not None}, Has URL={event_data.get('url') != event_data.get('source_url')}, Has desc={bool(description)}, Desc len={len(description or '')}")
                 return None
             
             logger.info(f"✅ Valid event found: '{title}'")
@@ -495,12 +498,22 @@ class VenueEventScraper:
         if len(title) < 5:
             return False
         
+        # RELAXED VALIDATION: Accept events from known venues/sources
+        # If we have a venue_id, we trust it's a real event from a real venue
+        has_venue = event_data.get('venue_id') is not None
+        
         # Must have either a specific time OR a URL OR a meaningful description
+        # BUT if it's from a known venue, be more lenient
         has_specific_time = event_data.get('start_time') is not None
         has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
-        has_meaningful_description = description and len(description) >= 30
+        has_meaningful_description = description and len(description) >= 15  # Lowered from 30 to 15
         
-        # Reject if it has none of the above
+        # If from a known venue, accept if it has ANY description or URL
+        if has_venue:
+            if description or has_url:
+                return True
+        
+        # For other events, require at least one quality indicator
         if not (has_specific_time or has_url or has_meaningful_description):
             return False
         
@@ -509,7 +522,7 @@ class VenueEventScraper:
         location_indicators = ['meet your driver', 'meet at', 'pickup location', 'departure point']
         if any(indicator in description for indicator in location_indicators):
             # Only allow if it also has other meaningful content
-            if not (has_specific_time or has_url or len(description) >= 100):
+            if not (has_specific_time or has_url or len(description) >= 50):  # Lowered from 100 to 50
                 return False
         
         return True

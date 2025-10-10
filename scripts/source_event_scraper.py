@@ -165,7 +165,10 @@ class SourceEventScraper:
             ])
             
             if not title:
+                logger.debug(f"   ❌ No title found in element")
                 return None
+            
+            logger.info(f"   📝 Extracted title: '{title}'")
             
             # Extract description
             description = self._extract_text(element, [
@@ -216,8 +219,8 @@ class SourceEventScraper:
             
             # Validate event quality
             if not self._is_valid_event(event_data):
-                logger.info(f"⚠️ Filtered out: '{title}' - Reason: Quality check failed")
-                logger.debug(f"   Has time: {event_data.get('start_time') is not None}, Has URL: {event_data.get('url') != event_data.get('source_url')}, Description length: {len(description or '')}")
+                logger.info(f"⚠️ Filtered out: '{title}'")
+                logger.info(f"   Reason: Has time={event_data.get('start_time') is not None}, Has URL={event_data.get('url') != event_data.get('source_url')}, Has desc={bool(description)}, Desc len={len(description or '')}")
                 return None
             
             logger.info(f"✅ Valid event found: '{title}'")
@@ -373,12 +376,22 @@ class SourceEventScraper:
         if len(title) < 5:
             return False
         
+        # RELAXED VALIDATION: Accept events from known sources
+        # If we have a source_id or city_id, we trust it's a real event
+        has_source = event_data.get('source_url') is not None or event_data.get('city_id') is not None
+        
         # Must have either a specific time OR a URL OR a meaningful description
+        # BUT if it's from a known source, be more lenient
         has_specific_time = event_data.get('start_time') is not None
         has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
-        has_meaningful_description = description and len(description) >= 30
+        has_meaningful_description = description and len(description) >= 15  # Lowered from 30 to 15
         
-        # Reject if it has none of the above
+        # If from a known source, accept if it has ANY description or URL
+        if has_source:
+            if description or has_url:
+                return True
+        
+        # For other events, require at least one quality indicator
         if not (has_specific_time or has_url or has_meaningful_description):
             return False
         
@@ -387,7 +400,7 @@ class SourceEventScraper:
         location_indicators = ['meet your driver', 'meet at', 'pickup location', 'departure point']
         if any(indicator in description for indicator in location_indicators):
             # Only allow if it also has other meaningful content
-            if not (has_specific_time or has_url or len(description) >= 100):
+            if not (has_specific_time or has_url or len(description) >= 50):  # Lowered from 100 to 50
                 return False
         
         return True
