@@ -1760,7 +1760,7 @@
                     <label for="eventUrl">Event Page URL *:</label>
                     <div style="display: flex; gap: 8px;">
                         <input type="url" id="eventUrl" placeholder="https://example.com/events/tour" required style="flex: 1;">
-                        <button type="button" onclick="autoFillFromUrl()" class="btn btn-secondary" style="white-space: nowrap;">🔍 Auto-Fill</button>
+                        <button type="button" onclick="autoFillFromUrl(event)" class="btn btn-secondary" style="white-space: nowrap;">🔍 Auto-Fill</button>
                     </div>
                     <small>Enter URL and click Auto-Fill to extract event details, then review and edit</small>
                 </div>
@@ -5343,7 +5343,7 @@
             return html;
         }
         
-        async function autoFillFromUrl() {
+        async function autoFillFromUrl(event) {
             const url = document.getElementById('eventUrl').value;
             
             if (!url) {
@@ -5352,7 +5352,7 @@
             }
             
             // Show loading indicator
-            const autoFillBtn = event.target;
+            const autoFillBtn = event ? event.target : document.querySelector('button[onclick*="autoFillFromUrl"]');
             const originalText = autoFillBtn.textContent;
             autoFillBtn.textContent = '⏳ Extracting...';
             autoFillBtn.disabled = true;
