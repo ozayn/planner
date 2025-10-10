@@ -2523,6 +2523,8 @@
         
         // Sorting functionality for dynamic tables
         function sortTable(tableId, field) {
+            console.log('sortTable called:', tableId, field);
+            
             // Determine which data array to sort based on table ID
             let dataArray;
             let filteredArray;
@@ -2549,9 +2551,17 @@
                     return;
             }
             
+            console.log('Data arrays:', {
+                dataArrayLength: dataArray?.length,
+                filteredArrayLength: filteredArray?.length,
+                dataArray: dataArray,
+                filteredArray: filteredArray
+            });
+            
             // Use allData if filtered is not available
             if (!filteredArray) {
                 filteredArray = dataArray;
+                console.log('Using dataArray as filteredArray');
             }
             
             if (!dataArray || !filteredArray) {
@@ -2613,11 +2623,16 @@
                     break;
                 case 'sourcesTable':
                     window.filteredSources = sortedArray;
+                    console.log('Updated window.filteredSources:', sortedArray.length, 'items');
                     break;
             }
             
+            console.log('Sorted array length:', sortedArray.length);
+            console.log('First 3 items:', sortedArray.slice(0, 3));
+            
             // Re-render the table
             const tableType = tableId.replace('Table', '');
+            console.log('Calling renderDynamicTable with:', tableId, sortedArray.length, tableType);
             renderDynamicTable(tableId, sortedArray, tableType);
             
             // Update header arrows to show sort direction
