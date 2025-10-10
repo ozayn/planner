@@ -5351,8 +5351,14 @@
                 return;
             }
             
+            // Show loading indicator
+            const autoFillBtn = event.target;
+            const originalText = autoFillBtn.textContent;
+            autoFillBtn.textContent = '⏳ Extracting...';
+            autoFillBtn.disabled = true;
+            
             try {
-                showLoadingState('Extracting event details from URL...');
+                console.log('Fetching data from:', url);
                 
                 const response = await fetch('/api/admin/extract-event-from-url', {
                     method: 'POST',
@@ -5363,7 +5369,7 @@
                 });
                 
                 const result = await response.json();
-                hideLoadingState();
+                console.log('Extraction result:', result);
                 
                 if (response.ok) {
                     // Show extracted data preview
@@ -5372,9 +5378,12 @@
                     alert(`Error: ${result.error || 'Failed to extract data from URL'}`);
                 }
             } catch (error) {
-                hideLoadingState();
                 console.error('Error extracting from URL:', error);
-                alert('An error occurred while extracting data from the URL');
+                alert('An error occurred while extracting data from the URL: ' + error.message);
+            } finally {
+                // Restore button
+                autoFillBtn.textContent = originalText;
+                autoFillBtn.disabled = false;
             }
         }
         
