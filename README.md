@@ -19,6 +19,20 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Instagram Context**: Extracts page names, handles, and poster info
 - **Intelligent Processing**: 90% confidence with Vision API, 80% with Tesseract
 
+### **🎯 Event Scraping Intelligence**
+- **Today-Focused**: Scrapes events for TODAY only (more relevant and useful)
+- **Smart Schedule Logic**: 
+  - Weekdays: 3:00 PM tours (Monday-Friday)
+  - Sundays: 1:00 PM tours
+  - Saturdays: No tours (correctly filtered out)
+- **Tour Duration Assumption**: If no end time is specified, assumes 1-hour duration
+  - Example: 3:00 PM start → 4:00 PM end (automatically calculated)
+  - Makes events more complete and useful for planning
+- **Enhanced Title Extraction**: Converts generic dates to descriptive titles
+  - "Friday, October 10" → "Museum Highlights Tour"
+  - "Collection Tour: Islamic Art" (from actual page titles)
+- **Meeting Point Detection**: Extracts specific locations like "Gallery 534, Vélez Blanco Patio"
+
 ### **🌐 Deployment Configuration**
 - **Platform**: Railway with custom domain `planner.ozayn.com`
 - **Database**: PostgreSQL (Railway managed)
