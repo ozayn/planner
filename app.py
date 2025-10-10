@@ -3218,6 +3218,84 @@ def export_venues_to_json():
         print(f"❌ Error exporting venues: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/reload-venues-from-json', methods=['POST'])
+def reload_venues_from_json():
+    """Reload venues from JSON file to database (for syncing production with latest data)"""
+    try:
+        import json
+        from datetime import datetime
+        
+        app_logger.info("🔄 Reloading venues from venues.json...")
+        
+        # Load venues.json
+        venues_file = os.path.join(os.path.dirname(__file__), 'data', 'venues.json')
+        if not os.path.exists(venues_file):
+            return jsonify({'error': 'venues.json not found'}), 404
+        
+        with open(venues_file, 'r') as f:
+            venues_data = json.load(f)
+        
+        if "venues" not in venues_data:
+            return jsonify({'error': 'Invalid venues.json format'}), 400
+        
+        venues_section = venues_data["venues"]
+        updated_count = 0
+        
+        # Update each venue
+        for city_id, city_data in venues_section.items():
+            city_name = city_data.get('name', 'Unknown')
+            city_venues = city_data.get('venues', [])
+            
+            # Find the city
+            city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
+            if not city:
+                app_logger.warning(f"⚠️ City not found: {city_name}")
+                continue
+            
+            for venue_data in city_venues:
+                # Find existing venue by name and city
+                venue = Venue.query.filter_by(name=venue_data['name'], city_id=city.id).first()
+                
+                if venue:
+                    # Update venue with JSON data
+                    venue.venue_type = venue_data.get('venue_type', venue.venue_type)
+                    venue.address = venue_data.get('address', venue.address)
+                    venue.latitude = venue_data.get('latitude', venue.latitude)
+                    venue.longitude = venue_data.get('longitude', venue.longitude)
+                    venue.image_url = venue_data.get('image_url', venue.image_url)
+                    venue.instagram_url = venue_data.get('instagram_url', venue.instagram_url)
+                    venue.facebook_url = venue_data.get('facebook_url', venue.facebook_url)
+                    venue.twitter_url = venue_data.get('twitter_url', venue.twitter_url)
+                    venue.youtube_url = venue_data.get('youtube_url', venue.youtube_url)
+                    venue.tiktok_url = venue_data.get('tiktok_url', venue.tiktok_url)
+                    venue.website_url = venue_data.get('website_url', venue.website_url)
+                    venue.description = venue_data.get('description', venue.description)
+                    venue.opening_hours = venue_data.get('opening_hours', venue.opening_hours)
+                    venue.holiday_hours = venue_data.get('holiday_hours', venue.holiday_hours)
+                    venue.phone_number = venue_data.get('phone_number', venue.phone_number)
+                    venue.email = venue_data.get('email', venue.email)
+                    venue.tour_info = venue_data.get('tour_info', venue.tour_info)
+                    venue.admission_fee = venue_data.get('admission_fee', venue.admission_fee)
+                    venue.additional_info = venue_data.get('additional_info', venue.additional_info)
+                    venue.updated_at = datetime.utcnow()
+                    updated_count += 1
+        
+        db.session.commit()
+        app_logger.info(f"✅ Successfully reloaded {updated_count} venues from JSON")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully reloaded {updated_count} venues from JSON',
+            'updated_count': updated_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"❌ Error reloading venues: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/add-venue', methods=['POST'])
 def add_venue():
     """Add a new venue"""
