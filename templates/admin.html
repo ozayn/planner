@@ -2573,8 +2573,8 @@
             table.dataset.currentField = field;
             table.dataset.currentSort = ascending ? 'asc' : 'desc';
             
-            // Sort the filtered data
-            filteredArray.sort((a, b) => {
+            // Create a copy to sort (don't mutate the original)
+            const sortedArray = [...filteredArray].sort((a, b) => {
                 let aVal = a[field];
                 let bVal = b[field];
                 
@@ -2600,14 +2600,25 @@
                 return 0;
             });
             
-            // Update the corresponding all data array to maintain consistency
-            const sortedIndices = filteredArray.map(item => dataArray.findIndex(original => original.id === item.id));
-            const newAllArray = sortedIndices.map(index => dataArray[index]);
-            Object.assign(dataArray, newAllArray);
+            // Update the window variable for the filtered array
+            switch(tableId) {
+                case 'citiesTable':
+                    window.filteredCities = sortedArray;
+                    break;
+                case 'venuesTable':
+                    window.filteredVenues = sortedArray;
+                    break;
+                case 'eventsTable':
+                    window.filteredEvents = sortedArray;
+                    break;
+                case 'sourcesTable':
+                    window.filteredSources = sortedArray;
+                    break;
+            }
             
             // Re-render the table
             const tableType = tableId.replace('Table', '');
-            renderDynamicTable(tableId, filteredArray, tableType);
+            renderDynamicTable(tableId, sortedArray, tableType);
             
             // Update header arrows to show sort direction
             updateSortArrows(table, field, ascending);
