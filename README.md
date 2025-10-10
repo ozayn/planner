@@ -32,20 +32,24 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **⚠️ CRITICAL**: Local SQLite and Railway PostgreSQL have **different city IDs**
   - Local: New York = city_id 2, Washington = city_id 1
   - Production: New York = city_id 452, Washington = city_id 451
-- **Syncing Workflow**:
+- **Syncing Workflow** (follow these exact steps):
   1. Make data changes locally (e.g., update venue URLs in local database)
   2. Export to JSON: `python3 scripts/update_venues_json.py` (or cities, sources)
   3. Commit and push JSON files: `git add data/*.json && git commit -m "Update venue data" && git push`
   4. Wait 2-3 minutes for Railway auto-deploy
   5. Call reload endpoint: `curl -X POST https://planner.ozayn.com/api/admin/reload-venues-from-json`
+  6. Verify changes: Check production at `https://planner.ozayn.com/api/admin/venues`
 - **Available Reload Endpoints**:
   - `/api/admin/reload-venues-from-json` - Sync venues from JSON to production DB
   - Matches venues by **name only** (handles city_id mismatch between environments)
   - Updates all venue fields (website_url, social media, contact info, etc.)
+  - Returns stats: `{updated_count, venues_in_json, venues_matched}`
 - **Why Not `railway run`?**:
   - ❌ Can't run local scripts on Railway (connection to postgres.railway.internal fails)
   - ✅ Use API endpoints instead - they run in production environment with access to production DB
 - **Data Flow**: Local DB → JSON files → Git → Railway → Reload API → Production DB
+- **Common Issue**: If URLs don't update, check that JSON was committed/pushed and Railway finished deploying
+- **Fix Script Available**: Use `scripts/fix_all_venue_urls.py` to fix known fake URLs in batch
 
 ### **🔒 Security & API Keys**
 - **NEVER commit `.env` file**: Contains sensitive API keys and secrets
