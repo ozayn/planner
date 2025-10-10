@@ -7,7 +7,7 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 ### **🔑 Critical Setup Steps**
 - **ALWAYS activate virtual environment first**: `source venv/bin/activate`
 - **Use port 5001, never 5000**: App runs on `http://localhost:5001`
-- **🚨 ALWAYS use `python3` not `python`**: System Python vs venv Python - this is critical!
+- **Use `python3` not `python`**: System Python vs venv Python
 - **Environment variables**: Add API keys to `.env` file (never commit this file)
 
 ### **🤖 Hybrid OCR + LLM System**
@@ -22,6 +22,11 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Database**: PostgreSQL (Railway managed)
 - **Environment Detection**: Automatically switches OCR engines based on environment
 - **Security**: All API keys properly protected, no exposed credentials
+- **🚨 DEPLOYMENT PREFERENCE**: 
+  - ✅ **ALWAYS use GitHub integration**: Push to GitHub and let Railway auto-deploy
+  - ❌ **NEVER use `railway up`**: Bypasses GitHub, creates inconsistency
+  - **Deployment process**: `git push` → Railway auto-detects → Builds → Runs `reset_railway_database.py` → Deploys
+  - **Wait time**: ~2-3 minutes for automatic deployment to complete
 
 ### **🔒 Security & API Keys**
 - **NEVER commit `.env` file**: Contains sensitive API keys and secrets
@@ -67,32 +72,7 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **✅ No Manual Steps**: Schema changes are automatically deployed when you push code to GitHub
 - **✅ Type Conversion**: SQLite types are automatically converted to PostgreSQL equivalents
 - **✅ Error Handling**: Migration failures are logged but don't crash the app
-- **Manual Sync**: If needed, run `python3 scripts/sync_schema.py` with Railway environment
-
-### **🔄 Railway Database Loading (SOLVED)**
-- **Problem**: Railway PostgreSQL database empty after deployment
-- **Root Cause**: JSON city IDs (1, 2, 3) don't match auto-generated database IDs
-- **Solution**: Added comprehensive data loading endpoint with city ID mapping
-- **Endpoint**: `POST /api/admin/load-all-data` - Loads cities, venues, and sources in one call
-- **How It Works**:
-  1. Creates database tables if missing (`db.create_all()`)
-  2. Loads cities from `cities.json` (auto-generated IDs)
-  3. Creates city ID mapping (JSON ID → Database ID)
-  4. Loads venues using city name lookup (not JSON ID)
-  5. Loads sources using city ID mapping (not JSON ID)
-  6. Commits each section separately to avoid foreign key errors
-- **Column Size Fix**: Increased `image_url` and `url` fields from 500 to 1000 chars for long Google Maps photo references
-- **Fix Column Sizes First**: Run `POST /api/admin/fix-column-sizes` before loading data if tables already exist
-- **Autoflush Fix**: Each delete operation commits separately before adding new records
-- **To Reload Railway Database**:
-  ```bash
-  # Step 1: Fix column sizes (only needed once)
-  curl -X POST https://planner.ozayn.com/api/admin/fix-column-sizes
-  
-  # Step 2: Load all data
-  curl -X POST https://planner.ozayn.com/api/admin/load-all-data
-  ```
-- **Expected Result**: 25 cities, 178 venues, 49 sources (252 total items)
+- **Manual Sync**: If needed, run `python scripts/sync_schema.py` with Railway environment
 
 ### **📚 Lessons Learned from Schema Issues**
 - **Problem**: Railway PostgreSQL doesn't automatically create new columns when SQLAlchemy models are updated
@@ -107,32 +87,12 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Cause**: Missing columns in Railway PostgreSQL database
 - **Check**: Look for errors like "column events.social_media_platform does not exist" in Railway logs
 - **Solution**: The auto-migration should fix this automatically on next deployment
-- **Manual Fix**: If auto-migration fails, run `python3 scripts/sync_schema.py` with Railway environment
+- **Manual Fix**: If auto-migration fails, run `python scripts/sync_schema.py` with Railway environment
 - **Verification**: Check API endpoints return correct counts: `/api/admin/cities`, `/api/admin/venues`, etc.
 - **🚨 Timezone handling**: Always use CITY timezone for event date/time processing:
   - Image upload event extraction MUST use city timezone, not server timezone
   - Date/time parsing should consider the event's location timezone
   - Never use `datetime.now()` or `date.today()` without timezone context
-
-### **🎯 Event Scraping System**
-- **✅ Dual Scraping**: Scrapes both venue websites AND event source websites
-- **✅ Quality Filtering**: Automatically filters out generic/incomplete events
-  - Rejects events with only "TBD" times and no details
-  - Filters generic titles like "Location", "Tour", "Hours"
-  - Requires meaningful content (time OR URL OR 30+ char description)
-- **✅ Smart Deduplication**: Multiple layers of duplicate prevention
-  - Per-scraper deduplication (within venue/source scraper)
-  - Cross-scraper deduplication (between venue and source results)
-  - Database deduplication (prevents same event from being added twice)
-- **✅ Enhanced Image Extraction**: Captures event images from multiple sources
-  - Lazy-loaded images (data-src, data-lazy-src)
-  - Responsive images (srcset, picture elements)
-  - CSS background images
-  - Fallback to venue images
-- **✅ Event Links**: Direct links (🔗) to event pages for booking/details
-- **✅ Flexible Selection**: Can scrape venues only, sources only, or both
-- **Website Sources Supported**: Big Onion Tours, Ellis Island Hard Hat Tours, NYC.com, etc.
-- **Instagram Sources**: Logged but not yet implemented (requires API setup)
 
 ### **🔧 Testing & Debugging**
 - **Test in both environments**: Always test locally AND on Railway deployment
@@ -157,19 +117,15 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 ### **📊 Current System Status**
 - **Cities**: 25 loaded
 - **Venues**: 178 loaded  
-- **Sources**: 49 loaded (including Big Onion Walking Tours & Ellis Island Hard Hat Tours)
-- **Event Scraping**: ✅ Scrapes both venues and sources
-- **Quality Filtering**: ✅ Filters out generic/incomplete events
-- **Deduplication**: ✅ Prevents duplicate events in database
+- **Sources**: 37 loaded
 - **Hybrid Processing**: ✅ Production ready
 - **Instagram Recognition**: ✅ Working perfectly
-- **Railway Database**: ✅ Fully synced with local data
 
 ## ✨ Features
 
-- **🌍 Global Cities**: Support for 25 major cities worldwide with 178 venues
+- **🌍 Global Cities**: Support for 22 major cities worldwide with 147+ venues
 - **🏛️ Venue Management**: Comprehensive venue database with images, hours, and details
-- **📰 Event Sources**: 49 event sources (36 DC, 11 NYC, 2 other cities) with smart scraping
+- **📰 Event Sources**: 36+ event sources for Washington DC with smart scraping
 - **🎨 Minimal Design**: Pastel colors, artistic fonts, icon-based UI
 - **🔧 Admin Interface**: Full CRUD operations for cities, venues, and sources
 - **🛡️ Bulletproof Setup**: Automated restart script with dependency management
@@ -194,7 +150,7 @@ python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install with setup.py (recommended)
-python3 setup.py install
+python setup.py install
 
 # Or install dependencies manually
 pip install -r requirements.txt
@@ -204,10 +160,10 @@ cp .env.example .env
 # Edit .env with your API keys
 
 # Initialize database
-python3 scripts/data_manager.py load
+python scripts/data_manager.py load
 
 # Start the app
-python3 app.py
+python app.py
 ```
 
 ### Option 2: Manual Setup Only
@@ -231,10 +187,10 @@ cp .env.example .env
 # Edit .env with your API keys
 
 # Initialize database
-python3 scripts/data_manager.py load
+python scripts/data_manager.py load
 
 # Start the app
-python3 app.py
+python app.py
 ```
 
 Visit: `http://localhost:5001`
@@ -427,8 +383,8 @@ This project follows professional Python development practices:
 ### Quick Fixes
 - **🚨 Image processing broken?** → [QUICK_FIX_GUIDE.md](docs/QUICK_FIX_GUIDE.md)
 - **Port 5000 in use**: App runs on port 5001 by default
-- **Database errors**: Run `python3 scripts/data_manager.py load` to reload data
-- **🚨 Python not found**: ALWAYS use `python3` instead of `python` - this is critical!
+- **Database errors**: Run `python scripts/data_manager.py load` to reload data
+- **Python not found**: Use `python3` instead of `python`
 - **Dependencies not found**: Make sure virtual environment is activated with `source venv/bin/activate`
 - **API key errors**: Add your API keys to `.env` file (GROQ_API_KEY, OPENAI_API_KEY, etc.)
 
