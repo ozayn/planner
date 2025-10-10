@@ -3253,10 +3253,11 @@ def reload_venues_from_json():
                 continue
             
             for venue_data in city_venues:
-                # Find existing venue by name and city
-                venue = Venue.query.filter_by(name=venue_data['name'], city_id=city.id).first()
+                # Find existing venue by name only (city_id might differ between local and production)
+                venue = Venue.query.filter_by(name=venue_data['name']).first()
                 
                 if venue:
+                    app_logger.info(f"Updating venue: {venue.name} (website_url: {venue_data.get('website_url', 'N/A')})")
                     # Update venue with JSON data
                     venue.venue_type = venue_data.get('venue_type', venue.venue_type)
                     venue.address = venue_data.get('address', venue.address)
