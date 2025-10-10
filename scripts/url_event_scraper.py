@@ -23,18 +23,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def scrape_event_from_url(url, venue, period_start, period_end):
+def extract_event_data_from_url(url):
     """
-    Scrape event data from a URL and create events for the specified period.
+    Extract event data from a URL for preview/editing (doesn't create events).
     
     Args:
         url: The URL to scrape
-        venue: Venue object
-        period_start: Start date of the period
-        period_end: End date of the period
     
     Returns:
-        dict with events_created count, events list, and schedule_info
+        dict with extracted event data
     """
     try:
         import cloudscraper
@@ -48,7 +45,7 @@ def scrape_event_from_url(url, venue, period_start, period_end):
             }
         )
         
-        # Add some headers to look more like a real browser
+        # Add headers
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
@@ -62,17 +59,14 @@ def scrape_event_from_url(url, venue, period_start, period_end):
         for attempt in range(3):
             try:
                 if attempt > 0:
-                    time.sleep(2 * attempt)  # Exponential backoff
+                    time.sleep(2 * attempt)
                 response = scraper.get(url, timeout=15)
                 response.raise_for_status()
                 
-                # Check if we got a bot detection page
                 if 'Pardon Our Interruption' in response.text:
                     logger.warning(f"Bot detection triggered on attempt {attempt + 1}")
                     if attempt < 2:
                         continue
-                    else:
-                        logger.error("Failed to bypass bot detection after 3 attempts")
                 break
             except Exception as e:
                 if attempt == 2:
@@ -82,14 +76,125 @@ def scrape_event_from_url(url, venue, period_start, period_end):
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()
         
-        # Extract basic event information
+        # Extract event information
         title = _extract_title(soup, url)
         description = _extract_description(soup)
         image_url = _extract_image(soup, url)
         meeting_point = _extract_meeting_point(page_text)
-        
-        # Extract schedule information
         schedule_info, days_of_week, start_time, end_time = _extract_schedule(page_text)
+        
+        return {
+            'title': title,
+            'description': description,
+            'start_time': start_time.isoformat() if start_time else None,
+            'end_time': end_time.isoformat() if end_time else None,
+            'location': meeting_point,
+            'image_url': image_url,
+            'schedule_info': schedule_info,
+            'days_of_week': days_of_week
+        }
+        
+    except Exception as e:
+        logger.error(f"Error extracting from URL {url}: {e}")
+        raise
+
+
+def scrape_event_from_url(url, venue, city, period_start, period_end, override_data=None):
+    """
+    Scrape event data from a URL and create events for the specified period.
+    
+    Args:
+        url: The URL to scrape
+        venue: Venue object (optional, can be None for city-wide events)
+        city: City object (required)
+        period_start: Start date of the period
+        period_end: End date of the period
+        override_data: dict with user-edited data to override scraped data
+    
+    Returns:
+        dict with events_created count, events list, and schedule_info
+    """
+    try:
+        # Use override data if provided, otherwise scrape
+        if override_data and any(override_data.values()):
+            title = override_data.get('title')
+            description = override_data.get('description')
+            image_url = override_data.get('image_url')
+            meeting_point = override_data.get('location')
+            schedule_info = override_data.get('schedule_info')
+            days_of_week = override_data.get('days_of_week') or []
+            
+            # Parse times from override data
+            from datetime import time as dt_time
+            start_time = None
+            end_time = None
+            if override_data.get('start_time'):
+                try:
+                    parts = override_data['start_time'].split(':')
+                    start_time = dt_time(int(parts[0]), int(parts[1]))
+                except:
+                    pass
+            if override_data.get('end_time'):
+                try:
+                    parts = override_data['end_time'].split(':')
+                    end_time = dt_time(int(parts[0]), int(parts[1]))
+                except:
+                    pass
+        else:
+            # Scrape the data
+            import cloudscraper
+            
+            # Create a cloudscraper session
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'darwin',
+                    'desktop': True
+                }
+            )
+            
+            # Add some headers to look more like a real browser
+            scraper.headers.update({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            })
+            
+            # Make the request with retry logic
+            import time
+            for attempt in range(3):
+                try:
+                    if attempt > 0:
+                        time.sleep(2 * attempt)  # Exponential backoff
+                    response = scraper.get(url, timeout=15)
+                    response.raise_for_status()
+                    
+                    # Check if we got a bot detection page
+                    if 'Pardon Our Interruption' in response.text:
+                        logger.warning(f"Bot detection triggered on attempt {attempt + 1}")
+                        if attempt < 2:
+                            continue
+                        else:
+                            logger.error("Failed to bypass bot detection after 3 attempts")
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        raise
+                    logger.warning(f"Request failed on attempt {attempt + 1}: {e}")
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            page_text = soup.get_text()
+            
+            # Extract basic event information
+            title = _extract_title(soup, url)
+            description = _extract_description(soup)
+            image_url = _extract_image(soup, url)
+            meeting_point = _extract_meeting_point(page_text)
+            
+            # Extract schedule information
+            schedule_info, days_of_week, start_time, end_time = _extract_schedule(page_text)
         
         # Determine dates to create events for
         event_dates = []
@@ -116,15 +221,26 @@ def scrape_event_from_url(url, venue, period_start, period_end):
         with app.app_context():
             for event_date in event_dates:
                 # Check if event already exists
-                existing = Event.query.filter_by(
-                    url=url,
-                    start_date=event_date,
-                    venue_id=venue.id
-                ).first()
+                filter_dict = {
+                    'url': url,
+                    'start_date': event_date,
+                    'city_id': city.id
+                }
+                if venue:
+                    filter_dict['venue_id'] = venue.id
+                
+                existing = Event.query.filter_by(**filter_dict).first()
                 
                 if existing:
                     logger.info(f"Event already exists for {event_date}, skipping")
                     continue
+                
+                # Determine location and organizer
+                location = meeting_point
+                if not location and venue:
+                    location = venue.address
+                
+                organizer = venue.name if venue else None
                 
                 # Create new event
                 event = Event(
@@ -134,9 +250,9 @@ def scrape_event_from_url(url, venue, period_start, period_end):
                     end_date=event_date,
                     start_time=start_time,
                     end_time=end_time,
-                    start_location=meeting_point or venue.address,
-                    venue_id=venue.id,
-                    city_id=venue.city_id,
+                    start_location=location,
+                    venue_id=venue.id if venue else None,
+                    city_id=city.id,
                     event_type='tour',  # Default to tour, can be enhanced
                     url=url,
                     image_url=image_url,

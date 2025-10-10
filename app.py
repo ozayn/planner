@@ -4621,6 +4621,30 @@ def create_event_from_data():
         app_logger.error(f"Error creating event: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/extract-event-from-url', methods=['POST'])
+def extract_event_from_url():
+    """Extract event data from a URL without creating events (for preview/editing)"""
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        
+        if not url:
+            return jsonify({'error': 'URL is required'}), 400
+        
+        # Import extraction function
+        from scripts.url_event_scraper import extract_event_data_from_url
+        
+        # Extract data
+        extracted_data = extract_event_data_from_url(url)
+        
+        return jsonify(extracted_data)
+        
+    except Exception as e:
+        app_logger.error(f"Error extracting event from URL: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/scrape-event-from-url', methods=['POST'])
 def scrape_event_from_url():
     """Scrape event data from a URL and create events based on schedule"""
@@ -4629,17 +4653,40 @@ def scrape_event_from_url():
         
         url = data.get('url')
         venue_id = data.get('venue_id')
+        city_id = data.get('city_id')
         time_period = data.get('time_period', 'this_week')
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         
-        if not url or not venue_id:
-            return jsonify({'error': 'URL and venue_id are required'}), 400
+        # Get edited extracted data if provided
+        override_data = {
+            'title': data.get('title'),
+            'description': data.get('description'),
+            'start_time': data.get('start_time'),
+            'end_time': data.get('end_time'),
+            'location': data.get('location'),
+            'image_url': data.get('image_url'),
+            'schedule_info': data.get('schedule_info'),
+            'days_of_week': data.get('days_of_week')
+        }
         
-        # Get venue
-        venue = Venue.query.get(venue_id)
-        if not venue:
-            return jsonify({'error': 'Venue not found'}), 404
+        if not url:
+            return jsonify({'error': 'URL is required'}), 400
+        
+        if not city_id:
+            return jsonify({'error': 'City ID is required'}), 400
+        
+        # Get venue if provided
+        venue = None
+        if venue_id:
+            venue = Venue.query.get(venue_id)
+            if not venue:
+                return jsonify({'error': 'Venue not found'}), 404
+        
+        # Get city
+        city = City.query.get(city_id)
+        if not city:
+            return jsonify({'error': 'City not found'}), 404
         
         # Import scraper
         from scripts.url_event_scraper import scrape_event_from_url
@@ -4677,7 +4724,7 @@ def scrape_event_from_url():
                 return jsonify({'error': 'Custom period requires start_date and end_date'}), 400
         
         # Scrape and create events
-        result = scrape_event_from_url(url, venue, period_start, period_end)
+        result = scrape_event_from_url(url, venue, city, period_start, period_end, override_data)
         
         return jsonify({
             'success': True,

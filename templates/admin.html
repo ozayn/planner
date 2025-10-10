@@ -1758,16 +1758,27 @@
             <form id="urlScraperForm">
                 <div class="form-group">
                     <label for="eventUrl">Event Page URL *:</label>
-                    <input type="url" id="eventUrl" placeholder="https://example.com/events/tour" required>
-                    <small>Enter the URL of the event page to scrape</small>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="url" id="eventUrl" placeholder="https://example.com/events/tour" required style="flex: 1;">
+                        <button type="button" onclick="autoFillFromUrl()" class="btn btn-secondary" style="white-space: nowrap;">🔍 Auto-Fill</button>
+                    </div>
+                    <small>Enter URL and click Auto-Fill to extract event details, then review and edit</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="urlVenueSelect">Venue *:</label>
-                    <select id="urlVenueSelect" required>
-                        <option value="">Choose a venue...</option>
+                    <label for="urlVenueSelect">Venue (Optional):</label>
+                    <select id="urlVenueSelect">
+                        <option value="">No specific venue (city-wide event)</option>
                     </select>
-                    <small>Select the venue this event belongs to</small>
+                    <small>Select a venue if this event is venue-specific</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="urlCitySelect">City *:</label>
+                    <select id="urlCitySelect" required>
+                        <option value="">Choose a city...</option>
+                    </select>
+                    <small>Select the city where this event takes place</small>
                 </div>
                 
                 <div class="form-group">
@@ -1795,13 +1806,59 @@
                     </div>
                 </div>
                 
+                <!-- Extracted Data Preview (hidden by default) -->
+                <div id="urlExtractedPreview" style="display: none; margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    <h4 style="margin-bottom: 10px; color: #1976d2;">📋 Extracted Event Details</h4>
+                    <div id="urlExtractedContent" style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 14px;"></div>
+                    
+                    <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                        <strong>✏️ Review & Edit:</strong>
+                        <p style="margin: 8px 0 0 0; font-size: 13px; color: #856404;">Please review the extracted information below and make any necessary corrections before creating events.</p>
+                    </div>
+                    
+                    <!-- Editable fields -->
+                    <div style="margin-top: 15px;">
+                        <div class="form-group">
+                            <label for="extractedTitle">Event Title:</label>
+                            <input type="text" id="extractedTitle" placeholder="Edit title if needed">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="extractedDescription">Description:</label>
+                            <textarea id="extractedDescription" rows="3" placeholder="Edit description if needed"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="extractedStartTime">Start Time:</label>
+                                <input type="time" id="extractedStartTime">
+                            </div>
+                            <div class="form-group">
+                                <label for="extractedEndTime">End Time:</label>
+                                <input type="time" id="extractedEndTime">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="extractedLocation">Location/Meeting Point:</label>
+                            <input type="text" id="extractedLocation" placeholder="Edit location if needed">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="extractedSchedule">Schedule Info:</label>
+                            <input type="text" id="extractedSchedule" placeholder="e.g., Fridays 6:30pm - 7:30pm" readonly style="background: #f5f5f5;">
+                            <small>Detected recurring schedule (read-only)</small>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('urlScraperModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">🔗 Scrape & Create Events</button>
+                    <button type="submit" class="btn btn-primary">🔗 Create Events</button>
                 </div>
             </form>
             
-            <!-- Scraped Data Display -->
+            <!-- Scraped Data Display (after creation) -->
             <div id="scrapedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                 <h4>📋 Scraped Event Data</h4>
                 <div id="scrapedDataContent"></div>
@@ -5259,9 +5316,75 @@
             return html;
         }
         
+        async function autoFillFromUrl() {
+            const url = document.getElementById('eventUrl').value;
+            
+            if (!url) {
+                alert('Please enter a URL first');
+                return;
+            }
+            
+            try {
+                showLoadingState('Extracting event details from URL...');
+                
+                const response = await fetch('/api/admin/extract-event-from-url', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const result = await response.json();
+                hideLoadingState();
+                
+                if (response.ok) {
+                    // Show extracted data preview
+                    displayExtractedData(result);
+                } else {
+                    alert(`Error: ${result.error || 'Failed to extract data from URL'}`);
+                }
+            } catch (error) {
+                hideLoadingState();
+                console.error('Error extracting from URL:', error);
+                alert('An error occurred while extracting data from the URL');
+            }
+        }
+        
+        function displayExtractedData(data) {
+            // Show the preview section
+            document.getElementById('urlExtractedPreview').style.display = 'block';
+            
+            // Display summary
+            const content = document.getElementById('urlExtractedContent');
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px;">
+                    <strong>Title:</strong> <span>${data.title || 'Not found'}</span>
+                    <strong>Description:</strong> <span>${data.description ? data.description.substring(0, 100) + '...' : 'Not found'}</span>
+                    <strong>Schedule:</strong> <span>${data.schedule_info || 'Not detected'}</span>
+                    <strong>Start Time:</strong> <span>${data.start_time || 'Not found'}</span>
+                    <strong>End Time:</strong> <span>${data.end_time || 'Not found'}</span>
+                    <strong>Location:</strong> <span>${data.location || 'Not found'}</span>
+                    <strong>Image:</strong> <span>${data.image_url ? '✅ Found' : '❌ Not found'}</span>
+                </div>
+            `;
+            
+            // Fill editable fields
+            document.getElementById('extractedTitle').value = data.title || '';
+            document.getElementById('extractedDescription').value = data.description || '';
+            document.getElementById('extractedStartTime').value = data.start_time || '';
+            document.getElementById('extractedEndTime').value = data.end_time || '';
+            document.getElementById('extractedLocation').value = data.location || '';
+            document.getElementById('extractedSchedule').value = data.schedule_info || '';
+            
+            // Store extracted data for later use
+            window.extractedEventData = data;
+        }
+        
         function openUrlScraperModal() {
             document.getElementById('urlScraperModal').style.display = 'block';
             document.getElementById('scrapedDataDisplay').style.display = 'none';
+            document.getElementById('urlExtractedPreview').style.display = 'none';
             document.getElementById('urlScraperForm').reset();
             
             // Populate venue dropdown
@@ -5269,7 +5392,7 @@
                 .then(response => response.json())
                 .then(venues => {
                     const select = document.getElementById('urlVenueSelect');
-                    select.innerHTML = '<option value="">Choose a venue...</option>';
+                    select.innerHTML = '<option value="">No specific venue (city-wide event)</option>';
                     venues.forEach(venue => {
                         const option = document.createElement('option');
                         option.value = venue.id;
@@ -5278,6 +5401,21 @@
                     });
                 })
                 .catch(error => console.error('Error loading venues:', error));
+            
+            // Populate city dropdown
+            fetch('/api/admin/cities')
+                .then(response => response.json())
+                .then(cities => {
+                    const select = document.getElementById('urlCitySelect');
+                    select.innerHTML = '<option value="">Choose a city...</option>';
+                    cities.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city.id;
+                        option.textContent = `${city.display_name || city.name}, ${city.country}`;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading cities:', error));
         }
         
         function openImageUploadModal() {
@@ -5359,9 +5497,15 @@
                     
                     const url = document.getElementById('eventUrl').value;
                     const venueId = document.getElementById('urlVenueSelect').value;
+                    const cityId = document.getElementById('urlCitySelect').value;
                     const timePeriod = document.getElementById('timePeriod').value;
                     let startDate = null;
                     let endDate = null;
+                    
+                    if (!cityId) {
+                        alert('Please select a city');
+                        return;
+                    }
                     
                     if (timePeriod === 'custom') {
                         startDate = document.getElementById('customStartDate').value;
@@ -5372,12 +5516,30 @@
                         }
                     }
                     
+                    // Use edited extracted data if available
+                    const extractedData = window.extractedEventData || {};
+                    const editedTitle = document.getElementById('extractedTitle').value;
+                    const editedDescription = document.getElementById('extractedDescription').value;
+                    const editedStartTime = document.getElementById('extractedStartTime').value;
+                    const editedEndTime = document.getElementById('extractedEndTime').value;
+                    const editedLocation = document.getElementById('extractedLocation').value;
+                    
                     const requestData = {
                         url: url,
-                        venue_id: parseInt(venueId),
+                        venue_id: venueId ? parseInt(venueId) : null,
+                        city_id: parseInt(cityId),
                         time_period: timePeriod,
                         start_date: startDate,
-                        end_date: endDate
+                        end_date: endDate,
+                        // Include edited extracted data
+                        title: editedTitle || extractedData.title,
+                        description: editedDescription || extractedData.description,
+                        start_time: editedStartTime || extractedData.start_time,
+                        end_time: editedEndTime || extractedData.end_time,
+                        location: editedLocation || extractedData.location,
+                        image_url: extractedData.image_url,
+                        schedule_info: extractedData.schedule_info,
+                        days_of_week: extractedData.days_of_week
                     };
                     
                     try {
