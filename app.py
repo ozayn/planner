@@ -4621,6 +4621,78 @@ def create_event_from_data():
         app_logger.error(f"Error creating event: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/scrape-event-from-url', methods=['POST'])
+def scrape_event_from_url():
+    """Scrape event data from a URL and create events based on schedule"""
+    try:
+        data = request.get_json()
+        
+        url = data.get('url')
+        venue_id = data.get('venue_id')
+        time_period = data.get('time_period', 'this_week')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        if not url or not venue_id:
+            return jsonify({'error': 'URL and venue_id are required'}), 400
+        
+        # Get venue
+        venue = Venue.query.get(venue_id)
+        if not venue:
+            return jsonify({'error': 'Venue not found'}), 404
+        
+        # Import scraper
+        from scripts.url_event_scraper import scrape_event_from_url
+        from datetime import date, timedelta
+        
+        # Calculate date range based on time_period
+        today = date.today()
+        period_start = today
+        period_end = today
+        
+        if time_period == 'today':
+            period_start = today
+            period_end = today
+        elif time_period == 'tomorrow':
+            period_start = today + timedelta(days=1)
+            period_end = today + timedelta(days=1)
+        elif time_period == 'this_week':
+            # This week = today to end of week (Sunday)
+            period_start = today
+            days_until_sunday = (6 - today.weekday()) % 7
+            period_end = today + timedelta(days=days_until_sunday)
+        elif time_period == 'this_month':
+            # This month = today to end of month
+            period_start = today
+            next_month = today.replace(day=28) + timedelta(days=4)
+            period_end = next_month - timedelta(days=next_month.day)
+        elif time_period == 'custom':
+            if start_date and end_date:
+                try:
+                    period_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    period_end = datetime.strptime(end_date, '%Y-%m-%d').date()
+                except ValueError:
+                    return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+            else:
+                return jsonify({'error': 'Custom period requires start_date and end_date'}), 400
+        
+        # Scrape and create events
+        result = scrape_event_from_url(url, venue, period_start, period_end)
+        
+        return jsonify({
+            'success': True,
+            'events_created': result['events_created'],
+            'events': result['events'],
+            'schedule_info': result.get('schedule_info'),
+            'message': f'Successfully created {result["events_created"]} event(s)'
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping event from URL: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/calendar/add', methods=['POST'])
 def add_event_to_calendar():
     """Add an event to the user's calendar"""

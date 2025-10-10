@@ -915,6 +915,7 @@
                     <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
                     <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
                     <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
+                    <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL</button>
                     <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
                     
                     <!-- Event Scraping Controls -->
@@ -1742,6 +1743,71 @@
                 <div class="modal-actions" style="margin-top: 15px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
                     <button type="button" class="btn btn-success" onclick="createEventFromExtractedData()">✅ Create Event</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Scraper Modal -->
+    <div id="urlScraperModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔗 Create Events from URL</h3>
+                <span class="close" onclick="closeModal('urlScraperModal')">&times;</span>
+            </div>
+            <form id="urlScraperForm">
+                <div class="form-group">
+                    <label for="eventUrl">Event Page URL *:</label>
+                    <input type="url" id="eventUrl" placeholder="https://example.com/events/tour" required>
+                    <small>Enter the URL of the event page to scrape</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="urlVenueSelect">Venue *:</label>
+                    <select id="urlVenueSelect" required>
+                        <option value="">Choose a venue...</option>
+                    </select>
+                    <small>Select the venue this event belongs to</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="timePeriod">Time Period for Recurring Events:</label>
+                    <select id="timePeriod">
+                        <option value="today">📅 Today Only</option>
+                        <option value="tomorrow">📅 Tomorrow Only</option>
+                        <option value="this_week" selected>📅 This Week</option>
+                        <option value="this_month">📅 This Month</option>
+                        <option value="custom">📅 Custom Period</option>
+                    </select>
+                    <small>If event has recurring schedule (e.g., "Fridays", "Weekdays"), create multiple events for this period</small>
+                </div>
+                
+                <div id="customPeriodFields" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="customStartDate">Period Start Date:</label>
+                            <input type="date" id="customStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="customEndDate">Period End Date:</label>
+                            <input type="date" id="customEndDate">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('urlScraperModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">🔗 Scrape & Create Events</button>
+                </div>
+            </form>
+            
+            <!-- Scraped Data Display -->
+            <div id="scrapedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h4>📋 Scraped Event Data</h4>
+                <div id="scrapedDataContent"></div>
+                
+                <div class="modal-actions" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('urlScraperModal')">Close</button>
                 </div>
             </div>
         </div>
@@ -4080,9 +4146,10 @@
             console.log('Loading cities for venue dropdown...');
             loadCities();
             
-            // Setup image upload form
-            console.log('Setting up image upload form...');
+            // Setup forms
+            console.log('Setting up forms...');
             setupImageUploadForm();
+            setupUrlScraperForm();
             
             // Add form submission handlers
             const addCityForm = document.getElementById('addCityForm');
@@ -5187,6 +5254,27 @@
             return html;
         }
         
+        function openUrlScraperModal() {
+            document.getElementById('urlScraperModal').style.display = 'block';
+            document.getElementById('scrapedDataDisplay').style.display = 'none';
+            document.getElementById('urlScraperForm').reset();
+            
+            // Populate venue dropdown
+            fetch('/api/venues')
+                .then(response => response.json())
+                .then(venues => {
+                    const select = document.getElementById('urlVenueSelect');
+                    select.innerHTML = '<option value="">Choose a venue...</option>';
+                    venues.forEach(venue => {
+                        const option = document.createElement('option');
+                        option.value = venue.id;
+                        option.textContent = `${venue.name} (${venue.city_name || 'No city'})`;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading venues:', error));
+        }
+        
         function openImageUploadModal() {
             console.log('Opening image upload modal...');
             document.getElementById('imageUploadModal').style.display = 'block';
@@ -5245,6 +5333,110 @@
                     venueSelect.appendChild(option);
                 });
             }
+        }
+        
+        // Handle time period selection
+        document.getElementById('timePeriod')?.addEventListener('change', function() {
+            const customFields = document.getElementById('customPeriodFields');
+            if (this.value === 'custom') {
+                customFields.style.display = 'block';
+            } else {
+                customFields.style.display = 'none';
+            }
+        });
+        
+        // Handle URL scraper form submission
+        function setupUrlScraperForm() {
+            const urlScraperForm = document.getElementById('urlScraperForm');
+            if (urlScraperForm) {
+                urlScraperForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const url = document.getElementById('eventUrl').value;
+                    const venueId = document.getElementById('urlVenueSelect').value;
+                    const timePeriod = document.getElementById('timePeriod').value;
+                    let startDate = null;
+                    let endDate = null;
+                    
+                    if (timePeriod === 'custom') {
+                        startDate = document.getElementById('customStartDate').value;
+                        endDate = document.getElementById('customEndDate').value;
+                        if (!startDate || !endDate) {
+                            alert('Please specify custom period dates');
+                            return;
+                        }
+                    }
+                    
+                    const requestData = {
+                        url: url,
+                        venue_id: parseInt(venueId),
+                        time_period: timePeriod,
+                        start_date: startDate,
+                        end_date: endDate
+                    };
+                    
+                    try {
+                        showLoadingState('Scraping URL and creating events...');
+                        
+                        const response = await fetch('/api/admin/scrape-event-from-url', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(requestData)
+                        });
+                        
+                        const result = await response.json();
+                        hideLoadingState();
+                        
+                        if (response.ok) {
+                            displayScrapedData(result);
+                            await loadEvents(); // Refresh events table
+                        } else {
+                            alert(`Error: ${result.error || 'Failed to scrape URL'}`);
+                        }
+                    } catch (error) {
+                        hideLoadingState();
+                        console.error('Error scraping URL:', error);
+                        alert('An error occurred while scraping the URL');
+                    }
+                });
+            }
+        }
+        
+        function displayScrapedData(result) {
+            const display = document.getElementById('scrapedDataDisplay');
+            const content = document.getElementById('scrapedDataContent');
+            
+            let html = `
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                    <h5 style="color: #10b981; margin-bottom: 10px;">✅ Successfully Created ${result.events_created || 0} Event(s)</h5>
+            `;
+            
+            if (result.events && result.events.length > 0) {
+                result.events.forEach((event, index) => {
+                    html += `
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px;">
+                            <strong>Event ${index + 1}:</strong> ${event.title || 'Untitled'}<br>
+                            <small>📅 ${event.start_date || 'No date'} ${event.start_time || ''}</small><br>
+                            ${event.description ? `<small>📝 ${event.description.substring(0, 100)}...</small>` : ''}
+                        </div>
+                    `;
+                });
+            }
+            
+            if (result.schedule_info) {
+                html += `
+                    <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-top: 10px;">
+                        <strong>📅 Schedule Detected:</strong><br>
+                        <small>${result.schedule_info}</small>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            content.innerHTML = html;
+            display.style.display = 'block';
         }
         
         // Handle image upload form submission
