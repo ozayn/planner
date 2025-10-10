@@ -5424,17 +5424,23 @@
             document.getElementById('urlScraperForm').reset();
             
             // Populate venue dropdown
-            fetch('/api/venues')
+            fetch('/api/admin/venues')
                 .then(response => response.json())
                 .then(venues => {
                     const select = document.getElementById('urlVenueSelect');
                     select.innerHTML = '<option value="">No specific venue (city-wide event)</option>';
-                    venues.forEach(venue => {
-                        const option = document.createElement('option');
-                        option.value = venue.id;
-                        option.textContent = `${venue.name} (${venue.city_name || 'No city'})`;
-                        select.appendChild(option);
-                    });
+                    
+                    // Check if venues is an array
+                    if (Array.isArray(venues)) {
+                        venues.forEach(venue => {
+                            const option = document.createElement('option');
+                            option.value = venue.id;
+                            option.textContent = `${venue.name} (${venue.city_name || 'No city'})`;
+                            select.appendChild(option);
+                        });
+                    } else {
+                        console.error('Venues response is not an array:', venues);
+                    }
                 })
                 .catch(error => console.error('Error loading venues:', error));
             
