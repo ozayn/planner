@@ -3240,11 +3240,20 @@ def reload_venues_from_json():
         
         venues_section = venues_data["venues"]
         updated_count = 0
+        cities_processed = 0
+        venues_found_in_json = 0
+        venues_matched_in_db = 0
+        
+        app_logger.info(f"JSON has {len(venues_section)} cities with venues")
         
         # Update each venue
         for city_id, city_data in venues_section.items():
             city_name = city_data.get('name', 'Unknown')
             city_venues = city_data.get('venues', [])
+            cities_processed += 1
+            venues_found_in_json += len(city_venues)
+            
+            app_logger.info(f"Processing city: {city_name} ({len(city_venues)} venues in JSON)")
             
             # Find the city
             city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
@@ -3257,7 +3266,10 @@ def reload_venues_from_json():
                 venue = Venue.query.filter_by(name=venue_data['name']).first()
                 
                 if venue:
-                    app_logger.info(f"Updating venue: {venue.name} (website_url: {venue_data.get('website_url', 'N/A')})")
+                    venues_matched_in_db += 1
+                    app_logger.info(f"✓ Updating venue: {venue.name}")
+                    app_logger.info(f"  Old URL: {venue.website_url}")
+                    app_logger.info(f"  New URL: {venue_data.get('website_url', 'N/A')}")
                     # Update venue with JSON data
                     venue.venue_type = venue_data.get('venue_type', venue.venue_type)
                     venue.address = venue_data.get('address', venue.address)
@@ -3283,11 +3295,15 @@ def reload_venues_from_json():
         
         db.session.commit()
         app_logger.info(f"✅ Successfully reloaded {updated_count} venues from JSON")
+        app_logger.info(f"📊 Stats: {cities_processed} cities processed, {venues_found_in_json} in JSON, {venues_matched_in_db} matched in DB, {updated_count} updated")
         
         return jsonify({
             'success': True,
             'message': f'Successfully reloaded {updated_count} venues from JSON',
-            'updated_count': updated_count
+            'updated_count': updated_count,
+            'cities_processed': cities_processed,
+            'venues_in_json': venues_found_in_json,
+            'venues_matched': venues_matched_in_db
         })
         
     except Exception as e:
