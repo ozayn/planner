@@ -524,6 +524,37 @@
             margin: 0.125rem;
         }
 
+        /* Closure status styles */
+        .closure-status {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.25;
+        }
+
+        .closure-status.closure-open {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .closure-status.closure-closed {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .closure-status.closure-unknown {
+            background: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fed7aa;
+        }
+
+        .closure-status small {
+            opacity: 0.8;
+            font-size: 0.75rem;
+        }
+
         /* Action Buttons */
         .edit-btn, .delete-btn {
             background: none;
@@ -862,6 +893,12 @@
                         <option value="">All Admission Fees</option>
                         <option value="free">Free Admission</option>
                         <option value="paid">Paid Admission</option>
+                    </select>
+                    <select id="venueClosureFilter" class="filter-select">
+                        <option value="">All Closure Status</option>
+                        <option value="open">🟢 Open</option>
+                        <option value="closed">🔴 Closed</option>
+                        <option value="unknown">🟡 Unknown</option>
                     </select>
                     <select id="venueSortBy" class="filter-select">
                         <option value="">Sort by...</option>
@@ -1760,7 +1797,7 @@
                     <label for="eventUrl">Event Page URL *:</label>
                     <div style="display: flex; gap: 8px;">
                         <input type="url" id="eventUrl" placeholder="https://example.com/events/tour" required style="flex: 1;">
-                        <button type="button" onclick="autoFillFromUrl(event)" class="btn btn-secondary" style="white-space: nowrap;">🔍 Auto-Fill</button>
+                        <button type="button" id="autoFillBtn" class="btn btn-secondary" style="white-space: nowrap;">🔍 Auto-Fill</button>
                     </div>
                     <small>Enter URL and click Auto-Fill to extract event details, then review and edit</small>
                 </div>
@@ -1810,6 +1847,13 @@
                 <div id="urlExtractedPreview" style="display: none; margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
                     <h4 style="margin-bottom: 10px; color: #1976d2;">📋 Extracted Event Details</h4>
                     <div id="urlExtractedContent" style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 14px;"></div>
+                    
+                    <div id="applyToFormSection" style="display: none; margin: 15px 0; text-align: center;">
+                        <button type="button" onclick="applyExtractedToForm()" class="btn btn-primary" style="background: #10b981; font-size: 16px; padding: 12px 24px;">
+                            ✅ Apply Venue & City to Form
+                        </button>
+                        <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Click to auto-select the matched venue and city in the dropdowns above</p>
+                    </div>
                     
                     <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
                         <strong>✏️ Review & Edit:</strong>
@@ -3044,7 +3088,40 @@
                 
                 case 'description':
                 case 'tour_info':
+                    if (value.length > 100) {
+                        return `<span title="${value}">${value.substring(0, 100)}...</span>`;
+                    }
+                    return value;
+                
                 case 'additional_info':
+                    try {
+                        const info = JSON.parse(value);
+                        if (info.closure_status) {
+                            const status = info.closure_status;
+                            const reason = info.closure_reason || '';
+                            let statusIcon = '';
+                            let statusClass = '';
+                            
+                            if (status === 'closed') {
+                                statusIcon = '🔴';
+                                statusClass = 'closure-closed';
+                            } else if (status === 'open') {
+                                statusIcon = '🟢';
+                                statusClass = 'closure-open';
+                            } else {
+                                statusIcon = '🟡';
+                                statusClass = 'closure-unknown';
+                            }
+                            
+                            return `<div class="closure-status ${statusClass}">
+                                <strong>${statusIcon} ${status.toUpperCase()}</strong>
+                                ${reason ? `<br><small>${reason}</small>` : ''}
+                            </div>`;
+                        }
+                    } catch (e) {
+                        // If not JSON, treat as regular text
+                    }
+                    
                     if (value.length > 100) {
                         return `<span title="${value}">${value.substring(0, 100)}...</span>`;
                     }
@@ -3112,6 +3189,7 @@
             const typeFilter = document.getElementById('venueTypeFilter').value;
             const cityFilter = document.getElementById('venueCityFilter').value;
             const feeFilter = document.getElementById('venueFeeFilter').value;
+            const closureFilter = document.getElementById('venueClosureFilter').value;
             const sortBy = document.getElementById('venueSortBy').value;
             
             window.filteredVenues = window.allVenues.filter(venue => {
@@ -3140,7 +3218,19 @@
                                venue.admission_fee !== '';
                 }
                 
-                return matchesSearch && matchesType && matchesCity && matchesFee;
+                // Closure status filter logic
+                let matchesClosure = true;
+                if (closureFilter) {
+                    try {
+                        const additionalInfo = venue.additional_info ? JSON.parse(venue.additional_info) : {};
+                        const venueClosureStatus = additionalInfo.closure_status || 'unknown';
+                        matchesClosure = venueClosureStatus === closureFilter;
+                    } catch (e) {
+                        matchesClosure = closureFilter === 'unknown';
+                    }
+                }
+                
+                return matchesSearch && matchesType && matchesCity && matchesFee && matchesClosure;
             });
             
             // Apply sorting if specified
@@ -3177,6 +3267,7 @@
             document.getElementById('venueTypeFilter').value = '';
             document.getElementById('venueCityFilter').value = '';
             document.getElementById('venueFeeFilter').value = '';
+            document.getElementById('venueClosureFilter').value = '';
             document.getElementById('venueSortBy').value = '';
             
             if (window.allVenues) {
@@ -4303,6 +4394,11 @@
                 venueFeeFilter.addEventListener('change', applyVenueFilters);
             }
             
+            const venueClosureFilter = document.getElementById('venueClosureFilter');
+            if (venueClosureFilter) {
+                venueClosureFilter.addEventListener('change', applyVenueFilters);
+            }
+            
             const venueSortBy = document.getElementById('venueSortBy');
             if (venueSortBy) {
                 venueSortBy.addEventListener('change', applyVenueFilters);
@@ -5343,7 +5439,7 @@
             return html;
         }
         
-        async function autoFillFromUrl(event) {
+        async function autoFillFromUrl() {
             const url = document.getElementById('eventUrl').value;
             
             if (!url) {
@@ -5352,7 +5448,7 @@
             }
             
             // Show loading indicator
-            const autoFillBtn = event ? event.target : document.querySelector('button[onclick*="autoFillFromUrl"]');
+            const autoFillBtn = document.getElementById('autoFillBtn');
             const originalText = autoFillBtn.textContent;
             autoFillBtn.textContent = '⏳ Extracting...';
             autoFillBtn.disabled = true;
@@ -5388,8 +5484,21 @@
         }
         
         function displayExtractedData(data) {
+            console.log('🔍 displayExtractedData called with:', data);
+            
             // Show the preview section
             document.getElementById('urlExtractedPreview').style.display = 'block';
+            
+            // Add extraction method indicator
+            let extractionBadge = '';
+            if (data.llm_extracted) {
+                const confidenceColor = {
+                    'high': '#10b981',
+                    'medium': '#f59e0b',
+                    'low': '#ef4444'
+                }[data.confidence || 'medium'];
+                extractionBadge = `<span style="background: ${confidenceColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px;">🤖 AI Extracted (${data.confidence || 'medium'} confidence)</span>`;
+            }
             
             // Display summary
             const content = document.getElementById('urlExtractedContent');
@@ -5401,7 +5510,10 @@
                     <strong>Start Time:</strong> <span>${data.start_time || 'Not found'}</span>
                     <strong>End Time:</strong> <span>${data.end_time || 'Not found'}</span>
                     <strong>Location:</strong> <span>${data.location || 'Not found'}</span>
+                    <strong>Venue:</strong> <span>${data.venue_id ? '✅ Auto-matched' : '❌ Not matched'}</span>
+                    <strong>City:</strong> <span>${data.city_id ? '✅ Auto-matched' : '❌ Not matched'}</span>
                     <strong>Image:</strong> <span>${data.image_url ? '✅ Found' : '❌ Not found'}</span>
+                    ${data.llm_extracted ? `<strong>Extraction:</strong> ${extractionBadge}` : ''}
                 </div>
             `;
             
@@ -5415,6 +5527,42 @@
             
             // Store extracted data for later use
             window.extractedEventData = data;
+            
+            console.log('💾 Stored extracted data:', data);
+            
+            // Show the Apply button if we have venue or city data
+            if (data.venue_id || data.city_id) {
+                document.getElementById('applyToFormSection').style.display = 'block';
+            }
+        }
+        
+        function applyExtractedToForm() {
+            const data = window.extractedEventData;
+            if (!data) {
+                alert('No extracted data available');
+                return;
+            }
+            
+            // Apply venue
+            if (data.venue_id) {
+                const venueSelect = document.getElementById('urlVenueSelect');
+                if (venueSelect) {
+                    venueSelect.value = data.venue_id;
+                    console.log('✅ Applied venue ID:', data.venue_id);
+                }
+            }
+            
+            // Apply city
+            if (data.city_id) {
+                const citySelect = document.getElementById('urlCitySelect');
+                if (citySelect) {
+                    citySelect.value = data.city_id;
+                    console.log('✅ Applied city ID:', data.city_id);
+                }
+            }
+            
+            // Visual confirmation
+            alert('✅ Venue and City have been applied to the form!');
         }
         
         function openUrlScraperModal() {
@@ -5422,6 +5570,20 @@
             document.getElementById('scrapedDataDisplay').style.display = 'none';
             document.getElementById('urlExtractedPreview').style.display = 'none';
             document.getElementById('urlScraperForm').reset();
+            
+            // Attach event listener to Auto-Fill button
+            const autoFillBtn = document.getElementById('autoFillBtn');
+            if (autoFillBtn) {
+                // Remove any existing listeners by cloning the button
+                const newAutoFillBtn = autoFillBtn.cloneNode(true);
+                autoFillBtn.parentNode.replaceChild(newAutoFillBtn, autoFillBtn);
+                // Add the event listener
+                newAutoFillBtn.addEventListener('click', autoFillFromUrl);
+            }
+            
+            // Store references for later auto-selection
+            window.venueDropdownLoaded = false;
+            window.cityDropdownLoaded = false;
             
             // Populate venue dropdown
             fetch('/api/admin/venues')
@@ -5441,6 +5603,13 @@
                     } else {
                         console.error('Venues response is not an array:', venues);
                     }
+                    
+                    window.venueDropdownLoaded = true;
+                    // Try auto-selection if we have extracted data
+                    if (window.extractedEventData && window.extractedEventData.venue_id) {
+                        select.value = window.extractedEventData.venue_id;
+                        console.log('✅ AUTO-SELECTED VENUE:', window.extractedEventData.venue_id);
+                    }
                 })
                 .catch(error => console.error('Error loading venues:', error));
             
@@ -5456,6 +5625,13 @@
                         option.textContent = `${city.display_name || city.name}, ${city.country}`;
                         select.appendChild(option);
                     });
+                    
+                    window.cityDropdownLoaded = true;
+                    // Try auto-selection if we have extracted data
+                    if (window.extractedEventData && window.extractedEventData.city_id) {
+                        select.value = window.extractedEventData.city_id;
+                        console.log('✅ AUTO-SELECTED CITY:', window.extractedEventData.city_id);
+                    }
                 })
                 .catch(error => console.error('Error loading cities:', error));
         }
