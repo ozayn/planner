@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-10-10",
+    "created": "2025-10-21",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 178,
-    "last_updated": "2025-10-10 15:39:46"
+    "last_updated": "2025-10-21 17:32:44"
   },
   "venues": {
     "1": {
@@ -17,7 +17,7 @@
       "opening_hours": "Varies by performance",
       "phone_number": "(202) 488-3300",
       "email": "info@arenastage.org",
-      "website_url": "https://www.arenastage.com",
+      "website_url": "https://www.arenastage.org",
       "instagram_url": "https://www.instagram.com/usbotanicgarden",
       "facebook_url": "https://www.facebook.com/USBotanicGarden",
       "twitter_url": "https://twitter.com/ArenaStage",
@@ -28,7 +28,7 @@
       "latitude": 38.8967,
       "longitude": -77.0258,
       "created_at": "2025-10-08T20:42:31.666065",
-      "updated_at": "2025-10-08T20:42:31.666073"
+      "updated_at": "2025-10-21T21:32:42.515452"
     },
     "2": {
       "name": "Capitol Building",
@@ -40,7 +40,7 @@
       "opening_hours": "8:30 AM - 4:30 PM",
       "phone_number": "(202) 226-8000",
       "email": "visitor.services@aoc.gov",
-      "website_url": "https://www.capitol.gov",
+      "website_url": "https://www.visitthecapitol.gov",
       "instagram_url": "https://www.instagram.com/930club",
       "facebook_url": "https://www.facebook.com/930Club",
       "twitter_url": "https://twitter.com/CapitolBuilding",
@@ -51,7 +51,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666142",
-      "updated_at": "2025-10-10T19:39:39.440650"
+      "updated_at": "2025-10-21T21:32:42.516536"
     },
     "3": {
       "name": "Capitol Hill",
@@ -63,7 +63,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 543-8919",
       "email": "info@capitolhill.org",
-      "website_url": "https://www.capitol.gov",
+      "website_url": "https://www.visitthecapitol.gov",
       "instagram_url": "https://www.instagram.com/capitolhill",
       "facebook_url": "https://www.facebook.com/CapitolHillDC",
       "twitter_url": "https://twitter.com/CapitolHill",
@@ -74,7 +74,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666175",
-      "updated_at": "2025-10-10T19:39:39.440653"
+      "updated_at": "2025-10-21T21:32:42.517106"
     },
     "4": {
       "name": "Capitol Hill Arts Workshop",
@@ -109,7 +109,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 833-0180",
       "email": "info@dupontcircle.org",
-      "website_url": "https://www.dupontcircle.com",
+      "website_url": "https://www.nps.gov/rocr/planyourvisit/dupont-circle.htm",
       "instagram_url": "https://www.instagram.com/dupontcircle",
       "facebook_url": "https://www.facebook.com/DupontCircleDC",
       "twitter_url": "https://twitter.com/DupontCircle",
@@ -120,7 +120,7 @@
       "latitude": 38.9097,
       "longitude": -77.0434,
       "created_at": "2025-10-08T20:42:31.666223",
-      "updated_at": "2025-10-08T20:42:31.666224"
+      "updated_at": "2025-10-21T21:32:42.517831"
     },
     "6": {
       "name": "Ford's Theatre",
@@ -132,7 +132,7 @@
       "opening_hours": "9:00 AM - 5:00 PM",
       "phone_number": "(202) 347-4833",
       "email": "info@fords.org",
-      "website_url": "https://www.ford'stheatre.com",
+      "website_url": "https://www.fords.org",
       "instagram_url": "https://www.instagram.com/fordstheatre",
       "facebook_url": "https://www.facebook.com/FordsTheatre",
       "twitter_url": "https://twitter.com/FordsTheatre",
@@ -143,7 +143,7 @@
       "latitude": 38.8967,
       "longitude": -77.0258,
       "created_at": "2025-10-08T20:42:31.666245",
-      "updated_at": "2025-10-08T20:42:31.666246"
+      "updated_at": "2025-10-21T21:32:42.518326"
     },
     "7": {
       "name": "Franklin Delano Roosevelt Memorial",
@@ -155,7 +155,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.franklindelanorooseveltmemorial.com",
+      "website_url": "https://www.nps.gov/frde/index.htm",
       "instagram_url": "https://www.instagram.com/fdrmemorial",
       "facebook_url": "https://www.facebook.com/FDRMemorialNPS",
       "twitter_url": "https://twitter.com/FDRMemorial",
@@ -166,7 +166,7 @@
       "latitude": 38.8814,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666271",
-      "updated_at": "2025-10-08T20:42:31.666272"
+      "updated_at": "2025-10-21T21:32:42.518892"
     },
     "8": {
       "name": "Georgetown",
@@ -178,7 +178,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 298-7800",
       "email": "info@georgetowndc.com",
-      "website_url": "https://www.georgetown.com",
+      "website_url": "https://www.georgetown.org",
       "instagram_url": "https://www.instagram.com/georgetown",
       "facebook_url": "https://www.facebook.com/GeorgetownDC",
       "twitter_url": "https://twitter.com/Georgetown",
@@ -189,7 +189,7 @@
       "latitude": 38.9097,
       "longitude": -77.0654,
       "created_at": "2025-10-08T20:42:31.666293",
-      "updated_at": "2025-10-08T20:42:31.666294"
+      "updated_at": "2025-10-21T21:32:42.519410"
     },
     "9": {
       "name": "International Spy Museum",
@@ -201,7 +201,7 @@
       "opening_hours": "9:00 AM - 7:00 PM",
       "phone_number": "(202) 393-7798",
       "email": "info@spymuseum.org",
-      "website_url": "https://www.internationalspymuseum.com",
+      "website_url": "https://www.spymuseum.org",
       "instagram_url": "https://www.instagram.com/spymuseum",
       "facebook_url": "https://www.facebook.com/IntlSpyMuseum",
       "twitter_url": "https://twitter.com/IntlSpyMuseum",
@@ -212,7 +212,7 @@
       "latitude": 38.8869,
       "longitude": -77.0325,
       "created_at": "2025-10-08T20:42:31.666315",
-      "updated_at": "2025-10-08T20:42:31.666316"
+      "updated_at": "2025-10-21T21:32:42.519926"
     },
     "10": {
       "name": "Jefferson Memorial",
@@ -224,7 +224,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.jeffersonmemorial.com",
+      "website_url": "https://www.nps.gov/thje/index.htm",
       "instagram_url": "https://www.instagram.com/jeffersonmemorial",
       "facebook_url": "https://www.facebook.com/JeffersonMemorialNPS",
       "twitter_url": "https://twitter.com/JeffersonMemorial",
@@ -235,7 +235,7 @@
       "latitude": 38.8814,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666337",
-      "updated_at": "2025-10-08T20:42:31.666338"
+      "updated_at": "2025-10-21T21:32:42.520568"
     },
     "11": {
       "name": "Kennedy Center",
@@ -316,7 +316,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.lincolnmemorial.com",
+      "website_url": "https://www.nps.gov/linc/index.htm",
       "instagram_url": "https://www.instagram.com/lincolnmemorial",
       "facebook_url": "https://www.facebook.com/LincolnMemorialNPS",
       "twitter_url": "https://twitter.com/LincolnMemorial",
@@ -327,7 +327,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666425",
-      "updated_at": "2025-10-08T20:42:31.666426"
+      "updated_at": "2025-10-21T21:32:42.521158"
     },
     "15": {
       "name": "Martin Luther King Jr. Memorial",
@@ -339,7 +339,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.martinlutherkingjr.memorial.com",
+      "website_url": "https://www.nps.gov/mlkm/index.htm",
       "instagram_url": "https://www.instagram.com/mlkmemorial",
       "facebook_url": "https://www.facebook.com/MLKMemorialNPS",
       "twitter_url": "https://twitter.com/MLKMemorial",
@@ -350,7 +350,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666447",
-      "updated_at": "2025-10-08T20:42:31.666448"
+      "updated_at": "2025-10-21T21:32:42.521660"
     },
     "16": {
       "name": "National Air and Space Museum",
@@ -362,7 +362,7 @@
       "opening_hours": "Daily 10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-2214",
       "email": "nasmmuseum@si.edu",
-      "website_url": "https://airandspace.si.edu/",
+      "website_url": "https://airandspace.si.edu",
       "instagram_url": "https://www.instagram.com/airandspacemuseum",
       "facebook_url": "https://www.facebook.com/NationalAirAndSpaceMuseum",
       "twitter_url": "https://twitter.com/airandspace",
@@ -373,7 +373,7 @@
       "latitude": 38.8877,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666469",
-      "updated_at": "2025-10-08T20:42:31.666470"
+      "updated_at": "2025-10-21T21:32:42.522110"
     },
     "17": {
       "name": "National Gallery of Art",
@@ -385,7 +385,7 @@
       "opening_hours": "Mon-Sat: 10:00 AM - 5:00 PM; Sun: 11:00 AM - 6:00 PM",
       "phone_number": "(202) 737-4215",
       "email": "info@nga.gov",
-      "website_url": "https://www.nationalgalleryofart.com",
+      "website_url": "https://www.nga.gov",
       "instagram_url": "https://www.instagram.com/ngadc",
       "facebook_url": "https://www.facebook.com/NationalGalleryofArt",
       "twitter_url": "https://twitter.com/ngadc",
@@ -396,7 +396,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666490",
-      "updated_at": "2025-10-08T20:42:31.666491"
+      "updated_at": "2025-10-21T21:32:42.522591"
     },
     "18": {
       "name": "National Mall",
@@ -408,7 +408,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.nationalmall.com",
+      "website_url": "https://www.nps.gov/nama/index.htm",
       "instagram_url": "https://www.instagram.com/nationalmall",
       "facebook_url": "https://www.facebook.com/NationalMallNPS",
       "twitter_url": "https://twitter.com/NationalMall",
@@ -419,7 +419,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666511",
-      "updated_at": "2025-10-08T20:42:31.666512"
+      "updated_at": "2025-10-21T21:32:42.522994"
     },
     "19": {
       "name": "National Portrait Gallery",
@@ -431,7 +431,7 @@
       "opening_hours": "11:30 AM - 7:00 PM",
       "phone_number": "(202) 633-8300",
       "email": "info@si.edu",
-      "website_url": "https://www.npg.si.edu",
+      "website_url": "https://npg.si.edu",
       "instagram_url": "https://www.instagram.com/smithsoniannpg",
       "facebook_url": "https://www.facebook.com/NationalPortraitGallery",
       "twitter_url": "https://twitter.com/smithsoniannpg",
@@ -442,7 +442,7 @@
       "latitude": 38.8977,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666532",
-      "updated_at": "2025-10-08T20:42:31.666533"
+      "updated_at": "2025-10-21T21:32:42.523389"
     },
     "20": {
       "name": "National Zoo",
@@ -454,7 +454,7 @@
       "opening_hours": "8:00 AM - 6:00 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.nationalzoo.com",
+      "website_url": "https://nationalzoo.si.edu",
       "instagram_url": "https://www.instagram.com/nationalzoo",
       "facebook_url": "https://www.facebook.com/nationalzoo",
       "twitter_url": "https://twitter.com/nationalzoo",
@@ -465,7 +465,7 @@
       "latitude": 38.9289,
       "longitude": -77.0475,
       "created_at": "2025-10-08T20:42:31.666553",
-      "updated_at": "2025-10-08T20:42:31.666554"
+      "updated_at": "2025-10-21T21:32:42.523839"
     },
     "21": {
       "name": "Newseum",
@@ -500,7 +500,7 @@
       "opening_hours": "6:00 AM - 10:00 PM",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.rockcreekpark.com",
+      "website_url": "https://www.nps.gov/rocr/index.htm",
       "instagram_url": "https://www.instagram.com/rockcreekpark",
       "facebook_url": "https://www.facebook.com/RockCreekParkNPS",
       "twitter_url": "https://twitter.com/RockCreekPark",
@@ -511,7 +511,7 @@
       "latitude": 38.9647,
       "longitude": -77.0444,
       "created_at": "2025-10-08T20:42:31.666595",
-      "updated_at": "2025-10-08T20:42:31.666596"
+      "updated_at": "2025-10-21T21:32:42.524243"
     },
     "23": {
       "name": "Smithsonian Arthur M. Sackler Gallery",
@@ -523,7 +523,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsonianarthurm.sacklergallery.com",
+      "website_url": "https://www.asia.si.edu",
       "instagram_url": "https://www.instagram.com/sacklergallery",
       "facebook_url": "https://www.facebook.com/FreerSackler",
       "twitter_url": "https://twitter.com/SacklerGallery",
@@ -534,7 +534,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666617",
-      "updated_at": "2025-10-08T20:42:31.666618"
+      "updated_at": "2025-10-21T21:32:42.524624"
     },
     "24": {
       "name": "Smithsonian Freer Gallery of Art",
@@ -546,7 +546,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsonianfreergalleryofart.com",
+      "website_url": "https://www.asia.si.edu",
       "instagram_url": "https://www.instagram.com/freergallery",
       "facebook_url": "https://www.facebook.com/FreerSackler",
       "twitter_url": "https://twitter.com/FreerGallery",
@@ -557,7 +557,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666638",
-      "updated_at": "2025-10-08T20:42:31.666639"
+      "updated_at": "2025-10-21T21:32:42.525013"
     },
     "25": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -569,7 +569,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsonianhirshhornmuseumandsculpturegarden.com",
+      "website_url": "https://hirshhorn.si.edu",
       "instagram_url": "https://www.instagram.com/hirshhorn",
       "facebook_url": "https://www.facebook.com/HirshhornMuseum",
       "twitter_url": "https://twitter.com/Hirshhorn",
@@ -580,7 +580,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666660",
-      "updated_at": "2025-10-08T20:42:31.666661"
+      "updated_at": "2025-10-21T21:32:42.525689"
     },
     "26": {
       "name": "Smithsonian National Air and Space Museum",
@@ -592,7 +592,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-2214",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsoniannationalairandspacemuseum.com",
+      "website_url": "https://airandspace.si.edu",
       "instagram_url": "https://www.instagram.com/airandspace",
       "facebook_url": "https://www.facebook.com/airandspace",
       "twitter_url": "https://twitter.com/airandspace",
@@ -603,7 +603,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666681",
-      "updated_at": "2025-10-08T20:42:31.666682"
+      "updated_at": "2025-10-21T21:32:42.526227"
     },
     "27": {
       "name": "Smithsonian National Museum of African American History and Culture",
@@ -615,7 +615,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsoniannationalmuseumofafricanamericanhistoryandculture.com",
+      "website_url": "https://nmaahc.si.edu",
       "instagram_url": "https://www.instagram.com/nmaahc",
       "facebook_url": "https://www.facebook.com/NMAAHC",
       "twitter_url": "https://twitter.com/NMAAHC",
@@ -626,7 +626,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666702",
-      "updated_at": "2025-10-08T20:42:31.666703"
+      "updated_at": "2025-10-21T21:32:42.526610"
     },
     "28": {
       "name": "Smithsonian National Museum of American History",
@@ -638,7 +638,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsoniannationalmuseumofamericanhistory.com",
+      "website_url": "https://americanhistory.si.edu",
       "instagram_url": "https://www.instagram.com/americanhistory",
       "facebook_url": "https://www.facebook.com/AmericanHistoryMuseum",
       "twitter_url": "https://twitter.com/AmericanHistory",
@@ -649,7 +649,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666727",
-      "updated_at": "2025-10-08T20:42:31.666728"
+      "updated_at": "2025-10-21T21:32:42.528243"
     },
     "29": {
       "name": "Smithsonian National Museum of Natural History",
@@ -661,7 +661,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsoniannationalmuseumofnaturalhistory.com",
+      "website_url": "https://naturalhistory.si.edu",
       "instagram_url": "https://www.instagram.com/smithsoniannmnh",
       "facebook_url": "https://www.facebook.com/naturalhistory",
       "twitter_url": "https://twitter.com/NMNH",
@@ -672,7 +672,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666748",
-      "updated_at": "2025-10-08T20:42:31.666749"
+      "updated_at": "2025-10-21T21:32:42.529069"
     },
     "30": {
       "name": "Smithsonian National Museum of the American Indian",
@@ -684,7 +684,7 @@
       "opening_hours": "10:00 AM - 5:30 PM",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.smithsoniannationalmuseumoftheamericanindian.com",
+      "website_url": "https://americanindian.si.edu",
       "instagram_url": "https://www.instagram.com/nmai",
       "facebook_url": "https://www.facebook.com/NMAI",
       "twitter_url": "https://twitter.com/NMAI",
@@ -695,7 +695,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666769",
-      "updated_at": "2025-10-08T20:42:31.666770"
+      "updated_at": "2025-10-21T21:32:42.529567"
     },
     "31": {
       "name": "Supreme Court",
@@ -707,7 +707,7 @@
       "opening_hours": "9:00 AM - 4:30 PM",
       "phone_number": "(202) 479-3000",
       "email": "info@supremecourt.gov",
-      "website_url": "https://www.supremecourt.com",
+      "website_url": "https://www.supremecourt.gov",
       "instagram_url": "https://www.instagram.com/supremecourt",
       "facebook_url": "https://www.facebook.com/SupremeCourtUS",
       "twitter_url": "https://twitter.com/SupremeCourt",
@@ -718,7 +718,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666790",
-      "updated_at": "2025-10-08T20:42:31.666791"
+      "updated_at": "2025-10-21T21:32:42.530017"
     },
     "32": {
       "name": "The Phillips Collection",
@@ -799,7 +799,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.vietnamveteransmemorial.com",
+      "website_url": "https://www.nps.gov/vive/index.htm",
       "instagram_url": "https://www.instagram.com/vietnamveteransmemorial",
       "facebook_url": "https://www.facebook.com/VietnamVeteransMemorial",
       "twitter_url": "https://twitter.com/VietnamVeteransMemorial",
@@ -810,7 +810,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666871",
-      "updated_at": "2025-10-08T20:42:31.666872"
+      "updated_at": "2025-10-21T21:32:42.531114"
     },
     "36": {
       "name": "Washington Monument",
@@ -822,7 +822,7 @@
       "opening_hours": "9:00 AM - 5:00 PM",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.washingtonmonument.com",
+      "website_url": "https://www.nps.gov/wamo/index.htm",
       "instagram_url": "https://www.instagram.com/washingtonmonument",
       "facebook_url": "https://www.facebook.com/WashingtonMonumentNPS",
       "twitter_url": "https://twitter.com/WashingtonMonument",
@@ -833,7 +833,7 @@
       "latitude": 38.8895,
       "longitude": -77.0353,
       "created_at": "2025-10-08T20:42:31.666889",
-      "updated_at": "2025-10-08T20:42:31.666890"
+      "updated_at": "2025-10-21T21:32:42.531613"
     },
     "37": {
       "name": "White House",
@@ -845,7 +845,7 @@
       "opening_hours": "Tours by appointment only",
       "phone_number": "(202) 456-1111",
       "email": "comments@whitehouse.gov",
-      "website_url": "https://www.whitehouse.com",
+      "website_url": "https://www.whitehouse.gov",
       "instagram_url": "https://www.instagram.com/whitehouse",
       "facebook_url": "https://www.facebook.com/WhiteHouse",
       "twitter_url": "https://twitter.com/WhiteHouse",
@@ -856,7 +856,7 @@
       "latitude": 38.8977,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666908",
-      "updated_at": "2025-10-08T20:42:31.666909"
+      "updated_at": "2025-10-21T21:32:42.532079"
     },
     "38": {
       "name": "World War II Memorial",
@@ -868,7 +868,7 @@
       "opening_hours": "24 hours",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.worldwariimemorial.com",
+      "website_url": "https://www.nps.gov/wwii/index.htm",
       "instagram_url": "https://www.instagram.com/worldwariimemorial",
       "facebook_url": "https://www.facebook.com/WWIIMemorial",
       "twitter_url": "https://twitter.com/WorldWarIIMemorial",
@@ -879,7 +879,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666927",
-      "updated_at": "2025-10-08T20:42:31.666928"
+      "updated_at": "2025-10-21T21:32:42.532702"
     },
     "39": {
       "name": "United States Botanic Garden",
@@ -891,7 +891,7 @@
       "opening_hours": "10:00 AM - 5:00 PM daily",
       "phone_number": "(202) 225-8333",
       "email": "usbg@usbg.gov",
-      "website_url": "https://www.usbg.gov/",
+      "website_url": "https://www.usbg.gov",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -902,7 +902,7 @@
       "latitude": 38.8883,
       "longitude": -77.0128,
       "created_at": "2025-10-08T20:42:31.666945",
-      "updated_at": "2025-10-08T20:42:31.666946"
+      "updated_at": "2025-10-21T21:32:42.530662"
     },
     "40": {
       "name": "9:30 Club",
@@ -960,7 +960,7 @@
       "opening_hours": "By appointment - Contact embassy for cultural events and tours",
       "phone_number": "(202) 944-6000",
       "email": "",
-      "website_url": "https://us.ambafrance.org",
+      "website_url": "https://franceintheus.org",
       "instagram_url": "https://www.instagram.com/franceintheus",
       "facebook_url": "https://www.facebook.com/FranceInTheUS",
       "twitter_url": "https://twitter.com/franceintheus",
@@ -971,7 +971,7 @@
       "latitude": 38.9167,
       "longitude": -77.0711,
       "created_at": "2025-10-08T20:42:31.667009",
-      "updated_at": "2025-10-08T20:42:31.667010"
+      "updated_at": "2025-10-21T21:32:42.533808"
     },
     "43": {
       "name": "Embassy of Germany",
@@ -1075,7 +1075,7 @@
       "opening_hours": "By appointment - Contact embassy for cultural events and tours",
       "phone_number": "(202) 452-0100",
       "email": "",
-      "website_url": "http://www.exteriores.gob.us/embajadas/washington",
+      "website_url": "https://www.exteriores.gob.es/embajadas/washington",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1086,7 +1086,7 @@
       "latitude": 38.9025,
       "longitude": -77.0522,
       "created_at": "2025-10-08T20:42:31.667104",
-      "updated_at": "2025-10-08T20:42:31.667105"
+      "updated_at": "2025-10-21T21:32:42.534981"
     },
     "48": {
       "name": "Embassy of the Netherlands",
@@ -1144,7 +1144,7 @@
       "opening_hours": "By appointment - Contact embassy for cultural events and tours",
       "phone_number": "(202) 238-2700",
       "email": "",
-      "website_url": "http://washington.itamaraty.gov.br",
+      "website_url": "https://washington.itamaraty.gov.br",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1155,7 +1155,7 @@
       "latitude": 38.9192,
       "longitude": -77.0539,
       "created_at": "2025-10-08T20:42:31.667166",
-      "updated_at": "2025-10-08T20:42:31.667167"
+      "updated_at": "2025-10-21T21:32:42.535852"
     },
     "51": {
       "name": "Embassy of India",
@@ -1213,7 +1213,7 @@
       "opening_hours": "By appointment - Contact embassy for cultural events and tours",
       "phone_number": "(202) 939-5600",
       "email": "",
-      "website_url": "http://overseas.mofa.go.kr/us-washington-en",
+      "website_url": "https://usa-mofa.go.kr/us-washington-en",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1224,7 +1224,7 @@
       "latitude": 38.9101,
       "longitude": -77.0469,
       "created_at": "2025-10-08T20:42:31.667223",
-      "updated_at": "2025-10-08T20:42:31.667224"
+      "updated_at": "2025-10-21T21:32:42.536614"
     },
     "54": {
       "name": "Embassy of Sweden",
@@ -1236,7 +1236,7 @@
       "opening_hours": "By appointment - Contact embassy for cultural events and tours",
       "phone_number": "(202) 467-2600",
       "email": "",
-      "website_url": "https://www.swedenabroad.se/washington",
+      "website_url": "https://www.swedenabroad.se/en/embassies/usa-washington",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1247,7 +1247,7 @@
       "latitude": 38.9017,
       "longitude": -77.0597,
       "created_at": "2025-10-08T20:42:31.667242",
-      "updated_at": "2025-10-08T20:42:31.667243"
+      "updated_at": "2025-10-21T21:32:42.537144"
     },
     "55": {
       "name": "Embassy of Switzerland",
