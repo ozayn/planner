@@ -427,6 +427,7 @@ class Venue(db.Model):
             'email': self.email,
             'tour_info': self.tour_info,
             'admission_fee': self.admission_fee,
+            'additional_info': self.additional_info,
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
             'city_timezone': self.city.timezone if self.city else None,
@@ -4636,6 +4637,39 @@ def extract_event_from_url():
         
         # Extract data
         extracted_data = extract_event_data_from_url(url)
+        
+        # Try to match venue and city from extracted location
+        venue_id = None
+        city_id = None
+        location_text = extracted_data.get('location', '')
+        
+        if location_text:
+            # Try to find matching venue (Venue model is defined in this file)
+            # Try exact match first
+            venue = Venue.query.filter(
+                db.func.lower(Venue.name).like(f'%{location_text.lower()}%')
+            ).first()
+            
+            if venue:
+                venue_id = venue.id
+                city_id = venue.city_id
+                app_logger.info(f"Matched venue: {venue.name} (ID: {venue_id}, City: {city_id})")
+            else:
+                # Try to match common variations
+                # "The Metropolitan Museum of Art" -> "Metropolitan Museum of Art"
+                cleaned_location = location_text.replace('The ', '').replace('the ', '')
+                venue = Venue.query.filter(
+                    db.func.lower(Venue.name).like(f'%{cleaned_location.lower()}%')
+                ).first()
+                
+                if venue:
+                    venue_id = venue.id
+                    city_id = venue.city_id
+                    app_logger.info(f"Matched venue (cleaned): {venue.name} (ID: {venue_id}, City: {city_id})")
+        
+        # Add IDs to response
+        extracted_data['venue_id'] = venue_id
+        extracted_data['city_id'] = city_id
         
         return jsonify(extracted_data)
         
