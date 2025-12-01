@@ -37,6 +37,9 @@ python app.py
 
 ## 🔧 KEY COMMANDS
 ```bash
+# Check for duplicates (ALWAYS RUN BEFORE DATA CHANGES)
+python scripts/check_duplicates.py
+
 # Load all data
 python scripts/data_manager.py load
 
@@ -47,6 +50,9 @@ python scripts/data_manager.py load-sources
 
 # Sync data
 python scripts/data_manager.py sync
+
+# Run validation
+python scripts/data_integrity_validator.py
 ```
 
 ## 🌐 QUICK TESTS

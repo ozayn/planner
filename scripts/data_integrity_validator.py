@@ -201,6 +201,51 @@ class DataIntegrityValidator:
         
         return True
     
+    def check_duplicates(self):
+        """Check for duplicate cities, venues, and events"""
+        print("\n🔍 Checking for duplicates...")
+        
+        from collections import defaultdict
+        
+        duplicates_found = False
+        
+        # Check cities
+        cities = City.query.all()
+        city_keys = defaultdict(list)
+        for city in cities:
+            key = (
+                city.name.lower().strip(),
+                (city.state or '').lower().strip(),
+                city.country.lower().strip()
+            )
+            city_keys[key].append(city)
+        
+        city_duplicates = {k: v for k, v in city_keys.items() if len(v) > 1}
+        if city_duplicates:
+            duplicates_found = True
+            for key, cities_list in city_duplicates.items():
+                name, state, country = key
+                self.log_error(f"Duplicate city: {name.title()}, {state.title() if state else 'N/A'}, {country.title()} (IDs: {[c.id for c in cities_list]})")
+        
+        # Check venues
+        venues = Venue.query.all()
+        venue_keys = defaultdict(list)
+        for venue in venues:
+            key = (venue.name.lower().strip(), venue.city_id)
+            venue_keys[key].append(venue)
+        
+        venue_duplicates = {k: v for k, v in venue_keys.items() if len(v) > 1}
+        if venue_duplicates:
+            duplicates_found = True
+            for key, venues_list in venue_duplicates.items():
+                name, city_id = key
+                self.log_error(f"Duplicate venue: {name.title()} in city_id {city_id} (IDs: {[v.id for v in venues_list]})")
+        
+        if not duplicates_found:
+            print("✅ No duplicates found")
+        
+        return not duplicates_found
+    
     def run_full_validation(self):
         """Run all validation checks"""
         print("🛡️  RUNNING COMPREHENSIVE DATA INTEGRITY VALIDATION")
@@ -208,6 +253,7 @@ class DataIntegrityValidator:
         
         with app.app_context():
             validations = [
+                ("Duplicates", self.check_duplicates),
                 ("Image URLs", self.validate_image_urls),
                 ("Social Media Data", self.validate_social_media_data),
                 ("Venue Types", self.validate_venue_types),

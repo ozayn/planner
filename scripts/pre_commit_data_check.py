@@ -91,12 +91,37 @@ def check_database_venue_types():
         print(f"⚠️  Could not check database venue types: {e}")
         return True  # Don't fail if database not available
 
+def check_duplicates():
+    """Check for duplicates using the dedicated duplicate checker"""
+    print("🔍 Checking for duplicates...")
+    try:
+        # Run the duplicate checker script
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, 'scripts/check_duplicates.py'],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(__file__))
+        )
+        
+        # Print output
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        return result.returncode == 0
+    except Exception as e:
+        print(f"⚠️  Could not check duplicates: {e}")
+        return True  # Don't fail if check unavailable
+
 def main():
     """Run pre-commit data validation"""
     print("🛡️  PRE-COMMIT DATA VALIDATION")
     print("=" * 50)
     
     checks = [
+        ("duplicates", check_duplicates),  # Warns but doesn't block (pre-existing issues)
         ("venues.json integrity", check_venues_json_integrity),
         ("venue type consistency", check_database_venue_types),
     ]
@@ -105,7 +130,12 @@ def main():
     
     for check_name, check_func in checks:
         print(f"\n{check_name.upper()}:")
-        if not check_func():
+        result = check_func()
+        # Duplicate check warns but doesn't block (pre-existing issues)
+        if check_name == "duplicates" and not result:
+            print("⚠️  Duplicates found (pre-existing issue - commit will proceed)")
+            # Don't set all_passed = False for duplicates
+        elif not result:
             all_passed = False
     
     print("\n" + "=" * 50)

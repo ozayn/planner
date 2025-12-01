@@ -3,6 +3,7 @@
 ## 🚨 BEFORE Making Any Venue Changes
 
 ### ✅ Pre-Change Checklist:
+- [ ] **Check for duplicates**: `python scripts/check_duplicates.py` - **ALWAYS RUN THIS FIRST**
 - [ ] **Backup current data**: `python scripts/update_venues_json.py` 
 - [ ] **Run validation**: `python scripts/data_integrity_validator.py`
 - [ ] **Check API key**: Verify `GOOGLE_MAPS_API_KEY` in `.env`
@@ -27,12 +28,14 @@
 ## 🔄 WHEN Modifying Existing Data
 
 ### ✅ Modification Checklist:
+- [ ] **Check for duplicates FIRST**: `python scripts/check_duplicates.py` - **REQUIRED**
 - [ ] **Create backup first**: Automatic backup before changes
 - [ ] **Check backup structure**: Verify `data/backups/` has recent files
 - [ ] **Make incremental changes**: Don't bulk update without testing
 - [ ] **Test each change**: Verify functionality after each modification
 - [ ] **Sync JSON files**: Run `scripts/update_venues_json.py`
 - [ ] **Validate integrity**: Run full validation suite
+- [ ] **Re-check duplicates**: `python scripts/check_duplicates.py` after changes
 
 ## 📱 SOCIAL MEDIA DATA RULES
 
@@ -110,21 +113,25 @@ python scripts/data_integrity_validator.py
 
 ### Daily:
 - [ ] Check backup files exist
+- [ ] Run duplicate check: `python scripts/check_duplicates.py`
 - [ ] Run quick validation
 
 ### Weekly:
-- [ ] Full data integrity validation
+- [ ] Full data integrity validation (includes duplicate check)
 - [ ] Test all API endpoints
 - [ ] Verify JSON synchronization
+- [ ] Check for duplicates: `python scripts/check_duplicates.py`
 
 ### Monthly:
 - [ ] Audit social media coverage
 - [ ] Update venue information
 - [ ] Review and update documentation
+- [ ] Comprehensive duplicate check and cleanup
 
 ## 🎯 SUCCESS METRICS
 
 ### Data Quality Targets:
+- **No duplicates**: 0 duplicates in cities, venues, or events
 - **Image coverage**: 100% (no broken or fake images)
 - **Social media coverage**: >90% for major venues (museums, embassies, arts centers)
 - **Venue type consistency**: 100% (all lowercase, standardized)
