@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 def extract_event_data_from_url(url):
     """
     Extract event data from a URL for preview/editing (doesn't create events).
+    Uses web scraping first, falls back to LLM if bot detection occurs.
     
     Args:
         url: The URL to scrape
@@ -33,6 +34,8 @@ def extract_event_data_from_url(url):
     Returns:
         dict with extracted event data
     """
+    bot_detected = False
+    
     try:
         import cloudscraper
         
@@ -63,15 +66,30 @@ def extract_event_data_from_url(url):
                 response = scraper.get(url, timeout=15)
                 response.raise_for_status()
                 
-                if 'Pardon Our Interruption' in response.text:
+                if 'Pardon Our Interruption' in response.text or 'Access Denied' in response.text:
                     logger.warning(f"Bot detection triggered on attempt {attempt + 1}")
+                    bot_detected = True
                     if attempt < 2:
                         continue
-                break
+                    else:
+                        # All 3 attempts failed - use LLM fallback
+                        logger.info("Bot detection on all attempts - switching to LLM fallback")
+                        break
+                else:
+                    bot_detected = False
+                    break
             except Exception as e:
                 if attempt == 2:
-                    raise
+                    logger.warning(f"All scraping attempts failed: {e}")
+                    bot_detected = True
+                    break
                 logger.warning(f"Request failed on attempt {attempt + 1}: {e}")
+        
+        # If bot detected after all attempts, use LLM fallback
+        if bot_detected:
+            logger.info(f"🤖 Using LLM to extract event data from: {url}")
+            from scripts.llm_url_extractor import extract_event_with_llm
+            return extract_event_with_llm(url)
         
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()
@@ -96,7 +114,14 @@ def extract_event_data_from_url(url):
         
     except Exception as e:
         logger.error(f"Error extracting from URL {url}: {e}")
-        raise
+        # Try LLM as last resort
+        try:
+            logger.info(f"🤖 Using LLM as fallback after error: {e}")
+            from scripts.llm_url_extractor import extract_event_with_llm
+            return extract_event_with_llm(url)
+        except Exception as llm_error:
+            logger.error(f"LLM fallback also failed: {llm_error}")
+            raise e  # Raise original error
 
 
 def scrape_event_from_url(url, venue, city, period_start, period_end, override_data=None):
@@ -325,22 +350,57 @@ def _extract_description(soup):
     # Look for meta description
     meta_desc = soup.find('meta', attrs={'name': 'description'})
     if meta_desc and meta_desc.get('content'):
-        return meta_desc.get('content')
+        desc = meta_desc.get('content')
+        if len(desc) > 50:
+            return desc
     
-    # Look for common description elements
+    # Look for Open Graph description
+    og_desc = soup.find('meta', property='og:description')
+    if og_desc and og_desc.get('content'):
+        desc = og_desc.get('content')
+        if len(desc) > 50:
+            return desc
+    
+    # Look for common description elements with more specific patterns
     desc_selectors = [
         {'class': re.compile(r'description', re.I)},
         {'class': re.compile(r'details', re.I)},
         {'class': re.compile(r'summary', re.I)},
         {'class': re.compile(r'content', re.I)},
+        {'class': re.compile(r'event.*description', re.I)},
+        {'class': re.compile(r'event.*details', re.I)},
+        {'id': re.compile(r'description', re.I)},
+        {'id': re.compile(r'details', re.I)},
     ]
     
     for selector in desc_selectors:
-        elem = soup.find(['div', 'p', 'section'], selector)
+        elem = soup.find(['div', 'p', 'section', 'article'], selector)
         if elem:
-            text = elem.get_text(strip=True)
+            text = elem.get_text(separator=' ', strip=True)
             if len(text) > 50:  # Must be substantial
-                return text[:500]  # Limit length
+                # Clean up whitespace
+                text = ' '.join(text.split())
+                return text[:1000]  # Increased limit for better descriptions
+    
+    # Look for main content area (article, main, or content sections)
+    main_content = soup.find(['article', 'main']) or soup.find('div', class_=re.compile(r'main|content', re.I))
+    if main_content:
+        # Find paragraphs that look like descriptions (not too short, not navigation)
+        paragraphs = main_content.find_all('p')
+        description_paragraphs = []
+        for p in paragraphs:
+            text = p.get_text(separator=' ', strip=True)
+            # Skip very short paragraphs, navigation, or metadata
+            if len(text) > 50 and not any(skip in text.lower() for skip in ['register', 'ticket', 'buy now', 'click here', 'learn more']):
+                description_paragraphs.append(text)
+        
+        if description_paragraphs:
+            # Combine paragraphs that form a coherent description
+            combined = ' '.join(description_paragraphs)
+            # Clean up whitespace
+            combined = ' '.join(combined.split())
+            if len(combined) > 50:
+                return combined[:1000]
     
     return None
 

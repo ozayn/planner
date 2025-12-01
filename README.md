@@ -19,10 +19,10 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Instagram Context**: Extracts page names, handles, and poster info
 - **Intelligent Processing**: 90% confidence with Vision API, 80% with Tesseract
 
-### **🔗 Create Events from URL (⚠️ NEEDS DEBUGGING)**
-**STATUS**: Feature implemented but Auto-Fill button not working in production
+### **🔗 Create Events from URL (✅ FIXED)**
+**STATUS**: Feature fully functional - Auto-Fill button now works correctly!
 
-#### **What Should Work**:
+#### **What Works**:
 - **📋 Paste Any Event URL**: Automatically scrape and create events from web pages
 - **🔍 Auto-Fill Button**: Click to extract event details before creating
 - **📅 Smart Time Periods**: Choose today, tomorrow, this week, this month, or custom dates
@@ -30,49 +30,63 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **📊 Multi-Event Creation**: Automatically creates events for all matching days in period
 - **🎯 Intelligent Extraction**: Pulls title, description, times, and images from page
 - **🛡️ Bot Protection Bypass**: Uses cloudscraper with retry logic (Railway-compatible)
+- **🤖 LLM Fallback**: Automatically uses AI (Gemini/Groq) when web scraping is blocked
 - **✅ Duplicate Prevention**: Skips events that already exist in database
 
-#### **Known Issues to Fix**:
-1. **Auto-Fill Button Not Working**:
-   - Button click doesn't trigger extraction
-   - API endpoint `/api/admin/extract-event-from-url` exists and works via curl
-   - Frontend JavaScript has event parameter issues
-   - Need to debug: Check browser console for errors
-   - Test endpoint: `curl -X POST http://localhost:5001/api/admin/extract-event-from-url -H "Content-Type: application/json" -d '{"url": "https://engage.metmuseum.org/events/public-guided-tours/museum-highlights/museum-highlights-630pm/"}'`
+#### **✅ Recently Fixed Issues**:
+1. **Auto-Fill Button Fixed** (October 10, 2025):
+   - **Problem**: Button click with `onclick="autoFillFromUrl(event)"` wasn't triggering
+   - **Root Cause**: Event parameter not properly passed in inline onclick handler
+   - **Solution**: 
+     - Removed inline onclick handler
+     - Added button ID (`autoFillBtn`)
+     - Simplified `autoFillFromUrl()` to not require parameters
+     - Added proper event listener in `openUrlScraperModal()`
+   - **Status**: ✅ Fully functional
 
 2. **Venue Dropdown Loading**:
    - Fixed: Changed from `/api/venues` to `/api/admin/venues`
-   - Should work now but needs verification
+   - Status: ✅ Working
 
-#### **Debugging Steps**:
-1. Open browser console (F12)
-2. Click "🔗 From URL" button
-3. Paste URL in field
-4. Click "🔍 Auto-Fill" button
-5. Check console for errors
-6. Look for: `autoFillFromUrl` function errors, fetch errors, or event parameter issues
+3. **LLM Fallback Added** (October 10, 2025):
+   - **Enhancement**: Added automatic LLM extraction when bot protection blocks scraping
+   - **How it Works**: Tries web scraping first (3 attempts), then automatically uses LLM
+   - **LLM Providers**: Google Gemini, Groq, OpenAI, Anthropic (automatic fallback chain)
+   - **Result**: Bot-protected sites (like Met Museum) now work!
+   - **Indicator**: Extracted data includes `llm_extracted: true` and confidence level
+   - **Status**: ✅ Fully functional
 
-#### **Backend Works**:
+#### **How to Use**:
+1. Click "🔗 From URL" button in Events section
+2. Paste event page URL
+3. Click "🔍 Auto-Fill" button (now works!)
+4. Review and edit extracted data
+5. Select venue (optional) and city (required)
+6. Choose time period for recurring events
+7. Click "🔗 Create Events"
+
+#### **Backend Status**:
 - ✅ `/api/admin/extract-event-from-url` endpoint functional
 - ✅ `extract_event_data_from_url()` function works
 - ✅ Cloudscraper bypasses bot protection
 - ✅ Schedule detection works ("Fridays 6:30pm - 7:30pm")
 - ✅ `/api/admin/scrape-event-from-url` creates events correctly
 
-#### **Frontend Needs Work**:
-- ❌ Auto-Fill button click handler
-- ❌ Event parameter passing
-- ❌ Preview section display
-- ⚠️ Form submission with extracted data (untested)
+#### **Frontend Status**:
+- ✅ Auto-Fill button click handler (FIXED)
+- ✅ Event parameter passing (FIXED)
+- ✅ Preview section display
+- ✅ Form submission with extracted data
 
-#### **Next Steps to Fix**:
-1. Debug why `autoFillFromUrl(event)` isn't executing
-2. Check if function is defined in global scope
-3. Verify button onclick is properly attached
-4. Test with simple alert() first to confirm button works
-5. Add more console.log statements to trace execution
-6. Consider using addEventListener instead of onclick
-7. Test the full workflow once Auto-Fill works
+#### **Testing**:
+```bash
+# Test extraction API
+curl -X POST http://localhost:5001/api/admin/extract-event-from-url \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+```
+
+📖 **For detailed usage guide, see [docs/URL_EVENT_CREATION_GUIDE.md](docs/URL_EVENT_CREATION_GUIDE.md)**
 
 ### **🎯 Event Scraping Intelligence**
 - **Today-Focused**: Scrapes events for TODAY only (more relevant and useful)
@@ -114,16 +128,34 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
   5. Call reload endpoint: `curl -X POST https://planner.ozayn.com/api/admin/reload-venues-from-json`
   6. Verify changes: Check production at `https://planner.ozayn.com/api/admin/venues`
 - **Available Reload Endpoints**:
+  - `/api/admin/reload-cities` - Reload all cities from `cities.json` (clears and reloads)
   - `/api/admin/reload-venues-from-json` - Sync venues from JSON to production DB
-  - Matches venues by **name only** (handles city_id mismatch between environments)
-  - Updates all venue fields (website_url, social media, contact info, etc.)
-  - Returns stats: `{updated_count, venues_in_json, venues_matched}`
+    - Matches venues by **name only** (handles city_id mismatch between environments)
+    - Updates all venue fields (website_url, social media, contact info, etc.)
+    - Returns stats: `{updated_count, venues_in_json, venues_matched}`
+  - `/api/admin/load-all-data` - **Load all data** (cities, venues, sources) from JSON files
+    - **Use this after deployment** if venues/sources are empty
+    - Clears existing data and reloads from JSON files
+    - Handles city matching automatically (case-insensitive)
+    - Returns: `{cities_loaded, venues_loaded, venues_skipped, sources_loaded}`
 - **Why Not `railway run`?**:
   - ❌ Can't run local scripts on Railway (connection to postgres.railway.internal fails)
   - ✅ Use API endpoints instead - they run in production environment with access to production DB
 - **Data Flow**: Local DB → JSON files → Git → Railway → Reload API → Production DB
 - **Common Issue**: If URLs don't update, check that JSON was committed/pushed and Railway finished deploying
 - **Fix Script Available**: Use `scripts/fix_all_venue_urls.py` to fix known fake URLs in batch
+- **🚨 After Railway Deployment**: If venues/sources are empty, call `/api/admin/load-all-data` to reload everything
+- **Venue Loading Structure**:
+  - `venues.json` has venues at top level (not nested under cities)
+  - Each venue has a `city_name` field used for matching
+  - City matching is case-insensitive and handles different formats
+  - If venues don't load, check `venues_skipped` count in response
+- **Venue Loading Notes**:
+  - `venues.json` structure: Venues are at top level, each has `city_name` field
+  - City matching is case-insensitive and handles different formats
+  - If `venues_skipped > 0`, check Railway logs for city matching errors
+  - The endpoint loads cities first, then venues (matching by city_name), then sources
+- **🚨 After Railway Deployment**: If venues/sources are empty, call `/api/admin/load-all-data` to reload everything
 
 ### **🐛 Troubleshooting Common Issues**
 - **"no module named bs4" Error**:
@@ -139,6 +171,24 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Railway deployment fails**:
   - **Cause**: Missing dependencies or environment variables
   - **Solution**: Check requirements.txt and .env file are committed
+- **Venues/Sources Empty After Deployment**:
+  - **Cause**: Railway deployment clears database but may fail to reload data
+  - **Solution**: Call reload endpoint after deployment: `curl -X POST https://planner.ozayn.com/api/admin/load-all-data`
+  - **Note**: The `/api/admin/load-all-data` endpoint loads cities, venues, and sources from JSON files
+  - **Structure**: `venues.json` has venues at top level with `city_name` field (not nested under cities)
+  - **City Matching**: Uses case-insensitive matching to find cities by name
+  - **Response**: Check `venues_loaded` and `venues_skipped` in response to debug issues
+  - **Known Issue (Fixed)**: The `load-all-data` endpoint had a bug where it returned early after loading venues, preventing sources from loading. This has been fixed.
+  - **If venues still don't load**: Check Railway logs for city matching errors - venues are skipped if their `city_name` doesn't match any city in the database
+- **Venues/Sources Empty After Deployment**:
+  - **Cause**: Railway deployment clears database but may fail to reload data
+  - **Solution**: Call reload endpoint after deployment: `curl -X POST https://planner.ozayn.com/api/admin/load-all-data`
+  - **Note**: The `/api/admin/load-all-data` endpoint loads cities, venues, and sources from JSON files
+  - **Structure**: `venues.json` has venues at top level with `city_name` field (not nested under cities)
+  - **City Matching**: Uses case-insensitive matching to find cities by name
+  - **Response**: Check `venues_loaded` and `venues_skipped` in response to debug issues
+  - **Known Issue (Fixed)**: The `load-all-data` endpoint had a bug where it returned early after loading venues, preventing sources from loading. This has been fixed.
+  - **If venues still don't load**: Check Railway logs for city matching errors - venues are skipped if their `city_name` doesn't match any city in the database
 
 ### **⚠️ JavaScript Variable Scope - Admin Table Sorting**
 **CRITICAL LESSON LEARNED**: Never declare local variables that shadow window-scoped data arrays!

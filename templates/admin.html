@@ -2187,33 +2187,69 @@
                 }
                 
                 const response = await fetch('/api/admin/stats');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const stats = await response.json();
+                console.log('Stats received:', stats);
+                
+                // Ensure all values are numbers, default to 0 if undefined
+                const citiesCount = stats.cities !== undefined ? stats.cities : 0;
+                const venuesCount = stats.venues !== undefined ? stats.venues : 0;
+                const sourcesCount = stats.sources !== undefined ? stats.sources : 0;
+                const eventsCount = stats.events !== undefined ? stats.events : 0;
                 
                 statsGrid.innerHTML = 
                     '<div class="stat-card" onclick="showSection(\'cities\')" style="cursor: pointer;">' +
-                        '<h3>' + stats.cities + '</h3>' +
+                        '<h3>' + citiesCount + '</h3>' +
                         '<p>🏙️ Cities</p>' +
                     '</div>' +
                     '<div class="stat-card" onclick="showSection(\'venues\')" style="cursor: pointer;">' +
-                        '<h3>' + stats.venues + '</h3>' +
+                        '<h3>' + venuesCount + '</h3>' +
                         '<p>🏛️ Venues</p>' +
                     '</div>' +
                     '<div class="stat-card" onclick="showSection(\'sources\')" style="cursor: pointer;">' +
-                        '<h3>' + (stats.sources || 0) + '</h3>' +
+                        '<h3>' + sourcesCount + '</h3>' +
                         '<p>📱 Sources</p>' +
                     '</div>' +
                     '<div class="stat-card" onclick="showSection(\'events\')" style="cursor: pointer;">' +
-                        '<h3>' + stats.events + '</h3>' +
+                        '<h3>' + eventsCount + '</h3>' +
                         '<p>🎭 Events</p>' +
                     '</div>';
                 
                 console.log('Statistics loaded successfully');
             } catch (error) {
-                console.error('Error loading overview:', error);
-                const statsGrid = document.getElementById('statsGrid');
+                console.error('Error loading statistics:', error);
                 if (statsGrid) {
-                    statsGrid.innerHTML = '<div class="no-results">❌ Failed to load statistics: ' + error.message + '</div>';
+                    statsGrid.innerHTML = 
+                        '<div class="stat-card">' +
+                            '<h3>Error</h3>' +
+                            '<p>Failed to load statistics: ' + (error.message || 'Unknown error') + '</p>' +
+                        '</div>';
                 }
+            }
+        }
+        
+        // Add timeout to prevent infinite loading
+        function loadOverviewWithTimeout() {
+            const statsGrid = document.getElementById('statsGrid');
+            if (statsGrid) {
+                // Set a timeout to show error if loading takes too long
+                const timeout = setTimeout(() => {
+                    if (statsGrid.innerHTML.includes('Loading statistics')) {
+                        statsGrid.innerHTML = 
+                            '<div class="stat-card">' +
+                                '<h3>Timeout</h3>' +
+                                '<p>Statistics are taking too long to load. Please check the server.</p>' +
+                            '</div>';
+                    }
+                }, 10000); // 10 second timeout
+                
+                loadOverview().finally(() => {
+                    clearTimeout(timeout);
+                });
             }
         }
         
@@ -2361,7 +2397,7 @@
         function loadSectionData(sectionName) {
             switch(sectionName) {
                 case 'overview':
-                    loadOverview();
+                    loadOverviewWithTimeout();
                     break;
                 case 'cities':
                     loadCities();
@@ -4140,6 +4176,20 @@
             
             // Build enhanced description with social media and additional information
             let descriptionParts = [];
+            
+            // Add specific meeting location to the beginning of description if available
+            // This is for cases where the location is a specific room/gallery within a venue
+            if (eventData.start_location && eventData.start_location.trim()) {
+                const startLocLower = eventData.start_location.toLowerCase().trim();
+                const venueLower = (eventData.venue_name || '').toLowerCase().trim();
+                
+                // Add if start_location is different from venue name
+                // This handles cases like "West Building Main Floor, Gallery 61" vs "National Gallery of Art"
+                if (!venueLower || (startLocLower !== venueLower && !startLocLower.includes(venueLower) && !venueLower.includes(startLocLower))) {
+                    descriptionParts.unshift(`Meeting Location: ${eventData.start_location.trim()}`);
+                }
+            }
+            
             if (eventData.description) {
                 descriptionParts.push(eventData.description);
             }
@@ -4197,8 +4247,27 @@
             
             const enhancedDescription = descriptionParts.join('\n\n');
             
-            // Use start_location as the primary calendar location, fallback to description if empty
-            let calendarLocation = eventData.start_location || '';
+            // Determine calendar location for Google Maps
+            // Use venue address if available (for mappable location), otherwise use venue name or start_location
+            let calendarLocation = '';
+            
+            // If we have a venue address, use that for the map location (most mappable)
+            // This ensures Google Maps can find the venue's main location
+            if (eventData.venue_address && eventData.venue_address.trim()) {
+                calendarLocation = eventData.venue_address.trim();
+            } 
+            // If we have a venue name but no address, use venue name with city
+            else if (eventData.venue_name && eventData.venue_name.trim()) {
+                calendarLocation = eventData.venue_name.trim();
+                // Add city if available to make it more mappable
+                if (eventData.city_name && eventData.city_name.trim()) {
+                    calendarLocation += `, ${eventData.city_name.trim()}`;
+                }
+            }
+            // Fallback to start_location if no venue info
+            else if (eventData.start_location && eventData.start_location.trim()) {
+                calendarLocation = eventData.start_location.trim();
+            }
             
             // If start_location is empty, try to extract from description
             if (!calendarLocation && eventData.description) {
@@ -4319,7 +4388,7 @@
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, calling loadOverview...');
-            loadOverview();
+            loadOverviewWithTimeout();
             
             // Also load cities so they're available for venue dropdown
             console.log('Loading cities for venue dropdown...');

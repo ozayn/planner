@@ -9,7 +9,7 @@
     <title>Planner</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Cache bust: v2.3 - Fixed date filtering - 2025-09-21 */
+        /* Cache bust: v2.6 - Enhanced NGA detection with gallery pattern - 2025-01-24 */
         * {
             margin: 0;
             padding: 0;
@@ -976,6 +976,21 @@
             border-color: #ff8c42;
             background: rgba(255, 140, 66, 0.04);
             box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2);
+        }
+        
+        .event-card.online-event {
+            border-left: 4px solid #4299e1;
+        }
+        
+        .online-badge {
+            display: inline-block;
+            background: #4299e1;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-weight: 500;
         }
 
         .event-header {
@@ -3088,6 +3103,18 @@
                 
                 console.log(`Received ${events.length} events:`, events.map(e => ({title: e.title, start_date: e.start_date})));
                 
+                // Debug: Check if venue_address is in event data
+                if (events.length > 0) {
+                    const sampleEvent = events[0];
+                    console.log('Sample event data structure:', {
+                        has_venue_address: 'venue_address' in sampleEvent,
+                        venue_address: sampleEvent.venue_address,
+                        venue_name: sampleEvent.venue_name,
+                        city_name: sampleEvent.city_name,
+                        start_location: sampleEvent.start_location
+                    });
+                }
+                
                 allEvents = events;
                 selectedEvents.clear();
                 
@@ -3162,12 +3189,15 @@
             const isSelected = selectedEvents.has(event.id);
             const imageUrl = getImageUrl(event.image_url);
             
+            const isOnline = event.is_online || false;
+            const locationDisplay = isOnline ? '🌐 Online Event' : (event.venue_name || event.start_location || 'Location TBD');
+            
             return `
-                <div class="event-card ${isSelected ? 'selected' : ''}" data-event-id="${event.id}">
+                <div class="event-card ${isSelected ? 'selected' : ''} ${isOnline ? 'online-event' : ''}" data-event-id="${event.id}">
                     <div class="event-header">
                         <div>
-                            <div class="event-title">${event.title}</div>
-                            <div class="event-venue">${event.venue_name || event.start_location || 'Location TBD'}</div>
+                            <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}</div>
+                            <div class="event-venue">${locationDisplay}</div>
                         </div>
                         <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleEventSelection(${event.id})">
@@ -3249,6 +3279,18 @@
                 return;
             }
 
+            // Debug: Log event data before generating URL
+            console.log('=== Event Data for Calendar ===');
+            console.log('Event object:', {
+                title: event.title,
+                venue_address: event.venue_address,
+                venue_name: event.venue_name,
+                city_name: event.city_name,
+                start_location: event.start_location,
+                description: event.description ? event.description.substring(0, 100) + '...' : 'No description'
+            });
+            console.log('==============================');
+
             // Parse date correctly to avoid timezone issues
             const [year, month, day] = event.start_date.split('-').map(Number);
             const startDate = new Date(year, month - 1, day); // month is 0-indexed
@@ -3258,7 +3300,12 @@
             }
 
             const endDate = new Date(startDate);
-            endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
+            if (event.end_time) {
+                const [hours, minutes] = event.end_time.split(':');
+                endDate.setHours(parseInt(hours), parseInt(minutes));
+            } else {
+                endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
+            }
 
             const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate);
             window.open(googleCalendarUrl, '_blank');
@@ -3267,7 +3314,9 @@
         }
 
         // Generate Google Calendar URL
+        // Version: 2.0 - Updated to use venue_address for location
         function generateGoogleCalendarUrl(event, startDate, endDate) {
+            console.log('🔧 generateGoogleCalendarUrl called (v2.6 - Enhanced NGA detection)');
             // Format dates for Google Calendar (YYYYMMDD format)
             const formatDateForGoogle = (date) => {
                 return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -3301,6 +3350,26 @@
             
             // Build enhanced description with social media and additional information
             let descriptionParts = [];
+            
+            // Add specific meeting location to the beginning of description if available
+            // This is for cases where the location is a specific room/gallery within a venue
+            // Always add if we have start_location and it's different from the venue name
+            if (event.start_location && event.start_location.trim()) {
+                const startLocLower = event.start_location.toLowerCase().trim();
+                const venueLower = (event.venue_name || '').toLowerCase().trim();
+                
+                // Add if start_location is different from venue name
+                // This handles cases like "West Building Main Floor, Gallery 61" vs "National Gallery of Art"
+                if (!venueLower || (startLocLower !== venueLower && !startLocLower.includes(venueLower) && !venueLower.includes(startLocLower))) {
+                    descriptionParts.unshift(`Meeting Location: ${event.start_location.trim()}`);
+                    console.log('Added Meeting Location to description:', event.start_location.trim());
+                } else {
+                    console.log('Skipped Meeting Location - same as venue name');
+                }
+            } else {
+                console.log('No start_location to add to description');
+            }
+            
             if (event.description) {
                 descriptionParts.push(event.description);
             }
@@ -3358,11 +3427,116 @@
             
             const enhancedDescription = descriptionParts.join('\n\n');
             
-            // Use start_location as the primary calendar location, fallback to venue_name
-            let calendarLocation = event.start_location || event.venue_name || '';
+            // Determine calendar location for Google Maps
+            // PRIORITY: venue_address > venue_name+city > start_location > description extraction
+            // Use venue address if available (for mappable location), otherwise use venue name or start_location
+            let calendarLocation = '';
             
-            // If start_location is empty, try to extract from description
+            // Debug: Check what data we have
+            console.log('=== Calendar Location Selection ===');
+            console.log('Event data:', {
+                venue_address: event.venue_address,
+                venue_name: event.venue_name,
+                city_name: event.city_name,
+                start_location: event.start_location,
+                title: event.title,
+                url: event.url,
+                has_venue_address: 'venue_address' in event,
+                venue_address_type: typeof event.venue_address,
+                venue_address_length: event.venue_address ? event.venue_address.length : 0,
+                all_keys: Object.keys(event)
+            });
+            
+            // PRIORITY 0: Hardcoded fallback for National Gallery of Art
+            // This ensures we ALWAYS use the venue address for NGA events, even if venue_address is missing
+            // Check multiple sources: venue_name, title, URL, start_location
+            const venueNameLower = (event.venue_name || '').toLowerCase();
+            const titleLower = (event.title || '').toLowerCase();
+            const urlLower = (event.url || '').toLowerCase();
+            const startLocLower = (event.start_location || '').toLowerCase();
+            
+            // More aggressive detection: if start_location mentions "West Building" or "East Building" with "Gallery" or "Floor", it's NGA
+            const hasNGAVenueName = venueNameLower.includes('national gallery') || venueNameLower.includes('nga');
+            const hasNGATitle = titleLower.includes('national gallery') || titleLower.includes('finding awe');
+            const hasNGAUrl = urlLower.includes('nga.gov');
+            // Check if start_location contains NGA building patterns
+            const hasWestOrEastBuilding = startLocLower.includes('west building') || startLocLower.includes('east building');
+            const hasGalleryOrFloor = startLocLower.includes('gallery') || startLocLower.includes('floor') || startLocLower.includes('main floor');
+            const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
+            
+            // EXTRA SAFETY: If start_location contains "Gallery" and a number (like "Gallery 61"), it's likely NGA
+            const hasGalleryWithNumber = /gallery\s+\d+/i.test(start_location);
+            const hasGalleryPattern = hasGalleryWithNumber && (hasWestOrEastBuilding || venueNameLower.includes('gallery'));
+            
+            const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation || hasGalleryPattern;
+            
+            console.log('🔍 NGA Detection:', {
+                hasNGAVenueName,
+                hasNGATitle,
+                hasNGAUrl,
+                hasNGALocation,
+                hasGalleryWithNumber,
+                hasGalleryPattern,
+                isNGAEvent,
+                venue_name: event.venue_name,
+                title: event.title,
+                url: event.url,
+                start_location: event.start_location
+            });
+            
+            if (isNGAEvent) {
+                // Always use the known NGA address for map location
+                calendarLocation = 'Constitution Ave NW, Washington, DC 20565';
+                console.log('✅ PRIORITY 0: Using hardcoded NGA address for location:', calendarLocation);
+                console.log('   Detected NGA event from:', {
+                    isNGAEvent,
+                    hasNGAVenueName,
+                    hasNGATitle,
+                    hasNGAUrl,
+                    hasNGALocation,
+                    hasGalleryPattern,
+                    venue_name: event.venue_name,
+                    title: event.title,
+                    url: event.url,
+                    start_location: event.start_location
+                });
+            }
+            // PRIORITY 1: If we have a venue address, use that for the map location (most mappable)
+            // This ensures Google Maps can find the venue's main location
+            else {
+                const hasVenueAddress = event.venue_address && 
+                                       (typeof event.venue_address === 'string') && 
+                                       event.venue_address.trim().length > 0;
+                
+                if (hasVenueAddress) {
+                    calendarLocation = event.venue_address.trim();
+                    console.log('✅ PRIORITY 1: Using venue_address for location:', calendarLocation);
+                } 
+                // PRIORITY 2: If we have a venue name but no address, use venue name with city
+                // This is better than start_location for mapping
+                else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                    calendarLocation = event.venue_name.trim();
+                    // Add city if available to make it more mappable
+                    if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
+                        calendarLocation += `, ${event.city_name.trim()}`;
+                    }
+                    console.log('⚠️ PRIORITY 2: Using venue_name for location (no address):', calendarLocation);
+                    console.log('   venue_address was:', event.venue_address, '(type:', typeof event.venue_address + ')');
+                }
+            }
+            // PRIORITY 3: Only use start_location as absolute last resort if we have NO venue info at all
+            // This should rarely happen if events are properly linked to venues
+            if (!calendarLocation && event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
+                calendarLocation = event.start_location.trim();
+                console.log('❌ PRIORITY 3: Using start_location (no venue info - this should not happen!):', calendarLocation);
+                console.log('   venue_address:', event.venue_address);
+                console.log('   venue_name:', event.venue_name);
+            }
+            
+            // Only use description extraction as absolute last resort if we have NO location at all
+            // DO NOT overwrite venue_address or venue_name with description extraction
             if (!calendarLocation && event.description) {
+                console.log('⚠️ No location found, trying to extract from description...');
                 // Look for location patterns in the description
                 const locationPatterns = [
                     // "Join us at the [Location]" pattern
@@ -3377,10 +3551,13 @@
                         calendarLocation = match[1].trim();
                         // Clean up common prefixes
                         calendarLocation = calendarLocation.replace(/^(the|at|join us at|meet at|location:)\s*/i, '');
+                        console.log('   Extracted from description:', calendarLocation);
                         break;
                     }
                 }
             }
+            
+            console.log('Final calendar location:', calendarLocation);
             
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
@@ -3391,7 +3568,21 @@
                 ctz: event.city_timezone || 'America/New_York'  // Add timezone
             });
 
-            return `https://calendar.google.com/calendar/render?${params}`;
+            const calendarUrl = `https://calendar.google.com/calendar/render?${params}`;
+            
+            // Debug: Log the generated URL and its components
+            console.log('=== Google Calendar Export Debug ===');
+            console.log('Event:', event.title);
+            console.log('Location (for map):', calendarLocation);
+            console.log('Description preview (first 200 chars):', enhancedDescription.substring(0, 200));
+            console.log('Full URL:', calendarUrl);
+            console.log('URL Parameters:');
+            console.log('  - location:', calendarLocation);
+            console.log('  - details length:', enhancedDescription.length);
+            console.log('  - details starts with:', enhancedDescription.substring(0, 50));
+            console.log('===================================');
+            
+            return calendarUrl;
         }
 
         // Format date for Google Calendar
@@ -3694,12 +3885,15 @@
                 }
             }
             
+            const isOnline = event.is_online || false;
+            const locationDisplay = isOnline ? '🌐 Online Event' : (event.venue_name || event.start_location || 'Location TBD');
+            
             return `
-                <div class="discovered-event-card" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
+                <div class="discovered-event-card ${isOnline ? 'online-event' : ''}" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
                     <div class="event-time">${timeStr}</div>
                     <div class="event-info">
-                        <div class="event-title">${event.title}</div>
-                        <div class="event-location">${event.venue_name || event.start_location || 'Location TBD'}</div>
+                        <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}</div>
+                        <div class="event-location">${locationDisplay}</div>
                         <div class="event-type">${event.event_type || 'Event'}</div>
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation();">

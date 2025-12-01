@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Calendar Export</title>
+</head>
+<body>
+    <h1>Test Calendar Export</h1>
+    <button onclick="testCalendarExport()">Test Calendar Export</button>
+    <div id="output"></div>
+
+    <script>
+        async function testCalendarExport() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Loading event data...</p>';
+            
+            try {
+                // Get events from API
+                const response = await fetch('/api/events?city_id=1&time_range=this_month');
+                const events = await response.json();
+                
+                // Find Landseer event
+                const event = events.find(e => e.title && e.title.includes('Landseer'));
+                
+                if (!event) {
+                    output.innerHTML = '<p>❌ Landseer event not found</p>';
+                    return;
+                }
+                
+                output.innerHTML = `
+                    <h2>Event Data:</h2>
+                    <pre>${JSON.stringify({
+                        title: event.title,
+                        venue_address: event.venue_address,
+                        venue_name: event.venue_name,
+                        city_name: event.city_name,
+                        start_location: event.start_location,
+                        has_venue_address: 'venue_address' in event,
+                        venue_address_type: typeof event.venue_address
+                    }, null, 2)}</pre>
+                    
+                    <h2>Calendar Location Logic:</h2>
+                    <p>venue_address: ${event.venue_address || 'NULL/UNDEFINED'}</p>
+                    <p>venue_name: ${event.venue_name || 'NULL/UNDEFINED'}</p>
+                    <p>city_name: ${event.city_name || 'NULL/UNDEFINED'}</p>
+                    <p>start_location: ${event.start_location || 'NULL/UNDEFINED'}</p>
+                    
+                    <h2>Selected Location:</h2>
+                    <p id="selectedLocation"></p>
+                    
+                    <button onclick="window.open(generateTestUrl(event), '_blank')">Open in Google Calendar</button>
+                `;
+                
+                // Determine location
+                let calendarLocation = '';
+                if (event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim()) {
+                    calendarLocation = event.venue_address.trim();
+                    document.getElementById('selectedLocation').innerHTML = `✅ Using venue_address: ${calendarLocation}`;
+                } else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                    calendarLocation = event.venue_name.trim();
+                    if (event.city_name) {
+                        calendarLocation += `, ${event.city_name}`;
+                    }
+                    document.getElementById('selectedLocation').innerHTML = `⚠️ Using venue_name: ${calendarLocation}`;
+                } else if (event.start_location) {
+                    calendarLocation = event.start_location;
+                    document.getElementById('selectedLocation').innerHTML = `❌ Using start_location: ${calendarLocation}`;
+                }
+                
+                window.generateTestUrl = function(event) {
+                    const [year, month, day] = event.start_date.split('-');
+                    const startDate = new Date(year, month - 1, day);
+                    if (event.start_time) {
+                        const [hours, minutes] = event.start_time.split(':');
+                        startDate.setHours(parseInt(hours), parseInt(minutes));
+                    }
+                    const endDate = new Date(startDate);
+                    if (event.end_time) {
+                        const [hours, minutes] = event.end_time.split(':');
+                        endDate.setHours(parseInt(hours), parseInt(minutes));
+                    } else {
+                        endDate.setHours(endDate.getHours() + 2);
+                    }
+                    
+                    const formatDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                    const formatTime = (timeStr) => {
+                        if (!timeStr) return '';
+                        return timeStr.replace(/[:\s]/g, '').padEnd(6, '0');
+                    };
+                    
+                    let startDateTime, endDateTime;
+                    if (event.start_time && event.end_time) {
+                        startDateTime = `${startDate.toISOString().split('T')[0].replace(/-/g, '')}T${formatTime(event.start_time)}`;
+                        endDateTime = `${endDate.toISOString().split('T')[0].replace(/-/g, '')}T${formatTime(event.end_time)}`;
+                    } else {
+                        startDateTime = formatDate(startDate);
+                        endDateTime = formatDate(endDate);
+                    }
+                    
+                    let location = '';
+                    if (event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim()) {
+                        location = event.venue_address.trim();
+                    } else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                        location = event.venue_name.trim();
+                        if (event.city_name) {
+                            location += `, ${event.city_name}`;
+                        }
+                    } else if (event.start_location) {
+                        location = event.start_location;
+                    }
+                    
+                    const params = new URLSearchParams({
+                        action: 'TEMPLATE',
+                        text: event.title,
+                        dates: `${startDateTime}/${endDateTime}`,
+                        details: event.description || '',
+                        location: location,
+                        ctz: event.city_timezone || 'America/New_York'
+                    });
+                    
+                    return `https://calendar.google.com/calendar/render?${params}`;
+                };
+                
+            } catch (error) {
+                output.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+

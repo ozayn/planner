@@ -449,7 +449,15 @@ class Event(db.Model):
     image_url = db.Column(db.String(1000))  # Increased for long Google Maps photo references
     url = db.Column(db.String(1000))  # Increased for long URLs
     is_selected = db.Column(db.Boolean, default=True)
+    is_online = db.Column(db.Boolean, default=False)  # True for online/virtual events
     event_type = db.Column(db.String(50), nullable=False)  # 'tour', 'exhibition', 'festival', 'photowalk'
+    
+    # Registration fields
+    is_registration_required = db.Column(db.Boolean, default=False)  # True if registration is required
+    registration_opens_date = db.Column(db.Date)  # Date when registration opens
+    registration_opens_time = db.Column(db.Time)  # Time when registration opens
+    registration_url = db.Column(db.String(1000))  # URL to register for the event
+    registration_info = db.Column(db.Text)  # Additional registration details (e.g., "Registration opens 2 weeks before event")
     source = db.Column(db.String(50))  # 'instagram', 'facebook', 'website', etc.
     source_url = db.Column(db.String(1000))  # URL of the source (e.g., Instagram post URL) - increased for long URLs
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -545,14 +553,22 @@ class Event(db.Model):
             'end_time': self.end_time.strftime('%H:%M') if self.end_time else None,
             'image_url': image_url,
             'maps_link': maps_link,  # Add clickable Google Maps link
+            'is_online': self.is_online if hasattr(self, 'is_online') else False,  # Online/virtual event flag
             'url': self.url,
             'is_selected': self.is_selected,
             'event_type': self.event_type,
+            'is_registration_required': self.is_registration_required if hasattr(self, 'is_registration_required') else False,
+            'registration_opens_date': self.registration_opens_date.isoformat() if hasattr(self, 'registration_opens_date') and self.registration_opens_date else None,
+            'registration_opens_time': self.registration_opens_time.strftime('%H:%M') if hasattr(self, 'registration_opens_time') and self.registration_opens_time else None,
+            'registration_url': self.registration_url if hasattr(self, 'registration_url') else None,
+            'registration_info': self.registration_info if hasattr(self, 'registration_info') else None,
             'start_location': self.start_location,
             'end_location': self.end_location,
             'venue_id': self.venue_id,
             'venue_name': self.venue.name if self.venue else None,
+            'venue_address': self.venue.address if self.venue else None,
             'city_id': self.city_id,
+            'city_name': self.city.name if self.city else None,
             'start_latitude': self.start_latitude,
             'start_longitude': self.start_longitude,
             'end_latitude': self.end_latitude,
@@ -750,6 +766,11 @@ def create_error_response(message, status_code=500):
 def test_events():
     """Test page for debugging events"""
     return render_template('test_events.html')
+
+@app.route('/test-calendar')
+def test_calendar():
+    """Test page for calendar export debugging"""
+    return render_template('test_calendar.html')
 
 def update_json_with_new_venue(venue, city):
     """Update venues.json with a newly added venue"""
@@ -1965,8 +1986,33 @@ def admin_stats():
     try:
         cities_count = City.query.count()
         venues_count = Venue.query.count()
-        events_count = Event.query.count()
         sources_count = Source.query.count()
+        
+            # Try to count events, but handle case where is_online column might not exist yet
+        try:
+            events_count = Event.query.count()
+        except Exception as event_error:
+            app_logger.warning(f"Error counting events (possibly missing is_online column): {event_error}")
+            # Try to add the column if it doesn't exist
+            try:
+                from sqlalchemy import inspect
+                inspector = inspect(db.engine)
+                columns = [col['name'] for col in inspector.get_columns('events')]
+                if 'is_online' not in columns:
+                    app_logger.info("Adding is_online column to events table...")
+                    with db.engine.connect() as conn:
+                        conn.execute(db.text("ALTER TABLE events ADD COLUMN is_online BOOLEAN DEFAULT 0"))
+                        conn.commit()
+                    app_logger.info("Successfully added is_online column")
+                    events_count = Event.query.count()
+                else:
+                    # Column exists but query still failed, return 0
+                    events_count = 0
+            except Exception as migration_error:
+                app_logger.error(f"Error adding is_online column: {migration_error}")
+                events_count = 0
+        
+        app_logger.info(f"Stats: cities={cities_count}, venues={venues_count}, events={events_count}, sources={sources_count}")
         
         return jsonify({
             'cities': cities_count,
@@ -1975,7 +2021,16 @@ def admin_stats():
             'sources': sources_count
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app_logger.error(f"Error getting admin stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'cities': 0,
+            'venues': 0,
+            'events': 0,
+            'sources': 0,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/admin/cities')
 def admin_cities():
@@ -4966,6 +5021,19 @@ def generate_ical_event(event_data):
     
     # Build enhanced description with additional information
     description_parts = []
+    
+    # Add specific meeting location to the beginning of description if available
+    # This is for cases where the location is a specific room/gallery within a venue
+    start_location = event_data.get('start_location')
+    venue_name = event_data.get('venue_name')
+    if start_location and start_location.strip():
+        start_loc_lower = start_location.lower().strip()
+        venue_lower = (venue_name or '').lower().strip()
+        # Add if start_location is different from venue name
+        # This handles cases like "West Building Main Floor, Gallery 61" vs "National Gallery of Art"
+        if not venue_lower or (start_loc_lower != venue_lower and venue_lower not in start_loc_lower and start_loc_lower not in venue_lower):
+            description_parts.insert(0, f"Meeting Location: {start_location.strip()}")
+    
     if event_data.get('description'):
         description_parts.append(event_data['description'])
     
@@ -5006,8 +5074,26 @@ def generate_ical_event(event_data):
     
     enhanced_description = '\\n\\n'.join(description_parts) if description_parts else event_data.get('description', '')
     
-    # Use start_location as the calendar location if available
-    calendar_location = event_data.get('start_location') or event_data.get('location', '')
+    # Determine calendar location for Google Maps
+    # Use venue address if available (for mappable location), otherwise use venue name or start_location
+    calendar_location = ''
+    
+    # If we have a venue address, use that for the map location (most mappable)
+    venue_address = event_data.get('venue_address')
+    if venue_address:
+        calendar_location = venue_address
+    # If we have a venue name but no address, use venue name
+    elif event_data.get('venue_name'):
+        calendar_location = event_data.get('venue_name')
+        # Add city if available to make it more mappable
+        city_name = event_data.get('city_name')
+        if city_name:
+            calendar_location += f', {city_name}'
+    # Fallback to start_location if no venue info
+    elif event_data.get('start_location'):
+        calendar_location = event_data.get('start_location')
+    else:
+        calendar_location = event_data.get('location', '')
     
     # Generate timezone information for iCal
     timezone_info = generate_timezone_info(timezone_str)

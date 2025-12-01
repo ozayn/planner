@@ -3,7 +3,7 @@
     "version": "1.0",
     "created": "2025-10-04",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 49,
+    "total_sources": 50,
     "last_updated": "2025-10-08 16:05:00"
   },
   "sources": {
@@ -937,6 +937,25 @@
       "last_checked": null,
       "created_at": "2025-10-08T16:05:00.000000",
       "updated_at": "2025-10-08T16:05:00.000000"
+    },
+    "50": {
+      "name": "National Gallery of Art - Finding Awe",
+      "handle": "nga.gov/calendar/finding-awe",
+      "source_type": "website",
+      "url": "https://www.nga.gov/calendar/finding-awe",
+      "description": "National Gallery of Art's Finding Awe series: Interactive workshops exploring where artists have found awe and how it has inspired their work. 90-minute sessions to breathe deeply and look mindfully at works of art. Includes awe practices based on research by Dacher Keltner. Ages 18 and up.",
+      "city_id": 1,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"talks\", \"conversations\", \"workshops\", \"educational_events\", \"art_events\", \"cultural_events\", \"museum_events\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "weekly",
+      "notes": "Finding Awe series runs October 3, 2025 - March 14, 2026. Workshops focus on specific artworks with registration required. Three workshops offered per artwork topic. Check calendar for dates and times.",
+      "scraping_pattern": "Scrape the calendar page for Finding Awe workshops. Look for event dates, times, artwork topics, and registration links. Events are typically 90 minutes long and require registration.",
+      "last_checked": null,
+      "created_at": "2025-12-01T12:00:00.000000",
+      "updated_at": "2025-12-01T12:00:00.000000"
     }
   }
 }
