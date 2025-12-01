@@ -2898,9 +2898,19 @@ def load_all_data_to_database():
                     continue
                 
                 # Find city in database (handle "Washington" or "Washington, DC" format)
-                city = cities_by_name.get(city_name.split(',')[0].strip())
+                # Try exact match first, then try without comma
+                city = cities_by_name.get(city_name) or cities_by_name.get(city_name.split(',')[0].strip())
+                
+                # If still not found, try case-insensitive match
                 if not city:
-                    app_logger.warning(f"City not found for venue {venue_data.get('name')}: {city_name}")
+                    city_name_clean = city_name.split(',')[0].strip()
+                    for db_city_name, db_city in cities_by_name.items():
+                        if db_city_name.lower() == city_name_clean.lower():
+                            city = db_city
+                            break
+                
+                if not city:
+                    app_logger.warning(f"City not found for venue {venue_data.get('name')}: {city_name} (available cities: {list(cities_by_name.keys())[:5]})")
                     venues_skipped += 1
                     continue
                 
@@ -3003,6 +3013,7 @@ def load_all_data_to_database():
             'message': f'Successfully loaded all data',
             'cities_loaded': cities_loaded,
             'venues_loaded': venues_loaded,
+            'venues_skipped': venues_skipped,
             'sources_loaded': sources_loaded,
             'total_items': cities_loaded + venues_loaded + sources_loaded
         })
