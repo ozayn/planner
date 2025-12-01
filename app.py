@@ -4598,13 +4598,49 @@ def upload_event_image():
                 file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
             return jsonify({'error': 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, BMP, TIFF'}), 400
         
-        # Save uploaded file
+        # Save uploaded file at low quality to save space
         upload_dir = 'uploads'
         os.makedirs(upload_dir, exist_ok=True)
         
         filename = f"event_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
         file_path = os.path.join(upload_dir, filename)
-        file.save(file_path)
+        
+        # Save at low quality using PIL to reduce file size
+        try:
+            from PIL import Image
+            import io
+            
+            # Read the uploaded file
+            file.seek(0)  # Reset file pointer
+            image = Image.open(io.BytesIO(file.read()))
+            
+            # Convert to JPEG at low quality (60) for smaller file size
+            # Also resize if image is very large (max width 1200px)
+            max_width = 1200
+            if image.width > max_width:
+                ratio = max_width / image.width
+                new_height = int(image.height * ratio)
+                image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
+            
+            # Convert to RGB if necessary (for JPEG)
+            if image.mode in ('RGBA', 'LA', 'P'):
+                # Create white background for transparent images
+                rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+                if image.mode == 'P':
+                    image = image.convert('RGBA')
+                rgb_image.paste(image, mask=image.split()[-1] if image.mode in ('RGBA', 'LA') else None)
+                image = rgb_image
+            
+            # Save as JPEG at quality=60 (low quality, smaller file size)
+            file_path = os.path.splitext(file_path)[0] + '.jpg'
+            image.save(file_path, format='JPEG', quality=60, optimize=True)
+            
+            app_logger.info(f"✅ Saved image at low quality: {file_path} (size: {os.path.getsize(file_path)} bytes)")
+        except Exception as e:
+            # Fallback to direct save if PIL processing fails
+            app_logger.warning(f"⚠️ Failed to save with PIL, using direct save: {e}")
+            file.seek(0)  # Reset file pointer
+            file.save(file_path)
         
         # Get OCR engine preference from form
         ocr_engine = request.form.get('ocr_engine', 'auto')
@@ -4614,11 +4650,8 @@ def upload_event_image():
         processor = HybridEventProcessor(ocr_engine_preference=ocr_engine)
         extracted_data = processor.process_image_with_llm(file_path)
         
-        # Clean up uploaded file
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            app_logger.warning(f"Could not remove uploaded file {file_path}: {e}")
+        # Keep uploaded file at low quality (don't delete - user may want to reference it)
+        app_logger.info(f"📸 Saved low-quality screenshot: {file_path}")
         
         # Get city timezone from city_id
         city_timezone = None
