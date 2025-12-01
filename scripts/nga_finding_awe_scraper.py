@@ -57,37 +57,43 @@ def scrape_all_finding_awe_events():
         # NGA typically uses specific patterns for event listings
         event_links = []
         
-        # Look for links that contain "finding-awe" in the URL
+        # Look for links that contain "finding-awe" in the URL (but not the main series page)
         all_links = soup.find_all('a', href=True)
         for link in all_links:
             href = link.get('href', '')
-            if 'finding-awe' in href.lower() and href != FINDING_AWE_URL:
-                full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
-                event_links.append(full_url)
+            # Match finding-awe URLs but exclude the main series page
+            if 'finding-awe' in href.lower() and href != FINDING_AWE_URL and '/finding-awe/' in href.lower():
+                # Exclude the main series page URL
+                if not href.lower().endswith('/finding-awe') and not href.lower().endswith('/finding-awe/'):
+                    full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
+                    # Only add if it's a specific event page (has a title/name in the URL)
+                    if full_url != FINDING_AWE_URL and full_url not in event_links:
+                        event_links.append(full_url)
         
-        # Also look for calendar event elements
-        event_elements = soup.find_all(['article', 'div'], class_=re.compile(r'event|calendar|program', re.I))
+        # Also look for event cards/listings that might have links
+        event_cards = soup.find_all(['article', 'div', 'li'], class_=re.compile(r'event|calendar|program|listing', re.I))
+        for card in event_cards:
+            card_links = card.find_all('a', href=True)
+            for link in card_links:
+                href = link.get('href', '')
+                if 'finding-awe' in href.lower() and '/finding-awe/' in href.lower():
+                    if not href.lower().endswith('/finding-awe') and not href.lower().endswith('/finding-awe/'):
+                        full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
+                        if full_url != FINDING_AWE_URL and full_url not in event_links:
+                            event_links.append(full_url)
         
-        logger.info(f"   Found {len(event_links)} event links and {len(event_elements)} event elements")
+        logger.info(f"   Found {len(event_links)} unique Finding Awe event links")
         
         # Extract events from links
-        for event_url in set(event_links):  # Remove duplicates
+        for event_url in event_links:
             try:
+                logger.info(f"   📄 Scraping: {event_url}")
                 event_data = scrape_individual_event(event_url, scraper)
                 if event_data:
                     events.append(event_data)
+                    logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
             except Exception as e:
-                logger.warning(f"   Error scraping event from {event_url}: {e}")
-                continue
-        
-        # Also try to extract from event elements on the main page
-        for element in event_elements:
-            try:
-                event_data = extract_event_from_element(element)
-                if event_data:
-                    events.append(event_data)
-            except Exception as e:
-                logger.debug(f"   Error extracting from element: {e}")
+                logger.warning(f"   ⚠️  Error scraping event from {event_url}: {e}")
                 continue
         
         logger.info(f"✅ Scraped {len(events)} Finding Awe events")
@@ -187,10 +193,12 @@ def scrape_individual_event(event_url, scraper=None):
                 logger.debug(f"   Found description element: {description[:100]}...")
         
         # Extract date and time
+        # PRIORITY: Page text > URL parameter (page text is more accurate)
         event_date = None
         start_time = None
         end_time = None
         
+        # First, try to extract date/time from page text (most accurate)
         # Look for date patterns - handle both full and abbreviated month names
         date_patterns = [
             # Full month names: "Saturday, February 7, 2026"
@@ -260,6 +268,7 @@ def scrape_individual_event(event_url, scraper=None):
                     logger.debug(f"   ⚠️  Error parsing date: {e}")
                     continue
         
+        # Extract time from page text (always try this first - it's more accurate)
         # Extract time - handle various formats
         time_patterns = [
             # "2:15 p.m. – 4:00 p.m." or "2:15 p.m. - 4:00 p.m."
@@ -293,11 +302,39 @@ def scrape_individual_event(event_url, scraper=None):
                     
                     start_time = time(start_hour, start_min)
                     end_time = time(end_hour, end_min)
-                    logger.info(f"   ⏰ Parsed time: {start_time} - {end_time}")
+                    logger.info(f"   ⏰ Parsed time from page: {start_time} - {end_time}")
                     break
                 except (ValueError, IndexError) as e:
                     logger.debug(f"   ⚠️  Error parsing time: {e}")
                     continue
+        
+        # If we still don't have times but have a date, try to extract from URL evd parameter as fallback
+        # (in case the page parsing failed but URL has the info)
+        if event_date and (not start_time or not end_time):
+            import urllib.parse
+            parsed_url = urllib.parse.urlparse(event_url)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            if 'evd' in query_params and query_params['evd']:
+                evd_value = query_params['evd'][0]
+                if len(evd_value) >= 12:  # YYYYMMDDHHMM format
+                    try:
+                        hour = int(evd_value[8:10])
+                        minute = int(evd_value[10:12])
+                        if not start_time:
+                            start_time = time(hour, minute)
+                        if not end_time:
+                            # Default end time: 90 minutes later (standard Finding Awe duration)
+                            end_hour = hour
+                            end_minute = minute + 90
+                            if end_minute >= 60:
+                                end_hour += end_minute // 60
+                                end_minute = end_minute % 60
+                            if end_hour >= 24:
+                                end_hour = end_hour % 24
+                            end_time = time(end_hour, end_minute)
+                            logger.info(f"   ⏰ Extracted time from URL evd parameter: {start_time} - {end_time}")
+                    except (ValueError, IndexError) as e:
+                        logger.debug(f"   ⚠️  Could not parse time from evd parameter: {e}")
         
         # Detect if event is online/virtual
         is_online = False
@@ -585,15 +622,19 @@ def create_events_in_database(events):
                 end_time_obj = None
                 if event_data.get('start_time'):
                     try:
-                        start_time_obj = datetime.fromisoformat(event_data['start_time']).time()
-                    except (ValueError, TypeError):
-                        logger.debug(f"   Could not parse start_time: {event_data.get('start_time')}")
+                        # time.isoformat() returns "HH:MM:SS", so use time.fromisoformat() directly
+                        start_time_obj = time.fromisoformat(event_data['start_time'])
+                        logger.debug(f"   ✅ Parsed start_time: {start_time_obj}")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"   ⚠️  Could not parse start_time '{event_data.get('start_time')}': {e}")
                 
                 if event_data.get('end_time'):
                     try:
-                        end_time_obj = datetime.fromisoformat(event_data['end_time']).time()
-                    except (ValueError, TypeError):
-                        logger.debug(f"   Could not parse end_time: {event_data.get('end_time')}")
+                        # time.isoformat() returns "HH:MM:SS", so use time.fromisoformat() directly
+                        end_time_obj = time.fromisoformat(event_data['end_time'])
+                        logger.debug(f"   ✅ Parsed end_time: {end_time_obj}")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"   ⚠️  Could not parse end_time '{event_data.get('end_time')}': {e}")
                 
                 # Parse registration opens date/time
                 registration_opens_date_obj = None

@@ -284,12 +284,29 @@
             white-space: nowrap;
             min-width: 100px;
         }
+        
+        .data-table td.description,
+        .data-table td.additional_info {
+            min-width: 0 !important;
+        }
 
         .data-table td.description,
         .data-table td.additional_info {
-            white-space: normal;
-            max-width: 200px;
-            word-wrap: break-word;
+            white-space: nowrap !important;
+            max-width: 60px !important;
+            width: 60px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            font-size: 0.7rem;
+            padding: 8px 4px !important;
+        }
+        
+        .data-table th.description,
+        .data-table th.additional_info {
+            max-width: 60px !important;
+            width: 60px !important;
+            padding: 8px 4px !important;
+            font-size: 0.75rem;
         }
 
         /* Social Media Links */
@@ -954,6 +971,7 @@
                     <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
                     <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL (Advanced)</button>
                     <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
+                    <button onclick="exportSelectedEventsToCalendar()" class="add-button" style="background: #ff8c42;" id="bulkExportBtn" disabled>📅 Export Selected to Calendar</button>
                     
                     <!-- Quick URL Event Creator -->
                     <div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
@@ -975,6 +993,7 @@
                         <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Scrape Smithsonian</button>
                         <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Scrape Museums</button>
                         <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 Scrape All Venues</button>
+                        <button onclick="startFindingAweScraping()" class="add-button" style="background: #17a2b8;">✨ Scrape Finding Awe</button>
                         <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
                         <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
                     </div>
@@ -2807,18 +2826,21 @@
             if (tableHead) {
                 let headerRow = '';
                 
-                // Add calendar icon header for events table
+                // Add checkbox and calendar icon headers for events table
                 if (tableType === 'events') {
+                    headerRow += '<th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllEvents" onchange="toggleSelectAllEvents(this)" title="Select All"></th>';
                     headerRow += '<th>📅</th>';
                 }
                 
                 orderedFields.forEach(field => {
                     const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
                     if (config.visible !== false) {
+                        // Add class for description and additional_info columns to apply narrow styling
+                        const cellClass = (field === 'description' || field === 'additional_info') ? ` class="${field}"` : '';
                         if (config.sortable !== false) {
-                            headerRow += `<th onclick="sortTable('${tableId}', '${field}')" style="cursor: pointer; user-select: none;" title="Click to sort">${config.label} ↕</th>`;
+                            headerRow += `<th${cellClass} onclick="sortTable('${tableId}', '${field}')" style="cursor: pointer; user-select: none;" title="Click to sort">${config.label} ↕</th>`;
                         } else {
-                            headerRow += `<th>${config.label}</th>`;
+                            headerRow += `<th${cellClass}>${config.label}</th>`;
                         }
                     }
                 });
@@ -2844,8 +2866,12 @@
                 }
                 let row = `<tr id="${tableType}-row-${item.id}" ${rowClickable}>`;
                 
-                // Add calendar icon for events
+                // Add checkbox and calendar icon for events
                 if (tableType === 'events') {
+                    const checkbox = `<td style="text-align: center; padding: 8px; width: 40px;" onclick="event.stopPropagation();">
+                        <input type="checkbox" class="event-checkbox" value="${item.id}" onchange="updateBulkExportButton()" onclick="event.stopPropagation();">
+                    </td>`;
+                    row += checkbox;
                     const calendarIcon = `<td style="text-align: center; padding: 8px;" onclick="event.stopPropagation();">
                         <button onclick="addEventToCalendar(${item.id})" 
                                 style="background: none; border: none; cursor: pointer; font-size: 16px; color: #ff8c42; padding: 4px; border-radius: 4px; transition: all 0.2s ease;"
@@ -2862,7 +2888,9 @@
                     const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
                     if (config.visible !== false) {
                         const value = formatFieldValue(field, item[field], config);
-                        row += `<td>${value}</td>`;
+                        // Add class for description and additional_info columns to apply narrow styling
+                        const cellClass = (field === 'description' || field === 'additional_info') ? ` class="${field}"` : '';
+                        row += `<td${cellClass}>${value}</td>`;
                     }
                 });
                 
@@ -3963,6 +3991,13 @@
         function renderEventsTable() {
             const data = window.filteredEvents || window.allEvents || [];
             renderDynamicTable('eventsTable', data, 'events');
+            // Update bulk export button state after rendering
+            updateBulkExportButton();
+            // Reset select all checkbox
+            const selectAllCheckbox = document.getElementById('selectAllEvents');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
         }
         
         function editEvent(id) {
@@ -4398,6 +4433,243 @@
             console.log('Generated Google Calendar URL:', url);
             
             return url;
+        }
+        
+        // Multi-select and bulk export functions
+        function toggleSelectAllEvents(checkbox) {
+            const eventCheckboxes = document.querySelectorAll('.event-checkbox');
+            eventCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+            updateBulkExportButton();
+        }
+        
+        function updateBulkExportButton() {
+            const selectedCount = document.querySelectorAll('.event-checkbox:checked').length;
+            const bulkExportBtn = document.getElementById('bulkExportBtn');
+            if (bulkExportBtn) {
+                bulkExportBtn.disabled = selectedCount === 0;
+                if (selectedCount > 0) {
+                    bulkExportBtn.textContent = `📅 Export ${selectedCount} Selected to Calendar`;
+                } else {
+                    bulkExportBtn.textContent = '📅 Export Selected to Calendar';
+                }
+            }
+        }
+        
+        async function exportSelectedEventsToCalendar() {
+            const selectedCheckboxes = document.querySelectorAll('.event-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('Please select at least one event to export.');
+                return;
+            }
+            
+            const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+            const events = window.allEvents.filter(e => selectedIds.includes(e.id));
+            
+            if (events.length === 0) {
+                alert('No events found for selected IDs.');
+                return;
+            }
+            
+            // For single event, use the existing single event export
+            if (events.length === 1) {
+                addEventToCalendar(events[0].id);
+                return;
+            }
+            
+            // For multiple events, generate ICS file and open Google Calendar import page
+            const icsContent = generateICSForEvents(events);
+            
+            // Download the ICS file
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `events_${new Date().toISOString().split('T')[0]}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Open Google Calendar import page
+            setTimeout(() => {
+                window.open('https://calendar.google.com/calendar/u/0/r/settings/export', '_blank');
+                alert(`✅ Downloaded ${events.length} events as .ics file!\n\nNext steps:\n1. Go to Google Calendar (opened in new tab)\n2. Click "Import" in the left sidebar\n3. Select the downloaded .ics file\n4. Choose which calendar to import to\n5. Click "Import"`);
+            }, 500);
+        }
+        
+        function generateICSForEvents(events) {
+            // Generate ICS content for multiple events
+            let icsContent = 'BEGIN:VCALENDAR\r\n';
+            icsContent += 'VERSION:2.0\r\n';
+            icsContent += 'PRODID:-//Event Planner//EN\r\n';
+            icsContent += 'CALSCALE:GREGORIAN\r\n';
+            icsContent += 'METHOD:PUBLISH\r\n';
+            
+            events.forEach(event => {
+                icsContent += generateICSEvent(event);
+            });
+            
+            icsContent += 'END:VCALENDAR\r\n';
+            return icsContent;
+        }
+        
+        function generateICSEvent(event) {
+            // Format date/time for ICS (YYYYMMDDTHHMMSS)
+            const formatDateTime = (dateStr, timeStr) => {
+                if (!dateStr) return '';
+                const date = dateStr.replace(/-/g, '');
+                if (!timeStr) return date;
+                // Handle both HH:MM and HH:MM:SS formats
+                const timeParts = timeStr.split(':');
+                const time = (timeParts[0] || '00').padStart(2, '0') + 
+                            (timeParts[1] || '00').padStart(2, '0') + 
+                            (timeParts[2] || '00').padStart(2, '0');
+                return `${date}T${time}`;
+            };
+            
+            // Format date for ICS (YYYYMMDD)
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '';
+                return dateStr.replace(/-/g, '');
+            };
+            
+            // Get current timestamp for DTSTAMP
+            const now = new Date();
+            const dtstamp = formatDateTime(
+                now.toISOString().split('T')[0],
+                now.toTimeString().split(' ')[0].substring(0, 8)
+            );
+            
+            const startDateTime = formatDateTime(event.start_date, event.start_time);
+            const endDateTime = formatDateTime(event.end_date || event.start_date, event.end_time || event.start_time);
+            
+            // If no time, treat as all-day event
+            const isAllDay = !event.start_time;
+            
+            // Generate unique ID
+            const uid = `event-${event.id}-${Date.now()}@planner`;
+            
+            // Build description
+            const descParts = [];
+            
+            if (event.start_location && event.start_location.trim()) {
+                descParts.push(`Meeting Location: ${event.start_location.trim()}`);
+            }
+            
+            if (event.description) {
+                descParts.push(event.description);
+            }
+            
+            if (event.event_type) {
+                descParts.push(`Event Type: ${event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}`);
+            }
+            
+            if (event.url) {
+                descParts.push(`Website: ${event.url}`);
+            }
+            
+            const description = descParts.join('\\n\\n');
+            
+            // Determine location (prioritize venue address for NGA events)
+            let location = '';
+            const isNGAEvent = (event.venue_name && event.venue_name.toLowerCase().includes('national gallery')) ||
+                              (event.title && event.title.toLowerCase().includes('finding awe')) ||
+                              (event.url && event.url.toLowerCase().includes('nga.gov'));
+            
+            if (isNGAEvent) {
+                // For NGA events, use venue address
+                if (event.venue_address) {
+                    location = event.venue_address;
+                } else if (event.venue_name) {
+                    location = event.venue_name;
+                    if (event.city_name) {
+                        location += `, ${event.city_name}`;
+                    }
+                } else {
+                    location = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
+                }
+            } else {
+                // For other events, use venue address or venue name
+                if (event.venue_address) {
+                    location = event.venue_address;
+                } else if (event.venue_name) {
+                    location = event.venue_name;
+                    if (event.city_name) {
+                        location += `, ${event.city_name}`;
+                    }
+                } else if (event.start_location) {
+                    location = event.start_location;
+                }
+            }
+            
+            // Escape special characters for ICS format
+            const escapeICS = (text) => {
+                if (!text) return '';
+                return String(text)
+                    .replace(/\\/g, '\\\\')
+                    .replace(/;/g, '\\;')
+                    .replace(/,/g, '\\,')
+                    .replace(/\n/g, '\\n')
+                    .replace(/\r/g, '');
+            };
+            
+            // Build ICS event (using actual \r\n for line breaks)
+            let icsEvent = 'BEGIN:VEVENT\r\n';
+            icsEvent += `UID:${uid}\r\n`;
+            icsEvent += `DTSTAMP:${dtstamp}\r\n`;
+            
+            if (isAllDay) {
+                icsEvent += `DTSTART;VALUE=DATE:${formatDate(event.start_date)}\r\n`;
+                const endDate = event.end_date || event.start_date;
+                // For all-day events, end date should be the day after
+                const endDateObj = new Date(endDate);
+                endDateObj.setDate(endDateObj.getDate() + 1);
+                icsEvent += `DTEND;VALUE=DATE:${formatDate(endDateObj.toISOString().split('T')[0])}\r\n`;
+            } else {
+                icsEvent += `DTSTART:${startDateTime}\r\n`;
+                icsEvent += `DTEND:${endDateTime}\r\n`;
+            }
+            
+            icsEvent += `SUMMARY:${escapeICS(event.title || 'Untitled Event')}\r\n`;
+            
+            if (description) {
+                icsEvent += `DESCRIPTION:${escapeICS(description)}\r\n`;
+            }
+            
+            if (location) {
+                icsEvent += `LOCATION:${escapeICS(location)}\r\n`;
+            }
+            
+            if (event.url) {
+                icsEvent += `URL:${escapeICS(event.url)}\r\n`;
+            }
+            
+            icsEvent += 'END:VEVENT\r\n';
+            
+            return icsEvent;
+        }
+        
+        function generateCalendarUrlForEvent(event) {
+            // Prepare event data in the format expected by generateCalendarUrl
+            const eventData = {
+                title: event.title || '',
+                description: event.description || '',
+                start_date: event.start_date || '',
+                end_date: event.end_date || event.start_date || '',
+                start_time: event.start_time || '',
+                end_time: event.end_time || '',
+                start_location: event.start_location || '',
+                venue_name: event.venue_name || '',
+                venue_address: event.venue_address || '',
+                city_name: event.city_name || '',
+                url: event.url || '',
+                event_type: event.event_type || '',
+                city_timezone: event.city_timezone || 'America/New_York'
+            };
+            
+            return generateCalendarUrl(eventData);
         }
         
         function deleteEvent(id) {
@@ -6745,6 +7017,35 @@
                 }
             } catch (error) {
                 updateScrapingStatus(`❌ All venues scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startFindingAweScraping() {
+            updateScrapingStatus('🔄 Scraping Finding Awe events from NGA...', 'info');
+            try {
+                const response = await fetch('/api/admin/scrape-finding-awe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    let statusMsg = `✅ Finding Awe scraping completed! Found ${result.events_found} events`;
+                    if (result.events_saved > 0) {
+                        statusMsg += `, created ${result.events_saved} new events`;
+                    }
+                    if (result.events_skipped > 0) {
+                        statusMsg += `, ${result.events_skipped} already existed`;
+                    }
+                    updateScrapingStatus(statusMsg, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ Finding Awe scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ Finding Awe scraping error: ${error.message}`, 'error');
             }
         }
         

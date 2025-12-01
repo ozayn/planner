@@ -5433,6 +5433,55 @@ def scrape_all_venues():
             'message': 'All venues scraping failed'
         }), 500
 
+@app.route('/api/admin/scrape-finding-awe', methods=['POST'])
+def scrape_finding_awe():
+    """Scrape all Finding Awe events from NGA."""
+    try:
+        app_logger.info("Starting Finding Awe scraping...")
+        
+        # Import the Finding Awe scraper
+        from scripts.nga_finding_awe_scraper import scrape_all_finding_awe_events, create_events_in_database
+        
+        # Scrape all Finding Awe events
+        events = scrape_all_finding_awe_events()
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        # Create events in database
+        created_count = create_events_in_database(events)
+        skipped_count = len(events) - created_count
+        
+        app_logger.info(f"Finding Awe scraping completed: found {len(events)} events, created {created_count} new events, skipped {skipped_count} duplicates")
+        
+        message = f"Found {len(events)} Finding Awe events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if skipped_count > 0:
+            message += f", {skipped_count} already existed"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_skipped': skipped_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping Finding Awe events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/admin/discover-new-venues', methods=['POST'])
 def discover_new_venues():
     """Discover new venues and scrape their events."""
