@@ -240,58 +240,101 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Auto-migrate schema on startup (Railway only)
-def auto_migrate_schema():
-    """Automatically migrate Railway PostgreSQL schema to match expected schema."""
-    if os.getenv('RAILWAY_ENVIRONMENT') and os.getenv('DATABASE_URL'):
-        try:
-            import psycopg2
-            from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-            
-            # Connect to Railway PostgreSQL
-            railway_conn = psycopg2.connect(os.getenv('DATABASE_URL'))
-            railway_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-            railway_cursor = railway_conn.cursor()
-            
-            # Get Railway schema
-            railway_cursor.execute("""
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'events'
-            """)
-            railway_columns = {row[0]: row[1] for row in railway_cursor.fetchall()}
-            
-            # Define expected columns (based on current Event model)
-            expected_columns = [
-                ('social_media_platform', 'VARCHAR(50)'),
-                ('social_media_handle', 'VARCHAR(100)'),
-                ('social_media_page_name', 'VARCHAR(100)'),
-                ('social_media_posted_by', 'VARCHAR(100)'),
-                ('social_media_url', 'VARCHAR(500)'),
-                ('start_location', 'VARCHAR(200)'),
-                ('end_location', 'VARCHAR(200)')
-            ]
-            
-            # Add missing columns
-            added_count = 0
-            for col_name, pg_type in expected_columns:
-                if col_name not in railway_columns:
-                    try:
+def migrate_events_schema():
+    """Migrate Railway PostgreSQL events table schema to match expected schema.
+    Returns: (success: bool, message: str, added_columns: list)
+    """
+    # Check if we're on Railway (either by RAILWAY_ENVIRONMENT or by PostgreSQL DATABASE_URL)
+    db_url = os.getenv('DATABASE_URL', '')
+    is_railway = os.getenv('RAILWAY_ENVIRONMENT') or ('postgresql' in db_url or 'postgres' in db_url)
+    
+    if not is_railway or not db_url:
+        return False, "Not on Railway or DATABASE_URL not found", []
+    
+    try:
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        # Connect to Railway PostgreSQL
+        railway_conn = psycopg2.connect(db_url)
+        railway_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        railway_cursor = railway_conn.cursor()
+        
+        # Get Railway schema
+        railway_cursor.execute("""
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'events'
+        """)
+        railway_columns = {row[0]: row[1] for row in railway_cursor.fetchall()}
+        
+        # Define expected columns (based on current Event model)
+        # This should match all columns in the Event model definition
+        expected_columns = [
+            # Social media fields
+            ('social_media_platform', 'VARCHAR(50)'),
+            ('social_media_handle', 'VARCHAR(100)'),
+            ('social_media_page_name', 'VARCHAR(100)'),
+            ('social_media_posted_by', 'VARCHAR(100)'),
+            ('social_media_url', 'VARCHAR(500)'),
+            # Location fields
+            ('start_location', 'VARCHAR(200)'),
+            ('end_location', 'VARCHAR(200)'),
+            # Online event field
+            ('is_online', 'BOOLEAN'),
+            # Registration fields
+            ('is_registration_required', 'BOOLEAN'),
+            ('registration_opens_date', 'DATE'),
+            ('registration_opens_time', 'TIME'),
+            ('registration_url', 'VARCHAR(1000)'),
+            ('registration_info', 'TEXT')
+        ]
+        
+        # Add missing columns with appropriate defaults
+        added_columns = []
+        errors = []
+        for col_name, pg_type in expected_columns:
+            if col_name not in railway_columns:
+                try:
+                    # Add default values for BOOLEAN columns to match model defaults
+                    if col_name == 'is_online':
+                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                    elif col_name == 'is_registration_required':
+                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                    else:
                         railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type}")
-                        added_count += 1
-                        print(f"✅ Auto-migrated: {col_name}")
-                    except Exception as e:
-                        print(f"⚠️  Auto-migration failed for {col_name}: {e}")
+                    added_columns.append(col_name)
+                    print(f"✅ Auto-migrated: {col_name}")
+                except Exception as e:
+                    error_msg = f"Failed to add {col_name}: {str(e)}"
+                    errors.append(error_msg)
+                    print(f"⚠️  Auto-migration failed for {col_name}: {e}")
+        
+        railway_cursor.close()
+        railway_conn.close()
+        
+        if added_columns:
+            message = f"Successfully added {len(added_columns)} columns: {', '.join(added_columns)}"
+            if errors:
+                message += f". Errors: {'; '.join(errors)}"
+            return True, message, added_columns
+        elif errors:
+            return False, f"Migration failed: {'; '.join(errors)}", []
+        else:
+            return True, "Schema is already up to date", []
             
-            if added_count > 0:
-                print(f"🎉 Auto-migrated {added_count} columns to Railway PostgreSQL")
-            else:
-                print("✅ Railway schema is already up to date")
-            
-            railway_cursor.close()
-            railway_conn.close()
-            
-        except Exception as e:
-            print(f"⚠️  Auto-migration failed: {e}")
+    except ImportError:
+        return False, "psycopg2 not available", []
+    except Exception as e:
+        return False, f"Migration error: {str(e)}", []
+
+def auto_migrate_schema():
+    """Automatically migrate Railway PostgreSQL schema on startup."""
+    success, message, _ = migrate_events_schema()
+    if success:
+        print(f"✅ Schema migration: {message}")
+    else:
+        print(f"⚠️  Schema migration: {message}")
 
 # Run auto-migration on startup
 auto_migrate_schema()
@@ -2078,6 +2121,26 @@ def admin_venues():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/migrate-schema', methods=['POST'])
+@login_required
+def migrate_schema():
+    """Manually trigger schema migration for events table"""
+    try:
+        success, message, added_columns = migrate_events_schema()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message,
+                'added_columns': added_columns
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': message
+            }), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/events')
 def admin_events():
     """Get all events for admin"""
@@ -2096,7 +2159,30 @@ def admin_events():
         
         return jsonify(events_data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_str = str(e)
+        # If error is due to missing columns, try to migrate and retry
+        if 'does not exist' in error_str or 'UndefinedColumn' in error_str:
+            try:
+                success, message, _ = migrate_events_schema()
+                if success:
+                    # Retry the query after migration
+                    events = Event.query.all()
+                    events_data = []
+                    for event in events:
+                        event_dict = event.to_dict()
+                        event_dict.update({
+                            'venue_name': event.venue.name if event.venue else None,
+                            'city_name': event.city.name if event.city else 'Unknown',
+                            'city_timezone': event.city.timezone if event.city else 'UTC'
+                        })
+                        events_data.append(event_dict)
+                    return jsonify(events_data)
+            except Exception as migration_error:
+                return jsonify({
+                    'error': f'Query failed and migration failed: {error_str}. Migration error: {str(migration_error)}'
+                }), 500
+        
+        return jsonify({'error': error_str}), 500
 
 @app.route('/api/admin/lookup-city', methods=['POST'])
 def lookup_city():
