@@ -4620,6 +4620,66 @@ def upload_event_image():
         except Exception as e:
             app_logger.warning(f"Could not remove uploaded file {file_path}: {e}")
         
+        # Get city timezone from city_id
+        city_timezone = None
+        app_logger.info(f"🌍 Getting timezone - city_id: {extracted_data.city_id}, city: {extracted_data.city}")
+        
+        if extracted_data.city_id:
+            city = City.query.get(extracted_data.city_id)
+            if city and city.timezone:
+                city_timezone = city.timezone
+                app_logger.info(f"✅ Found timezone from city_id: {city_timezone}")
+            else:
+                app_logger.warning(f"⚠️ City not found or no timezone for city_id: {extracted_data.city_id}")
+        
+        # Fallback: if city is Washington (by name or NGA event), use America/New_York
+        if not city_timezone:
+            if extracted_data.city and 'washington' in extracted_data.city.lower():
+                city_timezone = 'America/New_York'
+                app_logger.info(f"✅ Set timezone to America/New_York for Washington (fallback)")
+            # Also check if it's an NGA event (source is website and has NGA indicators)
+            elif extracted_data.source == 'website' and extracted_data.raw_text:
+                raw_lower = extracted_data.raw_text.lower()
+                if any(indicator in raw_lower for indicator in ['nga', 'national gallery', 'finding awe']):
+                    city_timezone = 'America/New_York'
+                    app_logger.info(f"✅ Set timezone to America/New_York for NGA event (fallback)")
+        
+        if not city_timezone:
+            city_timezone = 'UTC'  # Final fallback
+            app_logger.warning(f"⚠️ No timezone found, defaulting to UTC")
+        
+        # Extract registration and online status from LLM reasoning if available
+        is_registration_required = False
+        registration_url = None
+        is_online = False
+        
+        # Try to extract from LLM reasoning JSON if it contains registration/online info
+        if extracted_data.llm_reasoning:
+            try:
+                import json
+                # Try to find JSON in the reasoning
+                json_start = extracted_data.llm_reasoning.find('{')
+                json_end = extracted_data.llm_reasoning.rfind('}') + 1
+                if json_start != -1 and json_end > 0:
+                    llm_json = json.loads(extracted_data.llm_reasoning[json_start:json_end])
+                    is_registration_required = llm_json.get('is_registration_required', False)
+                    registration_url = llm_json.get('registration_url')
+                    is_online = llm_json.get('is_online', False)
+            except:
+                pass
+        
+        # Fallback: Check raw text for indicators
+        if extracted_data.raw_text:
+            text_lower = extracted_data.raw_text.lower()
+            # Check for "Register Now" button
+            if 'register now' in text_lower:
+                is_registration_required = True
+            # Check for "Virtual" tag (and no "In-person" tag)
+            if 'virtual' in text_lower and 'in-person' not in text_lower and 'in person' not in text_lower:
+                is_online = True
+            elif 'in-person' in text_lower or 'in person' in text_lower:
+                is_online = False
+        
         return jsonify({
             'success': True,
             'extracted_data': {
@@ -4634,6 +4694,11 @@ def upload_event_image():
                 'event_type': extracted_data.event_type,
                 'city': extracted_data.city,
                 'city_id': extracted_data.city_id,
+                'venue_id': extracted_data.venue_id,
+                'city_timezone': city_timezone,
+                'is_online': is_online,
+                'is_registration_required': is_registration_required,
+                'registration_url': registration_url,
                 'confidence': extracted_data.confidence,
                 'source': extracted_data.source,
                 'raw_text': extracted_data.raw_text,
@@ -4705,6 +4770,33 @@ def create_event_from_data():
         # Use city_id from frontend (which should be auto-selected by smart detection)
         city_id = data.get('city_id')
         
+        # Auto-detect NGA venue if not provided
+        venue_id = data.get('venue_id')
+        if not venue_id:
+            # Check if this is an NGA event by title, description, or location
+            title_lower = (data.get('title') or '').lower()
+            desc_lower = (data.get('description') or '').lower()
+            loc_lower = (start_location or '').lower()
+            
+            is_nga = any([
+                'national gallery' in title_lower or 'national gallery' in desc_lower,
+                'nga' in title_lower or 'nga' in desc_lower,
+                'finding awe' in title_lower,
+                'west building' in loc_lower or 'east building' in loc_lower,
+                'constitution ave' in loc_lower
+            ])
+            
+            if is_nga and city_id:
+                # Find National Gallery of Art venue
+                nga_venue = Venue.query.filter(
+                    db.func.lower(Venue.name).like('%national gallery%'),
+                    Venue.city_id == city_id
+                ).first()
+                
+                if nga_venue:
+                    venue_id = nga_venue.id
+                    app_logger.info(f"🏛️ Auto-detected NGA venue: {nga_venue.name} (ID: {venue_id})")
+        
         event = Event(
             title=data['title'],
             description=data.get('description', ''),
@@ -4717,9 +4809,14 @@ def create_event_from_data():
             end_location=end_location,
             url=data.get('url', ''),
             city_id=city_id,
-            venue_id=data.get('venue_id'),
+            venue_id=venue_id,
             source=data.get('source'),
             source_url=data.get('source_url'),
+            # Online/virtual status
+            is_online=data.get('is_online', False),
+            # Registration fields
+            is_registration_required=data.get('is_registration_required', False),
+            registration_url=data.get('registration_url'),
             # Social media fields
             social_media_platform=data.get('social_media_platform'),
             social_media_handle=data.get('social_media_handle'),

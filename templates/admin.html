@@ -1567,6 +1567,7 @@
                                <option value="seminar">Seminar</option>
                                <option value="conference">Conference</option>
                                <option value="meeting">Meeting</option>
+                               <option value="talk">Talk</option>
                                <option value="lecture">Lecture</option>
                                <option value="presentation">Presentation</option>
                                <option value="performance">Performance</option>
@@ -1729,6 +1730,14 @@
                            <select id="manualCityId">
                                <option value="">Select City</option>
                            </select>
+                       </div>
+                       
+                       <div class="form-group">
+                           <label for="manualVenueId">Venue:</label>
+                           <select id="manualVenueId">
+                               <option value="">Select Venue (optional)</option>
+                           </select>
+                           <small>Venue will be auto-selected for NGA events</small>
                        </div>
                        
                        <div class="form-group">
@@ -2329,7 +2338,8 @@
                 'event type': {
                     'meetup': ['photowalk', 'tour', 'workshop'],
                     'gathering': ['meetup', 'party', 'reception'],
-                    'talk': ['lecture', 'presentation', 'seminar'],
+                    'talk': ['talk', 'lecture', 'presentation', 'seminar'],
+                    'talks': ['talk', 'lecture', 'presentation', 'seminar'],
                     'show': ['performance', 'concert', 'exhibition'],
                     'class': ['workshop', 'seminar', 'lecture'],
                     'demo': ['presentation', 'workshop', 'lecture'],
@@ -6110,7 +6120,49 @@
             // Populate city dropdown with a small delay to ensure modal is fully rendered
             setTimeout(() => {
                 populateCitySelect('manualCityId');
+                
+                // Add listener for city change to populate venues
+                const citySelect = document.getElementById('manualCityId');
+                if (citySelect) {
+                    citySelect.addEventListener('change', function() {
+                        const cityId = this.value;
+                        if (cityId) {
+                            populateVenuesForCity(cityId, 'manualVenueId');
+                        } else {
+                            const venueSelect = document.getElementById('manualVenueId');
+                            if (venueSelect) {
+                                venueSelect.innerHTML = '<option value="">Select Venue (optional)</option>';
+                            }
+                        }
+                    });
+                }
             }, 100);
+        }
+        
+        async function populateVenuesForCity(cityId, selectId) {
+            const venueSelect = document.getElementById(selectId);
+            if (!venueSelect) {
+                console.error(`Venue select element not found: ${selectId}`);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/venues?city_id=${cityId}`);
+                const venues = await response.json();
+                
+                venueSelect.innerHTML = '<option value="">Select Venue (optional)</option>';
+                venues.forEach(venue => {
+                    const option = document.createElement('option');
+                    option.value = venue.id;
+                    option.textContent = venue.name;
+                    venueSelect.appendChild(option);
+                });
+                
+                console.log(`✅ Populated ${venues.length} venues for city ${cityId}`);
+            } catch (error) {
+                console.error('Error loading venues:', error);
+                venueSelect.innerHTML = '<option value="">Error loading venues</option>';
+            }
         }
         
         function openCreateFromVenueModal() {
@@ -6570,6 +6622,9 @@
             }
             
             console.log('About to populate manual fields...');
+            // Store extracted data for later use (including venue_id)
+            window.extractedEventData = data;
+            console.log('💾 Stored extracted data:', data);
             // First, populate the form fields with extracted data
             populateManualFields(data);
             console.log('Manual fields populated');
@@ -6589,6 +6644,9 @@
             if (data.price) html += `<div><strong>Price:</strong> $${data.price}</div>`;
             if (data.organizer) html += `<div><strong>Organizer:</strong> ${data.organizer}</div>`;
             if (data.url) html += `<div><strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>`;
+            if (data.is_online !== undefined) html += `<div><strong>Online/Virtual:</strong> ${data.is_online ? 'Yes' : 'No'}</div>`;
+            if (data.is_registration_required !== undefined) html += `<div><strong>Registration Required:</strong> ${data.is_registration_required ? 'Yes' : 'No'}</div>`;
+            if (data.registration_url) html += `<div><strong>Registration URL:</strong> <a href="${data.registration_url}" target="_blank">${data.registration_url}</a></div>`;
             if (data.city) html += `<div><strong>City:</strong> ${data.city}</div>`;
             if (data.state) html += `<div><strong>State:</strong> ${data.state}</div>`;
             // Social media fields
@@ -6705,18 +6763,22 @@
             setFieldValue('manualEndTime', data.end_time);
             
             // Smart event type mapping to available dropdown options
+            console.log(`🔍 Event type from backend: "${data.event_type}"`);
             if (data.event_type) {
                 const eventTypeField = document.getElementById('manualEventType');
                 if (eventTypeField) {
                     const smartMatch = findBestMatch(data.event_type, eventTypeField, 'event type');
+                    console.log(`🔍 Smart match result: ${smartMatch}`);
                     if (smartMatch !== -1) {
                         eventTypeField.selectedIndex = smartMatch;
+                        console.log(`✅ Event type selected: ${eventTypeField.options[smartMatch].text} (value: ${eventTypeField.options[smartMatch].value})`);
                     } else {
-                        console.log(`No suitable event type match found for: ${data.event_type}`);
+                        console.log(`❌ No suitable event type match found for: ${data.event_type}`);
                         setFieldValue('manualEventType', 'tour'); // Default fallback
                     }
                 }
             } else {
+                console.log(`⚠️ No event_type in data, defaulting to 'tour'`);
                 setFieldValue('manualEventType', 'tour'); // Default
             }
             
@@ -6761,13 +6823,157 @@
                 setFieldValue('manualStartDate', today);
             }
             
-            // Auto-select city if extracted
-            if (data.city_id) {
-                console.log(`Auto-selecting city ID: ${data.city_id}`);
+            // Auto-select city if extracted (ensure dropdown is populated first)
+            const selectCityAfterPopulation = async (cityId, cityName) => {
                 const citySelect = document.getElementById('manualCityId');
-                if (citySelect) {
-                    citySelect.value = data.city_id;
+                if (!citySelect) {
+                    console.error('City select element not found');
+                    return;
                 }
+                
+                // Ensure dropdown is populated
+                const ensureDropdownPopulated = async () => {
+                    const options = citySelect.options;
+                    if (options.length <= 1) {
+                        console.log('City dropdown not populated yet, populating now...');
+                        await populateCitySelect('manualCityId');
+                        // Wait a bit for DOM to update
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                };
+                
+                await ensureDropdownPopulated();
+                
+                const options = citySelect.options;
+                console.log(`🔍 Attempting to select city ID ${cityId} (type: ${typeof cityId}), dropdown has ${options.length} options`);
+                
+                // Log all available city IDs for debugging
+                const availableIds = [];
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value) {
+                        availableIds.push(`${options[i].value} (${options[i].text})`);
+                    }
+                }
+                console.log(`🔍 Available city IDs in dropdown:`, availableIds);
+                
+                // Try to find and select the city by ID (compare as both string and number)
+                let found = false;
+                const cityIdStr = String(cityId);
+                const cityIdNum = Number(cityId);
+                
+                for (let i = 0; i < options.length; i++) {
+                    const optionValue = options[i].value;
+                    // Try both string and number comparison
+                    if (optionValue == cityId || optionValue == cityIdStr || optionValue == cityIdNum) {
+                        citySelect.selectedIndex = i;
+                        citySelect.dispatchEvent(new Event('change'));
+                        console.log(`✅ City selected by ID: ${options[i].text} (ID: ${cityId}, matched option value: ${optionValue})`);
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    console.log(`❌ City ID ${cityId} not found in dropdown options. Available IDs: ${availableIds.join(', ')}`);
+                    // Fall back to city name matching if available
+                    if (cityName) {
+                        console.log(`🔄 Attempting city name fallback for: ${cityName}`);
+                        const smartMatch = findBestMatch(cityName, citySelect, 'city');
+                        if (smartMatch !== -1) {
+                            citySelect.selectedIndex = smartMatch;
+                            citySelect.dispatchEvent(new Event('change'));
+                            console.log(`✅ City selected by name fallback: ${options[smartMatch].text} (ID: ${options[smartMatch].value})`);
+                        } else {
+                            console.log(`❌ Could not match city name: ${cityName}`);
+                            // Try direct text match
+                            for (let i = 0; i < options.length; i++) {
+                                if (options[i].text.toLowerCase().includes(cityName.toLowerCase())) {
+                                    citySelect.selectedIndex = i;
+                                    citySelect.dispatchEvent(new Event('change'));
+                                    console.log(`✅ City selected by direct text match: ${options[i].text}`);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            console.log(`🏙️ City data received - city_id: ${data.city_id} (type: ${typeof data.city_id}), city: ${data.city}`);
+            console.log(`🏛️ Venue data received - venue_id: ${data.venue_id} (type: ${typeof data.venue_id})`);
+            
+            // Helper function to select venue after city is ready
+            const selectVenueAfterCity = async (venueId, cityId) => {
+                const venueSelect = document.getElementById('manualVenueId');
+                if (!venueSelect) {
+                    console.error('Venue select element not found');
+                    return;
+                }
+                
+                console.log(`🏛️ Attempting to select venue ID: ${venueId} for city ID: ${cityId}`);
+                
+                // Wait for city to be selected and venues to be populated
+                const waitForVenues = async (retryCount = 0) => {
+                    if (retryCount > 15) {
+                        console.log('⚠️ Venue dropdown not populated after 15 attempts');
+                        return;
+                    }
+                    
+                    // Populate venues if we have a city_id
+                    const citySelect = document.getElementById('manualCityId');
+                    const currentCityId = citySelect ? citySelect.value : null;
+                    
+                    // Use provided cityId or current selection
+                    const targetCityId = cityId || currentCityId;
+                    
+                    if (targetCityId) {
+                        console.log(`🔄 Populating venues for city ID: ${targetCityId} (attempt ${retryCount + 1})`);
+                        await populateVenuesForCity(targetCityId, 'manualVenueId');
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                    }
+                    
+                    const options = venueSelect.options;
+                    console.log(`🔍 Venue dropdown has ${options.length} options`);
+                    
+                    if (options.length <= 1) {
+                        setTimeout(() => waitForVenues(retryCount + 1), 200);
+                        return;
+                    }
+                    
+                    // Try to select the venue
+                    const venueIdStr = String(venueId);
+                    const venueIdNum = Number(venueId);
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value == venueId || options[i].value == venueIdStr || options[i].value == venueIdNum) {
+                            venueSelect.selectedIndex = i;
+                            venueSelect.dispatchEvent(new Event('change'));
+                            console.log(`✅ Venue selected: ${options[i].text} (ID: ${venueId})`);
+                            return;
+                        }
+                    }
+                    console.log(`❌ Venue ID ${venueId} not found in dropdown. Available IDs: ${Array.from(options).map(o => o.value).join(', ')}`);
+                };
+                
+                await waitForVenues();
+            };
+            
+            // Auto-select city first (required for venue selection)
+            if (data.city_id) {
+                console.log(`🔄 Auto-selecting city ID: ${data.city_id}, city: ${data.city}`);
+                selectCityAfterPopulation(data.city_id, data.city).then(() => {
+                    console.log(`✅ City selection completed, now selecting venue...`);
+                    // After city is selected, select venue if provided
+                    if (data.venue_id) {
+                        selectVenueAfterCity(data.venue_id, data.city_id);
+                    }
+                }).catch(err => {
+                    console.error('❌ Error selecting city:', err);
+                    // Even if city selection fails, try to select venue with the city_id we have
+                    if (data.venue_id && data.city_id) {
+                        console.log(`🔄 Attempting venue selection despite city selection error...`);
+                        selectVenueAfterCity(data.venue_id, data.city_id);
+                    }
+                });
             } else if (data.city) {
                 // Smart city matching with retry logic
                 console.log(`Looking for city: ${data.city}`);
@@ -6853,6 +7059,7 @@
                 price: document.getElementById('manualPrice').value ? parseFloat(document.getElementById('manualPrice').value) : null,
                 url: document.getElementById('manualUrl').value.trim() || null,
                 city_id: document.getElementById('manualCityId').value || null,
+                venue_id: document.getElementById('manualVenueId').value || null,
                 source: document.getElementById('manualEventSource').value || null,
                 source_url: document.getElementById('manualSourceUrl').value.trim() || null,
                 // Social media fields
@@ -6861,6 +7068,11 @@
                 social_media_page_name: document.getElementById('manualSocialMediaPageName').value || null,
                 social_media_posted_by: document.getElementById('manualSocialMediaPostedBy').value || null,
                 social_media_url: document.getElementById('manualSocialMediaUrl').value || null,
+                // Online/virtual status (from extracted data or defaults)
+                is_online: window.extractedEventData?.is_online || false,
+                // Registration fields (from extracted data or defaults)
+                is_registration_required: window.extractedEventData?.is_registration_required || false,
+                registration_url: window.extractedEventData?.registration_url || null,
                 create_calendar_event: false
             };
             

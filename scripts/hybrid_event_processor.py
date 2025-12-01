@@ -49,6 +49,7 @@ class HybridEventData:
     event_type: Optional[str] = None
     city: Optional[str] = None
     city_id: Optional[int] = None
+    venue_id: Optional[int] = None
     confidence: float = 0.0
     source: str = "instagram"
     raw_text: Optional[str] = None
@@ -253,9 +254,123 @@ class HybridEventProcessor:
         
         # Step 2: Process with LLM
         try:
+            # Check if this is an NGA event BEFORE processing (for city/timezone fallback)
+            is_nga_event_detected = self._detect_nga_event(raw_text)
+            
             event_data = self._process_text_with_llm(raw_text)
             event_data.raw_text = raw_text
             logger.info("✅ LLM processing completed")
+            
+            # If NGA event detected, ALWAYS set city/city_id (override any LLM result)
+            # Also check if title/description suggests NGA even if detection didn't catch it
+            title_lower = (event_data.title or '').lower()
+            desc_lower = (event_data.description or '').lower()
+            has_nga_indicators = any([
+                'national gallery' in title_lower or 'national gallery' in desc_lower,
+                'nga' in title_lower or 'nga' in desc_lower,
+                'finding awe' in title_lower or 'finding awe' in desc_lower,
+                'george bellows' in title_lower or 'george bellows' in desc_lower  # NGA event title pattern
+            ])
+            
+            if is_nga_event_detected or has_nga_indicators:
+                logger.info(f"🏛️ NGA event detected (detection: {is_nga_event_detected}, indicators: {has_nga_indicators}) - forcing city to Washington")
+                event_data.city = self._normalize_city_name("Washington")
+                event_data.city_id = self._get_city_id("Washington")
+                logger.info(f"🏛️ Post-processing: Set city: {event_data.city}, city_id: {event_data.city_id}")
+                
+                if not event_data.city_id:
+                    logger.error(f"❌ Failed to get city_id for Washington! This is a problem.")
+                    # Try alternative lookup
+                    event_data.city_id = self._get_city_id("Washington, DC")
+                    logger.info(f"🔄 Retry with 'Washington, DC': city_id = {event_data.city_id}")
+                
+                # Also find and set venue_id for National Gallery of Art
+                if event_data.city_id:
+                    venue_id = self._get_nga_venue_id(event_data.city_id)
+                    if venue_id:
+                        event_data.venue_id = venue_id
+                        logger.info(f"🏛️ Auto-set NGA venue_id: {venue_id}")
+                    else:
+                        logger.warning(f"⚠️ Could not find NGA venue for city_id: {event_data.city_id}")
+                else:
+                    logger.warning(f"⚠️ city_id is None, cannot set venue_id")
+            
+            # For NGA events, if event_type is missing/other and we see "conversation", force it to "talk"
+            if is_nga_event_detected and (not event_data.event_type or (event_data.event_type and event_data.event_type.lower() == 'other')):
+                raw_lower = raw_text.lower()
+                if 'conversation' in raw_lower or 'conversations' in raw_lower:
+                    event_data.event_type = 'talk'
+                    logger.info("📝 Force-set event_type to 'talk' for NGA event with 'conversation'")
+            
+            # Fallback: If event_type is missing or "other", try to infer from raw text and description
+            # Also check if event_type is "other" (in case it wasn't converted earlier)
+            if (not event_data.event_type or (event_data.event_type and event_data.event_type.lower() == 'other')):
+                # Combine raw_text and description for better detection
+                search_text = ""
+                if raw_text:
+                    search_text += raw_text.lower() + " "
+                if event_data.description:
+                    search_text += event_data.description.lower() + " "
+                if event_data.title:
+                    search_text += event_data.title.lower()
+                
+                search_text = search_text.strip()
+                
+                if search_text:
+                    logger.info(f"🔍 Running fallback event_type inference. Current event_type: {event_data.event_type}, search_text length: {len(search_text)}")
+                    
+                    # Check for various patterns that indicate a "talk" event
+                    if any(pattern in search_text for pattern in [
+                        'talks & conversations',
+                        'talks and conversations',
+                        'talk & conversation',
+                        'talk and conversation',
+                        'talks & conversation',
+                        'talks and conversation'
+                    ]):
+                        event_data.event_type = 'talk'
+                        logger.info("📝 Inferred event_type: 'talk' from 'Talks & Conversations' category")
+                    elif 'tours & talks' in search_text or 'tours and talks' in search_text:
+                        event_data.event_type = 'tour'
+                        logger.info("📝 Inferred event_type: 'tour' from 'Tours & Talks' category")
+                    elif 'interactive conversation' in search_text:
+                        event_data.event_type = 'talk'
+                        logger.info("📝 Inferred event_type: 'talk' from 'interactive conversation' in text")
+                    elif 'conversation' in search_text or 'conversations' in search_text:
+                        # For NGA events or any event with "conversation", infer "talk"
+                        if any(nga_indicator in search_text for nga_indicator in ['nga', 'national gallery', 'finding awe']):
+                            event_data.event_type = 'talk'
+                            logger.info("📝 Inferred event_type: 'talk' from 'conversation' keyword in NGA context")
+                        else:
+                            # Even without NGA context, "conversation" often means "talk"
+                            event_data.event_type = 'talk'
+                            logger.info("📝 Inferred event_type: 'talk' from 'conversation' keyword")
+                    elif 'talk' in search_text and ('conversation' in search_text or 'conversations' in search_text):
+                        event_data.event_type = 'talk'
+                        logger.info("📝 Inferred event_type: 'talk' from 'talk' and 'conversation' keywords")
+                    elif any(nga_indicator in search_text for nga_indicator in ['nga', 'national gallery']):
+                        # For NGA events without clear type, default to "talk" if it's a Finding Awe event
+                        if 'finding awe' in search_text:
+                            event_data.event_type = 'talk'
+                            logger.info("📝 Inferred event_type: 'talk' from NGA Finding Awe context")
+            
+            # Final safeguard: Ensure "other" is never returned (convert to None if still present)
+            if event_data.event_type and event_data.event_type.lower() == 'other':
+                logger.warning(f"⚠️ event_type is still 'other' after fallback, converting to None")
+                event_data.event_type = None
+            
+            # Final check: If we still don't have city_id but have city name, try one more time
+            if not event_data.city_id and event_data.city:
+                logger.warning(f"⚠️ city_id is still None after all processing, attempting final lookup for: {event_data.city}")
+                event_data.city_id = self._get_city_id(event_data.city)
+                if event_data.city_id:
+                    logger.info(f"✅ Final lookup succeeded: city_id = {event_data.city_id}")
+            
+            # Log final event_type and city_id for debugging
+            logger.info(f"📋 Final event_type: {event_data.event_type}")
+            logger.info(f"🏙️ Final city: {event_data.city}, city_id: {event_data.city_id}")
+            logger.info(f"🏛️ Final venue_id: {event_data.venue_id}")
+            
             return event_data
         except Exception as e:
             logger.error(f"❌ Failed to process with LLM: {e}")
@@ -267,7 +382,24 @@ class HybridEventProcessor:
         if not self.gemini_model:
             raise Exception("Google Gemini API client not initialized")
         
-        prompt = self._create_extraction_prompt(text)
+        # Detect if this is an NGA event page or Instagram post
+        is_nga_event = self._detect_nga_event(text)
+        is_instagram = self._detect_instagram_post(text)
+        
+        # Use appropriate prompt based on detection
+        if is_nga_event:
+            logger.info("🏛️ Detected NGA event page - using specialized prompt")
+            prompt = self._create_nga_extraction_prompt(text)
+            source = "website"
+        elif is_instagram:
+            logger.info("📱 Detected Instagram post - using social media prompt")
+            prompt = self._create_extraction_prompt(text)
+            source = "instagram"
+        else:
+            # Default to social media prompt but mark as website
+            logger.info("🌐 Using default extraction prompt")
+            prompt = self._create_extraction_prompt(text)
+            source = "website"
         
         try:
             response = self.gemini_model.generate_content(
@@ -285,12 +417,148 @@ class HybridEventProcessor:
             # Parse the LLM response
             event_data = self._parse_llm_response(llm_response)
             event_data.llm_reasoning = llm_response
+            event_data.source = source
+            
+            # For NGA events, auto-set city and venue
+            if is_nga_event:
+                event_data.city = self._normalize_city_name("Washington")
+                event_data.city_id = self._get_city_id("Washington")
+                logger.info(f"🏛️ NGA event detected - Auto-set city: {event_data.city}, city_id: {event_data.city_id}")
+                # Ensure city timezone is retrieved (should be America/New_York for Washington DC)
+                if event_data.city:
+                    city_tz = self._get_city_timezone(event_data.city)
+                    if city_tz:
+                        logger.info(f"🏛️ Auto-set city to Washington for NGA event (timezone: {city_tz})")
+                    else:
+                        logger.warning(f"⚠️ Could not retrieve timezone for Washington, defaulting to America/New_York")
+                else:
+                    logger.info("🏛️ Auto-set city to Washington for NGA event")
+                
+                # If city_id is still None, try to get it again
+                if not event_data.city_id:
+                    logger.warning(f"⚠️ city_id is None after auto-set, attempting to retrieve again...")
+                    event_data.city_id = self._get_city_id(event_data.city)
+                    logger.info(f"🏛️ Retry city_id: {event_data.city_id}")
+            
+            # Note: Fallback logic for event_type inference from raw text is handled
+            # in process_image_with_llm() after raw_text is set
             
             return event_data
             
         except Exception as e:
             logger.error(f"❌ Google Gemini API error: {e}")
             raise
+    
+    def _detect_nga_event(self, text: str) -> bool:
+        """Detect if the text is from an NGA (National Gallery of Art) event page"""
+        text_lower = text.lower()
+        nga_indicators = [
+            'national gallery of art',
+            'nga.gov',
+            'finding awe',
+            'talks & conversations',
+            'tours & talks',
+            'west building',
+            'east building',
+            'gallery',
+            'constitution ave',
+            'washington, dc',
+            'register now',
+            'registration required'
+        ]
+        
+        # Check if multiple indicators are present (more reliable)
+        matches = sum(1 for indicator in nga_indicators if indicator in text_lower)
+        return matches >= 3  # Require at least 3 indicators for confidence
+    
+    def _detect_instagram_post(self, text: str) -> bool:
+        """Detect if the text is from an Instagram post"""
+        text_lower = text.lower()
+        instagram_indicators = [
+            'instagram',
+            '@',
+            '#',
+            'follow',
+            'like',
+            'share',
+            'posts',
+            'followers',
+            'following',
+            'streetmeet',
+            'photowalk'
+        ]
+        
+        # Check for Instagram-specific patterns
+        has_handle = '@' in text or 'instagram.com' in text_lower
+        has_hashtag = '#' in text
+        has_instagram_ui = any(word in text_lower for word in ['posts', 'followers', 'following', 'like', 'share'])
+        
+        return has_handle or (has_hashtag and has_instagram_ui)
+    
+    def _create_nga_extraction_prompt(self, text: str) -> str:
+        """Create a specialized prompt for NGA event pages"""
+        return f"""
+Extract event information from this National Gallery of Art (NGA) event page. This is a museum website event listing, not a social media post.
+
+TEXT TO ANALYZE:
+{text}
+
+INSTRUCTIONS:
+1. EXTRACT the event title from the main heading (e.g., "The Art of Looking: George Bellows, New York")
+2. EXTRACT date and time from the schedule line (e.g., "Friday, Dec 5, 2025 | 1:00 p.m. - 2:00 p.m.")
+3. EXTRACT the event category/type (e.g., "TALKS & CONVERSATIONS", "TOURS & TALKS")
+4. EXTRACT the description text
+5. DETECT if the event is virtual/online: If you see "Virtual" tag AND no "In-person" tag, set is_online to true. If you see "In-person" tag, set is_online to false. If neither tag is present, set is_online to false (default to in-person).
+6. DETECT registration requirement: If you see "Register Now" button, "Registration Required" text, or any registration link, set is_registration_required to true
+7. EXTRACT registration URL if present (look for links to tickets.nga.gov or registration pages)
+8. SET city to "Washington" (NGA is in Washington, DC)
+9. SET venue to "National Gallery of Art" (or detect from text)
+10. PARSE times in 12-hour format (e.g., "1:00 p.m." → "13:00:00")
+11. HANDLE date formats like "Friday, Dec 5, 2025" or "Dec 5, 2025"
+12. EXTRACT meeting location if specified (e.g., "West Building, Gallery 40")
+13. SET event_type based on category:
+    - "TALKS & CONVERSATIONS" → event_type: "talk"
+    - "TOURS & TALKS" → event_type: "tour"
+    - "TOURS" → event_type: "tour"
+    - "WORKSHOPS" → event_type: "workshop"
+    - "LECTURES" → event_type: "lecture"
+    - "EXHIBITIONS" → event_type: "exhibition"
+    - Default to "talk" if category contains "talk" or "conversation"
+
+RETURN ONLY a JSON object with this exact structure:
+{{
+    "title": "event title (REQUIRED)",
+    "description": "event description or null",
+    "start_date": "YYYY-MM-DD (REQUIRED if date found)",
+    "end_date": "YYYY-MM-DD or null (usually same as start_date)",
+    "start_time": "HH:MM:SS or null",
+    "end_time": "HH:MM:SS or null",
+    "start_location": "specific meeting location (e.g., 'West Building, Gallery 40') or null",
+    "end_location": "end location or null (usually same as start_location)",
+    "event_type": "talk|tour|exhibition|workshop|lecture|other or null",
+    "city": "Washington",
+    "venue": "National Gallery of Art",
+    "is_online": true or false,
+    "is_registration_required": true or false,
+    "registration_url": "registration URL or null",
+    "confidence": 0.0-1.0
+}}
+
+EXAMPLES:
+- "Friday, Dec 5, 2025 | 1:00 p.m. - 2:00 p.m." → start_date: "2025-12-05", start_time: "13:00:00", end_time: "14:00:00"
+- Category "TALKS & CONVERSATIONS" → event_type: "talk" (REQUIRED - always set to "talk" for this category)
+- Category "TOURS & TALKS" → event_type: "tour"
+- "Virtual" tag present AND no "In-person" tag → is_online: true
+- "In-person" tag present → is_online: false
+- No "Virtual" or "In-person" tags → is_online: false (default to in-person)
+- "Register Now" button → is_registration_required: true
+- "West Building Main Floor, Gallery 40" → start_location: "West Building Main Floor, Gallery 40"
+- "The Art of Looking: George Bellows, New York" → title: "The Art of Looking: George Bellows, New York"
+
+IMPORTANT: If you see "TALKS & CONVERSATIONS" or "Talks & Conversations" in the category/tags, you MUST set event_type to "talk". Do not leave it as null.
+
+Be precise and extract all available information. If uncertain, use null.
+"""
     
     def _create_extraction_prompt(self, text: str) -> str:
         """Create a structured prompt for event extraction with social media context"""
@@ -370,8 +638,13 @@ Be precise and logical. If uncertain, use null.
             event_data.title = data.get('title')
             event_data.description = data.get('description')
             event_data.event_type = data.get('event_type')
+            # Normalize "other" to None so fallback logic can handle it
+            if event_data.event_type and event_data.event_type.lower() == 'other':
+                event_data.event_type = None
+                logger.info("🔄 Converted 'other' event_type to None for fallback processing")
             event_data.city = self._normalize_city_name(data.get('city'))
             event_data.city_id = self._get_city_id(event_data.city)
+            logger.info(f"📊 Parsed from LLM - event_type: {event_data.event_type}, city: {event_data.city}, city_id: {event_data.city_id}")
             event_data.confidence = float(data.get('confidence', 0.0))
             
             # Dates - use city timezone if available
@@ -410,17 +683,28 @@ Be precise and logical. If uncertain, use null.
                     event_data.end_location = event_data.start_location
                     logger.info(f"📍 Extracted location from description: {event_data.start_location}")
             
-            # Social media fields
-            event_data.social_media_platform = data.get('social_media_platform')
-            event_data.social_media_handle = data.get('social_media_handle')
-            event_data.social_media_page_name = data.get('social_media_page_name')
-            event_data.social_media_posted_by = data.get('social_media_posted_by')
-            event_data.social_media_url = data.get('social_media_url')
+            # Social media fields (only for Instagram/social media posts)
+            if event_data.source == "instagram":
+                event_data.social_media_platform = data.get('social_media_platform')
+                event_data.social_media_handle = data.get('social_media_handle')
+                event_data.social_media_page_name = data.get('social_media_page_name')
+                event_data.social_media_posted_by = data.get('social_media_posted_by')
+                event_data.social_media_url = data.get('social_media_url')
+                
+                # Legacy Instagram fields for backward compatibility
+                event_data.instagram_page = data.get('instagram_page')
+                event_data.instagram_handle = data.get('instagram_handle')
+                event_data.instagram_posted_by = data.get('instagram_posted_by')
             
-            # Legacy Instagram fields for backward compatibility
-            event_data.instagram_page = data.get('instagram_page')
-            event_data.instagram_handle = data.get('instagram_handle')
-            event_data.instagram_posted_by = data.get('instagram_posted_by')
+            # NGA-specific fields
+            if data.get('venue'):
+                # Store venue name in start_location if not already set
+                if not event_data.start_location:
+                    event_data.start_location = data.get('venue')
+            
+            # Store registration information (will be passed to backend)
+            # Note: These fields aren't in HybridEventData dataclass, but will be in the JSON response
+            # We'll add them to the response dict in the backend endpoint
             
             logger.info("✅ Successfully parsed LLM response")
             return event_data
@@ -494,30 +778,53 @@ Be precise and logical. If uncertain, use null.
     def _get_city_id(self, city_name: Optional[str]) -> Optional[int]:
         """Get city ID from city name using the city lookup"""
         if not city_name:
+            logger.warning("⚠️ _get_city_id called with None/empty city_name")
             return None
         
         try:
             city_lookup = self._load_city_data()
             city_lower = city_name.lower().strip()
+            logger.info(f"🔍 Looking up city_id for: '{city_name}' (normalized: '{city_lower}')")
+            logger.info(f"🔍 City lookup has {len(city_lookup)} entries")
             
             # Try direct name lookup first
             if city_lower in city_lookup:
                 city_id = city_lookup[city_lower]['id']
-                # Adjust city ID for Railway environment
-                return self._adjust_city_id_for_environment(city_id)
+                adjusted_id = self._adjust_city_id_for_environment(city_id)
+                logger.info(f"✅ Found city_id: {city_id} (adjusted: {adjusted_id}) for '{city_lower}'")
+                return adjusted_id
             
             # Try name + state lookup for Washington DC
-            if city_lower == 'washington':
-                dc_key = 'washington,district of columbia'
-                if dc_key in city_lookup:
-                    city_id = city_lookup[dc_key]['id']
-                    return self._adjust_city_id_for_environment(city_id)
+            if city_lower == 'washington' or 'washington' in city_lower:
+                dc_keys = [
+                    'washington,district of columbia',
+                    'washington, dc',
+                    'washington,dc',
+                    'washington d.c.',
+                    'washington, d.c.'
+                ]
+                for dc_key in dc_keys:
+                    if dc_key in city_lookup:
+                        city_id = city_lookup[dc_key]['id']
+                        adjusted_id = self._adjust_city_id_for_environment(city_id)
+                        logger.info(f"✅ Found city_id: {city_id} (adjusted: {adjusted_id}) for '{dc_key}'")
+                        return adjusted_id
+                
+                # Try to find any key containing "washington"
+                for key in city_lookup.keys():
+                    if 'washington' in key.lower():
+                        city_id = city_lookup[key]['id']
+                        adjusted_id = self._adjust_city_id_for_environment(city_id)
+                        logger.info(f"✅ Found city_id: {city_id} (adjusted: {adjusted_id}) for key '{key}'")
+                        return adjusted_id
             
-            logger.warning(f"City ID not found for: {city_name}")
+            logger.warning(f"❌ City ID not found for: {city_name}. Available keys: {list(city_lookup.keys())[:10]}...")
             return None
             
         except Exception as e:
-            logger.error(f"Error getting city ID for {city_name}: {e}")
+            logger.error(f"❌ Error getting city ID for {city_name}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def _adjust_city_id_for_environment(self, local_city_id: int) -> int:
@@ -531,6 +838,32 @@ Be precise and logical. If uncertain, use null.
         else:
             # Local environment uses original IDs
             return local_city_id
+    
+    def _get_nga_venue_id(self, city_id: Optional[int]) -> Optional[int]:
+        """Get National Gallery of Art venue ID for a given city_id"""
+        if not city_id:
+            return None
+        
+        try:
+            # Import here to avoid circular dependencies
+            from app import app, db, Venue
+            
+            with app.app_context():
+                # Find National Gallery of Art venue in this city
+                nga_venue = Venue.query.filter(
+                    db.func.lower(Venue.name).like('%national gallery%'),
+                    Venue.city_id == city_id
+                ).first()
+                
+                if nga_venue:
+                    logger.info(f"🏛️ Found NGA venue: {nga_venue.name} (ID: {nga_venue.id})")
+                    return nga_venue.id
+                else:
+                    logger.warning(f"⚠️ NGA venue not found for city_id: {city_id}")
+                    return None
+        except Exception as e:
+            logger.error(f"❌ Error getting NGA venue_id: {e}")
+            return None
     
     def _get_city_timezone(self, city_name: str, state: str = None) -> Optional[str]:
         """Get timezone for a city from the city data"""
