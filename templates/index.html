@@ -3465,10 +3465,13 @@
             const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
             
             // EXTRA SAFETY: If start_location contains "Gallery" and a number (like "Gallery 61"), it's likely NGA
-            const hasGalleryWithNumber = /gallery\s+\d+/i.test(start_location);
+            const hasGalleryWithNumber = /gallery\s+\d+/i.test(startLocLower);
             const hasGalleryPattern = hasGalleryWithNumber && (hasWestOrEastBuilding || venueNameLower.includes('gallery'));
             
-            const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation || hasGalleryPattern;
+            // Also check for "Mezzanine Terrace" which is specific to NGA
+            const hasMezzanineTerrace = startLocLower.includes('mezzanine terrace') || startLocLower.includes('terrace');
+            
+            const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation || hasGalleryPattern || (hasMezzanineTerrace && hasWestOrEastBuilding);
             
             console.log('🔍 NGA Detection:', {
                 hasNGAVenueName,
@@ -3484,10 +3487,35 @@
                 start_location: event.start_location
             });
             
+            // PRIORITY 0.5: For NGA events, ALWAYS use venue name + address (from data or hardcoded)
+            // This ensures NGA events always use the main venue address, not the meeting point
             if (isNGAEvent) {
-                // Always use the known NGA address for map location
-                calendarLocation = 'Constitution Ave NW, Washington, DC 20565';
-                console.log('✅ PRIORITY 0: Using hardcoded NGA address for location:', calendarLocation);
+                const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
+                const hasVenueAddress = event.venue_address && 
+                                       (typeof event.venue_address === 'string') && 
+                                       event.venue_address.trim().length > 0;
+                
+                if (hasVenueName && hasVenueAddress) {
+                    // Combine venue name with address for better clarity
+                    calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}, USA`;
+                    console.log('✅ PRIORITY 0.5: Using venue_name + venue_address for NGA event location:', calendarLocation);
+                } else if (hasVenueAddress) {
+                    calendarLocation = event.venue_address.trim();
+                    console.log('✅ PRIORITY 0.5: Using venue_address for NGA event location:', calendarLocation);
+                } else if (hasVenueName && 
+                          (event.venue_name.toLowerCase().includes('national gallery') || 
+                           event.venue_name.toLowerCase().includes('nga'))) {
+                    // Use venue name with city as fallback for NGA
+                    calendarLocation = event.venue_name.trim();
+                    if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
+                        calendarLocation += `, ${event.city_name.trim()}`;
+                    }
+                    console.log('⚠️ PRIORITY 0.5: Using venue_name for NGA (venue_address missing):', calendarLocation);
+                } else {
+                    // Final fallback to known NGA address if venue_address is missing from event data
+                    calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
+                    console.log('⚠️ PRIORITY 0.5: Using hardcoded NGA address (venue_address missing from event data):', calendarLocation);
+                }
                 console.log('   Detected NGA event from:', {
                     isNGAEvent,
                     hasNGAVenueName,
@@ -3498,7 +3526,8 @@
                     venue_name: event.venue_name,
                     title: event.title,
                     url: event.url,
-                    start_location: event.start_location
+                    start_location: event.start_location,
+                    venue_address: event.venue_address
                 });
             }
             // PRIORITY 1: If we have a venue address, use that for the map location (most mappable)
@@ -3511,10 +3540,13 @@
                 if (hasVenueAddress) {
                     calendarLocation = event.venue_address.trim();
                     console.log('✅ PRIORITY 1: Using venue_address for location:', calendarLocation);
-                } 
-                // PRIORITY 2: If we have a venue name but no address, use venue name with city
+                }
+            }
+            // PRIORITY 2: If we have a venue name but no address, use venue name with city
+            // BUT: Never use start_location for NGA events - they should have been handled above
+            if (!calendarLocation && !isNGAEvent) {
                 // This is better than start_location for mapping
-                else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
                     calendarLocation = event.venue_name.trim();
                     // Add city if available to make it more mappable
                     if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
@@ -3525,12 +3557,20 @@
                 }
             }
             // PRIORITY 3: Only use start_location as absolute last resort if we have NO venue info at all
-            // This should rarely happen if events are properly linked to venues
-            if (!calendarLocation && event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
+            // IMPORTANT: NEVER use start_location for NGA events - they should use venue address
+            if (!calendarLocation && !isNGAEvent && event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
                 calendarLocation = event.start_location.trim();
                 console.log('❌ PRIORITY 3: Using start_location (no venue info - this should not happen!):', calendarLocation);
                 console.log('   venue_address:', event.venue_address);
                 console.log('   venue_name:', event.venue_name);
+            }
+            
+            // Final safety check: If this is an NGA event and we still don't have a location, force it
+            if (isNGAEvent && (!calendarLocation || calendarLocation === event.start_location)) {
+                calendarLocation = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0
+                    ? event.venue_address.trim()
+                    : 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
+                console.log('🔒 FINAL SAFETY: Forced NGA venue address for calendar location:', calendarLocation);
             }
             
             // Only use description extraction as absolute last resort if we have NO location at all

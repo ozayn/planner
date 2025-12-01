@@ -2149,9 +2149,9 @@ def migrate_schema():
 
 @app.route('/api/admin/events')
 def admin_events():
-    """Get all events for admin"""
+    """Get all events for admin, sorted by date added (most recent first)"""
     try:
-        events = Event.query.all()
+        events = Event.query.order_by(Event.created_at.desc()).all()
         events_data = []
         
         for event in events:
@@ -2172,7 +2172,7 @@ def admin_events():
                 success, message, _ = migrate_events_schema()
                 if success:
                     # Retry the query after migration
-                    events = Event.query.all()
+                    events = Event.query.order_by(Event.created_at.desc()).all()
                     events_data = []
                     for event in events:
                         event_dict = event.to_dict()

@@ -324,14 +324,16 @@ def create_calendar_event_from_extracted_data(extracted_data, venue_data=None, c
         
         description = '\n\n'.join(description_parts) if description_parts else None
         
-        # Build location - prioritize start_location
+        # Build location - prioritize venue address for mappable location
+        # For NGA Finding Awe events, this ensures the venue address is used instead of meeting point
         location = None
-        if extracted_data.start_location:
-            location = extracted_data.start_location
+        if venue_data and venue_data.get('address'):
+            location = venue_data['address']
         elif extracted_data.location:
             location = extracted_data.location
-        elif venue_data and venue_data.get('address'):
-            location = venue_data['address']
+        elif extracted_data.start_location:
+            # Only use start_location as fallback if no venue address available
+            location = extracted_data.start_location
         
         # Build start and end datetimes with timezone
         start_datetime = None

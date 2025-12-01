@@ -3996,6 +3996,53 @@
                     return;
                 }
                 
+                // Determine calendar location - prioritize venue address for NGA events
+                let calendarLocation = '';
+                
+                // Check if this is an NGA event
+                const venueNameLower = (event.venue_name || '').toLowerCase();
+                const titleLower = (event.title || '').toLowerCase();
+                const urlLower = (event.url || '').toLowerCase();
+                const startLocLower = (event.start_location || '').toLowerCase();
+                
+                const hasNGAVenueName = venueNameLower.includes('national gallery') || venueNameLower.includes('nga');
+                const hasNGATitle = titleLower.includes('national gallery') || titleLower.includes('finding awe');
+                const hasNGAUrl = urlLower.includes('nga.gov');
+                const hasWestOrEastBuilding = startLocLower.includes('west building') || startLocLower.includes('east building');
+                const hasGalleryOrFloor = startLocLower.includes('gallery') || startLocLower.includes('floor') || startLocLower.includes('main floor') || startLocLower.includes('mezzanine') || startLocLower.includes('terrace');
+                const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
+                const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation;
+                
+                // For NGA events, use venue name + address (not meeting point)
+                if (isNGAEvent) {
+                    if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim() && 
+                        event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0) {
+                        // Combine venue name with address for better clarity
+                        calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}, USA`;
+                    } else if (event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0) {
+                        calendarLocation = event.venue_address.trim();
+                    } else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                        calendarLocation = event.venue_name.trim();
+                        if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
+                            calendarLocation += `, ${event.city_name.trim()}`;
+                        }
+                    } else {
+                        calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
+                    }
+                } else {
+                    // For non-NGA events, use venue address if available, otherwise venue name, otherwise start_location
+                    if (event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0) {
+                        calendarLocation = event.venue_address.trim();
+                    } else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                        calendarLocation = event.venue_name.trim();
+                        if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
+                            calendarLocation += `, ${event.city_name.trim()}`;
+                        }
+                    } else {
+                        calendarLocation = event.start_location || '';
+                    }
+                }
+                
                 // Prepare calendar event data
                 const calendarData = {
                     title: event.title,
@@ -4004,12 +4051,15 @@
                     end_date: event.end_date || event.start_date,
                     start_time: event.start_time,
                     end_time: event.end_time,
-                    location: event.start_location || event.venue_name || '',
+                    location: calendarLocation,
                     event_type: event.event_type,
                     city_id: event.city_id,  // Include city_id for timezone lookup
                     // Enhanced fields for better calendar integration
                     start_location: event.start_location,
                     end_location: event.end_location,
+                    venue_address: event.venue_address,
+                    venue_name: event.venue_name,
+                    city_name: event.city_name,
                     social_media_platform: event.social_media_platform,
                     social_media_handle: event.social_media_handle,
                     social_media_page_name: event.social_media_page_name,
@@ -4262,25 +4312,56 @@
             const enhancedDescription = descriptionParts.join('\n\n');
             
             // Determine calendar location for Google Maps
-            // Use venue address if available (for mappable location), otherwise use venue name or start_location
+            // For NGA events, ALWAYS use venue address (not meeting point)
             let calendarLocation = '';
             
-            // If we have a venue address, use that for the map location (most mappable)
-            // This ensures Google Maps can find the venue's main location
-            if (eventData.venue_address && eventData.venue_address.trim()) {
-                calendarLocation = eventData.venue_address.trim();
-            } 
-            // If we have a venue name but no address, use venue name with city
-            else if (eventData.venue_name && eventData.venue_name.trim()) {
-                calendarLocation = eventData.venue_name.trim();
-                // Add city if available to make it more mappable
-                if (eventData.city_name && eventData.city_name.trim()) {
-                    calendarLocation += `, ${eventData.city_name.trim()}`;
+            // Check if this is an NGA event
+            const venueNameLower = (eventData.venue_name || '').toLowerCase();
+            const titleLower = (eventData.title || '').toLowerCase();
+            const urlLower = (eventData.url || '').toLowerCase();
+            const startLocLower = (eventData.start_location || '').toLowerCase();
+            
+            const hasNGAVenueName = venueNameLower.includes('national gallery') || venueNameLower.includes('nga');
+            const hasNGATitle = titleLower.includes('national gallery') || titleLower.includes('finding awe');
+            const hasNGAUrl = urlLower.includes('nga.gov');
+            const hasWestOrEastBuilding = startLocLower.includes('west building') || startLocLower.includes('east building');
+            const hasGalleryOrFloor = startLocLower.includes('gallery') || startLocLower.includes('floor') || startLocLower.includes('main floor') || startLocLower.includes('mezzanine') || startLocLower.includes('terrace');
+            const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
+            const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation;
+            
+            // For NGA events, use venue name + address (not meeting point)
+            if (isNGAEvent) {
+                if (eventData.venue_name && typeof eventData.venue_name === 'string' && eventData.venue_name.trim() && 
+                    eventData.venue_address && typeof eventData.venue_address === 'string' && eventData.venue_address.trim().length > 0) {
+                    // Combine venue name with address for better clarity
+                    calendarLocation = `${eventData.venue_name.trim()}, ${eventData.venue_address.trim()}, USA`;
+                } else if (eventData.venue_address && typeof eventData.venue_address === 'string' && eventData.venue_address.trim().length > 0) {
+                    calendarLocation = eventData.venue_address.trim();
+                } else if (eventData.venue_name && typeof eventData.venue_name === 'string' && eventData.venue_name.trim()) {
+                    calendarLocation = eventData.venue_name.trim();
+                    if (eventData.city_name && typeof eventData.city_name === 'string' && eventData.city_name.trim()) {
+                        calendarLocation += `, ${eventData.city_name.trim()}`;
+                    }
+                } else {
+                    calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
                 }
-            }
-            // Fallback to start_location if no venue info
-            else if (eventData.start_location && eventData.start_location.trim()) {
-                calendarLocation = eventData.start_location.trim();
+            } else {
+                // For non-NGA events, use venue address if available (for mappable location)
+                if (eventData.venue_address && eventData.venue_address.trim()) {
+                    calendarLocation = eventData.venue_address.trim();
+                } 
+                // If we have a venue name but no address, use venue name with city
+                else if (eventData.venue_name && eventData.venue_name.trim()) {
+                    calendarLocation = eventData.venue_name.trim();
+                    // Add city if available to make it more mappable
+                    if (eventData.city_name && eventData.city_name.trim()) {
+                        calendarLocation += `, ${eventData.city_name.trim()}`;
+                    }
+                }
+                // Fallback to start_location if no venue info (but NOT for NGA events)
+                else if (eventData.start_location && eventData.start_location.trim()) {
+                    calendarLocation = eventData.start_location.trim();
+                }
             }
             
             // If start_location is empty, try to extract from description

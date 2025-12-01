@@ -329,6 +329,8 @@ def scrape_individual_event(event_url, scraper=None):
             location_patterns = [
                 # Full location: "East Building Upper Level, Gallery 415-A"
                 r'(East Building|West Building)[^.\n]*(?:Upper Level|Lower Level|Main Floor|Level \d+)[^.\n]*(?:Gallery\s+\d+[-\w]*)',
+                # NGA special locations: "East Building Mezzanine Terrace"
+                r'(East Building|West Building)[^.\n]*(?:Mezzanine Terrace|Terrace|Mezzanine|Atrium|Lobby|Auditorium|Theater|Theatre)[^.\n]*',
                 # Building with gallery: "East Building, Gallery 415-A"
                 r'(East Building|West Building)[^.\n]*(?:Gallery\s+\d+[-\w]*)',
                 # Just building and level: "East Building Upper Level"
@@ -352,13 +354,20 @@ def scrape_individual_event(event_url, scraper=None):
             
             # If still no location, try to find it in HTML structure
             if not location:
-                location_elements = soup.find_all(['div', 'span', 'p'], string=re.compile(r'East Building|West Building|Gallery \d+', re.I))
+                # Look for location in list items or specific elements
+                location_elements = soup.find_all(['div', 'span', 'p', 'li'], string=re.compile(r'East Building|West Building|Gallery \d+|Mezzanine|Terrace', re.I))
                 for elem in location_elements:
                     text = elem.get_text(strip=True)
-                    if 'Building' in text or 'Gallery' in text:
-                        location = text
-                        logger.info(f"   📍 Found location in HTML: {location}")
-                        break
+                    # Check if it contains building or location keywords
+                    if any(keyword in text for keyword in ['Building', 'Gallery', 'Mezzanine', 'Terrace', 'Atrium', 'Lobby']):
+                        # Clean up the text - remove date/time patterns
+                        text = re.sub(r'\s+\d{1,2}:\d{2}\s*[ap]\.?m\.?.*$', '', text, flags=re.IGNORECASE)
+                        text = re.sub(r'\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday).*$', '', text, flags=re.IGNORECASE)
+                        text = text.split('|')[0].strip()  # Stop at pipe if present
+                        if len(text) > 5 and len(text) < 100:  # Reasonable length
+                            location = text
+                            logger.info(f"   📍 Found location in HTML: {location}")
+                            break
         
         # Extract image
         image_url = None

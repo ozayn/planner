@@ -541,6 +541,8 @@ def _extract_meeting_point(page_text):
     meeting_patterns = [
         # NGA format: "West Building Main Floor, Gallery 40" - capture full string up to pipe or newline
         r'(West Building|East Building)[^|\n]*?(?:Main Floor|Ground Floor|Floor \d+)?[^|\n]*?Gallery\s+\d+[^|\n]*',
+        # NGA format: "East Building Mezzanine Terrace" - capture building with special locations
+        r'(West Building|East Building)[^|\n]*?(?:Mezzanine Terrace|Terrace|Mezzanine|Atrium|Lobby|Auditorium|Theater|Theatre)[^|\n]*',
         # Full building and location: "West Building, Main Floor, Gallery 40"
         r'(West Building|East Building)[^|\n]*?Gallery\s+\d+[^|\n]*',
         # Standard meeting point patterns
