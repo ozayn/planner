@@ -150,3 +150,6 @@ tmp/
 *.old
 data/backups/
 backups/
+
+# Uploaded images
+uploads/
