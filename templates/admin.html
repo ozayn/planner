@@ -962,6 +962,9 @@
                     <select id="eventTypeFilter" class="filter-select">
                         <option value="">All Types</option>
                     </select>
+                    <select id="eventCityFilter" class="filter-select">
+                        <option value="">All Cities</option>
+                    </select>
                     <select id="eventVenueFilter" class="filter-select">
                         <option value="">All Venues</option>
                     </select>
@@ -4709,6 +4712,7 @@
             
             const searchTerm = document.getElementById('eventSearch').value.toLowerCase();
             const typeFilter = document.getElementById('eventTypeFilter').value;
+            const cityFilter = document.getElementById('eventCityFilter').value;
             const venueFilter = document.getElementById('eventVenueFilter').value;
             
             window.filteredEvents = window.allEvents.filter(event => {
@@ -4718,10 +4722,33 @@
                     (event.description && event.description.toLowerCase().includes(searchTerm));
                 
                 const matchesType = !typeFilter || event.event_type === typeFilter;
+                const matchesCity = !cityFilter || 
+                    (event.city_id && String(event.city_id) === cityFilter) ||
+                    (event.city_name && event.city_name.toLowerCase() === cityFilter.toLowerCase());
                 const matchesVenue = !venueFilter || event.venue_name === venueFilter;
                 
-                return matchesSearch && matchesType && matchesVenue;
+                return matchesSearch && matchesType && matchesCity && matchesVenue;
             });
+            
+            // Update filter summary
+            const summary = document.getElementById('eventFilterSummary');
+            const activeFilters = [];
+            if (searchTerm) activeFilters.push(`Search: "${searchTerm}"`);
+            if (typeFilter) activeFilters.push(`Type: ${typeFilter}`);
+            if (cityFilter) {
+                const citySelect = document.getElementById('eventCityFilter');
+                const selectedCity = citySelect.options[citySelect.selectedIndex];
+                activeFilters.push(`City: ${selectedCity.text}`);
+            }
+            if (venueFilter) activeFilters.push(`Venue: ${venueFilter}`);
+            
+            if (activeFilters.length > 0) {
+                summary.textContent = `Active filters: ${activeFilters.join(' • ')} | Showing ${window.filteredEvents.length} of ${window.allEvents.length} events`;
+                summary.classList.add('active');
+            } else {
+                summary.textContent = '';
+                summary.classList.remove('active');
+            }
             
             renderEventsTable();
         }
@@ -4729,6 +4756,7 @@
         function clearEventFilters() {
             document.getElementById('eventSearch').value = '';
             document.getElementById('eventTypeFilter').value = '';
+            document.getElementById('eventCityFilter').value = '';
             document.getElementById('eventVenueFilter').value = '';
             
             if (window.allEvents) {
@@ -4744,17 +4772,36 @@
         // Populate event filters
         function populateEventFilters() {
             const typeFilter = document.getElementById('eventTypeFilter');
+            const cityFilter = document.getElementById('eventCityFilter');
             const venueFilter = document.getElementById('eventVenueFilter');
             
-            if (!typeFilter || !venueFilter || !window.allEvents) return;
+            if (!typeFilter || !cityFilter || !venueFilter || !window.allEvents) return;
             
             const types = [...new Set(window.allEvents.map(event => event.event_type).filter(Boolean))].sort();
+            const cities = [...new Set(window.allEvents.map(event => {
+                // Use city_id if available, otherwise use city_name
+                return event.city_id ? String(event.city_id) : (event.city_name || '');
+            }).filter(Boolean))].sort();
             const venues = [...new Set(window.allEvents.map(event => event.venue_name).filter(Boolean))].sort();
             
             typeFilter.innerHTML = '<option value="">All Types</option>';
             types.forEach(type => {
                 typeFilter.innerHTML += '<option value="' + type + '">' + type + '</option>';
             });
+            
+            cityFilter.innerHTML = '<option value="">All Cities</option>';
+            // Populate cities from window.allCities if available, otherwise use city names from events
+            if (window.allCities && window.allCities.length > 0) {
+                window.allCities.forEach(city => {
+                    cityFilter.innerHTML += '<option value="' + city.id + '">' + city.name + (city.state ? ', ' + city.state : '') + '</option>';
+                });
+            } else {
+                // Fallback: use city names from events
+                const cityNames = [...new Set(window.allEvents.map(event => event.city_name).filter(Boolean))].sort();
+                cityNames.forEach(cityName => {
+                    cityFilter.innerHTML += '<option value="' + cityName + '">' + cityName + '</option>';
+                });
+            }
             
             venueFilter.innerHTML = '<option value="">All Venues</option>';
             venues.forEach(venue => {
@@ -4767,9 +4814,14 @@
             console.log('DOM loaded, calling loadOverview...');
             loadOverviewWithTimeout();
             
-            // Also load cities so they're available for venue dropdown
-            console.log('Loading cities for venue dropdown...');
-            loadCities();
+            // Also load cities so they're available for venue dropdown and event filters
+            console.log('Loading cities for venue dropdown and event filters...');
+            loadCities().then(() => {
+                // Repopulate event filters after cities are loaded
+                if (window.allEvents) {
+                    populateEventFilters();
+                }
+            });
             
             // Setup forms
             console.log('Setting up forms...');
