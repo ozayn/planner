@@ -952,8 +952,22 @@
                     <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
                     <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
                     <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
-                    <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL</button>
+                    <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL (Advanced)</button>
                     <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
+                    
+                    <!-- Quick URL Event Creator -->
+                    <div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <label style="font-weight: 600; color: #1e40af; white-space: nowrap;">🔗 Quick Add from URL:</label>
+                            <input type="url" id="quickEventUrl" placeholder="Paste event URL (e.g., nga.gov/calendar/...)" 
+                                   style="flex: 1; min-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;"
+                                   onkeypress="if(event.key === 'Enter') quickCreateEventFromUrl();">
+                            <button onclick="quickCreateEventFromUrl()" class="add-button" style="background: #3b82f6; white-space: nowrap;">
+                                ⚡ Quick Create
+                            </button>
+                        </div>
+                        <div id="quickUrlStatus" style="margin-top: 8px; font-size: 13px; color: #64748b;"></div>
+                    </div>
                     
                     <!-- Event Scraping Controls -->
                     <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
@@ -5891,6 +5905,243 @@
             html += '</div>';
             content.innerHTML = html;
             display.style.display = 'block';
+        }
+        
+        async function quickCreateEventFromUrl() {
+            const urlInput = document.getElementById('quickEventUrl');
+            const statusDiv = document.getElementById('quickUrlStatus');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                statusDiv.innerHTML = '<span style="color: #ef4444;">❌ Please enter a URL</span>';
+                return;
+            }
+            
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                statusDiv.innerHTML = '<span style="color: #ef4444;">❌ Invalid URL format</span>';
+                return;
+            }
+            
+            statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Extracting event details...</span>';
+            
+            try {
+                // Step 1: Extract event data
+                const extractResponse = await fetch('/api/admin/extract-event-from-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const extractedData = await extractResponse.json();
+                
+                if (!extractResponse.ok) {
+                    statusDiv.innerHTML = `<span style="color: #ef4444;">❌ Extraction failed: ${extractedData.error || 'Unknown error'}</span>`;
+                    return;
+                }
+                
+                if (!extractedData.title) {
+                    statusDiv.innerHTML = '<span style="color: #ef4444;">❌ Could not extract event title. Try the advanced "From URL" option.</span>';
+                    return;
+                }
+                
+                statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Creating event...</span>';
+                
+                // Step 2: Auto-detect city and venue
+                let cityId = extractedData.city_id;
+                let venueId = extractedData.venue_id;
+                
+                // If no city detected, try to detect from URL
+                if (!cityId) {
+                    // Check for NGA (National Gallery of Art) - DC
+                    if (url.includes('nga.gov') || url.toLowerCase().includes('national gallery')) {
+                        // Try to find DC city
+                        const citiesResponse = await fetch('/api/admin/cities');
+                        const cities = await citiesResponse.json();
+                        const dcCity = cities.find(c => 
+                            c.name.toLowerCase().includes('washington') || 
+                            c.name.toLowerCase().includes('dc')
+                        );
+                        if (dcCity) {
+                            cityId = dcCity.id;
+                            statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Auto-detected Washington DC...</span>';
+                            
+                            // Try to find NGA venue
+                            if (!venueId) {
+                                const venuesResponse = await fetch('/api/admin/venues');
+                                const venues = await venuesResponse.json();
+                                const ngaVenue = venues.find(v => 
+                                    v.name.toLowerCase().includes('national gallery') && 
+                                    (v.city_id == cityId || v.city_name?.toLowerCase().includes('washington'))
+                                );
+                                if (ngaVenue) {
+                                    venueId = ngaVenue.id;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If still no city, use first available city as fallback
+                if (!cityId) {
+                    const citiesResponse = await fetch('/api/admin/cities');
+                    const cities = await citiesResponse.json();
+                    if (cities.length > 0) {
+                        cityId = cities[0].id;
+                        statusDiv.innerHTML = '<span style="color: #f59e0b;">⚠️ Using default city. Please verify.</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span style="color: #ef4444;">❌ No cities found. Please add a city first.</span>';
+                        return;
+                    }
+                }
+                
+                // Step 3: Determine date and time from extracted data or URL
+                let startDate = extractedData.start_date;
+                let startTime = extractedData.start_time;
+                let endTime = extractedData.end_time;
+                
+                // Try to extract date and time from URL as fallback (e.g., evd=202601311530 = YYYYMMDDHHMM)
+                const evdMatch = url.match(/evd=(\d{12})/); // 12 digits: YYYYMMDDHHMM
+                if (evdMatch) {
+                    const timestamp = evdMatch[1];
+                    // Extract date (first 8 digits) - use if not already extracted
+                    if (!startDate) {
+                        const year = timestamp.substring(0, 4);
+                        const month = timestamp.substring(4, 6);
+                        const day = timestamp.substring(6, 8);
+                        startDate = `${year}-${month}-${day}`;
+                    }
+                    
+                    // Extract time (last 4 digits: HHMM) - use if not already extracted from page
+                    if (!startTime) {
+                        const hour = timestamp.substring(8, 10);
+                        const minute = timestamp.substring(10, 12);
+                        startTime = `${hour}:${minute}:00`;
+                    }
+                    
+                    // If no end time extracted, calculate default (add 90 minutes for typical event)
+                    if (!endTime && startTime) {
+                        // Parse start time to calculate end time
+                        const timeMatch = startTime.match(/(\d{2}):(\d{2})/);
+                        if (timeMatch) {
+                            const startHour = parseInt(timeMatch[1]);
+                            const startMin = parseInt(timeMatch[2]);
+                            const totalMinutes = startHour * 60 + startMin + 90; // Add 90 minutes
+                            const endHour = Math.floor(totalMinutes / 60) % 24;
+                            const endMin = totalMinutes % 60;
+                            endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00`;
+                        }
+                    }
+                } else if (!startDate) {
+                    // Try to extract just date (8 digits)
+                    const dateMatch = url.match(/evd=(\d{8})/);
+                    if (dateMatch) {
+                        const dateStr = dateMatch[1]; // YYYYMMDD
+                        startDate = `${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`;
+                    } else {
+                        // Use today
+                        const today = new Date();
+                        startDate = today.toISOString().split('T')[0];
+                    }
+                }
+                
+                // If we have start time but no end time, add default duration (90 minutes)
+                if (startTime && !endTime) {
+                    const timeMatch = startTime.match(/(\d{2}):(\d{2})/);
+                    if (timeMatch) {
+                        const startHour = parseInt(timeMatch[1]);
+                        const startMin = parseInt(timeMatch[2]);
+                        const totalMinutes = startHour * 60 + startMin + 90; // Add 90 minutes
+                        const endHour = Math.floor(totalMinutes / 60) % 24;
+                        const endMin = totalMinutes % 60;
+                        endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00`;
+                    }
+                }
+                
+                // Step 4: Prepare location (meeting point)
+                // The location should be the specific meeting point (e.g., "West Building Main Floor, Gallery 40")
+                // The venue is set separately (e.g., "National Gallery of Art")
+                let meetingLocation = extractedData.location || extractedData.start_location || '';
+                
+                // For NGA events, try to extract location from description if not found
+                if (!meetingLocation && url.includes('nga.gov')) {
+                    // Look for patterns like "West Building", "Gallery 40", etc. in description
+                    const desc = extractedData.description || '';
+                    const locationPatterns = [
+                        /(West Building[^.]*)/i,
+                        /(East Building[^.]*)/i,
+                        /(Gallery\s+\d+[^.]*)/i,
+                        /(Main Floor[^.]*)/i,
+                        /(West Building Main Floor, Gallery \d+)/i
+                    ];
+                    
+                    for (const pattern of locationPatterns) {
+                        const match = desc.match(pattern);
+                        if (match) {
+                            meetingLocation = match[1].trim();
+                            break;
+                        }
+                    }
+                    
+                    // Also check title for location hints
+                    if (!meetingLocation && extractedData.title) {
+                        const titleMatch = extractedData.title.match(/(West Building|East Building|Gallery \d+)/i);
+                        if (titleMatch) {
+                            meetingLocation = titleMatch[1];
+                        }
+                    }
+                }
+                
+                // Step 5: Create the event
+                // Use 'custom' time_period if we have a specific date, otherwise use 'today'
+                const timePeriod = startDate ? 'custom' : 'today';
+                
+                const createData = {
+                    url: url,
+                    venue_id: venueId || null,
+                    city_id: parseInt(cityId),
+                    time_period: timePeriod,
+                    start_date: startDate || null, // Use extracted date if available
+                    end_date: startDate || null,   // Use extracted date if available
+                    title: extractedData.title,
+                    description: extractedData.description || '',
+                    start_time: startTime || extractedData.start_time || null,
+                    end_time: endTime || extractedData.end_time || null,
+                    location: meetingLocation, // This becomes start_location in the event
+                    image_url: extractedData.image_url || null,
+                    schedule_info: extractedData.schedule_info || null
+                };
+                
+                const createResponse = await fetch('/api/admin/scrape-event-from-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(createData)
+                });
+                
+                const createResult = await createResponse.json();
+                
+                if (createResponse.ok) {
+                    const eventCount = createResult.events_created || 0;
+                    statusDiv.innerHTML = `<span style="color: #10b981;">✅ Successfully created ${eventCount} event(s)!</span>`;
+                    urlInput.value = ''; // Clear input
+                    
+                    // Refresh events table
+                    await loadEvents();
+                    
+                    // Clear status after 5 seconds
+                    setTimeout(() => {
+                        statusDiv.innerHTML = '';
+                    }, 5000);
+                } else {
+                    statusDiv.innerHTML = `<span style="color: #ef4444;">❌ Failed to create event: ${createResult.error || 'Unknown error'}</span>`;
+                }
+                
+            } catch (error) {
+                console.error('Quick create error:', error);
+                statusDiv.innerHTML = `<span style="color: #ef4444;">❌ Error: ${error.message}</span>`;
+            }
         }
         
         // Handle image upload form submission

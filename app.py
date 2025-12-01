@@ -572,17 +572,23 @@ class Event(db.Model):
                 image_url = "https://via.placeholder.com/400x300/667eea/ffffff?text=Event"
         
         # Generate Google Maps link for navigation
+        # Priority: venue coordinates/name > event coordinates > event location
+        # This ensures venue-based events use the venue for maps, not the specific meeting point
         maps_link = ""
-        if self.start_latitude and self.start_longitude:
-            maps_link = f"https://www.google.com/maps/@{self.start_latitude},{self.start_longitude},17z"
-        elif self.start_location and self.start_location.strip():
-            location_name = self.start_location.replace(' ', '+')
-            maps_link = f"https://www.google.com/maps/search/{location_name}"
-        elif self.venue and self.venue.latitude and self.venue.longitude:
+        if self.venue and self.venue.latitude and self.venue.longitude:
+            # Use venue coordinates if available (most accurate)
             maps_link = f"https://www.google.com/maps/@{self.venue.latitude},{self.venue.longitude},17z"
         elif self.venue and self.venue.name and self.venue.name.strip():
+            # Use venue name for search (e.g., "National Gallery of Art")
             venue_name = self.venue.name.replace(' ', '+')
             maps_link = f"https://www.google.com/maps/search/{venue_name}"
+        elif self.start_latitude and self.start_longitude:
+            # Fall back to event coordinates if no venue
+            maps_link = f"https://www.google.com/maps/@{self.start_latitude},{self.start_longitude},17z"
+        elif self.start_location and self.start_location.strip():
+            # Last resort: use meeting point location if no venue
+            location_name = self.start_location.replace(' ', '+')
+            maps_link = f"https://www.google.com/maps/search/{location_name}"
         else:
             maps_link = "https://www.google.com/maps"
         
