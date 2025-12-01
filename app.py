@@ -2873,57 +2873,71 @@ def load_all_data_to_database():
             venues_data = json.load(f)
         
         venues_json = venues_data.get('venues', {})
-        app_logger.info(f"📊 Found venues across {len(venues_json)} cities")
+        app_logger.info(f"📊 Found {len(venues_json)} venues in JSON")
         
         # Clear and reload venues
         Venue.query.delete()
         db.session.commit()  # Commit the delete before adding new venues
         venues_loaded = 0
-        for city_id, city_data in venues_json.items():
-            if not isinstance(city_data, dict) or 'venues' not in city_data:
-                continue
-                
-            city_name = city_data['name']
-            venues = city_data['venues']
-            
-            # Find city in database
-            city = City.query.filter_by(name=city_name.split(',')[0].strip()).first()
-            if not city:
-                app_logger.warning(f"City not found: {city_name}")
+        venues_skipped = 0
+        
+        # Create city name mapping for faster lookups
+        cities_by_name = {city.name: city for city in City.query.all()}
+        
+        for venue_id, venue_data in venues_json.items():
+            # Skip metadata entries
+            if venue_id == 'metadata' or not isinstance(venue_data, dict):
                 continue
             
-            for venue_data in venues:
-                try:
-                    venue = Venue(
-                        name=venue_data.get('name'),
-                        venue_type=venue_data.get('venue_type', 'museum'),
-                        address=venue_data.get('address', ''),
-                        latitude=venue_data.get('latitude'),
-                        longitude=venue_data.get('longitude'),
-                        image_url=venue_data.get('image_url', ''),
-                        instagram_url=venue_data.get('instagram_url', ''),
-                        facebook_url=venue_data.get('facebook_url', ''),
-                        twitter_url=venue_data.get('twitter_url', ''),
-                        youtube_url=venue_data.get('youtube_url', ''),
-                        tiktok_url=venue_data.get('tiktok_url', ''),
-                        website_url=venue_data.get('website_url', ''),
-                        description=venue_data.get('description', ''),
-                        city_id=city.id,
-                        opening_hours=venue_data.get('opening_hours', ''),
-                        holiday_hours=venue_data.get('holiday_hours', ''),
-                        phone_number=venue_data.get('phone_number', ''),
-                        email=venue_data.get('email', ''),
-                        tour_info=venue_data.get('tour_info', ''),
-                        admission_fee=venue_data.get('admission_fee', '')
-                    )
-                    db.session.add(venue)
-                    venues_loaded += 1
-                except Exception as e:
-                    app_logger.error(f"Error loading venue {venue_data.get('name')}: {e}")
+            try:
+                # Get city name from venue data
+                city_name = venue_data.get('city_name', '').strip()
+                if not city_name:
+                    app_logger.warning(f"Venue {venue_data.get('name')} has no city_name, skipping")
+                    venues_skipped += 1
                     continue
+                
+                # Find city in database (handle "Washington" or "Washington, DC" format)
+                city = cities_by_name.get(city_name.split(',')[0].strip())
+                if not city:
+                    app_logger.warning(f"City not found for venue {venue_data.get('name')}: {city_name}")
+                    venues_skipped += 1
+                    continue
+                
+                # Create venue
+                venue = Venue(
+                    name=venue_data.get('name'),
+                    venue_type=venue_data.get('venue_type', 'museum'),
+                    address=venue_data.get('address', ''),
+                    latitude=venue_data.get('latitude'),
+                    longitude=venue_data.get('longitude'),
+                    image_url=venue_data.get('image_url', ''),
+                    instagram_url=venue_data.get('instagram_url', ''),
+                    facebook_url=venue_data.get('facebook_url', ''),
+                    twitter_url=venue_data.get('twitter_url', ''),
+                    youtube_url=venue_data.get('youtube_url', ''),
+                    tiktok_url=venue_data.get('tiktok_url', ''),
+                    website_url=venue_data.get('website_url', ''),
+                    description=venue_data.get('description', ''),
+                    city_id=city.id,
+                    opening_hours=venue_data.get('opening_hours', ''),
+                    holiday_hours=venue_data.get('holiday_hours', ''),
+                    phone_number=venue_data.get('phone_number', ''),
+                    email=venue_data.get('email', ''),
+                    tour_info=venue_data.get('tour_info', ''),
+                    admission_fee=venue_data.get('admission_fee', '')
+                )
+                db.session.add(venue)
+                venues_loaded += 1
+            except Exception as e:
+                app_logger.error(f"Error loading venue {venue_data.get('name', 'Unknown')}: {e}")
+                venues_skipped += 1
+                continue
         
         db.session.commit()
         app_logger.info(f"✅ Loaded {venues_loaded} venues")
+        if venues_skipped > 0:
+            app_logger.warning(f"⚠️  Skipped {venues_skipped} venues (missing city or invalid data)")
         
         # Step 4: Load sources
         sources_file = Path("data/sources.json")
