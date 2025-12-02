@@ -1461,11 +1461,24 @@
             <div class="discovered-events">
                 <h2>📅 Discovered Events</h2>
                 <div class="time-selector">
-                    <button class="time-btn active" data-period="today">Today</button>
+                    <button class="time-btn" data-period="today">Today</button>
                     <button class="time-btn" data-period="tomorrow">Tomorrow</button>
-                    <button class="time-btn" data-period="this_week">This Week</button>
+                    <button class="time-btn active" data-period="this_week">This Week</button>
                     <button class="time-btn" data-period="next_week">Next Week</button>
                     <button class="time-btn" data-period="this_month">This Month</button>
+                    <button class="time-btn" data-period="next_month">Next Month</button>
+                    <button class="time-btn" data-period="custom">Custom Range</button>
+                </div>
+                <div id="discoveredCustomDateGroup" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="date" id="discoveredStartDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <input type="date" id="discoveredEndDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                    </div>
+                </div>
+                <div style="margin-top: 10px; margin-bottom: 10px;">
+                    <button id="exportDiscoveredEventsBtn" class="export-btn" style="width: 100%;" disabled title="Export All Discovered Events to Calendar">
+                        📅 Export All Events to Calendar
+                    </button>
                 </div>
                 <div id="discoveredEventsContainer">
                     <div class="empty-state">
@@ -1759,6 +1772,12 @@
                 
                 // Load discovered events for this city
                 await loadDiscoveredEvents();
+                
+                // Load existing events from database for this city
+                const timeRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
+                const eventType = document.getElementById('eventTypeSelectStep2')?.value || document.getElementById('eventTypeSelect')?.value || '';
+                // Load events even if eventType is empty (shows all event types)
+                await loadEvents(cityId, timeRange, eventType);
             } else {
                 // Clear current city
                 currentCity = null;
@@ -1776,6 +1795,10 @@
                 
                 // Clear discovered events display
                 updateDiscoveredEventsDisplay([]);
+                
+                // Clear existing events display
+                allEvents = [];
+                displayEvents([]);
             }
         }
 
@@ -3473,6 +3496,12 @@
             
             const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation || hasGalleryPattern || (hasMezzanineTerrace && hasWestOrEastBuilding);
             
+            // Detect Webster's Bookstore Cafe events
+            const hasWebstersVenueName = venueNameLower.includes("webster's") || venueNameLower.includes('websters');
+            const hasWebstersTitle = titleLower.includes("webster's") || titleLower.includes('websters');
+            const hasWebstersUrl = urlLower.includes('webstersbooksandcafe.com');
+            const isWebstersEvent = hasWebstersVenueName || hasWebstersTitle || hasWebstersUrl;
+            
             console.log('🔍 NGA Detection:', {
                 hasNGAVenueName,
                 hasNGATitle,
@@ -3487,7 +3516,17 @@
                 start_location: event.start_location
             });
             
-            // PRIORITY 0.5: For NGA events, ALWAYS use venue name + address (from data or hardcoded)
+            console.log('🔍 Webster\'s Detection:', {
+                hasWebstersVenueName,
+                hasWebstersTitle,
+                hasWebstersUrl,
+                isWebstersEvent,
+                venue_name: event.venue_name,
+                title: event.title,
+                url: event.url
+            });
+            
+            // PRIORITY 0.5: For NGA events, use venue name + address format (same as general format)
             // This ensures NGA events always use the main venue address, not the meeting point
             if (isNGAEvent) {
                 const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
@@ -3496,8 +3535,8 @@
                                        event.venue_address.trim().length > 0;
                 
                 if (hasVenueName && hasVenueAddress) {
-                    // Combine venue name with address for better clarity
-                    calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}, USA`;
+                    // Use format: "venue name, address" (same as general format)
+                    calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
                     console.log('✅ PRIORITY 0.5: Using venue_name + venue_address for NGA event location:', calendarLocation);
                 } else if (hasVenueAddress) {
                     calendarLocation = event.venue_address.trim();
@@ -3505,16 +3544,13 @@
                 } else if (hasVenueName && 
                           (event.venue_name.toLowerCase().includes('national gallery') || 
                            event.venue_name.toLowerCase().includes('nga'))) {
-                    // Use venue name with city as fallback for NGA
-                    calendarLocation = event.venue_name.trim();
-                    if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
-                        calendarLocation += `, ${event.city_name.trim()}`;
-                    }
-                    console.log('⚠️ PRIORITY 0.5: Using venue_name for NGA (venue_address missing):', calendarLocation);
+                    // Use venue name with hardcoded address as fallback
+                    calendarLocation = `${event.venue_name.trim()}, Constitution Ave. NW, Washington, DC 20565, USA`;
+                    console.log('⚠️ PRIORITY 0.5: Using venue_name + hardcoded address for NGA (venue_address missing):', calendarLocation);
                 } else {
-                    // Final fallback to known NGA address if venue_address is missing from event data
+                    // Final fallback to known NGA name + address if both are missing from event data
                     calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
-                    console.log('⚠️ PRIORITY 0.5: Using hardcoded NGA address (venue_address missing from event data):', calendarLocation);
+                    console.log('⚠️ PRIORITY 0.5: Using hardcoded NGA name + address (venue data missing from event):', calendarLocation);
                 }
                 console.log('   Detected NGA event from:', {
                     isNGAEvent,
@@ -3530,21 +3566,30 @@
                     venue_address: event.venue_address
                 });
             }
-            // PRIORITY 1: If we have a venue address, use that for the map location (most mappable)
-            // This ensures Google Maps can find the venue's main location
+            // PRIORITY 0.6: For Webster's Cafe events, ALWAYS use the hardcoded address
+            else if (isWebstersEvent) {
+                calendarLocation = "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA";
+                console.log('✅ PRIORITY 0.6: Using hardcoded Webster\'s Cafe address:', calendarLocation);
+            }
+            // PRIORITY 1: If we have both venue name and address, use "venue name, address" format
+            // This is the preferred format for Google Maps
             else {
+                const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
                 const hasVenueAddress = event.venue_address && 
                                        (typeof event.venue_address === 'string') && 
                                        event.venue_address.trim().length > 0;
                 
-                if (hasVenueAddress) {
+                if (hasVenueName && hasVenueAddress) {
+                    calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
+                    console.log('✅ PRIORITY 1: Using venue_name + venue_address for location:', calendarLocation);
+                } else if (hasVenueAddress) {
                     calendarLocation = event.venue_address.trim();
-                    console.log('✅ PRIORITY 1: Using venue_address for location:', calendarLocation);
+                    console.log('✅ PRIORITY 1: Using venue_address for location (no venue name):', calendarLocation);
                 }
             }
             // PRIORITY 2: If we have a venue name but no address, use venue name with city
-            // BUT: Never use start_location for NGA events - they should have been handled above
-            if (!calendarLocation && !isNGAEvent) {
+            // BUT: Never use start_location for NGA or Webster's events - they should have been handled above
+            if (!calendarLocation && !isNGAEvent && !isWebstersEvent) {
                 // This is better than start_location for mapping
                 if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
                     calendarLocation = event.venue_name.trim();
@@ -3557,8 +3602,8 @@
                 }
             }
             // PRIORITY 3: Only use start_location as absolute last resort if we have NO venue info at all
-            // IMPORTANT: NEVER use start_location for NGA events - they should use venue address
-            if (!calendarLocation && !isNGAEvent && event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
+            // IMPORTANT: NEVER use start_location for NGA or Webster's events - they should use venue address
+            if (!calendarLocation && !isNGAEvent && !isWebstersEvent && event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
                 calendarLocation = event.start_location.trim();
                 console.log('❌ PRIORITY 3: Using start_location (no venue info - this should not happen!):', calendarLocation);
                 console.log('   venue_address:', event.venue_address);
@@ -3662,9 +3707,18 @@
             const url = URL.createObjectURL(blob);
             
             // Generate descriptive filename based on filters
-            const dateRange = document.getElementById('dateRangeSelect').value;
-            const eventType = eventTypeSelectStep2.value || eventTypeSelect.value || 'all';
-            const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+            let dateRange, eventType, cityName;
+            
+            if (type === 'discovered') {
+                // For discovered events, use the current time period
+                dateRange = currentTimePeriod || 'this_week';
+                eventType = 'all'; // Discovered events don't filter by type
+                cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+            } else {
+                dateRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
+                eventType = eventTypeSelectStep2?.value || eventTypeSelect?.value || 'all';
+                cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+            }
             
             // Abbreviate names for shorter filenames
             const getCityAbbr = (city) => {
@@ -3803,12 +3857,16 @@
         }
 
         // Discovered Events functionality
-        let currentTimePeriod = 'today';
+        let currentTimePeriod = 'this_week';
         let discoveredEvents = [];
 
         // Initialize time selector
         function initializeTimeSelector() {
             const timeButtons = document.querySelectorAll('.time-btn');
+            const customDateGroup = document.getElementById('discoveredCustomDateGroup');
+            const discoveredStartDate = document.getElementById('discoveredStartDate');
+            const discoveredEndDate = document.getElementById('discoveredEndDate');
+            
             timeButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     // Remove active class from all buttons
@@ -3817,10 +3875,40 @@
                     btn.classList.add('active');
                     // Update current time period
                     currentTimePeriod = btn.dataset.period;
+                    
+                    // Show/hide custom date inputs
+                    if (currentTimePeriod === 'custom') {
+                        customDateGroup.style.display = 'block';
+                        // Set default dates (today to next week) if not already set
+                        if (!discoveredStartDate.value) {
+                            const today = new Date();
+                            const nextWeek = new Date(today);
+                            nextWeek.setDate(today.getDate() + 7);
+                            discoveredStartDate.value = today.toISOString().split('T')[0];
+                            discoveredEndDate.value = nextWeek.toISOString().split('T')[0];
+                        }
+                    } else {
+                        customDateGroup.style.display = 'none';
+                    }
+                    
                     // Load discovered events for this period
                     loadDiscoveredEvents();
                 });
             });
+            
+            // Add change listeners to date inputs
+            if (discoveredStartDate && discoveredEndDate) {
+                discoveredStartDate.addEventListener('change', () => {
+                    if (currentTimePeriod === 'custom') {
+                        loadDiscoveredEvents();
+                    }
+                });
+                discoveredEndDate.addEventListener('change', () => {
+                    if (currentTimePeriod === 'custom') {
+                        loadDiscoveredEvents();
+                    }
+                });
+            }
         }
 
         // Load discovered events for the selected time period
@@ -3832,7 +3920,27 @@
             }
 
             try {
-                const response = await fetch(`/api/events?city_id=${cityId}&time_range=${currentTimePeriod}`);
+                const params = new URLSearchParams({
+                    city_id: cityId,
+                    time_range: currentTimePeriod,
+                    _t: Date.now() // Cache busting
+                });
+                
+                // Add custom dates if custom range is selected
+                if (currentTimePeriod === 'custom') {
+                    const customStartDate = document.getElementById('discoveredStartDate')?.value;
+                    const customEndDate = document.getElementById('discoveredEndDate')?.value;
+                    
+                    if (customStartDate && customEndDate) {
+                        params.append('custom_start_date', customStartDate);
+                        params.append('custom_end_date', customEndDate);
+                    } else {
+                        // Don't load if dates aren't set yet
+                        return;
+                    }
+                }
+                
+                const response = await fetch(`/api/events?${params}`);
                 const events = await response.json();
                 
                 discoveredEvents = events;
@@ -3843,9 +3951,31 @@
             }
         }
 
+        // Export all discovered events to calendar
+        function exportDiscoveredEvents() {
+            if (discoveredEvents.length === 0) {
+                showNotification('No events to export', 'error');
+                return;
+            }
+            
+            // Use the existing exportToCalendar function
+            exportToCalendar(discoveredEvents, 'discovered');
+        }
+        
         // Update the discovered events display
         function updateDiscoveredEventsDisplay(events) {
             const container = document.getElementById('discoveredEventsContainer');
+            const exportBtn = document.getElementById('exportDiscoveredEventsBtn');
+            
+            // Update export button state
+            if (exportBtn) {
+                exportBtn.disabled = events.length === 0;
+                if (events.length > 0) {
+                    exportBtn.textContent = `📅 Export All ${events.length} Events to Calendar`;
+                } else {
+                    exportBtn.textContent = '📅 Export All Events to Calendar';
+                }
+            }
             
             if (events.length === 0) {
                 const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'selected city';
@@ -4125,6 +4255,12 @@
         // Initialize time selector when page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeTimeSelector();
+            
+            // Add export button listener
+            const exportDiscoveredBtn = document.getElementById('exportDiscoveredEventsBtn');
+            if (exportDiscoveredBtn) {
+                exportDiscoveredBtn.addEventListener('click', exportDiscoveredEvents);
+            }
             
             // Load discovered events if a city is already selected
             if (citySelect.value) {

@@ -1008,7 +1008,7 @@ def get_sources():
 def get_events():
     """Get events for a specific city and time range"""
     city_id = request.args.get('city_id')
-    time_range = request.args.get('time_range', 'today')
+    time_range = request.args.get('time_range', 'this_week')
     event_type = request.args.get('event_type')
     
     if not city_id:
@@ -1062,29 +1062,41 @@ def get_events():
     city_venues = Venue.query.filter_by(city_id=city_id).all()
     venue_ids = [v.id for v in city_venues]
     
+    # Import for OR condition
+    from sqlalchemy import or_
+    
     if not event_type or event_type == 'tour':
+        tour_filter = Event.event_type == 'tour'
+        if venue_ids:
+            tour_filter = tour_filter & or_(Event.city_id == city_id, Event.venue_id.in_(venue_ids))
+        else:
+            tour_filter = tour_filter & (Event.city_id == city_id)
+        
         tour_events = Event.query.filter(
-            Event.event_type == 'tour',
-            Event.venue_id.in_(venue_ids),
+            tour_filter,
             Event.start_date >= start_date,
             Event.start_date <= end_date
         ).all()
         events.extend([event.to_dict() for event in tour_events])
     
     if not event_type or event_type == 'exhibition':
+        exhibition_filter = Event.event_type == 'exhibition'
+        if venue_ids:
+            exhibition_filter = exhibition_filter & or_(Event.city_id == city_id, Event.venue_id.in_(venue_ids))
+        else:
+            exhibition_filter = exhibition_filter & (Event.city_id == city_id)
+        
         if time_range == 'today':
             # For today, only show exhibitions that are currently running
             exhibition_events = Event.query.filter(
-                Event.event_type == 'exhibition',
-                Event.venue_id.in_(venue_ids),
+                exhibition_filter,
                 Event.start_date <= start_date,
                 Event.end_date >= start_date
             ).all()
         else:
             # For other time ranges, show exhibitions that overlap with the range
             exhibition_events = Event.query.filter(
-                Event.event_type == 'exhibition',
-                Event.venue_id.in_(venue_ids),
+                exhibition_filter,
                 Event.start_date <= end_date,
                 Event.end_date >= start_date
             ).all()
@@ -1107,6 +1119,32 @@ def get_events():
             Event.start_date <= end_date
         ).all()
         events.extend([event.to_dict() for event in photowalk_events])
+    
+    # Handle other event types (talk, music, food, workshop, community_event, etc.)
+    # These should be included when event_type is empty or matches
+    if not event_type or event_type not in ['tour', 'exhibition', 'festival', 'photowalk']:
+        if venue_ids:
+            other_filter = or_(Event.city_id == city_id, Event.venue_id.in_(venue_ids))
+        else:
+            other_filter = Event.city_id == city_id
+        
+        other_events = Event.query.filter(
+            other_filter,
+            Event.start_date >= start_date,
+            Event.start_date <= end_date
+        )
+        
+        # If a specific event_type was provided, filter by it
+        if event_type:
+            other_events = other_events.filter(Event.event_type == event_type)
+        else:
+            # Exclude the types we already handled above
+            other_events = other_events.filter(
+                ~Event.event_type.in_(['tour', 'exhibition', 'festival', 'photowalk'])
+            )
+        
+        other_events = other_events.all()
+        events.extend([event.to_dict() for event in other_events])
     
     return jsonify(events)
 
@@ -1478,7 +1516,7 @@ def trigger_scraping():
         data = request.get_json() or {}
         city_id = data.get('city_id')
         event_type = data.get('event_type', '')
-        time_range = data.get('time_range', 'today')
+        time_range = data.get('time_range', 'this_week')
         venue_ids = data.get('venue_ids', [])
         source_ids = data.get('source_ids', [])
         custom_start_date = data.get('custom_start_date')

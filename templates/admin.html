@@ -4063,27 +4063,44 @@
                 const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
                 const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation;
                 
-                // For NGA events, use venue name + address (not meeting point)
+                // Detect Webster's Bookstore Cafe events
+                const hasWebstersVenueName = venueNameLower.includes("webster's") || venueNameLower.includes('websters');
+                const hasWebstersTitle = titleLower.includes("webster's") || titleLower.includes('websters');
+                const hasWebstersUrl = urlLower.includes('webstersbooksandcafe.com');
+                const isWebstersEvent = hasWebstersVenueName || hasWebstersTitle || hasWebstersUrl;
+                
+                // For NGA events, use venue name + address format (same as general format)
                 if (isNGAEvent) {
-                    if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim() && 
-                        event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0) {
-                        // Combine venue name with address for better clarity
-                        calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}, USA`;
-                    } else if (event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0) {
+                    const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
+                    const hasVenueAddress = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0;
+                    
+                    if (hasVenueName && hasVenueAddress) {
+                        // Use format: "venue name, address" (same as general format)
+                        calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
+                    } else if (hasVenueAddress) {
                         calendarLocation = event.venue_address.trim();
-                    } else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
-                        calendarLocation = event.venue_name.trim();
-                        if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
-                            calendarLocation += `, ${event.city_name.trim()}`;
-                        }
+                    } else if (hasVenueName && 
+                              (event.venue_name.toLowerCase().includes('national gallery') || 
+                               event.venue_name.toLowerCase().includes('nga'))) {
+                        // Use venue name with hardcoded address as fallback
+                        calendarLocation = `${event.venue_name.trim()}, Constitution Ave. NW, Washington, DC 20565, USA`;
                     } else {
+                        // Final fallback to known NGA name + address
                         calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
                     }
+                } else if (isWebstersEvent) {
+                    // For Webster's Cafe events, use the hardcoded address
+                    calendarLocation = "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA";
                 } else {
-                    // For non-NGA events, use venue address if available, otherwise venue name, otherwise start_location
-                    if (event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0) {
+                    // For all other events, use "venue name, address" format if both are available
+                    const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
+                    const hasVenueAddress = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0;
+                    
+                    if (hasVenueName && hasVenueAddress) {
+                        calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
+                    } else if (hasVenueAddress) {
                         calendarLocation = event.venue_address.trim();
-                    } else if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
+                    } else if (hasVenueName) {
                         calendarLocation = event.venue_name.trim();
                         if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
                             calendarLocation += `, ${event.city_name.trim()}`;
