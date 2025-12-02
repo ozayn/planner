@@ -2964,8 +2964,22 @@
         }
 
         // Check if venue is free
-        function isVenueFree(venue) {
-            if (!venue.admission_fee) return true;
+        function isVenueFree(venue, event = null) {
+            // First check event's admission_price if provided (for exhibitions)
+            if (event && event.admission_price !== null && event.admission_price !== undefined) {
+                return event.admission_price === 0;
+            }
+            
+            // Then check event's price field (for tours)
+            if (event && event.price !== null && event.price !== undefined) {
+                return event.price === 0;
+            }
+            
+            // Fall back to venue's admission_fee
+            if (!venue.admission_fee) {
+                // Default to free if no admission_fee is set (original behavior)
+                return true;
+            }
             
             const fee = venue.admission_fee.toLowerCase();
             
@@ -3267,23 +3281,34 @@
                     </a>
                     
                     <div class="event-details">
+                        ${event.event_type === 'exhibition' && event.end_date ? `
+                        <div class="event-detail">
+                            <span class="event-detail-label">Dates:</span>
+                            <span class="event-detail-value">${formatDateRange(event.start_date, event.end_date)}</span>
+                        </div>
+                        ` : `
                         <div class="event-detail">
                             <span class="event-detail-label">Date:</span>
                             <span class="event-detail-value">${formatDate(event.start_date)}</span>
                         </div>
+                        ${event.event_type !== 'exhibition' ? `
                         <div class="event-detail">
                             <span class="event-detail-label">Time:</span>
                             <span class="event-detail-value">${event.start_time || 'TBD'}</span>
                         </div>
+                        ` : ''}
+                        `}
                         <div class="event-detail">
                             <span class="event-detail-label">Type:</span>
                             <span class="event-detail-value">${event.event_type || 'Event'}</span>
                         </div>
-                        ${event.price ? `
-                        <div class="event-detail">
+                        ${(event.price || event.admission_price !== null && event.admission_price !== undefined) ? `
+                            <div class="event-detail">
                             <span class="event-detail-label">Price:</span>
-                            <span class="event-detail-value">$${event.price}</span>
-                        </div>
+                            <span class="event-detail-value">${event.admission_price !== null && event.admission_price !== undefined ? 
+                                (event.admission_price === 0 ? 'Free' : `$${event.admission_price}`) : 
+                                (event.price === 0 ? 'Free' : `$${event.price}`)}</span>
+                            </div>
                         ` : ''}
                     </div>
                     
@@ -3944,6 +3969,30 @@
                 day: 'numeric',
                 timeZone: 'UTC' // Force UTC to avoid timezone conversion
             });
+        }
+        
+        // Format date range for exhibitions (more compact)
+        function formatDateRange(startDateString, endDateString) {
+            const [startYear, startMonth, startDay] = startDateString.split('-').map(Number);
+            const [endYear, endMonth, endDay] = endDateString.split('-').map(Number);
+            const startDate = new Date(startYear, startMonth - 1, startDay);
+            const endDate = new Date(endYear, endMonth - 1, endDay);
+            
+            const startFormatted = startDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: startYear !== endYear ? 'numeric' : undefined,
+                timeZone: 'UTC'
+            });
+            
+            const endFormatted = endDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                timeZone: 'UTC'
+            });
+            
+            return `${startFormatted} - ${endFormatted}`;
         }
 
         // Discovered Events functionality
