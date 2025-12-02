@@ -3377,6 +3377,20 @@
             // Parse date correctly to avoid timezone issues
             const [year, month, day] = event.start_date.split('-').map(Number);
             const startDate = new Date(year, month - 1, day); // month is 0-indexed
+            
+            // For exhibitions, use date range (all-day events)
+            if (event.event_type === 'exhibition' && event.end_date) {
+                const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
+                const endDate = new Date(endYear, endMonth - 1, endDay);
+                // For all-day events, Google Calendar uses exclusive end date (day after)
+                endDate.setDate(endDate.getDate() + 1);
+                const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate, true);
+                window.open(googleCalendarUrl, '_blank');
+                showNotification('Opening Google Calendar...', 'info');
+                return;
+            }
+            
+            // For other events, use time if available
             if (event.start_time) {
                 const [hours, minutes] = event.start_time.split(':');
                 startDate.setHours(parseInt(hours), parseInt(minutes));
@@ -3390,19 +3404,52 @@
                 endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
             }
 
-            const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate);
+            const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate, false);
             window.open(googleCalendarUrl, '_blank');
             
             showNotification('Opening Google Calendar...', 'info');
         }
 
         // Generate Google Calendar URL
-        // Version: 2.0 - Updated to use venue_address for location
-        function generateGoogleCalendarUrl(event, startDate, endDate) {
-            console.log('🔧 generateGoogleCalendarUrl called (v2.6 - Enhanced NGA detection)');
-            // Format dates for Google Calendar (YYYYMMDD format)
-            const formatDateForGoogle = (date) => {
-                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        // Version: 2.7 - Support for all-day exhibition events with date ranges
+        function generateGoogleCalendarUrl(event, startDate, endDate, isAllDay = false) {
+            console.log('🔧 generateGoogleCalendarUrl called (v2.7 - Exhibition all-day support)');
+            
+            // Format dates for Google Calendar all-day events (YYYYMMDD format, no time)
+            const formatDateOnlyForGoogle = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}${month}${day}`;
+            };
+            
+            // Format dates with time for Google Calendar in the event's timezone
+            // For Google Calendar, we need to format the time in the local timezone
+            // The ctz parameter tells Google Calendar which timezone to interpret the times in
+            const formatDateTimeForGoogle = (date, timezone) => {
+                // Create a formatter for the event's timezone
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: timezone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                
+                // Format the date in the event's timezone
+                const parts = formatter.formatToParts(date);
+                const year = parts.find(p => p.type === 'year').value;
+                const month = parts.find(p => p.type === 'month').value;
+                const day = parts.find(p => p.type === 'day').value;
+                const hour = parts.find(p => p.type === 'hour').value;
+                const minute = parts.find(p => p.type === 'minute').value;
+                const second = parts.find(p => p.type === 'second').value;
+                
+                // Return in format: YYYYMMDDTHHMMSS (no Z, since we're using local time with ctz)
+                return `${year}${month}${day}T${hour}${minute}${second}`;
             };
             
             // Format times for Google Calendar (HHMMSS format)
@@ -3419,16 +3466,34 @@
             
             let startDateTime, endDateTime;
             
-            if (event.start_time && event.end_time) {
-                // Event with specific times
-                const startDateStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
-                const endDateStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
-                startDateTime = `${startDateStr}T${formatTimeForGoogle(event.start_time)}`;
-                endDateTime = `${endDateStr}T${formatTimeForGoogle(event.end_time)}`;
+            // Get the event's timezone (default to America/New_York if not specified)
+            const eventTimezone = event.city_timezone || 'America/New_York';
+            
+            // For exhibitions or explicitly all-day events, use date-only format
+            if (isAllDay || event.event_type === 'exhibition') {
+                // All-day event: use YYYYMMDD format (no time)
+                startDateTime = formatDateOnlyForGoogle(startDate);
+                endDateTime = formatDateOnlyForGoogle(endDate);
+            } else if (event.start_time && event.end_time) {
+                // Event with specific times - format in the event's timezone
+                // Parse the time and create dates in the event's timezone
+                const [startHours, startMinutes] = event.start_time.split(':').map(Number);
+                const [endHours, endMinutes] = event.end_time.split(':').map(Number);
+                
+                // Create dates in the event's local timezone
+                const startDateLocal = new Date(startDate);
+                startDateLocal.setHours(startHours, startMinutes || 0, 0, 0);
+                
+                const endDateLocal = new Date(endDate);
+                endDateLocal.setHours(endHours, endMinutes || 0, 0, 0);
+                
+                // Format in the event's timezone (no Z suffix, ctz parameter handles timezone)
+                startDateTime = formatDateTimeForGoogle(startDateLocal, eventTimezone);
+                endDateTime = formatDateTimeForGoogle(endDateLocal, eventTimezone);
             } else {
-                // All-day event
-                startDateTime = formatDateForGoogle(startDate);
-                endDateTime = formatDateForGoogle(endDate);
+                // All-day event (no times specified)
+                startDateTime = formatDateOnlyForGoogle(startDate);
+                endDateTime = formatDateOnlyForGoogle(endDate);
             }
             
             // Build enhanced description with social media and additional information
@@ -3710,7 +3775,7 @@
                 dates: `${startDateTime}/${endDateTime}`,
                 details: enhancedDescription,
                 location: calendarLocation,
-                ctz: event.city_timezone || 'America/New_York'  // Add timezone
+                ctz: eventTimezone  // Use the event's city timezone (e.g., Europe/London, Asia/Tokyo)
             });
 
             const calendarUrl = `https://calendar.google.com/calendar/render?${params}`;
