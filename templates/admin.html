@@ -975,6 +975,7 @@
                     <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL (Advanced)</button>
                     <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
                     <button onclick="exportSelectedEventsToCalendar()" class="add-button" style="background: #ff8c42;" id="bulkExportBtn" disabled>📅 Export Selected to Calendar</button>
+                    <button onclick="deleteSelectedEvents()" class="add-button" style="background: #dc3545;" id="bulkDeleteBtn" disabled>🗑️ Delete Selected</button>
                     
                     <!-- Quick URL Event Creator -->
                     <div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
@@ -997,6 +998,7 @@
                         <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Scrape Museums</button>
                         <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 Scrape All Venues</button>
                         <button onclick="startFindingAweScraping()" class="add-button" style="background: #17a2b8;">✨ Scrape Finding Awe</button>
+                        <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Scrape Webster's Cafe</button>
                         <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
                         <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
                     </div>
@@ -4457,15 +4459,96 @@
             updateBulkExportButton();
         }
         
+        async function deleteSelectedEvents() {
+            const selectedCheckboxes = document.querySelectorAll('.event-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('Please select at least one event to delete.');
+                return;
+            }
+            
+            const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+            const events = window.allEvents.filter(e => selectedIds.includes(e.id));
+            
+            if (events.length === 0) {
+                alert('No events found for selected IDs.');
+                return;
+            }
+            
+            // Show confirmation dialog
+            const eventTitles = events.map(e => `  • ${e.title}`).join('\n');
+            const confirmed = confirm(
+                `Are you sure you want to delete ${events.length} event(s)?\n\n` +
+                `${eventTitles}\n\n` +
+                `This action cannot be undone.`
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                // Delete each event
+                let deletedCount = 0;
+                let failedCount = 0;
+                
+                for (const eventId of selectedIds) {
+                    try {
+                        const response = await fetch(`/api/delete-event/${eventId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            deletedCount++;
+                        } else {
+                            const result = await response.json();
+                            console.error(`Failed to delete event ${eventId}:`, result.error);
+                            failedCount++;
+                        }
+                    } catch (error) {
+                        console.error(`Error deleting event ${eventId}:`, error);
+                        failedCount++;
+                    }
+                }
+                
+                // Show result
+                if (failedCount === 0) {
+                    alert(`✅ Successfully deleted ${deletedCount} event(s)!`);
+                } else {
+                    alert(`⚠️ Deleted ${deletedCount} event(s), but ${failedCount} failed. Check console for details.`);
+                }
+                
+                // Reload events
+                loadEvents();
+                
+            } catch (error) {
+                console.error('Error deleting events:', error);
+                alert('❌ Error deleting events: ' + error.message);
+            }
+        }
+        
         function updateBulkExportButton() {
             const selectedCount = document.querySelectorAll('.event-checkbox:checked').length;
             const bulkExportBtn = document.getElementById('bulkExportBtn');
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            
             if (bulkExportBtn) {
                 bulkExportBtn.disabled = selectedCount === 0;
                 if (selectedCount > 0) {
                     bulkExportBtn.textContent = `📅 Export ${selectedCount} Selected to Calendar`;
                 } else {
                     bulkExportBtn.textContent = '📅 Export Selected to Calendar';
+                }
+            }
+            
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.disabled = selectedCount === 0;
+                if (selectedCount > 0) {
+                    bulkDeleteBtn.textContent = `🗑️ Delete ${selectedCount} Selected`;
+                } else {
+                    bulkDeleteBtn.textContent = '🗑️ Delete Selected';
                 }
             }
         }
@@ -7281,6 +7364,36 @@
                 }
             } catch (error) {
                 updateScrapingStatus(`❌ All venues scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startWebstersScraping() {
+            updateScrapingStatus('🔄 Scraping Webster\'s Bookstore Cafe events...', 'info');
+            try {
+                const response = await fetch('/api/admin/scrape-websters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    let statusMsg = `✅ Webster's scraping completed! Found ${result.events_found} events`;
+                    if (result.events_saved > 0) {
+                        statusMsg += `, created ${result.events_saved} new events`;
+                    }
+                    if (result.events_skipped > 0) {
+                        statusMsg += `, ${result.events_skipped} already existed`;
+                    }
+                    updateScrapingStatus(statusMsg, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ Webster's scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error scraping Webster\'s events:', error);
+                updateScrapingStatus(`❌ Webster's scraping error: ${error.message}`, 'error');
             }
         }
         

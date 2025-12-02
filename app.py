@@ -5612,6 +5612,55 @@ def scrape_finding_awe():
             'error': str(e)
         }), 500
 
+@app.route('/api/admin/scrape-websters', methods=['POST'])
+def scrape_websters():
+    """Scrape all events from Webster's Bookstore Cafe."""
+    try:
+        app_logger.info("Starting Webster's Bookstore Cafe scraping...")
+        
+        # Import the Webster's scraper
+        from scripts.websters_scraper import scrape_websters_events, create_events_in_database
+        
+        # Scrape all Webster's events
+        events = scrape_websters_events()
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        # Create events in database
+        created_count = create_events_in_database(events)
+        skipped_count = len(events) - created_count
+        
+        app_logger.info(f"Webster's scraping completed: found {len(events)} events, created {created_count} new events, skipped {skipped_count} duplicates")
+        
+        message = f"Found {len(events)} Webster's events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if skipped_count > 0:
+            message += f", {skipped_count} already existed"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_skipped': skipped_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping Webster's events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/admin/discover-new-venues', methods=['POST'])
 def discover_new_venues():
     """Discover new venues and scrape their events."""
