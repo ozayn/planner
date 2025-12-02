@@ -127,6 +127,8 @@ class VenueEventScraper:
                         
                     except Exception as e:
                         logger.error(f"Error scraping {venue.name}: {e}")
+                        import traceback
+                        logger.debug(f"Traceback: {traceback.format_exc()}")
                         continue
                 
                 logger.info(f"Total unique events scraped: {len(self.scraped_events)}")
@@ -134,6 +136,8 @@ class VenueEventScraper:
                 
         except Exception as e:
             logger.error(f"Error in scrape_venue_events: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
     def _scrape_venue_website(self, venue):
@@ -150,7 +154,50 @@ class VenueEventScraper:
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Look for tour-specific pages first
+            # Look for exhibition-specific pages (for museums like LACMA)
+            exhibition_links = soup.find_all('a', href=lambda href: href and (
+                'exhibition' in href.lower() or 
+                'exhibit' in href.lower() or
+                '/art/exhibition/' in href.lower() or
+                '/exhibitions/' in href.lower()
+            ))
+            
+            # Also look for links in exhibition-related sections
+            exhibition_sections = soup.find_all(['div', 'section', 'article'], 
+                class_=lambda c: c and ('exhibition' in str(c).lower() or 'exhibit' in str(c).lower()))
+            for section in exhibition_sections:
+                section_links = section.find_all('a', href=True)
+                exhibition_links.extend(section_links)
+            
+            # Remove duplicates and limit
+            seen_urls = set()
+            unique_exhibition_links = []
+            for link in exhibition_links:
+                href = link.get('href', '')
+                if href:
+                    full_url = urljoin(venue.website_url, href)
+                    if full_url not in seen_urls and 'exhibition' in full_url.lower():
+                        seen_urls.add(full_url)
+                        unique_exhibition_links.append(link)
+            
+            logger.info(f"Found {len(unique_exhibition_links)} exhibition links")
+            
+            for link in unique_exhibition_links[:10]:  # Check first 10 exhibition links
+                try:
+                    exhibition_url = urljoin(venue.website_url, link['href'])
+                    logger.info(f"Scraping exhibition page: {exhibition_url}")
+                    exhibition_response = self.session.get(exhibition_url, timeout=10)
+                    exhibition_response.raise_for_status()
+                    exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
+                    
+                    # Extract events from exhibition page with exhibition URL context
+                    exhibition_events = self._extract_events_from_html(exhibition_soup, venue, exhibition_url)
+                    events.extend(exhibition_events)
+                except Exception as e:
+                    logger.debug(f"Error scraping exhibition page {link['href']}: {e}")
+                    continue
+            
+            # Look for tour-specific pages
             tour_links = soup.find_all('a', href=lambda href: href and 'tour' in href.lower())
             for link in tour_links[:5]:  # Check first 5 tour links
                 try:
@@ -166,6 +213,34 @@ class VenueEventScraper:
                 except Exception as e:
                     logger.debug(f"Error scraping tour page {link['href']}: {e}")
                     continue
+            
+            # For LACMA, look for exhibition links in the exhibitions section
+            if 'lacma.org' in venue.website_url:
+                # Try to find the exhibitions page
+                exhibitions_page_url = urljoin(venue.website_url, '/art/exhibitions')
+                try:
+                    logger.info(f"Scraping LACMA exhibitions page: {exhibitions_page_url}")
+                    exhibitions_response = self.session.get(exhibitions_page_url, timeout=10)
+                    if exhibitions_response.status_code == 200:
+                        exhibitions_soup = BeautifulSoup(exhibitions_response.content, 'html.parser')
+                        # Find all exhibition links
+                        lacma_exhibition_links = exhibitions_soup.find_all('a', href=lambda href: href and '/art/exhibition/' in href.lower())
+                        for link in lacma_exhibition_links[:15]:  # Check first 15 exhibitions
+                            try:
+                                exhibition_url = urljoin(venue.website_url, link['href'])
+                                logger.info(f"Scraping LACMA exhibition: {exhibition_url}")
+                                exhibition_response = self.session.get(exhibition_url, timeout=10)
+                                exhibition_response.raise_for_status()
+                                exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
+                                
+                                # Extract events from exhibition page with exhibition URL context
+                                exhibition_events = self._extract_events_from_html(exhibition_soup, venue, exhibition_url)
+                                events.extend(exhibition_events)
+                            except Exception as e:
+                                logger.debug(f"Error scraping LACMA exhibition {link['href']}: {e}")
+                                continue
+                except Exception as e:
+                    logger.debug(f"Error accessing LACMA exhibitions page: {e}")
             
             # For Met Museum, also try specific known tour URLs
             if 'metmuseum.org' in venue.website_url:
@@ -284,12 +359,27 @@ class VenueEventScraper:
             # Extract location/meeting point with enhanced detection
             location = self._extract_location(element, venue)
             
-            # Extract URL - use tour_url if available, otherwise extract from element
-            url = tour_url  # Use the tour page URL as the primary URL
+            # Extract URL - use tour_url/exhibition_url if available, otherwise extract from element
+            url = tour_url  # Use the tour/exhibition page URL as the primary URL
             if not url:
-                url = self._extract_url(element)
+                url = self._extract_url(element, venue)
+                # Ensure URL is absolute
                 if url and not url.startswith('http'):
                     url = urljoin(venue.website_url, url)
+            
+            # Clean up URL - remove fragments and ensure it's a proper URL
+            if url:
+                # Remove common fragments that don't add value
+                url = url.split('#')[0].split('?')[0] if '#' in url or '?' in url else url
+                # Skip if it's just the homepage
+                parsed = urlparse(url)
+                if parsed.path in ['', '/'] and not parsed.query:
+                    # If we have a better URL from the element, use that instead
+                    element_url = self._extract_url(element, venue)
+                    if element_url and element_url != url:
+                        url = element_url
+                        if not url.startswith('http'):
+                            url = urljoin(venue.website_url, url)
             
             # Extract image
             image_url = self._extract_image(element, venue)
@@ -322,6 +412,11 @@ class VenueEventScraper:
                 'organizer': venue.name
             }
             
+            # Extract exhibition-specific fields if this is an exhibition
+            if event_type == 'exhibition':
+                exhibition_details = self._extract_exhibition_details(element, description, url)
+                event_data.update(exhibition_details)
+            
             # Validate event quality before returning
             if not self._is_valid_event(event_data):
                 logger.info(f"⚠️ Filtered out: '{title}'")
@@ -343,28 +438,51 @@ class VenueEventScraper:
                 return found.get_text(strip=True)
         return None
     
-    def _extract_url(self, element):
-        """Extract URL from event element"""
-        # Look for links
+    def _extract_url(self, element, venue=None):
+        """Extract URL from event element with improved logic for exhibitions"""
+        # Priority 1: Look for links in the element itself
         link = element.find('a', href=True)
         if link:
             href = link['href']
-            # Convert relative URLs to absolute
-            if href.startswith('/'):
-                return href  # Will be converted to absolute later
-            elif not href.startswith('http'):
-                return href  # Will be converted to absolute later
-            return href
+            # Skip generic/homepage links
+            if href and href not in ['#', '#main-content', '/', '']:
+                # Prefer exhibition/event-specific URLs
+                if any(keyword in href.lower() for keyword in ['exhibition', 'exhibit', 'event', 'program', 'tour']):
+                    if venue:
+                        return urljoin(venue.website_url, href)
+                    return href if href.startswith('http') else href
+                # Otherwise return any valid link
+                if venue:
+                    return urljoin(venue.website_url, href)
+                return href if href.startswith('http') else href
         
-        # Look for parent links
+        # Priority 2: Look for parent links (element might be inside a link)
         parent_link = element.find_parent('a', href=True)
         if parent_link:
             href = parent_link['href']
-            if href.startswith('/'):
-                return href
-            elif not href.startswith('http'):
-                return href
-            return href
+            if href and href not in ['#', '#main-content', '/', '']:
+                # Prefer exhibition/event-specific URLs
+                if any(keyword in href.lower() for keyword in ['exhibition', 'exhibit', 'event', 'program', 'tour']):
+                    if venue:
+                        return urljoin(venue.website_url, href)
+                    return href if href.startswith('http') else href
+                # Otherwise return any valid link
+                if venue:
+                    return urljoin(venue.website_url, href)
+                return href if href.startswith('http') else href
+        
+        # Priority 3: Look for nearby links (sibling or nearby elements)
+        # Check if element is in a card/list item that might have a link nearby
+        parent = element.find_parent(['div', 'li', 'article', 'section'])
+        if parent:
+            nearby_link = parent.find('a', href=True)
+            if nearby_link:
+                href = nearby_link['href']
+                if href and href not in ['#', '#main-content', '/', '']:
+                    if any(keyword in href.lower() for keyword in ['exhibition', 'exhibit', 'event', 'program', 'tour']):
+                        if venue:
+                            return urljoin(venue.website_url, href)
+                        return href if href.startswith('http') else href
         
         return None
     
@@ -812,6 +930,96 @@ class VenueEventScraper:
         else:
             return 'tour'  # Default to tour for most venues
     
+    def _extract_exhibition_details(self, element, description, url):
+        """Extract exhibition-specific details from HTML element"""
+        details = {}
+        
+        # Extract curator
+        curator = self._extract_text(element, [
+            '.curator', '[class*="curator"]', '[class*="curated"]'
+        ])
+        if not curator:
+            # Look for "Curated by" or "Curator:" patterns in text
+            text_content = element.get_text() if hasattr(element, 'get_text') else str(element)
+            curator_match = re.search(r'curated by[:\s]+([^\.\n,]+)', text_content, re.IGNORECASE)
+            if curator_match:
+                curator = curator_match.group(1).strip()
+        if curator:
+            details['curator'] = curator
+        
+        # Extract artists (look for artist names, "by [artist]", etc.)
+        artists = []
+        # Look for artist links or artist names
+        artist_links = element.find_all('a', href=lambda href: href and ('artist' in href.lower() or '/artist/' in href.lower()))
+        for link in artist_links[:5]:  # Limit to first 5
+            artist_name = link.get_text(strip=True)
+            if artist_name and len(artist_name) > 2:
+                artists.append(artist_name)
+        
+        # Also look for "by [Artist Name]" patterns
+        text_content = element.get_text() if hasattr(element, 'get_text') else str(element)
+        by_patterns = [
+            r'by\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',
+            r'artist[s]?[:\s]+([^\.\n,]+)',
+        ]
+        for pattern in by_patterns:
+            matches = re.findall(pattern, text_content, re.IGNORECASE)
+            for match in matches:
+                artist = match.strip()
+                if artist and len(artist) > 2 and artist not in artists:
+                    artists.append(artist)
+        
+        if artists:
+            details['artists'] = ', '.join(artists[:10])  # Limit to 10 artists
+        
+        # Extract exhibition type (solo, group, retrospective, etc.)
+        text_lower = text_content.lower()
+        if 'solo' in text_lower or 'solo exhibition' in text_lower:
+            details['exhibition_type'] = 'solo'
+        elif 'retrospective' in text_lower:
+            details['exhibition_type'] = 'retrospective'
+        elif 'traveling' in text_lower or 'touring' in text_lower:
+            details['exhibition_type'] = 'traveling'
+        elif 'permanent' in text_lower or 'permanent collection' in text_lower:
+            details['exhibition_type'] = 'permanent collection'
+            details['is_permanent'] = True
+        elif 'group' in text_lower or 'group show' in text_lower:
+            details['exhibition_type'] = 'group'
+        
+        # Extract collection period (Modern, Contemporary, etc.)
+        period_keywords = {
+            'modern': 'Modern Art',
+            'contemporary': 'Contemporary',
+            'renaissance': 'Renaissance',
+            'ancient': 'Ancient',
+            'medieval': 'Medieval',
+            'baroque': 'Baroque',
+            'impressionist': 'Impressionist',
+            'abstract': 'Abstract',
+        }
+        for keyword, period in period_keywords.items():
+            if keyword in text_lower:
+                details['collection_period'] = period
+                break
+        
+        # Try to extract number of artworks (look for patterns like "50 works", "over 100 pieces")
+        artwork_count_match = re.search(r'(\d+)\s+(?:works?|pieces?|artworks?|objects?)', text_content, re.IGNORECASE)
+        if artwork_count_match:
+            try:
+                details['number_of_artworks'] = int(artwork_count_match.group(1))
+            except ValueError:
+                pass
+        
+        # Extract admission price if mentioned
+        price_match = re.search(r'\$(\d+(?:\.\d{2})?)', text_content)
+        if price_match:
+            try:
+                details['admission_price'] = float(price_match.group(1))
+            except ValueError:
+                pass
+        
+        return details
+    
     def _is_valid_event(self, event_data):
         """Validate event quality to filter out generic/incomplete events"""
         
@@ -819,21 +1027,91 @@ class VenueEventScraper:
         if not event_data.get('title'):
             return False
         
-        title = event_data.get('title', '').lower().strip()
-        description = event_data.get('description', '').lower()
+        title = event_data.get('title', '')
+        if not title or not isinstance(title, str):
+            return False
+        title = title.lower().strip()
         
-        # Filter out overly generic single-word titles
+        description = event_data.get('description', '') or ''
+        if isinstance(description, str):
+            description = description.lower()
+        else:
+            description = ''
+        
+        # Filter out overly generic single-word titles and navigation/page titles
         generic_titles = [
             'tour', 'tours', 'visit', 'admission', 'hours', 
             'tickets', 'information', 'about', 'overview', 'home',
-            'location', 'contact', 'directions', 'address'
+            'location', 'contact', 'directions', 'address',
+            # Navigation and page titles
+            'exhibitions & events', 'exhibitions and events', 'exhibitions',
+            "today's events", 'todays events', 'today events',
+            'results', 'calendar', 'events calendar', 'event calendar',
+            'resources for groups', 'resources', 'groups',
+            'search', 'filter', 'browse', 'explore',
+            'upcoming events', 'past events', 'all events',
+            'event listings', 'event list', 'event schedule',
+            'what\'s on', 'whats on', 'what is on',
+            'programs', 'program', 'activities',
+            'visit us', 'plan your visit', 'getting here',
+            'news', 'press', 'media', 'blog',
+            'support', 'donate', 'membership', 'join',
+            'shop', 'store', 'gift shop', 'cafe', 'restaurant',
+            'education', 'learn', 'schools', 'teachers',
+            'collections', 'collection', 'artworks', 'artwork',
+            'exhibitions', 'current exhibitions', 'past exhibitions',
+            'virtual tour', 'virtual tours', 'online tour',
+            'accessibility', 'access', 'wheelchair',
+            'faq', 'frequently asked questions', 'help',
+            # Booking/reservation titles
+            'book a tour', 'book tour', 'book tours', 'book now', 'reserve a tour',
+            'reserve tour', 'reserve tours', 'booking', 'reservations',
+            'schedule a tour', 'schedule tour', 'schedule tours'
         ]
         if title in generic_titles:
             return False
         
+        # Also filter titles that are clearly navigation/page titles (case-insensitive partial match)
+        navigation_patterns = [
+            r'^(exhibitions?\s*[&]?\s*events?)$',
+            r"^(today'?s?\s*events?)$",
+            r'^(results?)$',
+            r'^(calendar)$',
+            r'^(resources?\s*(for|about)?\s*(groups?|visitors?)?)$',
+            r'^(event\s*(list|listing|schedule|calendar|search))$',
+            r"^(what'?s?\s*on)$",
+            r'^(upcoming|past|all)\s*events?$',
+            r'^(plan\s*your\s*visit)$',
+            r'^(visit\s*us)$',
+            r'^(getting\s*here)$',
+            r'^(current|past|upcoming)\s*exhibitions?$',
+            # Booking/reservation patterns
+            r'^(book\s*(a\s*)?(tour|tours?|now))$',
+            r'^(reserve\s*(a\s*)?(tour|tours?))$',
+            r'^(schedule\s*(a\s*)?(tour|tours?))$',
+            r'^(booking|reservations?)$'
+        ]
+        for pattern in navigation_patterns:
+            try:
+                if re.match(pattern, title, re.IGNORECASE):
+                    return False
+            except (TypeError, AttributeError):
+                # Title might be None or not a string, skip pattern matching
+                pass
+        
         # Filter out very short or generic titles
         if len(title) < 5:
             return False
+        
+        # Check event type
+        event_type = event_data.get('event_type', '').lower()
+        
+        # TOURS REQUIRE A TIME - reject tours without a specific start time
+        if event_type == 'tour':
+            has_specific_time = event_data.get('start_time') is not None
+            if not has_specific_time:
+                logger.debug(f"⚠️ Rejecting tour '{event_data.get('title')}' - no start time")
+                return False
         
         # RELAXED VALIDATION: Accept events from known venues/sources
         # If we have a venue_id, we trust it's a real event from a real venue
@@ -846,7 +1124,8 @@ class VenueEventScraper:
         has_meaningful_description = description and len(description) >= 15  # Lowered from 30 to 15
         
         # If from a known venue, accept if it has ANY description or URL
-        if has_venue:
+        # (But tours already checked above - they must have time)
+        if has_venue and event_type != 'tour':
             if description or has_url:
                 return True
         

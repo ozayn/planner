@@ -1244,8 +1244,69 @@
                 </div>
                 <div class="form-group">
                     <label for="editEventType">Event Type</label>
-                    <input type="text" id="editEventType">
+                    <input type="text" id="editEventType" onchange="toggleExhibitionFields()">
                 </div>
+                
+                <!-- Exhibition-specific fields (shown when event_type is 'exhibition') -->
+                <div id="editExhibitionFields" style="display: none;">
+                    <h4 style="margin: 20px 0 10px 0; color: #4a5568;">🎨 Exhibition Details</h4>
+                    <div class="form-group">
+                        <label for="editExhibitionLocation">Exhibition Location (Gallery/Room)</label>
+                        <input type="text" id="editExhibitionLocation" placeholder="e.g., Gallery 61, West Building">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCurator">Curator</label>
+                        <input type="text" id="editCurator" placeholder="e.g., John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label for="editAdmissionPrice">Admission Price</label>
+                        <input type="number" id="editAdmissionPrice" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="editArtists">Artists (comma-separated)</label>
+                        <input type="text" id="editArtists" placeholder="e.g., Kehinde Wiley, Amy Sherald">
+                    </div>
+                    <div class="form-group">
+                        <label for="editExhibitionType">Exhibition Type</label>
+                        <select id="editExhibitionType">
+                            <option value="">Select Type</option>
+                            <option value="solo">Solo</option>
+                            <option value="group">Group</option>
+                            <option value="retrospective">Retrospective</option>
+                            <option value="permanent collection">Permanent Collection</option>
+                            <option value="traveling">Traveling</option>
+                            <option value="special">Special</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCollectionPeriod">Collection Period</label>
+                        <input type="text" id="editCollectionPeriod" placeholder="e.g., Modern Art, Contemporary, Renaissance">
+                    </div>
+                    <div class="form-group">
+                        <label for="editNumberOfArtworks">Number of Artworks</label>
+                        <input type="number" id="editNumberOfArtworks" min="0" placeholder="e.g., 50">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editOpeningReceptionDate">Opening Reception Date</label>
+                            <input type="date" id="editOpeningReceptionDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="editOpeningReceptionTime">Opening Reception Time</label>
+                            <input type="time" id="editOpeningReceptionTime">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editIsPermanent"> Permanent Collection
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRelatedExhibitions">Related Exhibitions (comma-separated titles or IDs)</label>
+                        <input type="text" id="editRelatedExhibitions" placeholder="e.g., Black American Portraits, Family Album">
+                    </div>
+                </div>
+                
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editEventModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Update Event</button>
@@ -4015,6 +4076,16 @@
             }
         }
         
+        function toggleExhibitionFields() {
+            const eventType = document.getElementById('editEventType').value;
+            const exhibitionFields = document.getElementById('editExhibitionFields');
+            if (eventType === 'exhibition') {
+                exhibitionFields.style.display = 'block';
+            } else {
+                exhibitionFields.style.display = 'none';
+            }
+        }
+        
         function editEvent(id) {
             // Find the event data
             const event = window.allEvents.find(e => e.id == id);
@@ -4032,6 +4103,25 @@
             document.getElementById('editEventEndTime').value = event.end_time || '';
             document.getElementById('editEventType').value = event.event_type || '';
             
+            // Show/hide exhibition fields based on event type
+            const exhibitionFields = document.getElementById('editExhibitionFields');
+            if (event.event_type === 'exhibition') {
+                exhibitionFields.style.display = 'block';
+                // Populate exhibition-specific fields
+                document.getElementById('editExhibitionLocation').value = event.exhibition_location || '';
+                document.getElementById('editCurator').value = event.curator || '';
+                document.getElementById('editAdmissionPrice').value = event.admission_price || '';
+                document.getElementById('editArtists').value = event.artists || '';
+                document.getElementById('editExhibitionType').value = event.exhibition_type || '';
+                document.getElementById('editCollectionPeriod').value = event.collection_period || '';
+                document.getElementById('editNumberOfArtworks').value = event.number_of_artworks || '';
+                document.getElementById('editOpeningReceptionDate').value = event.opening_reception_date || '';
+                document.getElementById('editOpeningReceptionTime').value = event.opening_reception_time || '';
+                document.getElementById('editIsPermanent').checked = event.is_permanent || false;
+                document.getElementById('editRelatedExhibitions').value = event.related_exhibitions || '';
+            } else {
+                exhibitionFields.style.display = 'none';
+            }
             
             // Show the modal
             document.getElementById('editEventModal').style.display = 'block';
@@ -5233,6 +5323,23 @@
                 event_type: document.getElementById('editEventType').value.trim()
             };
             
+            // Add exhibition-specific fields if event type is 'exhibition'
+            if (editData.event_type === 'exhibition') {
+                editData.exhibition_location = document.getElementById('editExhibitionLocation').value.trim();
+                editData.curator = document.getElementById('editCurator').value.trim();
+                const admissionPrice = document.getElementById('editAdmissionPrice').value;
+                editData.admission_price = admissionPrice ? parseFloat(admissionPrice) : null;
+                editData.artists = document.getElementById('editArtists').value.trim();
+                editData.exhibition_type = document.getElementById('editExhibitionType').value.trim();
+                editData.collection_period = document.getElementById('editCollectionPeriod').value.trim();
+                const numArtworks = document.getElementById('editNumberOfArtworks').value;
+                editData.number_of_artworks = numArtworks ? parseInt(numArtworks) : null;
+                editData.opening_reception_date = document.getElementById('editOpeningReceptionDate').value || null;
+                editData.opening_reception_time = document.getElementById('editOpeningReceptionTime').value || null;
+                editData.is_permanent = document.getElementById('editIsPermanent').checked;
+                editData.related_exhibitions = document.getElementById('editRelatedExhibitions').value.trim();
+            }
+            
             try {
                 const response = await fetch('/api/admin/edit-event', {
                     method: 'POST',
@@ -5768,6 +5875,17 @@
                 if (event.exhibition_location) exhibitionFields.push(addField('Exhibition Location', event.exhibition_location));
                 if (event.curator) exhibitionFields.push(addField('Curator', event.curator));
                 if (event.admission_price) exhibitionFields.push(addField('Admission Price', `$${event.admission_price}`));
+                if (event.artists) exhibitionFields.push(addField('Artists', event.artists));
+                if (event.exhibition_type) exhibitionFields.push(addField('Exhibition Type', event.exhibition_type));
+                if (event.collection_period) exhibitionFields.push(addField('Collection Period', event.collection_period));
+                if (event.number_of_artworks) exhibitionFields.push(addField('Number of Artworks', event.number_of_artworks));
+                if (event.opening_reception_date) {
+                    const receptionDate = new Date(event.opening_reception_date + 'T00:00:00').toLocaleDateString();
+                    const receptionTime = event.opening_reception_time ? ` at ${event.opening_reception_time}` : '';
+                    exhibitionFields.push(addField('Opening Reception', receptionDate + receptionTime));
+                }
+                if (event.is_permanent) exhibitionFields.push(addField('Permanent Collection', 'Yes'));
+                if (event.related_exhibitions) exhibitionFields.push(addField('Related Exhibitions', event.related_exhibitions));
                 
                 if (exhibitionFields.length > 0) {
                     html += `

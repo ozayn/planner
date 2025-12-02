@@ -287,7 +287,16 @@ def migrate_events_schema():
             ('registration_opens_date', 'DATE'),
             ('registration_opens_time', 'TIME'),
             ('registration_url', 'VARCHAR(1000)'),
-            ('registration_info', 'TEXT')
+            ('registration_info', 'TEXT'),
+            # Exhibition-specific fields
+            ('artists', 'TEXT'),
+            ('exhibition_type', 'VARCHAR(100)'),
+            ('collection_period', 'VARCHAR(200)'),
+            ('number_of_artworks', 'INTEGER'),
+            ('opening_reception_date', 'DATE'),
+            ('opening_reception_time', 'TIME'),
+            ('is_permanent', 'BOOLEAN'),
+            ('related_exhibitions', 'TEXT')
         ]
         
         # Add missing columns with appropriate defaults
@@ -300,6 +309,8 @@ def migrate_events_schema():
                     if col_name == 'is_online':
                         railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
                     elif col_name == 'is_registration_required':
+                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                    elif col_name == 'is_permanent':
                         railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
                     else:
                         railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type}")
@@ -528,6 +539,14 @@ class Event(db.Model):
     exhibition_location = db.Column(db.String(200))  # Specific gallery/room
     curator = db.Column(db.String(200))
     admission_price = db.Column(db.Float)
+    artists = db.Column(db.Text)  # Comma-separated or JSON list of artist names
+    exhibition_type = db.Column(db.String(100))  # 'solo', 'group', 'retrospective', 'permanent collection', 'traveling', etc.
+    collection_period = db.Column(db.String(200))  # e.g., 'Modern Art', 'Contemporary', 'Ancient', 'Renaissance'
+    number_of_artworks = db.Column(db.Integer)  # Number of pieces in exhibition
+    opening_reception_date = db.Column(db.Date)  # Opening reception/vernissage date
+    opening_reception_time = db.Column(db.Time)  # Opening reception time
+    is_permanent = db.Column(db.Boolean, default=False)  # True for permanent collections
+    related_exhibitions = db.Column(db.Text)  # JSON array of related exhibition IDs or titles
     
     # Festival-specific fields
     festival_type = db.Column(db.String(100))    # 'Music', 'Art', 'Food', 'Cultural'
@@ -629,6 +648,14 @@ class Event(db.Model):
             'exhibition_location': self.exhibition_location,
             'curator': self.curator,
             'admission_price': self.admission_price,
+            'artists': self.artists,
+            'exhibition_type': self.exhibition_type,
+            'collection_period': self.collection_period,
+            'number_of_artworks': self.number_of_artworks,
+            'opening_reception_date': self.opening_reception_date.isoformat() if self.opening_reception_date else None,
+            'opening_reception_time': self.opening_reception_time.isoformat() if self.opening_reception_time else None,
+            'is_permanent': self.is_permanent,
+            'related_exhibitions': self.related_exhibitions,
             'festival_type': self.festival_type,
             'multiple_locations': self.multiple_locations,
             'difficulty_level': self.difficulty_level,
@@ -1675,11 +1702,18 @@ def trigger_scraping():
                     app_logger.info(f"⚠️ Skipped duplicate event in database: '{title}'")
                     continue
                 
+                # SAFETY CHECK: Tours must have a start time - reject if missing
+                event_type = event_data.get('event_type', 'tour')
+                start_time_str = event_data.get('start_time')
+                if event_type == 'tour' and (not start_time_str or start_time_str == 'None'):
+                    app_logger.info(f"⚠️ Skipped tour event '{title}' - no start time (safety check)")
+                    continue
+                
                 # Create new event
                 event = Event()
                 event.title = title
                 event.description = event_data.get('description', '')
-                event.event_type = event_data.get('event_type', 'tour')
+                event.event_type = event_type
                 event.url = event_data.get('url', '')
                 event.image_url = event_data.get('image_url', '')
                 
@@ -1691,7 +1725,6 @@ def trigger_scraping():
                     event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
                 
                 # Times
-                start_time_str = event_data.get('start_time')
                 if start_time_str and start_time_str != 'None':
                     event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
                 
@@ -2593,6 +2626,14 @@ def add_event():
             exhibition_location=data.get('exhibition_location', '').strip(),
             curator=data.get('curator', '').strip(),
             admission_price=data.get('admission_price'),
+            artists=data.get('artists', '').strip(),
+            exhibition_type=data.get('exhibition_type', '').strip(),
+            collection_period=data.get('collection_period', '').strip(),
+            number_of_artworks=data.get('number_of_artworks'),
+            opening_reception_date=datetime.strptime(data['opening_reception_date'], '%Y-%m-%d').date() if data.get('opening_reception_date') else None,
+            opening_reception_time=datetime.strptime(data['opening_reception_time'], '%H:%M').time() if data.get('opening_reception_time') else None,
+            is_permanent=data.get('is_permanent', False),
+            related_exhibitions=data.get('related_exhibitions', '').strip(),
             
             # Festival-specific fields
             festival_type=data.get('festival_type', '').strip(),
@@ -4184,6 +4225,22 @@ def edit_event():
                 event.curator = clean_text_field(data['curator'])
             if 'admission_price' in data:
                 event.admission_price = clean_numeric_field(data['admission_price'])
+            if 'artists' in data:
+                event.artists = clean_text_field(data['artists'])
+            if 'exhibition_type' in data:
+                event.exhibition_type = clean_text_field(data['exhibition_type'])
+            if 'collection_period' in data:
+                event.collection_period = clean_text_field(data['collection_period'])
+            if 'number_of_artworks' in data:
+                event.number_of_artworks = clean_numeric_field(data['number_of_artworks'])
+            if 'opening_reception_date' in data and data['opening_reception_date']:
+                event.opening_reception_date = datetime.strptime(data['opening_reception_date'], '%Y-%m-%d').date()
+            if 'opening_reception_time' in data and data['opening_reception_time']:
+                event.opening_reception_time = datetime.strptime(data['opening_reception_time'], '%H:%M').time()
+            if 'is_permanent' in data:
+                event.is_permanent = bool(data['is_permanent'])
+            if 'related_exhibitions' in data:
+                event.related_exhibitions = clean_text_field(data['related_exhibitions'])
         elif event.event_type == 'festival':
             if 'festival_type' in data:
                 event.festival_type = clean_text_field(data['festival_type'])
@@ -4905,7 +4962,17 @@ def create_event_from_data():
         elif event.event_type == 'exhibition':
             event.exhibition_location = data.get('exhibition_location', '')
             event.curator = data.get('curator', '')
-            event.admission_price = data.get('price')
+            event.admission_price = data.get('price') or data.get('admission_price')
+            event.artists = data.get('artists', '')
+            event.exhibition_type = data.get('exhibition_type', '')
+            event.collection_period = data.get('collection_period', '')
+            event.number_of_artworks = data.get('number_of_artworks')
+            if data.get('opening_reception_date'):
+                event.opening_reception_date = datetime.strptime(data['opening_reception_date'], '%Y-%m-%d').date()
+            if data.get('opening_reception_time'):
+                event.opening_reception_time = datetime.strptime(data['opening_reception_time'], '%H:%M').time()
+            event.is_permanent = data.get('is_permanent', False)
+            event.related_exhibitions = data.get('related_exhibitions', '')
         elif event.event_type == 'festival':
             event.festival_type = data.get('festival_type', 'Cultural')
             event.multiple_locations = data.get('multiple_locations', False)
@@ -5452,7 +5519,17 @@ def create_event_from_venue():
         elif event.event_type == 'exhibition':
             event.exhibition_location = data.get('exhibition_location', '')
             event.curator = data.get('curator', '')
-            event.admission_price = data.get('price')
+            event.admission_price = data.get('price') or data.get('admission_price')
+            event.artists = data.get('artists', '')
+            event.exhibition_type = data.get('exhibition_type', '')
+            event.collection_period = data.get('collection_period', '')
+            event.number_of_artworks = data.get('number_of_artworks')
+            if data.get('opening_reception_date'):
+                event.opening_reception_date = datetime.strptime(data['opening_reception_date'], '%Y-%m-%d').date()
+            if data.get('opening_reception_time'):
+                event.opening_reception_time = datetime.strptime(data['opening_reception_time'], '%H:%M').time()
+            event.is_permanent = data.get('is_permanent', False)
+            event.related_exhibitions = data.get('related_exhibitions', '')
         elif event.event_type == 'festival':
             event.festival_type = data.get('festival_type', 'Cultural')
             event.multiple_locations = data.get('multiple_locations', False)

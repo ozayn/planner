@@ -1118,7 +1118,15 @@ def get_event_type_fields(event_type: str) -> List[str]:
         'exhibition': [
             DatabaseFields.EVENT_EXHIBITION_LOCATION,
             DatabaseFields.EVENT_CURATOR,
-            DatabaseFields.EVENT_ADMISSION_PRICE
+            DatabaseFields.EVENT_ADMISSION_PRICE,
+            'artists',
+            'exhibition_type',
+            'collection_period',
+            'number_of_artworks',
+            'opening_reception_date',
+            'opening_reception_time',
+            'is_permanent',
+            'related_exhibitions'
         ],
         'festival': [
             DatabaseFields.EVENT_FESTIVAL_TYPE,

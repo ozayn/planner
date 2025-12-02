@@ -70,24 +70,24 @@
 
         .header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 48px;
             background: transparent;
-            padding: 24px 0;
+            padding: 32px 0;
             border: none;
             position: relative;
         }
 
         .header h1 {
-            font-size: 1.8rem;
+            font-size: 2rem;
             margin-bottom: 8px;
             color: rgba(0,0,0,0.87);
-            font-weight: 400;
-            letter-spacing: -0.02em;
+            font-weight: 300;
+            letter-spacing: -0.03em;
         }
 
         .header p {
-            font-size: 0.9rem;
-            color: rgba(0,0,0,0.6);
+            font-size: 0.875rem;
+            color: rgba(0,0,0,0.5);
             font-weight: 400;
             max-width: 400px;
             margin: 0 auto;
@@ -101,15 +101,18 @@
         }
 
         .control-panel {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
             transition: all 0.3s ease;
         }
 
         .control-panel:hover {
-            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.08);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .venues-panel {
@@ -137,16 +140,19 @@
         }
 
         .discovered-events {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
             transition: all 0.3s ease;
             margin-bottom: 24px;
         }
 
         .discovered-events:hover {
-            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.08);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .time-selector {
@@ -157,25 +163,30 @@
         }
 
         .time-btn {
-            padding: 8px 16px;
-            border: 1px solid #e0e0e0;
+            padding: 8px 14px;
+            border: 1px solid rgba(0,0,0,0.08);
             border-radius: 20px;
-            background: #ffffff;
-            color: #666;
-            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            color: rgba(0,0,0,0.6);
+            font-size: 0.8125rem;
+            font-weight: 400;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .time-btn:hover {
-            border-color: #ff8c42;
-            color: #ff8c42;
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.8);
+            color: rgba(0,0,0,0.8);
+            transform: translateY(-1px);
         }
 
         .time-btn.active {
-            background: #ff8c42;
-            border-color: #ff8c42;
-            color: white;
+            background: rgba(0,0,0,0.08);
+            border-color: rgba(0,0,0,0.15);
+            color: rgba(0,0,0,0.87);
+            font-weight: 500;
         }
 
         .advanced-controls {
@@ -340,84 +351,100 @@
         }
 
         .control-panel h2 {
-            color: rgba(0,0,0,0.87);
-            margin-bottom: 20px;
-            font-size: 1.1rem;
+            color: rgba(0,0,0,0.6);
+            margin-bottom: 32px;
+            font-size: 0.75rem;
             font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
         }
 
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
-            color: rgba(0,0,0,0.87);
-            font-size: 0.9rem;
+            font-weight: 400;
+            color: rgba(0,0,0,0.5);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .form-group select,
         .form-group input {
             width: 100%;
-            padding: 12px 16px;
-            border: 1px solid rgba(0,0,0,0.23);
-            border-radius: 4px;
+            padding: 14px 16px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
             font-size: 0.95rem;
-            background: #ffffff;
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 400;
+            color: rgba(0,0,0,0.87);
         }
 
         .form-group select:focus,
         .form-group input:focus {
             outline: none;
-            border-color: #1976d2;
-            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.12);
+            border-color: rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
         }
 
         .form-group select:hover,
         .form-group input:hover {
-            border-color: rgba(25, 118, 210, 0.3);
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .venue-type-tabs {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 8px;
-            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
         }
 
         .venue-type-tab {
-            padding: 8px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            background: #f8f9fa;
-            color: #9ca3af;
-            font-size: 0.875rem;
+            padding: 8px 14px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            color: rgba(0,0,0,0.6);
+            font-size: 0.8125rem;
             font-weight: 400;
             cursor: pointer;
-            transition: all 0.15s ease;
-            text-align: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
+            white-space: nowrap;
         }
 
         .venue-type-tab:hover {
-            border-color: #d1d5db;
-            background: #f1f3f4;
-            color: #6b7280;
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.8);
+            color: rgba(0,0,0,0.8);
+            transform: translateY(-1px);
         }
 
         .venue-type-tab.active {
-            background: #e5e7eb;
-            border-color: #d1d5db;
-            color: #4b5563;
+            background: rgba(0,0,0,0.08);
+            border-color: rgba(0,0,0,0.15);
+            color: rgba(0,0,0,0.87);
+            font-weight: 500;
         }
 
         .venue-type-tab.active:hover {
-            background: #d1d5db;
-            border-color: #9ca3af;
+            background: rgba(0,0,0,0.12);
+            border-color: rgba(0,0,0,0.2);
         }
 
         .price-filter-checkboxes {
@@ -429,34 +456,38 @@
 
         .price-filter-btn {
             flex: 1;
-            padding: 4px 8px;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            background: transparent;
-            color: #9ca3af;
-            font-size: 0.75rem;
+            padding: 10px 16px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            color: rgba(0,0,0,0.6);
+            font-size: 0.8125rem;
             font-weight: 400;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             text-align: center;
         }
 
         .price-filter-btn:hover {
-            color: #6b7280;
-            border-color: #d1d5db;
-            background: #f9fafb;
+            color: rgba(0,0,0,0.8);
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-1px);
         }
 
         .price-filter-btn.active {
-            border-color: #9ca3af;
-            background: #f3f4f6;
-            color: #6b7280;
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(0,0,0,0.08);
+            color: rgba(0,0,0,0.87);
+            font-weight: 500;
         }
 
         .price-filter-btn .count {
             font-size: 0.75rem;
-            opacity: 0.7;
-            margin-left: 4px;
+            opacity: 0.6;
+            margin-left: 6px;
+            font-weight: 400;
         }
 
         .checkbox-label {
@@ -485,68 +516,58 @@
 
         .discover-button {
             width: 100% !important;
-            padding: 12px 24px !important;
-            background: #1976d2 !important;
+            padding: 14px 24px !important;
+            background: rgba(0,0,0,0.87) !important;
             color: white !important;
             border: none !important;
-            border-radius: 4px !important;
-            font-size: 0.9rem !important;
+            border-radius: 12px !important;
+            font-size: 0.875rem !important;
             font-weight: 500 !important;
             cursor: pointer !important;
-            transition: all 0.3s ease !important;
-            margin-bottom: 20px !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-        }
-
-        .discover-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .discover-button:hover::before {
-            left: 100%;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            margin-bottom: 0 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            letter-spacing: 0.3px !important;
         }
 
         .discover-button:hover {
-            background: #1565c0 !important;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.24) !important;
+            background: rgba(0,0,0,0.95) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+            transform: translateY(-1px);
         }
 
         .discover-button:active {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
         .discover-button:disabled {
-            background: #bdbdbd !important;
-            color: #757575 !important;
+            background: rgba(0,0,0,0.1) !important;
+            color: rgba(0,0,0,0.3) !important;
             cursor: not-allowed !important;
             box-shadow: none !important;
+            transform: none !important;
         }
 
         .clear-button {
             flex: 0 0 auto;
-            padding: 8px 12px;
+            padding: 10px 16px;
             background: rgba(255, 255, 255, 0.6);
-            color: #6c757d;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 8px;
-            font-size: 0.8rem;
+            backdrop-filter: blur(10px);
+            color: rgba(0,0,0,0.5);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            font-size: 0.8125rem;
             font-weight: 400;
             cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(4px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .clear-button:hover {
-            color: #495057;
+            color: rgba(0,0,0,0.8);
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(0,0,0,0.15);
+            transform: translateY(-1px);
             border-color: rgba(255, 140, 66, 0.3);
             background: rgba(255, 255, 255, 0.8);
             transform: translateY(-1px);
@@ -590,28 +611,38 @@
         }
 
         .status-section {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(4px);
-            border-radius: 8px;
-            padding: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(0,0,0,0.06);
+            margin-top: 24px;
         }
 
         .status-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.8125rem;
+            padding: 6px 0;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
         }
 
         .status-label {
-            color: #6c757d;
-            font-weight: 300;
+            color: rgba(0,0,0,0.5);
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.75rem;
         }
 
         .status-value {
-            font-weight: 400;
-            color: #495057;
+            font-weight: 500;
+            color: rgba(0,0,0,0.87);
         }
 
         .venues-panel {
@@ -877,18 +908,20 @@
 
         .source-control-btn {
             padding: 6px 12px;
-            border: 1px solid rgba(255, 140, 66, 0.2);
-            background: rgba(255, 140, 66, 0.1);
-            color: #ff8c42;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: transparent;
+            color: rgba(0,0,0,0.5);
+            border-radius: 16px;
+            font-size: 0.75rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .source-control-btn:hover {
-            background: rgba(255, 140, 66, 0.15);
-            border-color: rgba(255, 140, 66, 0.3);
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(0,0,0,0.15);
+            color: rgba(0,0,0,0.8);
+            transform: translateY(-1px);
         }
 
         .events-panel {
@@ -1222,24 +1255,25 @@
     <div class="container">
         <div class="header">
             <h1>Planner</h1>
-            <p>Discover curated events across multiple cities</p>
+            <p>Discover events</p>
         </div>
 
         <div class="main-content">
             <!-- Control Panel -->
             <div class="control-panel">
-                <h2>🔍 Discover Events</h2>
+                <h2>Discover</h2>
                 
                 <div class="form-group">
-                    <label>City:</label>
+                    <label>City</label>
                     <select id="citySelect">
-                        <option value="">Select a city</option>
+                        <option value="">Choose a city</option>
                     </select>
                 </div>
 
                 <div class="form-group" id="eventTypeGroup" style="display: none;">
-                    <label>Event Type:</label>
+                    <label>Event Type</label>
                     <select id="eventTypeSelect">
+                        <option value="">All Types</option>
                         <option value="tour">Tours</option>
                         <option value="exhibition">Exhibitions</option>
                         <option value="festival">Festivals</option>
@@ -1249,119 +1283,119 @@
                     </select>
                 </div>
 
-
                 <div class="form-group">
-                    <label>Venue Types:</label>
+                    <label>Venue Types</label>
                     <div class="venue-type-tabs">
                         <div class="venue-type-tab active" data-value="museum" data-id="venueTypeMuseum">
-                            🏛️ Museums
+                            Museums
                         </div>
                         <div class="venue-type-tab active" data-value="historic_site,memorial,monument" data-id="venueTypeHistoric">
-                            🏛️ Historic & Monuments
+                            Historic
                         </div>
                         <div class="venue-type-tab active" data-value="arts_center,theater,concert_hall" data-id="venueTypeArts">
-                            🎭 Arts & Performance
+                            Arts
                         </div>
                         <div class="venue-type-tab active" data-value="cinema" data-id="venueTypeCinema">
-                            🎬 Movie Cinemas
+                            Cinema
                         </div>
                         <div class="venue-type-tab active" data-value="park,garden,zoo,aquarium,beach" data-id="venueTypeParks">
-                            🌳 Parks & Nature
+                            Nature
                         </div>
                         <div class="venue-type-tab active" data-value="embassy" data-id="venueTypeEmbassy">
-                            🏢 Embassies
+                            Embassies
                         </div>
                         <div class="venue-type-tab active" data-value="landmark,observation,government,library,market,religious_site,shopping,stadium,arts_district,waterfront" data-id="venueTypeOther">
-                            🎯 Other Attractions
+                            Other
                         </div>
                     </div>
-                    <div class="venue-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="toggleAllVenues" class="source-control-btn" data-state="all">Deselect All</button>
+                    <div class="venue-controls" style="display: flex; gap: 6px; margin-top: 10px;">
+                        <button type="button" id="toggleAllVenues" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
                     </div>
                 </div>
 
                 <!-- Source Platform Types -->
                 <div class="form-group">
-                    <label>📱 Source Platforms:</label>
+                    <label>Platforms</label>
                     <div class="venue-type-tabs">
                         <div class="venue-type-tab active" data-value="instagram" data-id="platformTypeInstagram">
-                            📸 Instagram
+                            Instagram
                         </div>
                         <div class="venue-type-tab active" data-value="facebook" data-id="platformTypeFacebook">
-                            📘 Facebook
+                            Facebook
                         </div>
                         <div class="venue-type-tab active" data-value="website" data-id="platformTypeWebsite">
-                            🌐 Websites
+                            Websites
                         </div>
                         <div class="venue-type-tab active" data-value="meetup" data-id="platformTypeMeetup">
-                            🤝 Meetup
+                            Meetup
                         </div>
                         <div class="venue-type-tab active" data-value="eventbrite" data-id="platformTypeEventbrite">
-                            🎫 Eventbrite
+                            Eventbrite
                         </div>
                         <div class="venue-type-tab active" data-value="twitter,tiktok,youtube,newsletter" data-id="platformTypeOther">
-                            📱 Other Platforms
+                            Other
                         </div>
                     </div>
-                    <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="toggleAllPlatforms" class="source-control-btn" data-state="all">Deselect All</button>
+                    <div class="source-controls" style="display: flex; gap: 6px; margin-top: 10px;">
+                        <button type="button" id="toggleAllPlatforms" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
                     </div>
                 </div>
 
                 <!-- Source Content Types -->
                 <div class="form-group">
-                    <label>🎯 Source Content Types:</label>
+                    <label>Content</label>
                     <div class="venue-type-tabs">
                         <div class="venue-type-tab active" data-value="art_exhibitions,cultural_events,gallery_openings,artist_showcases,visual_arts" data-id="contentTypeArts">
-                            🎨 Arts & Culture
+                            Arts
                         </div>
                         <div class="venue-type-tab active" data-value="music,concerts,theater,dance,performances" data-id="contentTypeMusic">
-                            🎵 Music & Performance
+                            Music
                         </div>
                         <div class="venue-type-tab active" data-value="photography,photography_workshops,photography_education,street_photography,photowalks,art_walks" data-id="contentTypePhoto">
-                            📷 Photography
+                            Photo
                         </div>
                         <div class="venue-type-tab active" data-value="festivals,community_events,free_events,local_news" data-id="contentTypeEvents">
-                            🎪 Events & Festivals
+                            Events
                         </div>
                         <div class="venue-type-tab active" data-value="food_events,culinary,restaurants" data-id="contentTypeFood">
-                            🍽️ Food & Dining
+                            Food
                         </div>
                         <div class="venue-type-tab active" data-value="nightlife,political_events,lectures,workshops,language_classes,film_screenings,family_events,outdoor_events" data-id="contentTypeOther">
-                            🎯 Other Content
+                            Other
                         </div>
                     </div>
-                    <div class="source-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="toggleAllContent" class="source-control-btn" data-state="all">Deselect All</button>
+                    <div class="source-controls" style="display: flex; gap: 6px; margin-top: 10px;">
+                        <button type="button" id="toggleAllContent" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Price:</label>
-                    <div class="price-filter-buttons" style="display: flex; gap: 6px; margin-top: 8px;">
+                    <label>Price</label>
+                    <div class="price-filter-buttons" style="display: flex; gap: 6px; margin-top: 12px;">
                         <button type="button" class="price-filter-btn active" data-filter="free" title="Free venues only">
-                            🆓 <span class="count" id="countFree"></span>
+                            Free <span class="count" id="countFree"></span>
                         </button>
                         <button type="button" class="price-filter-btn active" data-filter="paid" title="Paid venues only">
-                            💰 <span class="count" id="countPaid"></span>
+                            Paid <span class="count" id="countPaid"></span>
                         </button>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <div style="display: flex; gap: 8px; margin-top: 24px;">
                     <button id="clearFiltersButton" class="clear-button" title="Reset All Filters">
-                        🔄 Reset
+                        Reset
                     </button>
                     <button id="loadVenuesButton" class="discover-button" title="Discover Available Items">
-                        🔍 Discover
+                        Discover
                     </button>
                 </div>
 
                 <!-- Event Planning Selection (shown after venues are loaded) -->
-                <div id="eventPlanningSelection" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.3);">
+                <div id="eventPlanningSelection" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(0,0,0,0.08);">
                     <div class="form-group">
-                        <label>Event Type:</label>
+                        <label>Event Type</label>
                         <select id="eventTypeSelectStep2">
+                            <option value="">All Types</option>
                             <option value="tour">Tours</option>
                             <option value="exhibition">Exhibitions</option>
                             <option value="festival">Festivals</option>
@@ -1372,7 +1406,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>🗓️ When:</label>
+                        <label>When</label>
                         <select id="dateRangeSelect">
                             <option value="today">Today</option>
                             <option value="tomorrow">Tomorrow</option>
@@ -1385,22 +1419,22 @@
                     </div>
 
                     <div class="form-group" id="customDateGroup" style="display: none;">
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <input type="date" id="startDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                            <input type="date" id="endDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <div style="display: flex; gap: 8px; margin-top: 0;">
+                            <input type="date" id="startDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                            <input type="date" id="endDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
                         </div>
                     </div>
 
                     <!-- Sources Selection (for non-venue events) -->
                     <div id="sourcesSelection" style="display: none;">
                         <div class="form-group">
-                            <label>📱 Event Sources:</label>
+                            <label>Event Sources</label>
                             <div class="sources-container">
                                 <div id="sourcesList" class="sources-list">
                                     <!-- Sources will be loaded here -->
                                 </div>
                                 <div class="source-controls">
-                                    <button type="button" id="toggleAllSources" class="source-control-btn" data-state="all">Deselect All</button>
+                                    <button type="button" id="toggleAllSources" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
                                 </div>
                             </div>
                         </div>
@@ -1419,39 +1453,39 @@
                 <!-- Status Section -->
                 <div class="status-section">
                     <div class="status-item">
-                        <span class="status-label">City:</span>
+                        <span class="status-label">City</span>
                         <span class="status-value" id="statusCity">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Event Type:</span>
+                        <span class="status-label">Event Type</span>
                         <span class="status-value" id="statusEventType">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Date Range:</span>
+                        <span class="status-label">Date Range</span>
                         <span class="status-value" id="statusDateRange">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Venue Types:</span>
+                        <span class="status-label">Venue Types</span>
                         <span class="status-value" id="statusVenueTypes">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Source Platforms:</span>
+                        <span class="status-label">Platforms</span>
                         <span class="status-value" id="statusPlatforms">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Content Types:</span>
+                        <span class="status-label">Content</span>
                         <span class="status-value" id="statusContentTypes">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Price Filter:</span>
+                        <span class="status-label">Price</span>
                         <span class="status-value" id="statusPriceFilter">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Items Found:</span>
+                        <span class="status-label">Found</span>
                         <span class="status-value" id="statusItemsFound">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Selected:</span>
+                        <span class="status-label">Selected</span>
                         <span class="status-value" id="statusSelected">-</span>
                     </div>
                 </div>
@@ -1459,7 +1493,7 @@
 
             <!-- Discovered Events Panel -->
             <div class="discovered-events">
-                <h2>📅 Discovered Events</h2>
+                <h2 style="color: rgba(0,0,0,0.6); margin-bottom: 24px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
                 <div class="time-selector">
                     <button class="time-btn" data-period="today">Today</button>
                     <button class="time-btn" data-period="tomorrow">Tomorrow</button>
@@ -1469,15 +1503,15 @@
                     <button class="time-btn" data-period="next_month">Next Month</button>
                     <button class="time-btn" data-period="custom">Custom Range</button>
                 </div>
-                <div id="discoveredCustomDateGroup" style="display: none; margin-top: 10px;">
+                <div id="discoveredCustomDateGroup" style="display: none; margin-top: 12px;">
                     <div style="display: flex; gap: 8px;">
-                        <input type="date" id="discoveredStartDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                        <input type="date" id="discoveredEndDate" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <input type="date" id="discoveredStartDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                        <input type="date" id="discoveredEndDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
                     </div>
                 </div>
-                <div style="margin-top: 10px; margin-bottom: 10px;">
-                    <button id="exportDiscoveredEventsBtn" class="export-btn" style="width: 100%;" disabled title="Export All Discovered Events to Calendar">
-                        📅 Export All Events to Calendar
+                <div style="margin-top: 16px; margin-bottom: 16px;">
+                    <button id="exportDiscoveredEventsBtn" class="export-btn" style="width: 100%; padding: 14px 24px; border-radius: 12px; background: rgba(0,0,0,0.87); color: white; border: none; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" disabled title="Export All Discovered Events to Calendar">
+                        Export to Calendar
                     </button>
                 </div>
                 <div id="discoveredEventsContainer">
@@ -1857,12 +1891,13 @@
 
         // Get selected venue types
         function getSelectedVenueTypes() {
-            const activeTabs = document.querySelectorAll('.venue-type-tab.active');
+            const activeTabs = document.querySelectorAll('.venue-type-tabs .venue-type-tab.active');
             const selectedTypes = [];
             
             activeTabs.forEach(tab => {
                 const value = tab.getAttribute('data-value');
-                if (value) {
+                // Only count tabs that are in the Venue Types section (not Platforms or Content)
+                if (value && tab.closest('.form-group').querySelector('label').textContent.includes('Venue Types')) {
                     // Split comma-separated values and add to array
                     const types = value.split(',');
                     selectedTypes.push(...types);
@@ -1980,8 +2015,8 @@
             if (contentGroup) contentGroup.style.display = 'none';
             
             // Reset event type selections
-            eventTypeSelect.value = 'tour';
-            eventTypeSelectStep2.value = 'tour';
+            eventTypeSelect.value = '';
+            eventTypeSelectStep2.value = '';
             eventPlanningSelection.style.display = 'none';
             
             // Reset date range to this week
@@ -3683,7 +3718,62 @@
                 showNotification('Event not found', 'error');
                 return;
             }
-            alert(`${event.title}\n\n${event.description || 'No description available.'}`);
+            
+            // Build detailed info string
+            let info = `📋 ${event.title}\n\n`;
+            
+            if (event.description) {
+                info += `Description: ${event.description}\n\n`;
+            }
+            
+            if (event.venue_name) {
+                info += `Venue: ${event.venue_name}\n`;
+            }
+            
+            if (event.start_date) {
+                info += `Date: ${event.start_date}\n`;
+            }
+            
+            if (event.start_time) {
+                info += `Time: ${event.start_time}\n`;
+            }
+            
+            if (event.url) {
+                info += `\n🔗 Event URL: ${event.url}\n`;
+            }
+            
+            if (event.source_url) {
+                info += `📱 Source URL: ${event.source_url}\n`;
+            }
+            
+            if (event.source) {
+                info += `Source: ${event.source}\n`;
+            }
+            
+            if (event.organizer) {
+                info += `Organizer: ${event.organizer}\n`;
+            }
+            
+            // Show in modal instead of alert for better UX
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #374151;">${event.title}</h3>
+                    ${event.description ? `<p style="margin-bottom: 15px; color: #6b7280;">${event.description}</p>` : ''}
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        ${event.venue_name ? `<div style="margin-bottom: 8px;"><strong>Venue:</strong> ${event.venue_name}</div>` : ''}
+                        ${event.start_date ? `<div style="margin-bottom: 8px;"><strong>Date:</strong> ${event.start_date}</div>` : ''}
+                        ${event.start_time ? `<div style="margin-bottom: 8px;"><strong>Time:</strong> ${event.start_time}</div>` : ''}
+                        ${event.event_type ? `<div style="margin-bottom: 8px;"><strong>Type:</strong> ${event.event_type}</div>` : ''}
+                        ${event.source ? `<div style="margin-bottom: 8px;"><strong>Source:</strong> ${event.source}</div>` : ''}
+                        ${event.organizer ? `<div style="margin-bottom: 8px;"><strong>Organizer:</strong> ${event.organizer}</div>` : ''}
+                    </div>
+                    ${event.url ? `<div style="margin-bottom: 10px;"><strong>Event URL:</strong> <a href="${event.url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.url}</a></div>` : ''}
+                    ${event.source_url && event.source_url !== event.url ? `<div style="margin-bottom: 10px;"><strong>Source URL:</strong> <a href="${event.source_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.source_url}</a></div>` : ''}
+                </div>
+            `;
+            
+            document.getElementById('eventDetailsContent').innerHTML = content;
+            document.getElementById('eventDetailsModal').style.display = 'block';
         }
 
         // Export selected events
