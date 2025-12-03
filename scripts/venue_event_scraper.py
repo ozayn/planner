@@ -11,7 +11,7 @@ import sys
 import json
 import requests
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time as time_class
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import time
@@ -56,7 +56,7 @@ class VenueEventScraper:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.scraped_events = []
         
-    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today', max_exhibitions_per_venue=5):
+    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today', max_exhibitions_per_venue=5, max_events_per_venue=10):
         """Scrape events from selected venues - focused on TODAY
         
         Args:
@@ -64,7 +64,10 @@ class VenueEventScraper:
             city_id: City ID to scrape venues from
             event_type: Type of events to scrape (tour, exhibition, festival, photowalk)
             time_range: Time range for events (defaults to 'today')
+            max_exhibitions_per_venue: Maximum number of exhibitions per venue (default: 5)
+            max_events_per_venue: Maximum number of events per venue for all event types (default: 10)
         """
+        logger.info(f"📊 Scraper: Received max_events_per_venue={max_events_per_venue}, max_exhibitions_per_venue={max_exhibitions_per_venue}")
         try:
             with app.app_context():
                 # Get venues to scrape
@@ -101,7 +104,7 @@ class VenueEventScraper:
                     try:
                         logger.info(f"Scraping events for: {venue.name}")
                         update_progress(2, 4, f"Scraping {venue.name}...")
-                        events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
+                        events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
                         
                         # Filter by event_type if specified
                         if event_type:
@@ -112,8 +115,22 @@ class VenueEventScraper:
                         events = self._filter_by_time_range(events, time_range)
                         logger.info(f"   After time_range filter: {len(events)} events")
                         
+                        # Limit events per venue based on event type
+                        # For exhibitions, use max_exhibitions_per_venue; for others, use max_events_per_venue
+                        if event_type and event_type.lower() == 'exhibition':
+                            # Limit exhibitions
+                            exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
+                            other_events = [e for e in events if e.get('event_type') != 'exhibition']
+                            if len(exhibition_events) > max_exhibitions_per_venue:
+                                logger.info(f"   Limiting exhibitions from {len(exhibition_events)} to {max_exhibitions_per_venue}")
+                                events = exhibition_events[:max_exhibitions_per_venue] + other_events
+                        else:
+                            # Limit all events (or specific event type)
+                            if len(events) > max_events_per_venue:
+                                logger.info(f"   Limiting events from {len(events)} to {max_events_per_venue}")
+                                events = events[:max_events_per_venue]
+                        
                         # Add unique events only with better deduplication
-                        # Limit to maximum exhibitions per venue (parameter passed from scrape_venue_events)
                         for event in events:
                             # For exhibitions, check if we've reached the maximum for this venue BEFORE processing
                             if event.get('event_type') == 'exhibition':
@@ -205,7 +222,7 @@ class VenueEventScraper:
             logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
-    def _scrape_venue_website(self, venue, event_type=None, time_range='today', max_exhibitions_per_venue=5):
+    def _scrape_venue_website(self, venue, event_type=None, time_range='today', max_exhibitions_per_venue=5, max_events_per_venue=10):
         """Scrape events from venue's main website
         
         Args:
@@ -213,6 +230,7 @@ class VenueEventScraper:
             event_type: Optional filter for event type (tour, exhibition, etc.)
             time_range: Time range for events (today, this_week, this_month, etc.)
             max_exhibitions_per_venue: Maximum number of exhibitions to extract per venue (default: 5)
+            max_events_per_venue: Maximum number of events per venue for all event types (default: 10)
         """
         events = []
         
@@ -225,6 +243,49 @@ class VenueEventScraper:
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Check for Art Institute of Chicago events page (/events)
+            # This page lists all events (tours, talks, workshops) with their types
+            if 'artic.edu' in venue.website_url:
+                events_page_url = urljoin(venue.website_url, '/events')
+                try:
+                    logger.info(f"🔍 Checking Art Institute events page: {events_page_url}")
+                    events_response = self.session.get(events_page_url, timeout=10)
+                    logger.info(f"   Response status: {events_response.status_code}")
+                    if events_response.status_code == 200:
+                        events_soup = BeautifulSoup(events_response.content, 'html.parser')
+                        # Log a sample of the page to debug
+                        page_text_sample = events_soup.get_text()[:500]
+                        logger.info(f"   Page text sample: {page_text_sample}")
+                        artic_events = self._extract_events_from_artic_listing_page(
+                            events_soup, venue, events_page_url, event_type=event_type, time_range=time_range
+                        )
+                        logger.info(f"   _extract_events_from_artic_listing_page returned {len(artic_events)} events")
+                        if artic_events:
+                            logger.info(f"✅ Extracted {len(artic_events)} events from Art Institute events page")
+                            # Log event types found
+                            event_types_found = {}
+                            for e in artic_events:
+                                etype = e.get('event_type', 'unknown')
+                                event_types_found[etype] = event_types_found.get(etype, 0) + 1
+                            logger.info(f"   Event types found: {event_types_found}")
+                            events.extend(artic_events)
+                            # If we're looking for a specific non-exhibition event type (tour, talk, workshop, etc.),
+                            # we can return early since the /events page has all those types.
+                            # But if we're looking for "all types" (empty event_type) or "exhibition",
+                            # we should continue to also scrape exhibitions from other pages.
+                            if event_type and event_type.strip() and event_type.lower() not in ['exhibition']:
+                                logger.info(f"   Found {len(artic_events)} {event_type} events from /events page, returning early")
+                                return events
+                            # If event_type is empty (All Types) or 'exhibition', continue to scrape exhibitions too
+                        else:
+                            logger.warning(f"⚠️ No events extracted from Art Institute events page")
+                    else:
+                        logger.warning(f"⚠️ Art Institute events page returned status {events_response.status_code}")
+                except Exception as e:
+                    logger.error(f"❌ Error accessing Art Institute events page: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
             
             # Look for exhibition-specific pages (for museums like LACMA, Smithsonian, Hirshhorn)
             exhibition_links = soup.find_all('a', href=lambda href: href and (
@@ -307,32 +368,38 @@ class VenueEventScraper:
                         # Check if it's an individual exhibition page (has a specific name/slug after the exhibition path)
                         is_individual_page = False
                         if not is_listing_page and url_lower != venue.website_url.lower():
-                            # Check for individual page patterns with slugs
-                            individual_patterns = [
-                                ('/art/exhibition/', 3),  # LACMA: /art/exhibition/name (3 parts: art, exhibition, name)
-                                ('/exhibitions/', 2),  # NGA/Phillips: /exhibitions/name (2 parts: exhibitions, name)
-                                ('/exhibition-experiences/', 2),  # Spy Museum: /exhibition-experiences/name
-                                ('/whats-on/exhibitions/', 3),  # Air and Space: /whats-on/exhibitions/name
-                                ('/explore/exhibitions/', 3),  # Smithsonian: /explore/exhibitions/name (but not washington/newyork/online)
-                            ]
-                            
-                            for pattern, min_parts in individual_patterns:
-                                if pattern in url_lower:
-                                    # Extract the path after the pattern
-                                    path_after = url_lower.split(pattern)[1].split('/')[0].split('?')[0]
-                                    # Skip category pages (not individual exhibitions)
-                                    category_pages = ['traveling', 'past', 'upcoming', 'washington', 'newyork', 'online', 'current', 'future']
-                                    if path_after.lower() in category_pages:
-                                        logger.debug(f"⚠️ Skipping category page: {exhibition_url}")
-                                        continue
-                                    # Check if there's a meaningful slug (not empty, has letters, reasonable length)
-                                    if path_after and len(path_after) > 3 and any(c.isalpha() for c in path_after):
-                                        # Count path parts to ensure it's not too nested (likely a listing page)
-                                        path_parts = [p for p in url_path.split('/') if p]
-                                        if len(path_parts) >= min_parts:
-                                            is_individual_page = True
-                                            logger.info(f"✅ Detected individual exhibition page: {exhibition_url}")
-                                            break
+                            # Special case: Smithsonian National Museum of the American Indian uses /explore/exhibitions/item?id=XXX
+                            if '/explore/exhibitions/item?id=' in url_lower:
+                                is_individual_page = True
+                                logger.info(f"✅ Detected Smithsonian NMAI individual exhibition page: {exhibition_url}")
+                            else:
+                                # Check for individual page patterns with slugs
+                                individual_patterns = [
+                                    ('/art/exhibition/', 3),  # LACMA: /art/exhibition/name (3 parts: art, exhibition, name)
+                                    ('/exhibitions/', 2),  # NGA/Phillips: /exhibitions/name (2 parts: exhibitions, name)
+                                    ('/exhibition/', 2),  # Field Museum: /exhibition/name (2 parts: exhibition, name)
+                                    ('/exhibition-experiences/', 2),  # Spy Museum: /exhibition-experiences/name
+                                    ('/whats-on/exhibitions/', 3),  # Air and Space: /whats-on/exhibitions/name
+                                    ('/explore/exhibitions/', 3),  # Smithsonian: /explore/exhibitions/name (but not washington/newyork/online)
+                                ]
+                                
+                                for pattern, min_parts in individual_patterns:
+                                    if pattern in url_lower:
+                                        # Extract the path after the pattern
+                                        path_after = url_lower.split(pattern)[1].split('/')[0].split('?')[0]
+                                        # Skip category pages (not individual exhibitions)
+                                        category_pages = ['traveling', 'past', 'upcoming', 'washington', 'newyork', 'online', 'current', 'future']
+                                        if path_after.lower() in category_pages:
+                                            logger.debug(f"⚠️ Skipping category page: {exhibition_url}")
+                                            continue
+                                        # Check if there's a meaningful slug (not empty, has letters, reasonable length)
+                                        if path_after and len(path_after) > 3 and any(c.isalpha() for c in path_after):
+                                            # Count path parts to ensure it's not too nested (likely a listing page)
+                                            path_parts = [p for p in url_path.split('/') if p]
+                                            if len(path_parts) >= min_parts:
+                                                is_individual_page = True
+                                                logger.info(f"✅ Detected individual exhibition page: {exhibition_url}")
+                                                break
                         
                         if not is_individual_page and not is_listing_page:
                             logger.info(f"⚠️ URL not recognized as individual or listing page: {exhibition_url} (path: {url_path})")
@@ -414,23 +481,27 @@ class VenueEventScraper:
                                     )
                                     
                                     if not is_listing and individual_url_lower not in seen_individual_urls:
-                                        # Check if it has a slug after the exhibition path
-                                        individual_patterns = [
-                                            ('/art/exhibition/', 3),
-                                            ('/exhibitions/', 2),
-                                            ('/exhibition-experiences/', 2),
-                                            ('/whats-on/exhibitions/', 3),
-                                        ]
-                                        
+                                        # Special case: Smithsonian NMAI uses /explore/exhibitions/item?id=XXX
                                         is_individual = False
-                                        for pattern, min_parts in individual_patterns:
-                                            if pattern in individual_url_lower:
-                                                path_after = individual_url_lower.split(pattern)[1].split('/')[0].split('?')[0]
-                                                if path_after and len(path_after) > 3 and any(c.isalpha() for c in path_after):
-                                                    path_parts = [p for p in individual_path.split('/') if p]
-                                                    if len(path_parts) >= min_parts:
-                                                        is_individual = True
-                                                        break
+                                        if '/explore/exhibitions/item?id=' in individual_url_lower:
+                                            is_individual = True
+                                        else:
+                                            # Check if it has a slug after the exhibition path
+                                            individual_patterns = [
+                                                ('/art/exhibition/', 3),
+                                                ('/exhibitions/', 2),
+                                                ('/exhibition-experiences/', 2),
+                                                ('/whats-on/exhibitions/', 3),
+                                            ]
+                                            
+                                            for pattern, min_parts in individual_patterns:
+                                                if pattern in individual_url_lower:
+                                                    path_after = individual_url_lower.split(pattern)[1].split('/')[0].split('?')[0]
+                                                    if path_after and len(path_after) > 3 and any(c.isalpha() for c in path_after):
+                                                        path_parts = [p for p in individual_path.split('/') if p]
+                                                        if len(path_parts) >= min_parts:
+                                                            is_individual = True
+                                                            break
                                         
                                         if is_individual:
                                             seen_individual_urls.add(individual_url_lower)
@@ -488,6 +559,45 @@ class VenueEventScraper:
                         events.extend(tour_events)
                     except Exception as e:
                         logger.debug(f"Error scraping tour page {link['href']}: {e}")
+                        continue
+            
+            # Look for event pages (for performances, concerts, talks, etc.) - not exhibitions
+            # Only if event_type is not 'exhibition' or None (all types)
+            if not event_type or event_type.lower() != 'exhibition':
+                # Look for /event/ URLs (Hirshhorn, etc.)
+                event_links = soup.find_all('a', href=lambda href: href and '/event/' in href.lower())
+                # Also look for event calendar links
+                event_calendar_links = soup.find_all('a', href=lambda href: href and ('events' in href.lower() or 'calendar' in href.lower()))
+                event_links.extend(event_calendar_links)
+                
+                # Remove duplicates
+                seen_event_urls = set()
+                unique_event_links = []
+                for link in event_links:
+                    event_url = urljoin(venue.website_url, link['href'])
+                    if event_url not in seen_event_urls:
+                        seen_event_urls.add(event_url)
+                        unique_event_links.append(link)
+                
+                for link in unique_event_links[:10]:  # Check first 10 event links
+                    try:
+                        event_url = urljoin(venue.website_url, link['href'])
+                        # Skip if it's an exhibition URL
+                        if '/exhibition' in event_url.lower() or '/exhibit' in event_url.lower():
+                            continue
+                        
+                        logger.info(f"Scraping event page: {event_url}")
+                        event_response = self.session.get(event_url, timeout=10)
+                        event_response.raise_for_status()
+                        event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                        
+                        # Extract events from event page
+                        event_events = self._extract_events_from_html(
+                            event_soup, venue, event_url, event_type=event_type, time_range=time_range
+                        )
+                        events.extend(event_events)
+                    except Exception as e:
+                        logger.debug(f"Error scraping event page {link['href']}: {e}")
                         continue
             
             # For LACMA, look for exhibition links in the exhibitions section
@@ -706,6 +816,7 @@ class VenueEventScraper:
             
             # Enhanced title improvement logic
             title = self._improve_title(title, description, venue, tour_url)
+            title = self._clean_title(title)  # Clean and normalize title text
             
             # Extract date/time with enhanced parsing
             # First try specific date selectors
@@ -761,7 +872,7 @@ class VenueEventScraper:
             
             # Determine event type based on venue type (if not already determined)
             if not event_type:
-                event_type = self._determine_event_type(venue.venue_type, title, description, url)
+                event_type = self._determine_event_type(venue.venue_type, title, description)
             
             # Parse dates - use exhibition-specific parser for exhibitions
             if event_type == 'exhibition' and date_text:
@@ -813,6 +924,34 @@ class VenueEventScraper:
         except Exception as e:
             logger.debug(f"Error parsing event element: {e}")
             return None
+    
+    def _clean_title(self, title):
+        """Clean and normalize title text to fix common issues"""
+        if not title:
+            return title
+        
+        import re
+        
+        # Fix missing spaces after apostrophes (e.g., "Bellows'sLove" -> "Bellows's Love")
+        title = re.sub(r"([a-z]'s)([A-Z])", r"\1 \2", title)
+        
+        # Fix missing spaces after colons (e.g., "Title:Subtitle" -> "Title: Subtitle")
+        title = re.sub(r"([^:]):([A-Za-z])", r"\1: \2", title)
+        
+        # Fix missing spaces after periods (e.g., "Mr.John" -> "Mr. John")
+        title = re.sub(r"([a-z])\.([A-Z])", r"\1. \2", title)
+        
+        # Fix missing spaces before capital letters after lowercase (e.g., "wordWord" -> "word Word")
+        # But be careful not to break acronyms or proper nouns
+        title = re.sub(r"([a-z])([A-Z][a-z])", r"\1 \2", title)
+        
+        # Normalize multiple spaces to single space
+        title = re.sub(r'\s+', ' ', title)
+        
+        # Strip leading/trailing whitespace
+        title = title.strip()
+        
+        return title
     
     def _extract_text(self, element, selectors):
         """Extract text from element using multiple selectors"""
@@ -1214,7 +1353,7 @@ class VenueEventScraper:
                                 elif ampm == 'AM' and hour == 12:
                                     hour = 0
                                 
-                                start_time = time(hour, minute)
+                                start_time = time_class(hour, minute)
                                 
                                 # Extract end time if available (pattern with range)
                                 if len(match.groups()) >= 7:
@@ -1227,7 +1366,7 @@ class VenueEventScraper:
                                     elif end_ampm == 'AM' and end_hour == 12:
                                         end_hour = 0
                                     
-                                    end_time = time(end_hour, end_minute)
+                                    end_time = time_class(end_hour, end_minute)
                                     logger.info(f"⏰ Extracted times from page: {start_time} - {end_time}")
                                 else:
                                     logger.info(f"⏰ Extracted start time from page: {start_time}")
@@ -1268,37 +1407,107 @@ class VenueEventScraper:
         
         # Look for explicit time patterns in date_text
         if date_text:
+            # First, try to parse date from weekday abbreviation format (e.g., "Wed, Dec 3")
+            weekday_month_pattern = r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+([A-Z][a-z]{2,3})\s+(\d{1,2})'
+            date_match = re.search(weekday_month_pattern, date_text, re.IGNORECASE)
+            if date_match:
+                month_abbr = date_match.group(2)
+                day = int(date_match.group(3))
+                # Map month abbreviations to numbers
+                month_map = {
+                    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+                    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+                }
+                month_num = month_map.get(month_abbr.lower())
+                if month_num:
+                    current_year = today.year
+                    try:
+                        parsed_date = date(current_year, month_num, day)
+                        # If the date is in the past, assume it's next year
+                        if parsed_date < today:
+                            parsed_date = date(current_year + 1, month_num, day)
+                        start_date = parsed_date
+                        end_date = parsed_date
+                        logger.info(f"📅 Parsed date from weekday format: {start_date}")
+                    except ValueError:
+                        logger.debug(f"Invalid date: {month_num}/{day}")
+            
+            # Look for 24-hour time range format (e.g., "12:00–12:30" or "12:00-12:30")
+            time_range_pattern = r'(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})'
+            time_range_match = re.search(time_range_pattern, date_text)
+            if time_range_match:
+                start_hour = int(time_range_match.group(1))
+                start_min = int(time_range_match.group(2))
+                end_hour = int(time_range_match.group(3))
+                end_min = int(time_range_match.group(4))
+                
+                # Validate 24-hour format times
+                if 0 <= start_hour <= 23 and 0 <= start_min <= 59 and 0 <= end_hour <= 23 and 0 <= end_min <= 59:
+                    start_time = time_class(start_hour, start_min)
+                    end_time = time_class(end_hour, end_min)
+                    logger.info(f"⏰ Parsed 24-hour time range: {start_time} - {end_time}")
+            
+            # Look for 12-hour time range format with AM/PM (e.g., "5:00 pm–7:00 pm" or "5:00 pm - 7:00 pm")
+            if not start_time or not end_time:
+                time_range_ampm_pattern = r'(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)'
+                time_range_ampm_match = re.search(time_range_ampm_pattern, date_text, re.IGNORECASE)
+                if time_range_ampm_match:
+                    start_hour = int(time_range_ampm_match.group(1))
+                    start_min = int(time_range_ampm_match.group(2))
+                    start_ampm = time_range_ampm_match.group(3).upper()
+                    end_hour = int(time_range_ampm_match.group(4))
+                    end_min = int(time_range_ampm_match.group(5))
+                    end_ampm = time_range_ampm_match.group(6).upper()
+                    
+                    # Convert to 24-hour format
+                    if start_ampm == 'PM' and start_hour != 12:
+                        start_hour += 12
+                    elif start_ampm == 'AM' and start_hour == 12:
+                        start_hour = 0
+                    
+                    if end_ampm == 'PM' and end_hour != 12:
+                        end_hour += 12
+                    elif end_ampm == 'AM' and end_hour == 12:
+                        end_hour = 0
+                    
+                    start_time = time_class(start_hour, start_min)
+                    end_time = time_class(end_hour, end_min)
+                    logger.info(f"⏰ Parsed 12-hour time range: {start_time} - {end_time}")
+            
+            # Also check for 12-hour format with AM/PM
             time_patterns = [
                 r'(\d{1,2}):(\d{2})\s*([ap]m)',
                 r'(\d{1,2})\s*([ap]m)',
             ]
             
-            for pattern in time_patterns:
-                match = re.search(pattern, date_text, re.IGNORECASE)
-                if match:
-                    if len(match.groups()) == 3:  # HH:MM AM/PM
-                        hour = int(match.group(1))
-                        minute = int(match.group(2))
-                        ampm = match.group(3).upper()
-                        
-                        if ampm == 'PM' and hour != 12:
-                            hour += 12
-                        elif ampm == 'AM' and hour == 12:
-                            hour = 0
-                        
-                        start_time = time(hour, minute)
-                        break
-                    elif len(match.groups()) == 2:  # H AM/PM
-                        hour = int(match.group(1))
-                        ampm = match.group(2).upper()
-                        
-                        if ampm == 'PM' and hour != 12:
-                            hour += 12
-                        elif ampm == 'AM' and hour == 12:
-                            hour = 0
-                        
-                        start_time = time(hour, 0)
-                        break
+            # Only use 12-hour format if we haven't already found a time
+            if not start_time:
+                for pattern in time_patterns:
+                    match = re.search(pattern, date_text, re.IGNORECASE)
+                    if match:
+                        if len(match.groups()) == 3:  # HH:MM AM/PM
+                            hour = int(match.group(1))
+                            minute = int(match.group(2))
+                            ampm = match.group(3).upper()
+                            
+                            if ampm == 'PM' and hour != 12:
+                                hour += 12
+                            elif ampm == 'AM' and hour == 12:
+                                hour = 0
+                            
+                            start_time = time(hour, minute)
+                            break
+                        elif len(match.groups()) == 2:  # H AM/PM
+                            hour = int(match.group(1))
+                            ampm = match.group(2).upper()
+                            
+                            if ampm == 'PM' and hour != 12:
+                                hour += 12
+                            elif ampm == 'AM' and hour == 12:
+                                hour = 0
+                            
+                            start_time = time(hour, 0)
+                            break
         
         # Final check: If we have a start time but no end time, assume 1-hour duration for tours
         if start_time and not end_time:
@@ -1319,8 +1528,20 @@ class VenueEventScraper:
         """Determine event type based on venue and content"""
         content = f"{title} {description}".lower()
         
+        # Prioritize workshop/class detection (before other types)
+        if 'workshop' in content or 'class' in content or 'sketching' in content or 'art making' in content:
+            return 'workshop'
+        # Prioritize performance/concert detection
+        elif 'performance' in content or 'concert' in content or 'consort' in content or 'recital' in content:
+            return 'talk'  # Use 'talk' as the event type for performances (or could be 'festival' depending on DB schema)
+        # Prioritize talk detection (before tour, since "tour" might be in talk descriptions)
+        elif 'talk' in content and ('spotlight talk' in content or 'talk:' in content or 'talk ' in content or 'talk,' in content):
+            return 'talk'
+        # Also check for lecture, discussion, conversation patterns
+        elif 'lecture' in content or 'discussion' in content or 'conversation' in content:
+            return 'talk'
         # Prioritize tour detection
-        if 'tour' in content or 'guided' in content:
+        elif 'tour' in content or 'guided' in content:
             return 'tour'
         elif venue_type == 'museum':
             if 'exhibition' in content or 'exhibit' in content:
@@ -1341,6 +1562,9 @@ class VenueEventScraper:
     def _extract_exhibition_from_page(self, soup, venue, url, event_type=None, time_range='today'):
         """Extract an exhibition event from an individual exhibition page"""
         try:
+            # Special handling for Hirshhorn exhibition pages
+            is_hirshhorn = 'hirshhorn.si.edu' in url.lower()
+            
             # Extract title from page - prioritize better sources
             title = None
             # First try meta tags (most reliable)
@@ -1368,7 +1592,8 @@ class VenueEventScraper:
                     h1_text = h1.get_text(strip=True)
                     # Filter out generic navigation titles
                     generic_titles = ['global search', 'search', 'menu', 'navigation', 'skip to content', 
-                                     'calendar', 'events', 'exhibitions', 'home', 'about']
+                                     'calendar', 'events', 'exhibitions', 'home', 'about', 'our staff',
+                                     'join us for an event', 'join us', 'join us for', 'join us!']
                     if h1_text.lower() not in generic_titles and len(h1_text) > 3:
                         title = h1_text
             
@@ -1396,15 +1621,43 @@ class VenueEventScraper:
                 logger.debug(f"Could not extract title from exhibition page: {url}")
                 return None
             
+            # Clean and normalize title
+            title = self._clean_title(title)
+            
             # Extract description
             description = None
-            desc_selectors = ['.exhibition-description', '.description', '.content', 'article p', '.summary']
-            for selector in desc_selectors:
-                element = soup.select_one(selector)
-                if element:
-                    description = element.get_text(strip=True)
-                    if description and len(description) > 20:
-                        break
+            
+            # Special handling for Hirshhorn: description is often in paragraphs after h2 with dates
+            if is_hirshhorn:
+                h2 = soup.find('h2')
+                if h2:
+                    # Get paragraphs after the h2
+                    next_p = h2.find_next_sibling('p')
+                    if next_p:
+                        desc_parts = []
+                        # Collect first few paragraphs after h2
+                        current = next_p
+                        for _ in range(3):
+                            if current and current.name == 'p':
+                                text = current.get_text(strip=True)
+                                if text and len(text) > 20:
+                                    desc_parts.append(text)
+                                current = current.find_next_sibling('p')
+                            else:
+                                break
+                        if desc_parts:
+                            description = ' '.join(desc_parts)
+                            logger.info(f"📝 Found Hirshhorn description: {description[:100]}...")
+            
+            # Fallback to standard selectors
+            if not description:
+                desc_selectors = ['.exhibition-description', '.description', '.content', 'article p', '.summary']
+                for selector in desc_selectors:
+                    element = soup.select_one(selector)
+                    if element:
+                        description = element.get_text(strip=True)
+                        if description and len(description) > 20:
+                            break
             
             # If no description, get first few paragraphs
             if not description:
@@ -1482,6 +1735,299 @@ class VenueEventScraper:
             logger.debug(f"Error extracting exhibition from page {url}: {e}")
             return None
     
+    def _extract_events_from_artic_listing_page(self, soup, venue, page_url, event_type=None, time_range='today'):
+        """Extract events from Art Institute of Chicago events listing page
+        
+        The actual page format:
+        - Event items have titles in <strong class="title"> elements
+        - Event type labels appear as plain text (e.g., "Tour", "Class/Workshop") before the title
+        - Time ranges: "12:00–12:30"
+        - Dates appear in headings like "03 Dec Wed"
+        - Descriptions and "Free" label in parent container
+        
+        Args:
+            soup: BeautifulSoup object of the events listing page
+            venue: Venue object
+            page_url: URL of the events listing page
+            event_type: Optional filter for event type (tour, talk, workshop, etc.)
+            time_range: Time range for events
+        
+        Returns:
+            List of event dictionaries
+        """
+        events = []
+        
+        try:
+            logger.info(f"🔍 Starting Art Institute events extraction from {page_url}")
+            
+            # Find all date sections first (h3/h2 with dates like "03 Dec Wed" or "03DecWed")
+            date_sections = []
+            all_headings = soup.find_all(['h2', 'h3', 'h4'])
+            for heading in all_headings:
+                heading_text = heading.get_text(strip=True)
+                # Match both formats: "03 Dec Wed" (with spaces) and "03DecWed" (without spaces)
+                if re.search(r'\d{1,2}\s*[A-Z][a-z]{2,3}\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)', heading_text, re.IGNORECASE):
+                    date_sections.append(heading)
+            
+            logger.info(f"🔍 Found {len(date_sections)} date sections")
+            
+            # Find all title elements (these are the event titles)
+            title_elements = soup.find_all('strong', class_=re.compile('title', re.I))
+            logger.info(f"🔍 Found {len(title_elements)} title elements")
+            
+            # Process each title element
+            for title_elem in title_elements:
+                try:
+                    title = title_elem.get_text(strip=True)
+                    if not title or len(title) < 3:
+                        continue
+                    
+                    # Get parent container (contains all event info)
+                    parent = title_elem.find_parent(['div', 'article', 'li', 'section'])
+                    if not parent:
+                        continue
+                    
+                    parent_text = parent.get_text()
+                    
+                    # Extract event type label (appears before title, like "Tour", "Class/Workshop")
+                    # Look for type labels in the parent text before the title
+                    # The label appears as a standalone word surrounded by whitespace/newlines
+                    text_before_title = parent_text[:parent_text.find(title)] if title in parent_text else ''
+                    type_label_match = re.search(r'(?:^|\s)(Tour|Talk|Class/Workshop|Workshop|Screening|Special Event)(?:\s|$)', text_before_title, re.IGNORECASE)
+                    detected_type = None
+                    if type_label_match:
+                        type_label = type_label_match.group(1).lower()
+                        if type_label == 'class/workshop' or type_label == 'workshop':
+                            detected_type = 'workshop'
+                        elif type_label == 'talk':
+                            detected_type = 'talk'
+                        elif type_label == 'tour':
+                            detected_type = 'tour'
+                        elif type_label == 'screening':
+                            detected_type = 'festival'
+                        elif type_label == 'special event':
+                            detected_type = 'festival'
+                    
+                    # If no type label found, detect from title
+                    if not detected_type:
+                        description_elem = parent.find('p')
+                        description_text = description_elem.get_text(strip=True) if description_elem else ''
+                        detected_type = self._determine_event_type(venue.venue_type, title, description_text)
+                        logger.info(f"⚠️ No type label found, detected '{detected_type}' from title: '{title}'")
+                    
+                    # Even if type label was found, double-check with title (label might be wrong)
+                    # For example, label says "Tour" but title says "Spotlight Talk"
+                    if detected_type and title:
+                        description_elem = parent.find('p')
+                        description_text = description_elem.get_text(strip=True) if description_elem else ''
+                        title_based_type = self._determine_event_type(venue.venue_type, title, description_text)
+                        # If title-based detection is more specific (talk/workshop vs tour), use it
+                        if title_based_type in ['talk', 'workshop'] and detected_type == 'tour':
+                            logger.info(f"⚠️ Type label says '{detected_type}' but title suggests '{title_based_type}', using '{title_based_type}': '{title}'")
+                            detected_type = title_based_type
+                    
+                    if not detected_type:
+                        continue
+                    
+                    # Filter by event_type if specified
+                    if event_type and detected_type != event_type.lower():
+                        continue
+                    
+                    # Clean title
+                    title = self._clean_title(title)
+                    
+                    # Skip generic titles
+                    generic_titles = ['join us for an event', 'join us', 'join us for', 'join us!', 'our staff', 
+                                     'now open!', 'exhibition highlights', 'gallery tour']
+                    if title.lower() in generic_titles:
+                        continue
+                    
+                    # Extract time range (e.g., "12:00–12:30")
+                    time_match = re.search(r'(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})', parent_text)
+                    start_time = None
+                    end_time = None
+                    if time_match:
+                        start_hour = int(time_match.group(1))
+                        start_min = int(time_match.group(2))
+                        end_hour = int(time_match.group(3))
+                        end_min = int(time_match.group(4))
+                        
+                        # Validate times
+                        if 0 <= start_hour <= 23 and 0 <= start_min <= 59 and 0 <= end_hour <= 23 and 0 <= end_min <= 59:
+                            start_time = time_class(start_hour, start_min)
+                            end_time = time_class(end_hour, end_min)
+                    
+                    # If no time found, skip (talks and workshops require times)
+                    if detected_type in ['talk', 'workshop'] and not start_time:
+                        logger.debug(f"⚠️ Skipping {detected_type} '{title}' - no start time found")
+                        continue
+                    
+                    # Find date - look for date section before this event
+                    event_date = None
+                    for date_section in date_sections:
+                        # Check if this event comes after this date section
+                        if date_section in title_elem.find_all_previous(['h2', 'h3', 'h4']):
+                            date_text = date_section.get_text(strip=True)
+                            # Match both formats: "03 Dec Wed" (with spaces) and "03DecWed" (without spaces)
+                            date_match = re.search(r'(\d{1,2})\s*([A-Z][a-z]{2,3})\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)', date_text, re.IGNORECASE)
+                            if date_match:
+                                day = int(date_match.group(1))
+                                month_abbr = date_match.group(2)
+                                month_map = {
+                                    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+                                    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+                                }
+                                month_num = month_map.get(month_abbr.lower())
+                                if month_num:
+                                    today = date.today()
+                                    current_year = today.year
+                                    try:
+                                        event_date = date(current_year, month_num, day)
+                                        if event_date < today:
+                                            event_date = date(current_year + 1, month_num, day)
+                                        break
+                                    except ValueError:
+                                        continue
+                    
+                    # If no date found, use today as fallback
+                    if not event_date:
+                        event_date = date.today()
+                        logger.debug(f"⚠️ No date found for '{title}', using today: {event_date}")
+                    
+                    # Extract description
+                    description = None
+                    desc_elem = parent.find('p')
+                    if desc_elem:
+                        description = desc_elem.get_text(strip=True)[:500]
+                    
+                    # Extract event URL
+                    event_url = None
+                    link = parent.find('a', href=True)
+                    if link:
+                        href = link.get('href')
+                        if href:
+                            event_url = urljoin(page_url, href)
+                    
+                    # Extract image
+                    image_url = None
+                    img = parent.find('img')
+                    if img:
+                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                        if img_src:
+                            image_url = urljoin(page_url, img_src)
+                    
+                    # Check if event is free
+                    is_free = 'free' in parent_text.lower()
+                    price = 'Free' if is_free else None
+                    
+                    # Create event data
+                    event_data = {
+                        'title': title,
+                        'description': description or '',
+                        'url': event_url or page_url,
+                        'image_url': image_url or '',
+                        'start_date': event_date.isoformat(),
+                        'end_date': event_date.isoformat(),
+                        'start_time': start_time.strftime('%H:%M:%S') if start_time else None,
+                        'end_time': end_time.strftime('%H:%M:%S') if end_time else None,
+                        'event_type': detected_type,
+                        'venue_id': venue.id,
+                        'city_id': venue.city_id,
+                        'source': 'website',
+                        'source_url': page_url,
+                        'price': price
+                    }
+                    
+                    # Validate event
+                    logger.info(f"🔍 Validating {detected_type} event: '{title}' on {event_date} at {start_time if start_time else 'TBD'}")
+                    logger.info(f"   Event data: type={detected_type}, has_time={start_time is not None}, has_date={event_date is not None}")
+                    if self._is_valid_event(event_data):
+                        events.append(event_data)
+                        logger.info(f"✅ Extracted {detected_type} event: '{title}' on {event_date} at {start_time if start_time else 'TBD'}")
+                    else:
+                        logger.warning(f"⚠️ Event '{title}' did not pass validation (type: {detected_type}, time: {start_time})")
+                        # Log why it failed validation
+                        logger.warning(f"   Event data keys: {list(event_data.keys())}")
+                        logger.warning(f"   Title: {event_data.get('title')}")
+                        logger.warning(f"   Event type: {event_data.get('event_type')}")
+                        logger.warning(f"   Start time: {event_data.get('start_time')}")
+                        logger.warning(f"   Start date: {event_data.get('start_date')}")
+                
+                except Exception as e:
+                    logger.error(f"❌ Error processing event item '{title if 'title' in locals() else 'unknown'}': {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    continue
+            
+            logger.info(f"📦 Art Institute events extraction complete: found {len(events)} events")
+            if event_type:
+                filtered = [e for e in events if e.get('event_type') == event_type]
+                logger.info(f"   Filtered to {len(filtered)} {event_type} events")
+            else:
+                # Log breakdown by type
+                type_counts = {}
+                for e in events:
+                    etype = e.get('event_type', 'unknown')
+                    type_counts[etype] = type_counts.get(etype, 0) + 1
+                logger.info(f"   Event breakdown by type: {type_counts}")
+        
+        except Exception as e:
+            logger.error(f"Error extracting events from Art Institute listing page: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        return events
+    
+    def _extract_exhibitions_from_listing_page(self, soup, venue, page_url, event_type=None, time_range='today', max_exhibitions_per_venue=5):
+        """Extract exhibitions directly from a listing page (e.g., Smithsonian museums, Met Museum)
+        
+        Args:
+            soup: BeautifulSoup object of the listing page
+            venue: Venue object
+            page_url: URL of the listing page
+            event_type: Optional filter for event type
+            time_range: Time range for events
+            max_exhibitions_per_venue: Maximum number of exhibitions to extract (default: 5)
+        
+        Returns:
+            List of at most max_exhibitions_per_venue exhibition events
+        """
+        events = []
+        # CRITICAL: Enforce limit - this function MUST NEVER return more than max_exhibitions_per_venue
+        if max_exhibitions_per_venue <= 0:
+            logger.warning(f"Invalid max_exhibitions_per_venue: {max_exhibitions_per_venue}, defaulting to 5")
+            max_exhibitions_per_venue = 5
+        
+        try:
+            # NGA calendar page format: exhibitions listed with "Closing [date]" or date ranges
+            if 'nga.gov' in page_url and ('calendar' in page_url or 'tab=exhibitions' in page_url):
+                # Look for exhibition items in the calendar view
+                # NGA uses various selectors - try multiple approaches
+                exhibition_items = []
+                
+                # Try finding exhibition cards/items
+                exhibition_items = soup.find_all(['article', 'div', 'li'], 
+                    class_=lambda c: c and ('exhibition' in str(c).lower() or 'event' in str(c).lower() or 'calendar' in str(c).lower()))
+                
+                # If no specific exhibition items found, look for links to exhibitions
+                if not exhibition_items:
+                    exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in href.lower())
+                    # Group links by their parent container
+                    seen_containers = set()
+                    for link in exhibition_links:
+                        parent = link.find_parent(['article', 'div', 'li'])
+                        if parent and id(parent) not in seen_containers:
+                            exhibition_items.append(parent)
+                            seen_containers.add(id(parent))
+            
+            # Continue with the rest of the NGA parsing logic...
+            # (The actual implementation continues here)
+            
+        except Exception as e:
+            logger.debug(f"Error extracting exhibitions from listing page {page_url}: {e}")
+        
+        return events
+    
     def _extract_exhibitions_from_listing_page(self, soup, venue, page_url, event_type=None, time_range='today', max_exhibitions_per_venue=5):
         """Extract exhibitions directly from a listing page (e.g., Smithsonian museums, Met Museum)
         
@@ -1551,8 +2097,13 @@ class VenueEventScraper:
                     if not title or len(title) < 5:
                         continue
                     
+                    # Clean and normalize title
+                    title = self._clean_title(title)
+                    
                     # Skip generic titles
-                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all', 'more']
+                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all', 'more', 'our staff',
+                                     'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
+                                     'join us for an event', 'join us', 'join us for', 'join us!']
                     if title.lower() in generic_titles:
                         continue
                     
@@ -1688,7 +2239,9 @@ class VenueEventScraper:
                         continue
                     
                     # Skip generic titles
-                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all']
+                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all', 'our staff',
+                                     'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
+                                     'join us for an event', 'join us', 'join us for', 'join us!']
                     if title.lower() in generic_titles:
                         continue
                     
@@ -1847,9 +2400,14 @@ class VenueEventScraper:
                 if not title or len(title) < 5:
                     continue
                 
+                # Clean and normalize title
+                title = self._clean_title(title)
+                
                 # Skip generic headings
                 generic_titles = ['exhibitions', 'exhibition', 'current exhibitions', 'upcoming exhibitions', 
-                                 'past exhibitions', 'washington, dc', 'new york, ny', 'online', 'traveling']
+                                 'past exhibitions', 'washington, dc', 'new york, ny', 'online', 'traveling', 'our staff',
+                                 'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
+                                 'join us for an event', 'join us', 'join us for', 'join us!']
                 if title.lower() in generic_titles:
                     continue
                 
@@ -1967,6 +2525,18 @@ class VenueEventScraper:
     
     def _extract_exhibition_dates(self, soup):
         """Extract date text from exhibition page"""
+        # Special handling for Hirshhorn: dates are often in h2 right after h1
+        h1 = soup.find('h1')
+        if h1:
+            # Check if next sibling is h2 with dates
+            next_h2 = h1.find_next_sibling('h2')
+            if next_h2:
+                h2_text = next_h2.get_text(strip=True)
+                # Check if it looks like a date range (e.g., "Apr 04, 2025–Jan 03, 2027")
+                if re.search(r'[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}[–—\-]', h2_text):
+                    logger.info(f"📅 Found date in h2 after h1: {h2_text}")
+                    return h2_text
+        
         # Look for date patterns in various places
         date_selectors = [
             '.exhibition-dates',
@@ -1993,6 +2563,7 @@ class VenueEventScraper:
         # Second pass: Look for date ranges in page text (prioritize ranges)
         page_text = soup.get_text()
         date_range_patterns = [
+            r'([A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4})',  # November 28, 2025–May 29, 2026 (full month names with commas)
             r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14–May 9, 2021
             r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*\d{1,2},\s*\d{4})',  # Feb 14–9, 2021
             r'([A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14, 2021–May 9, 2021
@@ -2081,8 +2652,9 @@ class VenueEventScraper:
                 'december': 12, 'dec': 12
             }
             
-            # Pattern 1: "Nov 1, 2015–Jan 22, 2017" (different years - each date has its own year)
-            range_pattern_with_years = r'([A-Z][a-z]{2,8})\s+(\d{1,2}),\s*(\d{4})[–—\-]\s*([A-Z][a-z]{2,8})\s+(\d{1,2}),\s*(\d{4})'
+            # Pattern 1: "Nov 1, 2015–Jan 22, 2017" or "November 28, 2025–May 29, 2026" (different years - each date has its own year)
+            # Support both abbreviated (Nov) and full (November) month names
+            range_pattern_with_years = r'([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})[–—\-]\s*([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})'
             match = re.search(range_pattern_with_years, date_text)
             
             if match:
@@ -2567,6 +3139,50 @@ class VenueEventScraper:
         
         return details
     
+    def _is_english(self, text):
+        """Check if text is primarily in English"""
+        if not text or not isinstance(text, str):
+            return True  # Default to English if we can't determine
+        
+        text_lower = text.lower()
+        
+        # Common non-English words/patterns (Spanish, French, German, etc.)
+        non_english_indicators = [
+            # Spanish
+            r'\b(conversaci[oó]n|galer[ií]as|vida|trabajo|mi[eé]rcoles|diciembre|encu[eé]ntranos|boleto|admisi[oó]n|esperar|dispositivos|escucha|asistida|disponibles|reservaci[oó]n|correo|semanas|anticipaci[oó]n)\b',
+            r'\b(que|de|la|el|en|y|a|es|son|para|con|por|del|las|los|una|un|este|esta|estos|estas)\b',
+            # French
+            r'\b(conversation|galeries|mercredi|d[eé]cembre|trouvez|billet|admission|attendre|dispositifs|écoute|assistée|disponibles|réservation|courriel|semaines|anticipation)\b',
+            # German
+            r'\b(gespr[aä]ch|galerien|mittwoch|dezember|finden|ticket|eintritt|erwarten|ger[aä]te|h[öo]ren|assistiert|verf[üu]gbar|reservierung|e-mail|wochen|vorlaufzeit)\b',
+        ]
+        
+        # Check for accented characters common in non-English languages
+        accented_chars = ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü', 'à', 'è', 'ì', 'ò', 'ù', 'â', 'ê', 'î', 'ô', 'û', 
+                         'ä', 'ë', 'ï', 'ö', 'ü', 'ç', 'ã', 'õ', 'å', 'æ', 'ø']
+        
+        # Count non-English indicators
+        non_english_count = 0
+        for pattern in non_english_indicators:
+            matches = len(re.findall(pattern, text_lower))
+            non_english_count += matches
+        
+        # Count accented characters
+        accented_count = sum(1 for char in text if char in accented_chars)
+        
+        # If there are many non-English indicators or accented characters, likely not English
+        # Use a threshold: if more than 2 non-English words or more than 3 accented chars, filter out
+        if non_english_count > 2 or accented_count > 3:
+            return False
+        
+        # Also check if title starts with common non-English words
+        first_words = text_lower.split()[:3]
+        non_english_starters = ['conversación', 'conversacion', 'galerias', 'galerías', 'miércoles', 'miercoles']
+        if any(word in first_words for word in non_english_starters):
+            return False
+        
+        return True
+    
     def _is_valid_event(self, event_data):
         """Validate event quality to filter out generic/incomplete events"""
         
@@ -2577,9 +3193,21 @@ class VenueEventScraper:
         title = event_data.get('title', '')
         if not title or not isinstance(title, str):
             return False
-        title = title.lower().strip()
+        
+        # Check if event is in English (filter out non-English events)
+        if not self._is_english(title):
+            logger.debug(f"⚠️ Filtered out non-English event: '{title}'")
+            return False
         
         description = event_data.get('description', '') or ''
+        if isinstance(description, str) and description:
+            # Also check description if it's substantial
+            if len(description) > 50 and not self._is_english(description):
+                logger.debug(f"⚠️ Filtered out event with non-English description: '{title}'")
+                return False
+        
+        title = title.lower().strip()
+        
         if isinstance(description, str):
             description = description.lower()
         else:
@@ -2610,6 +3238,9 @@ class VenueEventScraper:
             'virtual tour', 'virtual tours', 'online tour',
             'accessibility', 'access', 'wheelchair',
             'faq', 'frequently asked questions', 'help',
+            'our staff', 'staff',
+            'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
+            'join us for an event', 'join us', 'join us for', 'join us!',
             # Booking/reservation titles
             'book a tour', 'book tour', 'book tours', 'book now', 'reserve a tour',
             'reserve tour', 'reserve tours', 'booking', 'reservations',
@@ -2632,6 +3263,7 @@ class VenueEventScraper:
             r'^(visit\s*us)$',
             r'^(getting\s*here)$',
             r'^(current|past|upcoming)\s*exhibitions?$',
+            r'^(join\s*us\s*(for\s*(an\s*)?(event|program|activity))?)$',  # "Join us", "Join us for", "Join us for an event"
             # Booking/reservation patterns
             r'^(book\s*(a\s*)?(tour|tours?|now))$',
             r'^(reserve\s*(a\s*)?(tour|tours?))$',
@@ -2653,11 +3285,11 @@ class VenueEventScraper:
         # Check event type
         event_type = event_data.get('event_type', '').lower()
         
-        # TOURS REQUIRE A TIME - reject tours without a specific start time
-        if event_type == 'tour':
+        # TOURS, TALKS, AND WORKSHOPS REQUIRE A TIME - reject these event types without a specific start time
+        if event_type in ['tour', 'talk', 'workshop']:
             has_specific_time = event_data.get('start_time') is not None
             if not has_specific_time:
-                logger.debug(f"⚠️ Rejecting tour '{event_data.get('title')}' - no start time")
+                logger.debug(f"⚠️ Rejecting {event_type} '{event_data.get('title')}' - no start time")
                 return False
         
         # RELAXED VALIDATION: Accept events from known venues/sources

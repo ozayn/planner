@@ -1418,9 +1418,9 @@
                         </select>
                     </div>
 
-                    <div class="form-group" id="maxExhibitionsGroup" style="display: none;">
-                        <label for="maxExhibitionsPerVenue">Max Exhibitions per Venue</label>
-                        <input type="number" id="maxExhibitionsPerVenue" min="1" max="20" value="5" style="padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); width: 100%;">
+                    <div class="form-group" id="maxEventsGroup">
+                        <label for="maxEventsPerVenue">Max Events per Venue</label>
+                        <input type="number" id="maxEventsPerVenue" min="1" max="50" value="10" style="padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); width: 100%;">
                     </div>
 
                     <div class="form-group" id="customDateGroup" style="display: none;">
@@ -1777,19 +1777,7 @@
             // Add event type change listener to show/hide sources and max exhibitions input
             eventTypeSelectStep2.addEventListener('change', handleEventTypeChange);
             
-            // Show/hide max exhibitions input based on event type
-            function handleEventTypeChangeForMaxExhibitions() {
-                const eventType = eventTypeSelectStep2.value;
-                const maxExhibitionsGroup = document.getElementById('maxExhibitionsGroup');
-                if (eventType === 'exhibition') {
-                    maxExhibitionsGroup.style.display = 'block';
-                } else {
-                    maxExhibitionsGroup.style.display = 'none';
-                }
-            }
-            eventTypeSelectStep2.addEventListener('change', handleEventTypeChangeForMaxExhibitions);
-            // Check on page load
-            handleEventTypeChangeForMaxExhibitions();
+            // Max events per venue is now always visible for all event types
             
             // Add toggle control listeners
             document.getElementById('toggleAllSources').addEventListener('click', () => toggleAllSources());
@@ -1858,11 +1846,11 @@
         // Update status display
         function updateStatus() {
             const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || '-';
-            currentEventType = eventTypeSelectStep2.value || eventTypeSelect.value || '-';
+            currentEventType = eventTypeSelectStep2.value || eventTypeSelect.value || '';
             
             // Basic info
             statusCity.textContent = cityName;
-            statusEventType.textContent = currentEventType;
+            statusEventType.textContent = currentEventType || 'All Types';
             
             // Date range
             const dateRange = document.getElementById('dateRangeSelect').value;
@@ -2817,10 +2805,10 @@
                 customDateGroup.style.display = 'none';
             }
             
-            // Reload events if we have a valid selection (regardless of current events)
-            if (citySelect.value && eventTypeSelectStep2.value) {
+            // Reload events if we have a city selected (event type can be empty for "All Types")
+            if (citySelect.value) {
                 const cityId = citySelect.value;
-                const eventType = eventTypeSelectStep2.value;
+                const eventType = eventTypeSelectStep2.value || ''; // Allow empty for "All Types"
                 
                 console.log(`Date range changed to: ${dateRange}`);
                 console.log(`Reloading events for city: ${cityId}, type: ${eventType}, dateRange: ${dateRange}`);
@@ -3047,10 +3035,8 @@
                 return;
             }
 
-            if (!eventType) {
-                showNotification('Please select an event type', 'error');
-                return;
-            }
+            // Allow empty eventType (means "All Types")
+            // No validation needed - empty string is valid
 
             // Handle custom date range
             let customStartDate = null;
@@ -3119,15 +3105,21 @@
                     requestBody.custom_end_date = customEndDate;
                 }
                 
-                // Add max_exhibitions_per_venue if event type is exhibition
-                if (eventType === 'exhibition') {
-                    const maxExhibitionsInput = document.getElementById('maxExhibitionsPerVenue');
-                    if (maxExhibitionsInput) {
-                        const maxExhibitions = parseInt(maxExhibitionsInput.value) || 5;
-                        requestBody.max_exhibitions_per_venue = maxExhibitions;
+                // Add max_events_per_venue for all event types
+                const maxEventsInput = document.getElementById('maxEventsPerVenue');
+                if (maxEventsInput) {
+                    const maxEvents = parseInt(maxEventsInput.value) || 10;
+                    requestBody.max_events_per_venue = maxEvents;
+                    console.log(`📊 Frontend: Setting max_events_per_venue to ${maxEvents} from input value: ${maxEventsInput.value}`);
+                    // Also set max_exhibitions_per_venue for backward compatibility with exhibitions
+                    if (eventType === 'exhibition' || !eventType) {
+                        requestBody.max_exhibitions_per_venue = maxEvents;
                     }
+                } else {
+                    console.warn('⚠️ Frontend: maxEventsPerVenue input not found, using default 10');
                 }
                 
+                console.log('📤 Frontend: Sending request body:', JSON.stringify(requestBody, null, 2));
                 const response = await fetch('/api/scrape', {
                     method: 'POST',
                     headers: {
@@ -3241,7 +3233,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">🔍</div>
                         <h3>No Events Found</h3>
-                        <p>No ${currentEventType} found for ${currentCity} in the selected time range. Try a different city or time range.</p>
+                        <p>No ${currentEventType || 'events'} found for ${currentCity} in the selected time range. Try a different city or time range.</p>
                     </div>
                 `;
                 return;
@@ -3266,7 +3258,7 @@
                     <div class="events-date-info">
                         <h3>🗓️ Events Found</h3>
                         <p class="search-date">Search performed on ${currentDate} at ${currentTime}</p>
-                        <p class="events-count">Found ${events.length} ${currentEventType || 'event'}${events.length !== 1 ? 's' : ''} in ${currentCity || 'selected city'}</p>
+                        <p class="events-count">Found ${events.length} ${currentEventType ? currentEventType + (events.length !== 1 ? 's' : '') : 'event' + (events.length !== 1 ? 's' : '')} in ${currentCity || 'selected city'}</p>
                     </div>
                 </div>
             `;
@@ -3277,7 +3269,9 @@
         // Helper function to get image URL (backend handles API key injection)
         function getImageUrl(imageData) {
             if (!imageData) {
-                return 'https://via.placeholder.com/350x150/667eea/ffffff?text=Event+Image';
+                // Use a data URI for placeholder image (no external service needed)
+                // Simple gray placeholder: 1x1 transparent pixel
+                return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV2ZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg==';
             }
             
             // Backend now handles photo data conversion to full URLs with API keys
@@ -3303,10 +3297,20 @@
                                onchange="toggleEventSelection(${event.id})">
                     </div>
                     
-                    <a href="${event.maps_link || '#'}" target="_blank" title="View on Google Maps">
-                        <img src="${imageUrl}" alt="${event.title}" class="event-image" 
-                             onerror="this.src='https://via.placeholder.com/350x150/667eea/ffffff?text=Event+Image'">
+                    ${imageUrl ? `
+                    <div style="position: relative; margin-bottom: 15px;">
+                        <a href="${event.image_url || imageUrl}" target="_blank" title="View full image" style="display: block;">
+                            <img src="${imageUrl}" alt="${event.title}" class="event-image" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV2ZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg=='; this.onerror=null;"
+                                 style="cursor: pointer;">
+                        </a>
+                        ${event.maps_link ? `<a href="${event.maps_link}" target="_blank" title="View on Google Maps" style="position: absolute; top: 8px; right: 8px; background: rgba(255, 255, 255, 0.9); padding: 6px 10px; border-radius: 6px; text-decoration: none; font-size: 0.75rem; color: #374151; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">📍 Map</a>` : ''}
+                    </div>
+                    ` : event.maps_link ? `
+                    <a href="${event.maps_link}" target="_blank" title="View on Google Maps" style="display: block; margin-bottom: 15px; padding: 40px; text-align: center; background: #f3f4f6; border-radius: 8px; color: #6b7280; text-decoration: none;">
+                        📍 View on Google Maps
                     </a>
+                    ` : ''}
                     
                     <div class="event-details">
                         ${event.event_type === 'exhibition' && event.end_date ? `
@@ -3837,39 +3841,28 @@
                 return;
             }
             
-            // Build detailed info string
-            let info = `📋 ${event.title}\n\n`;
-            
-            if (event.description) {
-                info += `Description: ${event.description}\n\n`;
-            }
-            
-            if (event.venue_name) {
-                info += `Venue: ${event.venue_name}\n`;
-            }
-            
-            if (event.start_date) {
-                info += `Date: ${event.start_date}\n`;
-            }
-            
-            if (event.start_time) {
-                info += `Time: ${event.start_time}\n`;
-            }
-            
-            if (event.url) {
-                info += `\n🔗 Event URL: ${event.url}\n`;
-            }
-            
-            if (event.source_url) {
-                info += `📱 Source URL: ${event.source_url}\n`;
-            }
-            
-            if (event.source) {
-                info += `Source: ${event.source}\n`;
-            }
-            
-            if (event.organizer) {
-                info += `Organizer: ${event.organizer}\n`;
+            // Format date/time based on event type
+            let dateTimeDisplay = '';
+            if (event.event_type === 'exhibition' && event.end_date) {
+                // For exhibitions, show date range
+                dateTimeDisplay = `<div style="margin-bottom: 8px;"><strong>Dates:</strong> ${formatDateRange(event.start_date, event.end_date)}</div>`;
+            } else if (event.start_time && event.end_time) {
+                // For tours/talks with both start and end time, show time range
+                const startTime = formatTime(event.start_time);
+                const endTime = formatTime(event.end_time);
+                dateTimeDisplay = `
+                    ${event.start_date ? `<div style="margin-bottom: 8px;"><strong>Date:</strong> ${formatDate(event.start_date)}</div>` : ''}
+                    <div style="margin-bottom: 8px;"><strong>Time:</strong> ${startTime} – ${endTime}</div>
+                `;
+            } else if (event.start_time) {
+                // For events with only start time
+                dateTimeDisplay = `
+                    ${event.start_date ? `<div style="margin-bottom: 8px;"><strong>Date:</strong> ${formatDate(event.start_date)}</div>` : ''}
+                    <div style="margin-bottom: 8px;"><strong>Time:</strong> ${formatTime(event.start_time)}</div>
+                `;
+            } else if (event.start_date) {
+                // For events with only date
+                dateTimeDisplay = `<div style="margin-bottom: 8px;"><strong>Date:</strong> ${formatDate(event.start_date)}</div>`;
             }
             
             // Show in modal instead of alert for better UX
@@ -3879,14 +3872,14 @@
                     ${event.description ? `<p style="margin-bottom: 15px; color: #6b7280;">${event.description}</p>` : ''}
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                         ${event.venue_name ? `<div style="margin-bottom: 8px;"><strong>Venue:</strong> ${event.venue_name}</div>` : ''}
-                        ${event.start_date ? `<div style="margin-bottom: 8px;"><strong>Date:</strong> ${event.start_date}</div>` : ''}
-                        ${event.start_time ? `<div style="margin-bottom: 8px;"><strong>Time:</strong> ${event.start_time}</div>` : ''}
+                        ${dateTimeDisplay}
                         ${event.event_type ? `<div style="margin-bottom: 8px;"><strong>Type:</strong> ${event.event_type}</div>` : ''}
                         ${event.source ? `<div style="margin-bottom: 8px;"><strong>Source:</strong> ${event.source}</div>` : ''}
                         ${event.organizer ? `<div style="margin-bottom: 8px;"><strong>Organizer:</strong> ${event.organizer}</div>` : ''}
                     </div>
                     ${event.url ? `<div style="margin-bottom: 10px;"><strong>Event URL:</strong> <a href="${event.url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.url}</a></div>` : ''}
                     ${event.source_url && event.source_url !== event.url ? `<div style="margin-bottom: 10px;"><strong>Source URL:</strong> <a href="${event.source_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.source_url}</a></div>` : ''}
+                    ${event.image_url ? `<div style="margin-bottom: 10px;"><strong>Image:</strong> <a href="${event.image_url}" target="_blank" style="color: #1976d2; word-break: break-all;">View Image</a></div>` : ''}
                 </div>
             `;
             
@@ -4062,6 +4055,17 @@
                 day: 'numeric',
                 timeZone: 'UTC' // Force UTC to avoid timezone conversion
             });
+        }
+        
+        // Format time (HH:MM:SS or HH:MM) to 12-hour format
+        function formatTime(timeString) {
+            if (!timeString) return '';
+            const parts = timeString.split(':');
+            const hours = parseInt(parts[0]);
+            const minutes = parts[1] || '00';
+            const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
         }
         
         // Format date range for exhibitions (more compact)
@@ -4320,46 +4324,49 @@
         // Generate HTML for discovered event details
         function generateDiscoveredEventDetailsHTML(event) {
             // Helper function to add field only if value exists
-            const addField = (label, value, isLink = false) => {
+            const addField = (label, value, isLink = false, linkText = null) => {
                 if (!value || value === 'N/A' || value === '') return '';
-                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                const displayValue = isLink ? `<a href="${value}" target="_blank">${linkText || value}</a>` : value;
                 return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
 
-            // Format time in city timezone
-            let timeStr = '';
-            if (event.start_time) {
-                const cityTimezone = event.city_timezone || 'America/New_York';
-                try {
-                    const [hours, minutes] = event.start_time.split(':');
-                    const now = new Date();
-                    const eventDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
-                    timeStr = eventDate.toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true,
-                        timeZone: cityTimezone
+            // Format date/time based on event type
+            let dateTimeDisplay = '';
+            if (event.event_type === 'exhibition' && event.end_date) {
+                // For exhibitions, show date range
+                dateTimeDisplay = `<div style="margin-bottom: 8px;"><strong>Dates:</strong> ${formatDateRange(event.start_date, event.end_date)}</div>`;
+            } else {
+                // For tours/talks, show date and time range
+                let dateStr = '';
+                if (event.start_date) {
+                    const [year, month, day] = event.start_date.split('-');
+                    const dateObj = new Date(year, month - 1, day);
+                    dateStr = dateObj.toLocaleDateString('en-US', { 
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        timeZone: 'UTC'
                     });
-                } catch (error) {
-                    const [hours, minutes] = event.start_time.split(':');
-                    const hour12 = parseInt(hours) > 12 ? parseInt(hours) - 12 : parseInt(hours);
-                    const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
-                    timeStr = `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
                 }
-            }
-
-            // Format date
-            let dateStr = '';
-            if (event.start_date) {
-                const [year, month, day] = event.start_date.split('-');
-                const dateObj = new Date(year, month - 1, day);
-                dateStr = dateObj.toLocaleDateString('en-US', { 
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    timeZone: 'UTC' // Force UTC to avoid timezone conversion
-                });
+                
+                let timeStr = '';
+                if (event.start_time && event.end_time) {
+                    // Show time range
+                    const startTime = formatTime(event.start_time);
+                    const endTime = formatTime(event.end_time);
+                    timeStr = `${startTime} – ${endTime}`;
+                } else if (event.start_time) {
+                    // Show single time
+                    timeStr = formatTime(event.start_time);
+                }
+                
+                if (dateStr) {
+                    dateTimeDisplay += `<div style="margin-bottom: 8px;"><strong>Date:</strong> ${dateStr}</div>`;
+                }
+                if (timeStr) {
+                    dateTimeDisplay += `<div style="margin-bottom: 8px;"><strong>Time:</strong> ${timeStr}</div>`;
+                }
             }
 
             let html = `
@@ -4377,8 +4384,7 @@
                     <div>
                         <h4 style="margin-bottom: 10px; color: #4a5568;">📅 Date & Time</h4>
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 8px;"><strong>Date:</strong> ${dateStr}</div>
-                            <div style="margin-bottom: 8px;"><strong>Time:</strong> ${timeStr}</div>
+                            ${dateTimeDisplay}
                             ${addField('Timezone', event.city_timezone)}
                         </div>
                     </div>
@@ -4400,7 +4406,20 @@
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             ${addField('Source', event.source)}
                             ${addField('URL', event.url, true)}
-                            ${addField('Image', event.image_url ? 'View Image' : null, event.image_url)}
+                            ${event.image_url ? `
+                                <div style="margin-top: 12px; margin-bottom: 8px;">
+                                    <strong>Image:</strong>
+                                    <div style="margin-top: 8px;">
+                                        <a href="${getImageUrl(event.image_url)}" target="_blank" style="display: inline-block;">
+                                            <img src="${getImageUrl(event.image_url)}" 
+                                                 alt="${event.title}" 
+                                                 style="max-width: 100%; max-height: 200px; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV2ZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg=='; this.onerror=null;"
+                                                 title="Click to view full image">
+                                        </a>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>

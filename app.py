@@ -1600,14 +1600,18 @@ def trigger_scraping():
             
             try:
                 venue_scraper = VenueEventScraper()
-                # Get max_exhibitions_per_venue from request (default: 5)
-                max_exhibitions_per_venue = data.get('max_exhibitions_per_venue', 5)
+                # Get max_events_per_venue from request (default: 10), fallback to max_exhibitions_per_venue for backward compatibility
+                max_events_per_venue = data.get('max_events_per_venue') or data.get('max_exhibitions_per_venue', 10)
+                app_logger.info(f"📊 Backend: Received max_events_per_venue={max_events_per_venue} from request (raw: {data.get('max_events_per_venue')}, fallback: {data.get('max_exhibitions_per_venue')})")
+                # For exhibitions, use the same limit
+                max_exhibitions_per_venue = max_events_per_venue if event_type == 'exhibition' or not event_type else max_events_per_venue
                 venue_events = venue_scraper.scrape_venue_events(
                     city_id=city_id,
                     event_type=event_type,
                     time_range=time_range,
                     venue_ids=venue_ids,
-                    max_exhibitions_per_venue=max_exhibitions_per_venue
+                    max_exhibitions_per_venue=max_exhibitions_per_venue,
+                    max_events_per_venue=max_events_per_venue
                 )
                 all_events.extend(venue_events)
                 app_logger.info(f"Scraped {len(venue_events)} events from venues")
@@ -1705,6 +1709,11 @@ def trigger_scraping():
         # Track exhibitions per venue to enforce max_exhibitions_per_venue limit
         venue_exhibition_counts = {}  # {venue_id: count}
         max_exhibitions_per_venue = data.get('max_exhibitions_per_venue', 5)
+        max_events_per_venue = data.get('max_events_per_venue') or data.get('max_exhibitions_per_venue', 10)
+        app_logger.info(f"📊 Backend (DB save): Using max_events_per_venue={max_events_per_venue} (raw: {data.get('max_events_per_venue')}, fallback: {data.get('max_exhibitions_per_venue')})")
+        
+        # Track events per venue for non-exhibition event types
+        venue_event_counts = {}  # {venue_id: count}
         
         for event_data in events_scraped:
             try:
@@ -1778,11 +1787,21 @@ def trigger_scraping():
                     app_logger.info(f"⚠️ Skipped duplicate event in database: '{title}' (venue_id: {venue_id})")
                     continue
                 
-                # SAFETY CHECK: Tours must have a start time - reject if missing
+                # SAFETY CHECK: Tours, talks, and workshops must have a start time - reject if missing
                 start_time_str = event_data.get('start_time')
-                if event_type == 'tour' and (not start_time_str or start_time_str == 'None'):
-                    app_logger.info(f"⚠️ Skipped tour event '{title}' - no start time (safety check)")
+                if event_type in ['tour', 'talk', 'workshop'] and (not start_time_str or start_time_str == 'None'):
+                    app_logger.info(f"⚠️ Skipped {event_type} event '{title}' - no start time (safety check)")
                     continue
+                
+                # Limit events per venue for non-exhibition event types
+                # Only count events in THIS batch (consistent with exhibitions logic)
+                if event_type and event_type != 'exhibition' and venue_id:
+                    current_count = venue_event_counts.get(venue_id, 0)
+                    # Check if we've already saved enough in THIS batch
+                    if current_count >= max_events_per_venue:
+                        app_logger.info(f"⚠️ Skipped {event_type} event '{title}' - already saved {current_count} {event_type} events for venue {venue_id} in this batch (limit: {max_events_per_venue})")
+                        continue
+                    venue_event_counts[venue_id] = current_count + 1
                 
                 # Create new event
                 event = Event()

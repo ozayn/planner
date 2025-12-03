@@ -1,10 +1,10 @@
 {
-  "metadata": {
+    "metadata": {
     "version": "1.0",
     "created": "2025-10-04",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 50,
-    "last_updated": "2025-10-08 16:05:00"
+    "total_sources": 51,
+    "last_updated": "2025-01-18 12:00:00"
   },
   "sources": {
     "1": {
@@ -956,6 +956,25 @@
       "last_checked": null,
       "created_at": "2025-12-01T12:00:00.000000",
       "updated_at": "2025-12-01T12:00:00.000000"
+    },
+    "51": {
+      "name": "Webster's Bookstore Cafe",
+      "handle": "webstersbooksandcafe",
+      "source_type": "website",
+      "url": "https://www.webstersbooksandcafe.com/community",
+      "description": "Webster's Bookstore Cafe is a vibrant community hub in downtown State College, offering a unique blend of a used bookstore with thousands of titles and a cafe serving organic, fair-trade European-style coffee beverages. They host many community events including live music, book clubs, author readings, workshops, and a fully VEGAN/GF Brunch Buffet every Sunday with live music.",
+      "city_id": 26,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"community_events\", \"live_music\", \"book_clubs\", \"author_readings\", \"workshops\", \"brunch\", \"cultural_events\", \"open_mic\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "weekly",
+      "notes": "Events are listed on the community page. Format includes date (MM-DD), event name, time, and type (Brunch, Music, etc.). Some events are recurring (e.g., Sunday Music Brunch, Shut Up and Write).",
+      "scraping_pattern": "Scrape the /community page for events. Events are listed with format: MM-DD: Event Name Time - Time. Look for recurring events like Sunday Music Brunch, Shut Up and Write, etc.",
+      "last_checked": null,
+      "created_at": "2025-01-18T12:00:00.000000",
+      "updated_at": "2025-01-18T12:00:00.000000"
     }
   }
 }
