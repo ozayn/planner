@@ -2710,6 +2710,21 @@
         // Load venues data
         async function loadVenues() {
             try {
+                // Load cities first if not already loaded (needed for city filter)
+                if (!window.allCities || window.allCities.length === 0) {
+                    console.log('Loading cities first for venue filter...');
+                    try {
+                        const citiesResponse = await fetch('/api/admin/cities');
+                        const cities = await citiesResponse.json();
+                        if (!cities.error) {
+                            window.allCities = cities;
+                            console.log('Cities loaded for filter:', cities.length);
+                        }
+                    } catch (citiesError) {
+                        console.warn('Could not load cities for filter:', citiesError);
+                    }
+                }
+                
                 console.log('Loading venues...');
                 const response = await fetch('/api/admin/venues');
                 const venues = await response.json();
@@ -3392,7 +3407,35 @@
             if (!typeFilter || !cityFilter || !window.allVenues) return;
             
             const types = [...new Set(window.allVenues.map(venue => venue.venue_type).filter(Boolean))].sort();
-            const cities = [...new Set(window.allVenues.map(venue => venue.city_name).filter(Boolean))].sort();
+            
+            // Populate city filter from all cities (not just cities with venues)
+            // This ensures cities like State College and Irvine appear even if they have no venues yet
+            // Format city names to match the API format: "City, State, Country" or "City, Country"
+            let cityOptions = [];
+            if (window.allCities && window.allCities.length > 0) {
+                // Use all cities from the cities data, format to match API response
+                cityOptions = window.allCities.map(city => {
+                    let displayName = city.name;
+                    if (city.state) {
+                        displayName += `, ${city.state}, ${city.country}`;
+                    } else {
+                        displayName += `, ${city.country}`;
+                    }
+                    return {
+                        id: city.id,
+                        name: displayName,
+                        cityName: city.name // Store just the city name for matching
+                    };
+                }).sort((a, b) => a.name.localeCompare(b.name));
+            } else {
+                // Fallback to cities from venues if cities haven't loaded yet
+                const cityNames = [...new Set(window.allVenues.map(venue => venue.city_name).filter(Boolean))].sort();
+                cityOptions = cityNames.map(name => ({
+                    id: null,
+                    name: name,
+                    cityName: name.split(',')[0].trim() // Extract just city name
+                }));
+            }
             
             typeFilter.innerHTML = '<option value="">All Types</option>';
             types.forEach(type => {
@@ -3400,8 +3443,8 @@
             });
             
             cityFilter.innerHTML = '<option value="">All Cities</option>';
-            cities.forEach(city => {
-                cityFilter.innerHTML += '<option value="' + city + '">' + city + '</option>';
+            cityOptions.forEach(city => {
+                cityFilter.innerHTML += '<option value="' + city.name + '">' + city.name + '</option>';
             });
         }
         
@@ -3424,7 +3467,8 @@
                     (venue.description && venue.description.toLowerCase().includes(searchTerm));
                 
                 const matchesType = !typeFilter || venue.venue_type === typeFilter;
-                const matchesCity = !cityFilter || venue.city_name === cityFilter;
+                // Match city by exact city_name (which includes state/country in format from API)
+                const matchesCity = !cityFilter || (venue.city_name && venue.city_name === cityFilter);
                 
                 // Fee filter logic
                 let matchesFee = true;
@@ -4109,6 +4153,21 @@
         // Load events data
         async function loadEvents() {
             try {
+                // Load cities first if not already loaded (needed for city filter)
+                if (!window.allCities || window.allCities.length === 0) {
+                    console.log('Loading cities first for event filter...');
+                    try {
+                        const citiesResponse = await fetch('/api/admin/cities');
+                        const cities = await citiesResponse.json();
+                        if (!cities.error) {
+                            window.allCities = cities;
+                            console.log('Cities loaded for filter:', cities.length);
+                        }
+                    } catch (citiesError) {
+                        console.warn('Could not load cities for filter:', citiesError);
+                    }
+                }
+                
                 console.log('Loading events...');
                 const response = await fetch('/api/admin/events');
                 const events = await response.json();
