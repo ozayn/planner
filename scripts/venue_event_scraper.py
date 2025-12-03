@@ -855,6 +855,34 @@ class VenueEventScraper:
             if len(final_exhibitions) > max_exhibitions_per_venue:
                 logger.error(f"❌ ABSOLUTE FINAL CHECK FAILED: Still had {len(final_exhibitions)} exhibitions after all checks!")
         
+        # If no events found and no specialized scraper was used, try generic scraper as fallback
+        if len(events) == 0:
+            logger.info(f"⚠️  No events found with standard methods for {venue.name}, trying generic scraper as fallback...")
+            try:
+                from scripts.generic_venue_scraper import GenericVenueScraper
+                generic_scraper = GenericVenueScraper()
+                generic_events = generic_scraper.scrape_venue_events(
+                    venue_url=venue.website_url,
+                    venue_name=venue.name,
+                    event_type=event_type,
+                    time_range=time_range
+                )
+                # Convert generic events to our format
+                for event in generic_events:
+                    event['venue_id'] = venue.id
+                    event['city_id'] = venue.city_id
+                    event['source'] = 'website'
+                    event['source_url'] = venue.website_url
+                    event['organizer'] = venue.name
+                    # Add meeting_point if start_location exists
+                    if event.get('start_location') and not event.get('meeting_point'):
+                        event['meeting_point'] = event.get('start_location')
+                events.extend(generic_events)
+                if generic_events:
+                    logger.info(f"✅ Generic scraper found {len(generic_events)} events for {venue.name}")
+            except Exception as generic_error:
+                logger.debug(f"Generic scraper fallback failed: {generic_error}")
+        
         return events
     
     def _extract_events_from_html(self, soup, venue, tour_url=None, event_type=None, time_range='today'):

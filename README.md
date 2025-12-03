@@ -105,6 +105,21 @@ curl -X POST http://localhost:5001/api/admin/extract-event-from-url \
   - "Collection Tour: Islamic Art" (from actual page titles)
 - **Meeting Point Detection**: Extracts specific locations like "Gallery 534, Vélez Blanco Patio"
 
+### **🌐 Generic Venue Scraper (Universal Fallback)**
+- **Universal Compatibility**: A generic scraper (`scripts/generic_venue_scraper.py`) that works for any venue/location by using common patterns learned from specialized scrapers
+- **Two-Tier Architecture**: 
+  - **Specialized Scrapers** (Priority): Custom scrapers for specific venues (Hirshhorn, NGA, etc.) with venue-specific logic
+  - **Generic Scraper** (Fallback): Universal scraper that uses common HTML patterns, CSS selectors, and extraction methods
+- **Automatic Fallback**: When standard scraping methods find no events, the system automatically tries the generic scraper
+- **Pattern-Based Extraction**: Uses patterns learned from specialized scrapers:
+  - Common CSS selectors (`.event`, `.event-item`, `.program`, `.tour`, etc.)
+  - JSON-LD structured data extraction
+  - Multiple date/time format parsing
+  - Automatic event type detection
+- **Continuous Improvement**: The generic scraper is designed to evolve - as we create new specialized scrapers or discover new patterns, we extract reusable patterns and add them to the generic scraper, making it work better for more venues over time
+- **Error Handling**: Includes bot protection bypass (cloudscraper), SSL error handling, and retry logic
+- **Documentation**: See `docs/GENERIC_SCRAPER_GUIDE.md` for detailed usage and integration examples
+
 ### **🌐 Deployment Configuration**
 - **Platform**: Railway with custom domain `planner.ozayn.com`
 - **Database**: PostgreSQL (Railway managed)
