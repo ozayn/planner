@@ -3447,13 +3447,6 @@ class VenueEventScraper:
         # Check event type
         event_type = event_data.get('event_type', '').lower()
         
-        # TOURS, TALKS, AND WORKSHOPS REQUIRE A TIME - reject these event types without a specific start time
-        if event_type in ['tour', 'talk', 'workshop']:
-            has_specific_time = event_data.get('start_time') is not None
-            if not has_specific_time:
-                logger.debug(f"⚠️ Rejecting {event_type} '{event_data.get('title')}' - no start time")
-                return False
-        
         # RELAXED VALIDATION: Accept events from known venues/sources
         # If we have a venue_id, we trust it's a real event from a real venue
         has_venue = event_data.get('venue_id') is not None
@@ -3463,6 +3456,19 @@ class VenueEventScraper:
         has_specific_time = event_data.get('start_time') is not None
         has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
         has_meaningful_description = description and len(description) >= 15  # Lowered from 30 to 15
+        
+        # TOURS REQUIRE A TIME - reject tours without a specific start time
+        # But talks and workshops can be more flexible if they have good descriptions/URLs
+        if event_type == 'tour':
+            if not has_specific_time:
+                logger.debug(f"⚠️ Rejecting {event_type} '{event_data.get('title')}' - no start time")
+                return False
+        elif event_type in ['talk', 'workshop']:
+            # For talks and workshops, allow without time if they have good description or URL
+            if not has_specific_time:
+                if not (has_url or has_meaningful_description):
+                    logger.debug(f"⚠️ Rejecting {event_type} '{event_data.get('title')}' - no time, URL, or description")
+                    return False
         
         # If from a known venue, accept if it has ANY description or URL
         # (But tours already checked above - they must have time)
