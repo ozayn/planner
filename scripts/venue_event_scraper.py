@@ -3440,10 +3440,6 @@ class VenueEventScraper:
                 # Title might be None or not a string, skip pattern matching
                 pass
         
-        # Filter out very short or generic titles
-        if len(title) < 5:
-            return False
-        
         # Check event type
         event_type = event_data.get('event_type', '').lower()
         
@@ -3456,6 +3452,15 @@ class VenueEventScraper:
         has_specific_time = event_data.get('start_time') is not None
         has_url = event_data.get('url') and event_data['url'] != event_data.get('source_url')
         has_meaningful_description = description and len(description) >= 15  # Lowered from 30 to 15
+        
+        # Filter out very short or generic titles
+        # BUT be more lenient if event has URL or description from known venue
+        if len(title) < 5:
+            # Allow short titles if they have URL or description from known venue
+            if has_venue and (has_url or has_meaningful_description):
+                logger.debug(f"⚠️ Allowing short title '{title}' because it has venue, URL, or description")
+            else:
+                return False
         
         # TOURS REQUIRE A TIME - reject tours without a specific start time
         # But talks and workshops can be more flexible if they have good descriptions/URLs
