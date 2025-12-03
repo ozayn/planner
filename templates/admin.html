@@ -1004,10 +1004,10 @@
                         <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size: 14px; font-weight: 600;">🕷️ Event Scraping</h4>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
                             <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
+                            <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">🖼️ NGA</button>
                             <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
                             <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
                             <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
-                            <button onclick="startFindingAweScraping()" class="add-button" style="background: #17a2b8;">✨ Finding Awe</button>
                             <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Webster's</button>
                             <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
                         </div>
@@ -7793,6 +7793,35 @@
             } catch (error) {
                 console.error('Error scraping Webster\'s events:', error);
                 updateScrapingStatus(`❌ Webster's scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startNGAScraping() {
+            showScrapingProgressModal('National Gallery of Art');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-nga', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Progress modal will be updated via polling
+                    // Auto-close after a delay
+                    setTimeout(() => {
+                        closeScrapingProgressModal();
+                        loadEvents();
+                    }, 2000);
+                } else {
+                    updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+                    closeScrapingProgressModal();
+                }
+            } catch (error) {
+                console.error('NGA scraping error:', error);
+                updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+                closeScrapingProgressModal();
             }
         }
         

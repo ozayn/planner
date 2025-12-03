@@ -104,6 +104,62 @@ def extract_event_data_from_url(url):
             logger.warning(f"Hirshhorn specialized extraction failed: {e}, falling back to general scraper")
             # Fall through to general scraper
     
+    # Check if this is an NGA event page (tours, talks, etc.) - use NGA comprehensive scraper
+    if 'nga.gov' in url.lower() and '/calendar/' in url.lower():
+        try:
+            logger.info(f"🎯 Detected NGA event page - using specialized extraction")
+            from scripts.nga_comprehensive_scraper import scrape_nga_tour_page, create_scraper
+            
+            scraper = create_scraper()
+            event_data = scrape_nga_tour_page(url, scraper)
+            if event_data:
+                logger.info(f"✅ Successfully extracted using NGA scraper")
+                # Convert time objects to strings if needed
+                from datetime import time as dt_time
+                start_time_str = None
+                end_time_str = None
+                if event_data.get('start_time'):
+                    start_time_obj = event_data.get('start_time')
+                    if isinstance(start_time_obj, dt_time):
+                        start_time_str = start_time_obj.isoformat()
+                    else:
+                        start_time_str = str(start_time_obj)
+                if event_data.get('end_time'):
+                    end_time_obj = event_data.get('end_time')
+                    if isinstance(end_time_obj, dt_time):
+                        end_time_str = end_time_obj.isoformat()
+                    else:
+                        end_time_str = str(end_time_obj)
+                
+                # Convert date object to string if needed
+                start_date_str = None
+                if event_data.get('start_date'):
+                    start_date_obj = event_data.get('start_date')
+                    if hasattr(start_date_obj, 'isoformat'):
+                        start_date_str = start_date_obj.isoformat()
+                    else:
+                        start_date_str = str(start_date_obj)
+                
+                return {
+                    'title': event_data.get('title'),
+                    'description': event_data.get('description'),
+                    'start_date': start_date_str,
+                    'start_time': start_time_str,
+                    'end_time': end_time_str,
+                    'location': event_data.get('location'),
+                    'image_url': event_data.get('image_url'),
+                    'event_type': event_data.get('event_type', 'tour'),
+                    'is_online': event_data.get('is_online', False),
+                    'is_registration_required': event_data.get('is_registration_required', False),
+                    'registration_url': event_data.get('registration_url'),
+                    'registration_info': event_data.get('registration_info'),
+                    'schedule_info': None,
+                    'days_of_week': []
+                }
+        except Exception as e:
+            logger.warning(f"NGA specialized extraction failed: {e}, falling back to general scraper")
+            # Fall through to general scraper
+    
     bot_detected = False
     
     try:
@@ -617,11 +673,22 @@ def _determine_event_type(title, description, page_text, url):
     # Combine all text for analysis
     content = f"{title} {description} {page_text}".lower()
     
-    # Check for talk/conversation events
+    # Check for tour events FIRST (more specific, should take priority)
+    tour_keywords = [
+        'guided tour',
+        'walking tour',
+        'museum tour',
+        'collection tour',
+        'tour',
+    ]
+    
+    if any(keyword in content for keyword in tour_keywords):
+        return 'tour'
+    
+    # Check for talk/conversation events (after tours, since "talk" can appear in tour descriptions)
     talk_keywords = [
         'talks & conversations',
         'talk and conversation',
-        'talk',
         'conversation',
         'discussion',
         'lecture',
@@ -629,22 +696,11 @@ def _determine_event_type(title, description, page_text, url):
         'presentation',
         'finding awe',  # NGA specific talk series
         'workshop',  # Often includes talks
+        'talk',  # Generic "talk" - check last to avoid false positives
     ]
     
     if any(keyword in content for keyword in talk_keywords):
         return 'talk'
-    
-    # Check for tour events
-    tour_keywords = [
-        'tour',
-        'guided tour',
-        'walking tour',
-        'museum tour',
-        'collection tour',
-    ]
-    
-    if any(keyword in content for keyword in tour_keywords):
-        return 'tour'
     
     # Check for exhibition events
     exhibition_keywords = [

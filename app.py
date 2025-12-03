@@ -6212,6 +6212,125 @@ def scrape_finding_awe():
             'error': str(e)
         }), 500
 
+@app.route('/api/admin/scrape-nga', methods=['POST'])
+def scrape_nga():
+    """Scrape all NGA events: Finding Awe, tours, exhibitions, talks, and other events."""
+    try:
+        app_logger.info("Starting comprehensive NGA scraping...")
+        
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 5,
+            'percentage': 5,
+            'message': 'Starting NGA scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'National Gallery of Art',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Import the comprehensive NGA scraper
+        from scripts.nga_comprehensive_scraper import scrape_all_nga_events, create_events_in_database
+        
+        # Update progress - scraping Finding Awe
+        progress_data.update({
+            'current_step': 1,
+            'percentage': 10,
+            'message': 'Scraping Finding Awe events...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Scrape all NGA events
+        events = scrape_all_nga_events()
+        
+        if not events:
+            progress_data.update({
+                'percentage': 100,
+                'message': '❌ No NGA events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 404
+        
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 5,
+            'percentage': 80,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Create/update events in database
+        created_count, updated_count = create_events_in_database(events)
+        
+        # Update progress - complete
+        progress_data.update({
+            'percentage': 100,
+            'message': f'✅ NGA scraping completed! Found {len(events)} events, created {created_count} new, updated {updated_count} existing',
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': e.get('start_date'), 'time': e.get('start_time'), 'location': e.get('location')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        app_logger.info(f"NGA scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
+        
+        message = f"Found {len(events)} NGA events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if updated_count > 0:
+            message += f", updated {updated_count} existing events"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping NGA events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/admin/scrape-hirshhorn', methods=['POST'])
 def scrape_hirshhorn():
     """Scrape exhibitions and tours from Hirshhorn Museum and Sculpture Garden."""
