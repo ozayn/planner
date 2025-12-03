@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-10-21",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 189,
-    "last_updated": "2025-12-03 17:14:36"
+    "total_venues": 197,
+    "last_updated": "2025-12-03 17:46:38"
   },
   "venues": {
     "1": {
@@ -4343,6 +4343,118 @@
       "longitude": -87.6811,
       "created_at": "2025-12-03T17:14:36.877494",
       "updated_at": "2025-12-03T17:14:36.877495"
+    },
+    "190": {
+      "name": "Irvine Barclay Theatre",
+      "venue_type": "theater",
+      "address": "4242 Campus Dr, Irvine, CA 92612",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Premier performing arts venue at UC Irvine, hosting concerts, dance, theater, and cultural events.",
+      "opening_hours": "Box office: Mon-Fri 10 AM - 4 PM",
+      "phone_number": "(949) 854-4646",
+      "website_url": "https://www.thebarclay.org",
+      "admission_fee": "Varies by event",
+      "latitude": 33.6486,
+      "longitude": -117.8428
+    },
+    "191": {
+      "name": "Orange County Great Park",
+      "venue_type": "park",
+      "address": "8000 Great Park Blvd, Irvine, CA 92618",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Large public park featuring sports facilities, cultural events, farmers market, and outdoor activities.",
+      "opening_hours": "Daily 6 AM - 10 PM",
+      "phone_number": "(949) 724-6247",
+      "website_url": "https://www.ocgp.org",
+      "admission_fee": "Free",
+      "latitude": 33.6906,
+      "longitude": -117.7503
+    },
+    "192": {
+      "name": "Irvine Museum of Art",
+      "venue_type": "museum",
+      "address": "18881 Von Karman Ave, Irvine, CA 92612",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Museum dedicated to California Impressionist art, featuring rotating exhibitions and educational programs.",
+      "opening_hours": "Wed-Sun 11 AM - 5 PM, Closed Mon-Tue",
+      "phone_number": "(949) 476-2565",
+      "website_url": "https://www.irvinemuseum.org",
+      "admission_fee": "Free",
+      "latitude": 33.6708,
+      "longitude": -117.8447
+    },
+    "193": {
+      "name": "Pretend City Children's Museum",
+      "venue_type": "museum",
+      "address": "29 Hubble, Irvine, CA 92618",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Interactive children's museum with hands-on exhibits designed to inspire learning through play.",
+      "opening_hours": "Tue-Sun 10 AM - 4 PM, Closed Mon",
+      "phone_number": "(949) 428-3900",
+      "website_url": "https://www.pretendcity.org",
+      "admission_fee": "$19.95 (adults and children)",
+      "latitude": 33.6806,
+      "longitude": -117.7503
+    },
+    "194": {
+      "name": "Irvine Spectrum Center",
+      "venue_type": "shopping_center",
+      "address": "670 Spectrum Center Dr, Irvine, CA 92618",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Large outdoor shopping and entertainment center with shops, restaurants, movie theater, and live events.",
+      "opening_hours": "Mon-Thu 10 AM - 9 PM, Fri-Sat 10 AM - 10 PM, Sun 11 AM - 8 PM",
+      "phone_number": "(949) 753-5180",
+      "website_url": "https://www.shopirvinespectrumcenter.com",
+      "admission_fee": "Free",
+      "latitude": 33.6506,
+      "longitude": -117.7447
+    },
+    "195": {
+      "name": "Bren Events Center",
+      "venue_type": "sports_venue",
+      "address": "100 Bren Events Center, Irvine, CA 92697",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Multi-purpose arena at UC Irvine hosting concerts, sporting events, and large-scale performances.",
+      "opening_hours": "Varies by event",
+      "phone_number": "(949) 824-5000",
+      "website_url": "https://www.bren.uci.edu",
+      "admission_fee": "Varies by event",
+      "latitude": 33.6486,
+      "longitude": -117.8428
+    },
+    "196": {
+      "name": "Irvine Fine Arts Center",
+      "venue_type": "arts_center",
+      "address": "14321 Yale Ave, Irvine, CA 92604",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Community arts center offering art classes, exhibitions, and cultural programs for all ages.",
+      "opening_hours": "Mon-Thu 9 AM - 9 PM, Fri-Sat 9 AM - 5 PM, Closed Sun",
+      "phone_number": "(949) 724-6880",
+      "website_url": "https://www.cityofirvine.org/irvine-fine-arts-center",
+      "admission_fee": "Free (exhibitions), Classes vary",
+      "latitude": 33.6847,
+      "longitude": -117.7947
+    },
+    "197": {
+      "name": "William R. Mason Regional Park",
+      "venue_type": "park",
+      "address": "18712 University Dr, Irvine, CA 92612",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Beautiful regional park with lakes, picnic areas, playgrounds, and walking trails. Hosts outdoor events and concerts.",
+      "opening_hours": "Daily 6 AM - 9 PM",
+      "phone_number": "(949) 923-2220",
+      "website_url": "https://www.ocparks.com/parks/william-r-mason",
+      "admission_fee": "$3 per vehicle (weekdays), $5 (weekends)",
+      "latitude": 33.6708,
+      "longitude": -117.8447
     }
   }
 }
