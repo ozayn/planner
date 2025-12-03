@@ -1537,12 +1537,8 @@ def trigger_scraping():
     import sys
     from requests.exceptions import Timeout, ConnectionError, RequestException
     
-    # Prevent SIGABRT from causing worker exit
-    def handle_abort(signum, frame):
-        app_logger.warning(f"Received signal {signum} during scraping - ignoring to prevent worker crash")
-        return
-    
-    original_abort = signal.signal(signal.SIGABRT, handle_abort)
+    # Note: Signal handling doesn't prevent gunicorn timeouts, but we'll handle exceptions
+    # The real fix is shorter timeouts per venue (10s) to prevent worker hangs
     
     try:
         import json
@@ -1920,11 +1916,8 @@ def trigger_scraping():
             'details': str(e)
         }), 500
     finally:
-        # Restore original signal handler
-        try:
-            signal.signal(signal.SIGABRT, original_abort)
-        except:
-            pass
+        # Cleanup if needed
+        pass
 
 # OAuth Routes
 @app.route('/auth/login')

@@ -124,7 +124,23 @@ class VenueEventScraper:
                     try:
                         logger.info(f"Scraping events for: {venue.name}")
                         update_progress(2, 4, f"Scraping {venue.name}...")
-                        events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
+                        # Add per-venue timeout to prevent worker hangs (max 20 seconds per venue)
+                        import signal
+                        def timeout_handler(signum, frame):
+                            raise TimeoutError(f"Venue scraping timeout for {venue.name}")
+                        
+                        # Set alarm for 20 seconds (Unix only)
+                        if hasattr(signal, 'SIGALRM'):
+                            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                            signal.alarm(20)
+                        
+                        try:
+                            events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
+                        finally:
+                            # Cancel alarm
+                            if hasattr(signal, 'SIGALRM'):
+                                signal.alarm(0)
+                                signal.signal(signal.SIGALRM, old_handler)
                         
                         # Filter by event_type if specified
                         if event_type:
@@ -278,10 +294,11 @@ class VenueEventScraper:
         try:
             logger.info(f"Scraping website: {venue.website_url}")
             try:
-                response = self.session.get(venue.website_url, timeout=15)
+                # Use shorter timeout to prevent worker hangs (10 seconds per venue)
+                response = self.session.get(venue.website_url, timeout=10)
                 response.raise_for_status()
             except Timeout:
-                logger.error(f"⏱️ Timeout error accessing {venue.website_url} - skipping")
+                logger.error(f"⏱️ Timeout error accessing {venue.website_url} (10s timeout) - skipping")
                 return events
             except ConnectionError as e:
                 logger.error(f"🔌 Connection error accessing {venue.website_url}: {e} - skipping")
