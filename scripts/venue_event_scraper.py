@@ -1999,56 +1999,141 @@ class VenueEventScraper:
             max_exhibitions_per_venue = 5
         
         try:
-            # NGA calendar page format: exhibitions listed with "Closing [date]" or date ranges
-            if 'nga.gov' in page_url and ('calendar' in page_url or 'tab=exhibitions' in page_url):
-                # Look for exhibition items in the calendar view
-                # NGA uses various selectors - try multiple approaches
-                exhibition_items = []
-                
-                # Try finding exhibition cards/items
-                exhibition_items = soup.find_all(['article', 'div', 'li'], 
-                    class_=lambda c: c and ('exhibition' in str(c).lower() or 'event' in str(c).lower() or 'calendar' in str(c).lower()))
-                
-                # If no specific exhibition items found, look for links to exhibitions
-                if not exhibition_items:
-                    exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in href.lower())
-                    # Group links by their parent container
-                    seen_containers = set()
-                    for link in exhibition_links:
-                        parent = link.find_parent(['article', 'div', 'li'])
-                        if parent and id(parent) not in seen_containers:
-                            exhibition_items.append(parent)
-                            seen_containers.add(id(parent))
+            # Smithsonian National Museum of the American Indian listing pages
+            # Format: Title (repeated as link) followed by date range and location
+            if 'americanindian.si.edu' in page_url and '/explore/exhibitions/' in page_url:
+                # Check if this is a listing page (washington, newyork, etc.)
+                if any(category in page_url.lower() for category in ['/washington', '/newyork', '/online', '/upcoming', '/past', '/traveling']):
+                    logger.info(f"🔍 Processing Smithsonian NMAI listing page: {page_url}")
+                    
+                    # Find all headings that might be exhibition titles
+                    headings = soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])
+                    
+                    seen_titles = set()
+                    
+                    for heading in headings:
+                        if len(events) >= max_exhibitions_per_venue:
+                            break
+                        
+                        # Get the heading text
+                        title = heading.get_text(strip=True)
+                        if not title or len(title) < 5:
+                            continue
+                        
+                        # Clean title
+                        title = self._clean_title(title)
+                        
+                        # Skip generic headings
+                        generic_titles = ['exhibitions', 'exhibition', 'washington, dc', 'new york, ny', 'online', 'traveling', 'past', 'upcoming']
+                        if title.lower() in generic_titles:
+                            continue
+                        
+                        # Skip if we've seen this title
+                        title_lower = title.lower().strip()
+                        if title_lower in seen_titles:
+                            continue
+                        seen_titles.add(title_lower)
+                        
+                        # Look for date and location in the heading's parent or next siblings
+                        parent = heading.parent
+                        if not parent:
+                            continue
+                        
+                        parent_text = parent.get_text()
+                        
+                        # Extract date range
+                        date_text = None
+                        date_patterns = [
+                            r'([A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4})',  # November 25, 2025–January 1, 2027
+                            r'([A-Z][a-z]{2,9}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4})',  # Nov 25–Jan 1, 2027
+                            r'(Ongoing)',
+                        ]
+                        
+                        for pattern in date_patterns:
+                            match = re.search(pattern, parent_text)
+                            if match:
+                                date_text = match.group(1)
+                                break
+                        
+                        if not date_text:
+                            continue
+                        
+                        # Check location matches the page
+                        # If scraping /washington page, venue should be in Washington DC
+                        # If scraping /newyork page, venue should be in New York
+                        location_text = parent_text.lower()
+                        if '/washington' in page_url.lower():
+                            if 'new york' in location_text or 'newyork' in location_text:
+                                continue  # Skip New York exhibitions when scraping Washington page
+                        elif '/newyork' in page_url.lower():
+                            if 'washington' in location_text or 'washington, dc' in location_text:
+                                continue  # Skip Washington exhibitions when scraping New York page
+                        
+                        # Parse dates
+                        start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
+                            date_text, page_url, venue, time_range=time_range
+                        )
+                        
+                        if not start_date:
+                            continue
+                        
+                        # Skip past exhibitions
+                        today = date.today()
+                        if end_date and end_date < today:
+                            continue
+                        if end_date is None and start_date < today:
+                            continue
+                        
+                        # Find link to individual exhibition page
+                        exhibition_url = page_url
+                        link = heading.find('a', href=True) or parent.find('a', href=lambda href: href and '/explore/exhibitions/item?id=' in (href or '').lower())
+                        if link:
+                            href = link.get('href', '')
+                            if href:
+                                from urllib.parse import urljoin
+                                exhibition_url = urljoin(page_url, href)
+                        
+                        # Extract description
+                        description = None
+                        next_p = heading.find_next('p')
+                        if next_p:
+                            description = next_p.get_text(strip=True)[:500]
+                        
+                        # Extract image
+                        image_url = None
+                        img = parent.find('img') or heading.find_next('img')
+                        if img and img.get('src'):
+                            from urllib.parse import urljoin
+                            image_url = urljoin(page_url, img['src'])
+                        
+                        # Create event data
+                        event_data = {
+                            'title': title,
+                            'description': description or '',
+                            'start_date': start_date.isoformat() if start_date else None,
+                            'end_date': end_date.isoformat() if end_date is not None else None,
+                            'start_time': None,
+                            'end_time': None,
+                            'start_location': venue.name,
+                            'venue_id': venue.id,
+                            'city_id': venue.city_id,  # Use venue's city_id
+                            'event_type': 'exhibition',
+                            'url': exhibition_url,
+                            'image_url': image_url,
+                            'source': 'website',
+                            'source_url': page_url,
+                            'organizer': venue.name
+                        }
+                        
+                        if self._is_valid_event(event_data):
+                            end_date_str = end_date.isoformat() if end_date else "ongoing"
+                            logger.info(f"✅ Extracted Smithsonian NMAI exhibition: '{title}' ({start_date.isoformat()} to {end_date_str})")
+                            events.append(event_data)
+                    
+                    if events:
+                        logger.info(f"📦 Smithsonian NMAI listing page returning {len(events)} exhibitions (limit: {max_exhibitions_per_venue})")
+                        return events[:max_exhibitions_per_venue]
             
-            # Continue with the rest of the NGA parsing logic...
-            # (The actual implementation continues here)
-            
-        except Exception as e:
-            logger.debug(f"Error extracting exhibitions from listing page {page_url}: {e}")
-        
-        return events
-    
-    def _extract_exhibitions_from_listing_page(self, soup, venue, page_url, event_type=None, time_range='today', max_exhibitions_per_venue=5):
-        """Extract exhibitions directly from a listing page (e.g., Smithsonian museums, Met Museum)
-        
-        Args:
-            soup: BeautifulSoup object of the listing page
-            venue: Venue object
-            page_url: URL of the listing page
-            event_type: Optional filter for event type
-            time_range: Time range for events
-            max_exhibitions_per_venue: Maximum number of exhibitions to extract (default: 5)
-        
-        Returns:
-            List of at most max_exhibitions_per_venue exhibition events
-        """
-        events = []
-        # CRITICAL: Enforce limit - this function MUST NEVER return more than max_exhibitions_per_venue
-        if max_exhibitions_per_venue <= 0:
-            logger.warning(f"Invalid max_exhibitions_per_venue: {max_exhibitions_per_venue}, defaulting to 5")
-            max_exhibitions_per_venue = 5
-        
-        try:
             # NGA calendar page format: exhibitions listed with "Closing [date]" or date ranges
             if 'nga.gov' in page_url and ('calendar' in page_url or 'tab=exhibitions' in page_url):
                 # Look for exhibition items in the calendar view
