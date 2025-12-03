@@ -104,58 +104,102 @@ def extract_event_data_from_url(url):
             logger.warning(f"Hirshhorn specialized extraction failed: {e}, falling back to general scraper")
             # Fall through to general scraper
     
-    # Check if this is an NGA event page (tours, talks, etc.) - use NGA comprehensive scraper
-    if 'nga.gov' in url.lower() and '/calendar/' in url.lower():
+    # Check if this is an NGA event page (tours, exhibitions, talks, etc.) - use NGA comprehensive scraper
+    if 'nga.gov' in url.lower():
         try:
-            logger.info(f"🎯 Detected NGA event page - using specialized extraction")
-            from scripts.nga_comprehensive_scraper import scrape_nga_tour_page, create_scraper
-            
-            scraper = create_scraper()
-            event_data = scrape_nga_tour_page(url, scraper)
-            if event_data:
-                logger.info(f"✅ Successfully extracted using NGA scraper")
-                # Convert time objects to strings if needed
-                from datetime import time as dt_time
-                start_time_str = None
-                end_time_str = None
-                if event_data.get('start_time'):
-                    start_time_obj = event_data.get('start_time')
-                    if isinstance(start_time_obj, dt_time):
-                        start_time_str = start_time_obj.isoformat()
-                    else:
-                        start_time_str = str(start_time_obj)
-                if event_data.get('end_time'):
-                    end_time_obj = event_data.get('end_time')
-                    if isinstance(end_time_obj, dt_time):
-                        end_time_str = end_time_obj.isoformat()
-                    else:
-                        end_time_str = str(end_time_obj)
+            # Check if it's an exhibition URL
+            if '/exhibitions/' in url.lower():
+                logger.info(f"🎯 Detected NGA exhibition page - using specialized extraction")
+                from scripts.nga_comprehensive_scraper import scrape_nga_exhibition_page, create_scraper
                 
-                # Convert date object to string if needed
-                start_date_str = None
-                if event_data.get('start_date'):
-                    start_date_obj = event_data.get('start_date')
-                    if hasattr(start_date_obj, 'isoformat'):
-                        start_date_str = start_date_obj.isoformat()
-                    else:
-                        start_date_str = str(start_date_obj)
+                scraper = create_scraper()
+                event_data = scrape_nga_exhibition_page(url, scraper)
+                if event_data:
+                    logger.info(f"✅ Successfully extracted using NGA exhibition scraper")
+                    # Convert date objects to strings if needed
+                    start_date_str = None
+                    end_date_str = None
+                    if event_data.get('start_date'):
+                        start_date_obj = event_data.get('start_date')
+                        if hasattr(start_date_obj, 'isoformat'):
+                            start_date_str = start_date_obj.isoformat()
+                        else:
+                            start_date_str = str(start_date_obj)
+                    if event_data.get('end_date'):
+                        end_date_obj = event_data.get('end_date')
+                        if hasattr(end_date_obj, 'isoformat'):
+                            end_date_str = end_date_obj.isoformat()
+                        else:
+                            end_date_str = str(end_date_obj)
+                    
+                    return {
+                        'title': event_data.get('title'),
+                        'description': event_data.get('description'),
+                        'start_date': start_date_str,
+                        'end_date': end_date_str,
+                        'start_time': None,  # Exhibitions don't have times
+                        'end_time': None,
+                        'location': event_data.get('location'),
+                        'image_url': event_data.get('image_url'),
+                        'event_type': event_data.get('event_type', 'exhibition'),
+                        'is_online': event_data.get('is_online', False),
+                        'is_registration_required': event_data.get('is_registration_required', False),
+                        'registration_url': event_data.get('registration_url'),
+                        'registration_info': event_data.get('registration_info'),
+                        'schedule_info': None,
+                        'days_of_week': []
+                    }
+            # Check if it's a calendar/tour URL
+            elif '/calendar/' in url.lower():
+                logger.info(f"🎯 Detected NGA calendar/tour page - using specialized extraction")
+                from scripts.nga_comprehensive_scraper import scrape_nga_tour_page, create_scraper
                 
-                return {
-                    'title': event_data.get('title'),
-                    'description': event_data.get('description'),
-                    'start_date': start_date_str,
-                    'start_time': start_time_str,
-                    'end_time': end_time_str,
-                    'location': event_data.get('location'),
-                    'image_url': event_data.get('image_url'),
-                    'event_type': event_data.get('event_type', 'tour'),
-                    'is_online': event_data.get('is_online', False),
-                    'is_registration_required': event_data.get('is_registration_required', False),
-                    'registration_url': event_data.get('registration_url'),
-                    'registration_info': event_data.get('registration_info'),
-                    'schedule_info': None,
-                    'days_of_week': []
-                }
+                scraper = create_scraper()
+                event_data = scrape_nga_tour_page(url, scraper)
+                if event_data:
+                    logger.info(f"✅ Successfully extracted using NGA tour scraper")
+                    # Convert time objects to strings if needed
+                    from datetime import time as dt_time
+                    start_time_str = None
+                    end_time_str = None
+                    if event_data.get('start_time'):
+                        start_time_obj = event_data.get('start_time')
+                        if isinstance(start_time_obj, dt_time):
+                            start_time_str = start_time_obj.isoformat()
+                        else:
+                            start_time_str = str(start_time_obj)
+                    if event_data.get('end_time'):
+                        end_time_obj = event_data.get('end_time')
+                        if isinstance(end_time_obj, dt_time):
+                            end_time_str = end_time_obj.isoformat()
+                        else:
+                            end_time_str = str(end_time_obj)
+                    
+                    # Convert date object to string if needed
+                    start_date_str = None
+                    if event_data.get('start_date'):
+                        start_date_obj = event_data.get('start_date')
+                        if hasattr(start_date_obj, 'isoformat'):
+                            start_date_str = start_date_obj.isoformat()
+                        else:
+                            start_date_str = str(start_date_obj)
+                    
+                    return {
+                        'title': event_data.get('title'),
+                        'description': event_data.get('description'),
+                        'start_date': start_date_str,
+                        'start_time': start_time_str,
+                        'end_time': end_time_str,
+                        'location': event_data.get('location'),
+                        'image_url': event_data.get('image_url'),
+                        'event_type': event_data.get('event_type', 'tour'),
+                        'is_online': event_data.get('is_online', False),
+                        'is_registration_required': event_data.get('is_registration_required', False),
+                        'registration_url': event_data.get('registration_url'),
+                        'registration_info': event_data.get('registration_info'),
+                        'schedule_info': None,
+                        'days_of_week': []
+                    }
         except Exception as e:
             logger.warning(f"NGA specialized extraction failed: {e}, falling back to general scraper")
             # Fall through to general scraper
@@ -275,8 +319,21 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         dict with events_created count, events list, and schedule_info
     """
     try:
+        # Check if this is an NGA exhibition - use specialized scraper
+        event_data = None
+        if 'nga.gov' in url.lower() and '/exhibitions/' in url.lower():
+            try:
+                from scripts.nga_comprehensive_scraper import scrape_nga_exhibition_page, create_scraper
+                scraper = create_scraper()
+                event_data = scrape_nga_exhibition_page(url, scraper)
+                if event_data:
+                    logger.info(f"✅ Successfully extracted NGA exhibition using specialized scraper")
+            except Exception as e:
+                logger.warning(f"NGA exhibition scraper failed: {e}")
+                event_data = None
+        
         # Check if this is a Finding Awe event - use dedicated scraper
-        if 'finding-awe' in url.lower():
+        if not event_data and 'finding-awe' in url.lower():
             try:
                 from scripts.nga_finding_awe_scraper import scrape_individual_event
                 event_data = scrape_individual_event(url)
@@ -331,8 +388,52 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 logger.warning(f"Finding Awe scraper failed, falling back to general scraper: {e}")
                 # Fall through to general scraper
                 event_data = None
-        else:
-            event_data = None
+        
+        # Handle NGA exhibition data if extracted
+        if event_data and '/exhibitions/' in url.lower():
+            # Use scraped data, but allow override_data to override specific fields
+            title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
+            description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+            image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
+            meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
+            
+            # Parse dates
+            start_date = None
+            end_date = None
+            if override_data and override_data.get('start_date'):
+                try:
+                    start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
+                except:
+                    pass
+            if not start_date and event_data.get('start_date'):
+                try:
+                    if isinstance(event_data['start_date'], str):
+                        start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                    else:
+                        start_date = event_data['start_date']
+                except:
+                    pass
+            
+            if override_data and override_data.get('end_date'):
+                try:
+                    end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
+                except:
+                    pass
+            if not end_date and event_data.get('end_date'):
+                try:
+                    if isinstance(event_data['end_date'], str):
+                        end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+                    else:
+                        end_date = event_data['end_date']
+                except:
+                    pass
+            
+            # Exhibitions don't have times
+            start_time = None
+            end_time = None
+            schedule_info = None
+            days_of_week = []
+            event_type = event_data.get('event_type', 'exhibition')
         
         # Use override data if provided, otherwise scrape
         if override_data and any(override_data.values()) and not event_data:
@@ -421,7 +522,10 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         # Determine dates to create events for
         event_dates = []
         
-        if days_of_week:
+        # For exhibitions, use the scraped start_date if available, otherwise use period_start
+        if event_data and '/exhibitions/' in url.lower() and 'start_date' in locals() and start_date:
+            event_dates = [start_date]  # Use the actual exhibition start date
+        elif days_of_week:
             # Recurring event - create events for matching days in the period
             current_date = period_start
             while current_date <= period_end:
@@ -442,19 +546,96 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         
         with app.app_context():
             for event_date in event_dates:
-                # Check if event already exists
-                filter_dict = {
-                    'url': url,
-                    'start_date': event_date,
-                    'city_id': city.id
-                }
-                if venue:
-                    filter_dict['venue_id'] = venue.id
+                # Check if event already exists - for exhibitions/tours, match by URL first
+                existing = None
                 
-                existing = Event.query.filter_by(**filter_dict).first()
+                # For exhibitions and tours, match by URL (they're typically single events with unique URLs)
+                if url and ('exhibition' in (event_type or '').lower() or 'tour' in (event_type or '').lower() or '/exhibitions/' in url.lower() or '/calendar/' in url.lower()):
+                    # Normalize URL for comparison (remove trailing slash)
+                    normalized_url = url.rstrip('/')
+                    # Try exact URL match or URL with trailing slash
+                    existing = Event.query.filter(
+                        (Event.url == url) | (Event.url == normalized_url) | 
+                        (Event.url.like(f"{normalized_url}%")) | (Event.url.like(f"{url}%"))
+                    ).filter_by(city_id=city.id).first()
+                    
+                    # If not found by URL, try by title + date + venue
+                    if not existing and title:
+                        filter_dict = {
+                            'start_date': event_date,
+                            'city_id': city.id
+                        }
+                        if venue:
+                            filter_dict['venue_id'] = venue.id
+                        existing = Event.query.filter_by(**filter_dict).filter(
+                            db.func.lower(Event.title) == db.func.lower(title)
+                        ).first()
+                else:
+                    # For other events, use standard matching
+                    filter_dict = {
+                        'url': url,
+                        'start_date': event_date,
+                        'city_id': city.id
+                    }
+                    if venue:
+                        filter_dict['venue_id'] = venue.id
+                    existing = Event.query.filter_by(**filter_dict).first()
                 
+                # If existing event found, update it instead of skipping
                 if existing:
-                    logger.info(f"Event already exists for {event_date}, skipping")
+                    logger.info(f"Event already exists (ID: {existing.id}), updating with new data")
+                    updated = False
+                    
+                    # Update fields if new data is available or existing field is None
+                    if title and (not existing.title or title != existing.title):
+                        existing.title = title
+                        updated = True
+                    if description and (not existing.description or description != existing.description):
+                        existing.description = description
+                        updated = True
+                    if url and (not existing.url or url != existing.url):
+                        existing.url = url
+                        updated = True
+                    if image_url and (not existing.image_url or image_url != existing.image_url):
+                        existing.image_url = image_url
+                        updated = True
+                    if meeting_point and (not existing.start_location or meeting_point != existing.start_location):
+                        existing.start_location = meeting_point
+                        updated = True
+                    if event_type and (not existing.event_type or event_type != existing.event_type):
+                        existing.event_type = event_type
+                        updated = True
+                    # Update dates if provided
+                    if event_date and (not existing.start_date or event_date != existing.start_date):
+                        existing.start_date = event_date
+                        updated = True
+                    # For exhibitions, update end_date if available
+                    if 'end_date' in locals() and end_date:
+                        if not existing.end_date or end_date != existing.end_date:
+                            existing.end_date = end_date
+                            updated = True
+                    # Update times if provided (for tours)
+                    if start_time and (not existing.start_time or start_time != existing.start_time):
+                        existing.start_time = start_time
+                        updated = True
+                    if end_time and (not existing.end_time or end_time != existing.end_time):
+                        existing.end_time = end_time
+                        updated = True
+                    
+                    if updated:
+                        db.session.commit()
+                        logger.info(f"✅ Updated existing event: {existing.title} (ID: {existing.id})")
+                    else:
+                        logger.info(f"ℹ️  Event already up to date: {existing.title} (ID: {existing.id})")
+                    
+                    events_created += 1  # Count as "created" for the response
+                    created_events.append({
+                        'title': existing.title,
+                        'start_date': existing.start_date.isoformat() if existing.start_date else None,
+                        'start_time': existing.start_time.isoformat() if existing.start_time else None,
+                        'end_time': existing.end_time.isoformat() if existing.end_time else None,
+                        'description': existing.description[:100] if existing.description else None
+                    })
                     continue
                 
                 # Determine location and organizer
@@ -479,11 +660,18 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     event_type = _determine_event_type(title, description, page_text, url)
                 
                 # Create new event
+                # For exhibitions, use the scraped end_date if available
+                event_end_date = event_date
+                if 'end_date' in locals() and end_date:
+                    event_end_date = end_date
+                elif event_date:
+                    event_end_date = event_date
+                
                 event = Event(
                     title=title,
                     description=description,
                     start_date=event_date,
-                    end_date=event_date,
+                    end_date=event_end_date,
                     start_time=start_time,
                     end_time=end_time,
                     start_location=location,

@@ -3098,6 +3098,19 @@
             return fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
         
+        // Helper function to normalize UTC timestamps (append 'Z' if missing timezone)
+        function normalizeUTCTimestamp(timestamp) {
+            if (!timestamp || typeof timestamp !== 'string') {
+                return timestamp;
+            }
+            const dateStr = timestamp.trim();
+            // If it's an ISO datetime without timezone indicator, append 'Z' for UTC
+            if (dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.match(/[+-]\d{2}:?\d{2}$/)) {
+                return dateStr + 'Z';
+            }
+            return dateStr;
+        }
+        
         // Format field values based on field type and configuration
         function formatFieldValue(fieldName, value, config = {}) {
             if (value === null || value === undefined || value === '') {
@@ -3244,6 +3257,38 @@
                 case 'created_at':
                 case 'updated_at':
                 case 'last_checked':
+                    try {
+                        // Format datetime with time (timestamps are stored in UTC)
+                        if (value && typeof value === 'string') {
+                            // Normalize UTC timestamp (append 'Z' if missing timezone)
+                            const normalizedTimestamp = normalizeUTCTimestamp(value);
+                            
+                            // Parse as UTC and convert to browser's local timezone
+                            const date = new Date(normalizedTimestamp);
+                            if (!isNaN(date.getTime())) {
+                                // Use browser's locale and timezone automatically (no hardcoding)
+                                // toLocaleString() automatically uses browser's timezone and locale
+                                return date.toLocaleString(undefined, {
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true
+                                });
+                            }
+                            // Fallback: try to parse as date string
+                            const [year, month, day] = value.split('-');
+                            if (year && month && day) {
+                                return `${month}/${day}/${year}`;
+                            }
+                        }
+                        return value || '';
+                    } catch (e) {
+                        console.error('Error formatting timestamp:', e, value);
+                        return value || '';
+                    }
+                
                 case 'start_date':
                 case 'end_date':
                     try {
@@ -3421,13 +3466,13 @@
                         case 'name_desc':
                             return (b.name || '').localeCompare(a.name || '');
                         case 'updated_at_desc':
-                            return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
+                            return new Date(normalizeUTCTimestamp(b.updated_at || '') || 0) - new Date(normalizeUTCTimestamp(a.updated_at || '') || 0);
                         case 'updated_at':
-                            return new Date(a.updated_at || 0) - new Date(b.updated_at || 0);
+                            return new Date(normalizeUTCTimestamp(a.updated_at || '') || 0) - new Date(normalizeUTCTimestamp(b.updated_at || '') || 0);
                         case 'created_at_desc':
-                            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                            return new Date(normalizeUTCTimestamp(b.created_at || '') || 0) - new Date(normalizeUTCTimestamp(a.created_at || '') || 0);
                         case 'created_at':
-                            return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                            return new Date(normalizeUTCTimestamp(a.created_at || '') || 0) - new Date(normalizeUTCTimestamp(b.created_at || '') || 0);
                         case 'venue_type':
                             return (a.venue_type || '').localeCompare(b.venue_type || '');
                         case 'city_name':
@@ -5810,22 +5855,39 @@
         }
         
         function generateEventDetailsHTML(event) {
-            // Helper function to format timestamps (remove seconds, make reader-friendly)
+            // Helper function to format timestamps (converts UTC to local timezone)
             const formatTimestamp = (timestamp) => {
                 if (!timestamp) return '';
                 try {
-                    const date = new Date(timestamp);
-                    // Format: "Dec 3, 2025 at 7:05 PM"
-                    const options = { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                    };
-                    return date.toLocaleString('en-US', options);
+                    // Ensure normalizeUTCTimestamp is accessible (defined at top level)
+                    if (typeof normalizeUTCTimestamp === 'function') {
+                        // Normalize UTC timestamp (append 'Z' if missing timezone)
+                        const normalizedTimestamp = normalizeUTCTimestamp(timestamp);
+                        const date = new Date(normalizedTimestamp);
+                        // Format using browser's locale and timezone automatically
+                        const options = { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        };
+                        return date.toLocaleString(undefined, options);
+                    } else {
+                        // Fallback if function not available
+                        const date = new Date(timestamp + (timestamp.includes('T') && !timestamp.endsWith('Z') && !timestamp.match(/[+-]\d{2}:?\d{2}$/) ? 'Z' : ''));
+                        return date.toLocaleString(undefined, {
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        });
+                    }
                 } catch (e) {
+                    console.error('Error formatting timestamp:', e, timestamp);
                     return timestamp; // Fallback to original if parsing fails
                 }
             };
@@ -6077,7 +6139,9 @@
             const formatTimestamp = (timestamp) => {
                 if (!timestamp) return '';
                 try {
-                    const date = new Date(timestamp);
+                    // Normalize UTC timestamp (append 'Z' if missing timezone)
+                    const normalizedTimestamp = normalizeUTCTimestamp(timestamp);
+                    const date = new Date(normalizedTimestamp);
                     const options = { 
                         year: 'numeric', 
                         month: 'short', 
@@ -6086,7 +6150,7 @@
                         minute: '2-digit',
                         hour12: true
                     };
-                    return date.toLocaleString('en-US', options);
+                    return date.toLocaleString(undefined, options);
                 } catch (e) {
                     return timestamp;
                 }
@@ -6193,7 +6257,9 @@
             const formatTimestamp = (timestamp) => {
                 if (!timestamp) return '';
                 try {
-                    const date = new Date(timestamp);
+                    // Normalize UTC timestamp (append 'Z' if missing timezone)
+                    const normalizedTimestamp = normalizeUTCTimestamp(timestamp);
+                    const date = new Date(normalizedTimestamp);
                     const options = { 
                         year: 'numeric', 
                         month: 'short', 
@@ -6202,7 +6268,7 @@
                         minute: '2-digit',
                         hour12: true
                     };
-                    return date.toLocaleString('en-US', options);
+                    return date.toLocaleString(undefined, options);
                 } catch (e) {
                     return timestamp;
                 }
@@ -6272,7 +6338,9 @@
             const formatTimestamp = (timestamp) => {
                 if (!timestamp) return '';
                 try {
-                    const date = new Date(timestamp);
+                    // Normalize UTC timestamp (append 'Z' if missing timezone)
+                    const normalizedTimestamp = normalizeUTCTimestamp(timestamp);
+                    const date = new Date(normalizedTimestamp);
                     const options = { 
                         year: 'numeric', 
                         month: 'short', 
@@ -6281,7 +6349,7 @@
                         minute: '2-digit',
                         hour12: true
                     };
-                    return date.toLocaleString('en-US', options);
+                    return date.toLocaleString(undefined, options);
                 } catch (e) {
                     return timestamp;
                 }
