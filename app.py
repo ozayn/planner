@@ -1316,7 +1316,8 @@ def proxy_external_image():
                 import cloudscraper
                 scraper = cloudscraper.create_scraper()
                 app_logger.info(f"Regular request failed, trying cloudscraper for {image_url}")
-                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True)
+                # Disable SSL verification for cloudscraper too (fixes SSL certificate errors)
+                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
                 response.raise_for_status()
             except ImportError:
                 # cloudscraper not available, re-raise original error

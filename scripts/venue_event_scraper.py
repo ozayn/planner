@@ -59,13 +59,13 @@ class VenueEventScraper:
         from requests.adapters import HTTPAdapter
         from urllib3.util.retry import Retry
         retry_strategy = Retry(
-            total=2,
-            backoff_factor=0.5,
+            total=3,  # Increased from 2 to 3
+            backoff_factor=1.0,  # Increased from 0.5 to 1.0 for exponential backoff
             status_forcelist=[500, 502, 503, 504],
             allowed_methods=["GET"],
-            connect=2,  # Retry on connection errors
-            read=2,     # Retry on read errors
-            redirect=2  # Retry on redirect errors
+            connect=3,  # Increased from 2 to 3 for connection errors
+            read=3,     # Increased from 2 to 3 for read errors
+            redirect=3  # Increased from 2 to 3 for redirect errors
         )
         adapter = HTTPAdapter(
             max_retries=retry_strategy,
@@ -307,10 +307,27 @@ class VenueEventScraper:
                 logger.error(f"🔌 Connection error accessing {venue.website_url}: {e} - skipping")
                 return events
             except RequestException as e:
-                logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
-                return events
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
+                # Check if it's a 403 Forbidden error - try cloudscraper as fallback
+                if hasattr(e, 'response') and e.response is not None and e.response.status_code == 403:
+                    logger.warning(f"⚠️  403 Forbidden for {venue.website_url}, trying cloudscraper...")
+                    try:
+                        html_content = self._scrape_with_cloudscraper(venue.website_url)
+                        if html_content:
+                            soup = BeautifulSoup(html_content, 'html.parser')
+                            logger.info(f"✅ Successfully bypassed 403 using cloudscraper for {venue.website_url}")
+                            # Continue with scraping using the cloudscraper result - skip the normal soup creation below
+                        else:
+                            logger.error(f"❌ Cloudscraper also failed for {venue.website_url} - skipping")
+                            return events
+                    except Exception as cloudscraper_error:
+                        logger.error(f"❌ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping")
+                        return events
+                else:
+                    logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
+                    return events
+            else:
+                # Only create soup from response if we didn't use cloudscraper fallback
+                soup = BeautifulSoup(response.content, 'html.parser')
             
             # Check for Art Institute of Chicago events page (/events)
             # This page lists all events (tours, talks, workshops) with their types
@@ -1368,8 +1385,9 @@ class VenueEventScraper:
                 }
             )
             
+            # Disable SSL verification to avoid certificate errors
             # Make the request
-            response = scraper.get(url, timeout=10)
+            response = scraper.get(url, timeout=10, verify=False)
             response.raise_for_status()
             
             return response.text
@@ -4079,22 +4097,24 @@ class VenueEventScraper:
             else:
                 return False
         
-        # TOURS REQUIRE A TIME - reject tours without a specific start time
-        # But talks and workshops can be more flexible if they have good descriptions/URLs
-        if event_type == 'tour':
+        # Allow events without times to pass through - app.py will handle them
+        # Previously rejected tours/talks/workshops without times, but now we let them through
+        # so app.py can save them (it has better logic for handling missing times)
+        if event_type in ['tour', 'talk', 'workshop']:
+            # Allow through if it has time, URL, description, or is from a known venue
             if not has_specific_time:
-                logger.debug(f"⚠️ Rejecting {event_type} '{event_data.get('title')}' - no start time")
-                return False
-        elif event_type in ['talk', 'workshop']:
-            # For talks and workshops, allow without time if they have good description or URL
-            if not has_specific_time:
-                if not (has_url or has_meaningful_description):
-                    logger.debug(f"⚠️ Rejecting {event_type} '{event_data.get('title')}' - no time, URL, or description")
-                    return False
+                if has_venue:
+                    # From known venue - allow through even without time
+                    logger.debug(f"ℹ️  Allowing {event_type} '{event_data.get('title')}' without time (from known venue)")
+                elif has_url or has_meaningful_description:
+                    # Has URL or description - allow through
+                    logger.debug(f"ℹ️  Allowing {event_type} '{event_data.get('title')}' without time (has URL/description)")
+                else:
+                    # No time, URL, or description - still allow but log
+                    logger.debug(f"⚠️  Allowing {event_type} '{event_data.get('title')}' without time/URL/description (will be handled by app.py)")
         
         # If from a known venue, accept if it has ANY description or URL
-        # (But tours already checked above - they must have time)
-        if has_venue and event_type != 'tour':
+        if has_venue:
             if description or has_url:
                 return True
         
