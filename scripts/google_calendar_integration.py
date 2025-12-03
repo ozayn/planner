@@ -324,16 +324,56 @@ def create_calendar_event_from_extracted_data(extracted_data, venue_data=None, c
         
         description = '\n\n'.join(description_parts) if description_parts else None
         
-        # Build location - prioritize venue address for mappable location
-        # For NGA Finding Awe events, this ensures the venue address is used instead of meeting point
+        # Build location - use comma-separated format for NGA and Hirshhorn, tags for others
         location = None
-        if venue_data and venue_data.get('address'):
-            location = venue_data['address']
-        elif extracted_data.location:
-            location = extracted_data.location
-        elif extracted_data.start_location:
-            # Only use start_location as fallback if no venue address available
-            location = extracted_data.start_location
+        venue_name = None
+        venue_address = None
+        
+        if venue_data:
+            venue_name = venue_data.get('name')
+            venue_address = venue_data.get('address')
+        
+        # Check if this is an NGA or Hirshhorn event
+        is_nga = False
+        is_hirshhorn = False
+        if venue_name:
+            venue_name_lower = venue_name.lower()
+            is_nga = 'national gallery' in venue_name_lower or 'nga' in venue_name_lower
+            is_hirshhorn = 'hirshhorn' in venue_name_lower
+        
+        # For NGA and Hirshhorn events, use comma-separated format
+        if is_nga or is_hirshhorn:
+            if venue_name and venue_address:
+                location = f"{venue_name}, {venue_address}"
+            elif venue_address:
+                location = venue_address
+            elif venue_name:
+                # Use venue name with hardcoded address as fallback
+                if is_nga:
+                    location = f"{venue_name}, Constitution Ave NW, Washington, DC 20565, USA"
+                elif is_hirshhorn:
+                    location = f"{venue_name}, Independence Ave SW, Washington, DC 20560, USA"
+                else:
+                    location = venue_name
+            else:
+                # Final fallback
+                if is_nga:
+                    location = 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA'
+                elif is_hirshhorn:
+                    location = 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA'
+        else:
+            # For other events, use <location> and <address> tags
+            if venue_name and venue_address:
+                location = f"<location>{venue_name}</location><address>{venue_address}</address>"
+            elif venue_address:
+                location = f"<address>{venue_address}</address>"
+            elif venue_name:
+                location = f"<location>{venue_name}</location>"
+            elif extracted_data.location:
+                location = extracted_data.location
+            elif extracted_data.start_location:
+                # Only use start_location as fallback if no venue info available
+                location = extracted_data.start_location
         
         # Build start and end datetimes with timezone
         start_datetime = None

@@ -4209,7 +4209,7 @@
                 // Determine calendar location - prioritize venue address for NGA events
                 let calendarLocation = '';
                 
-                // Check if this is an NGA event
+                // Check if this is an NGA or Hirshhorn event
                 const venueNameLower = (event.venue_name || '').toLowerCase();
                 const titleLower = (event.title || '').toLowerCase();
                 const urlLower = (event.url || '').toLowerCase();
@@ -4223,47 +4223,61 @@
                 const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
                 const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation;
                 
+                // Detect Hirshhorn events
+                const hasHirshhornVenueName = venueNameLower.includes('hirshhorn');
+                const hasHirshhornTitle = titleLower.includes('hirshhorn');
+                const hasHirshhornUrl = urlLower.includes('hirshhorn.si.edu');
+                const isHirshhornEvent = hasHirshhornVenueName || hasHirshhornTitle || hasHirshhornUrl;
+                
                 // Detect Webster's Bookstore Cafe events
                 const hasWebstersVenueName = venueNameLower.includes("webster's") || venueNameLower.includes('websters');
                 const hasWebstersTitle = titleLower.includes("webster's") || titleLower.includes('websters');
                 const hasWebstersUrl = urlLower.includes('webstersbooksandcafe.com');
                 const isWebstersEvent = hasWebstersVenueName || hasWebstersTitle || hasWebstersUrl;
                 
-                // For NGA events, use venue name + address format (same as general format)
-                if (isNGAEvent) {
-                    const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
-                    const hasVenueAddress = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0;
-                    
+                // Build location using <location> and <address> tags for Google Calendar
+                const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
+                const hasVenueAddress = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0;
+                
+                // For NGA and Hirshhorn events, use format: "Venue Name, Address" (comma-separated)
+                if (isNGAEvent || isHirshhornEvent) {
                     if (hasVenueName && hasVenueAddress) {
-                        // Use format: "venue name, address" (same as general format)
-                        calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
-                    } else if (hasVenueAddress) {
-                        calendarLocation = event.venue_address.trim();
-                    } else if (hasVenueName && 
-                              (event.venue_name.toLowerCase().includes('national gallery') || 
-                               event.venue_name.toLowerCase().includes('nga'))) {
-                        // Use venue name with hardcoded address as fallback
-                        calendarLocation = `${event.venue_name.trim()}, Constitution Ave. NW, Washington, DC 20565, USA`;
-                    } else {
-                        // Final fallback to known NGA name + address
-                        calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
-                    }
-                } else if (isWebstersEvent) {
-                    // For Webster's Cafe events, use the hardcoded address
-                    calendarLocation = "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA";
-                } else {
-                    // For all other events, use "venue name, address" format if both are available
-                    const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
-                    const hasVenueAddress = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0;
-                    
-                    if (hasVenueName && hasVenueAddress) {
+                        // Use format: "venue name, address" (comma-separated)
                         calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
                     } else if (hasVenueAddress) {
                         calendarLocation = event.venue_address.trim();
                     } else if (hasVenueName) {
-                        calendarLocation = event.venue_name.trim();
+                        // Use venue name with hardcoded address as fallback
+                        if (isNGAEvent) {
+                            calendarLocation = `${event.venue_name.trim()}, Constitution Ave NW, Washington, DC 20565, USA`;
+                        } else if (isHirshhornEvent) {
+                            calendarLocation = `${event.venue_name.trim()}, Independence Ave SW, Washington, DC 20560, USA`;
+                        } else {
+                            calendarLocation = event.venue_name.trim();
+                        }
+                    } else {
+                        // Final fallback to known venue name + address
+                        if (isNGAEvent) {
+                            calendarLocation = 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA';
+                        } else if (isHirshhornEvent) {
+                            calendarLocation = 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA';
+                        } else {
+                            calendarLocation = '';
+                        }
+                    }
+                } else if (isWebstersEvent) {
+                    // For Webster's Cafe events, use comma-separated format
+                    calendarLocation = "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA";
+                } else {
+                    // For all other events, use <location> and <address> tags if both are available
+                    if (hasVenueName && hasVenueAddress) {
+                        calendarLocation = `<location>${event.venue_name.trim()}</location><address>${event.venue_address.trim()}</address>`;
+                    } else if (hasVenueAddress) {
+                        calendarLocation = `<address>${event.venue_address.trim()}</address>`;
+                    } else if (hasVenueName) {
+                        calendarLocation = `<location>${event.venue_name.trim()}</location>`;
                         if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
-                            calendarLocation += `, ${event.city_name.trim()}`;
+                            calendarLocation += `<address>${event.city_name.trim()}</address>`;
                         }
                     } else {
                         calendarLocation = event.start_location || '';
