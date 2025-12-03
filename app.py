@@ -2095,14 +2095,16 @@ def trigger_scraping():
                     # Continue to next event (don't create new one)
                     continue
                 
-                # SAFETY CHECK: Tours, talks, and workshops must have a start time - reject if missing
+                # SAFETY CHECK: Tours, talks, and workshops should have a start time
+                # However, if we can't extract times, we'll still save the event but log a warning
                 # This only applies to NEW events, not updates (updates are handled above)
                 if event_type in ['tour', 'talk', 'workshop'] and (not start_time_str or start_time_str == 'None'):
-                    app_logger.warning(f"⚠️ Skipped {event_type} event '{title}' - no start time (safety check)")
-                    app_logger.warning(f"   Event data keys: {list(event_data.keys())}")
-                    app_logger.warning(f"   start_time value: {repr(start_time_str)}")
-                    app_logger.warning(f"   URL: {event_data.get('url', 'N/A')}")
-                    continue
+                    # For museum events, try to use opening hours as fallback
+                    if venue and venue.opening_hours:
+                        app_logger.info(f"ℹ️  {event_type} event '{title}' has no start time, but will be saved (venue has opening hours: {venue.opening_hours})")
+                    else:
+                        app_logger.warning(f"⚠️  {event_type} event '{title}' has no start time - saving anyway (URL: {event_data.get('url', 'N/A')})")
+                    # Continue to save the event even without times - don't skip it
                 
                 # Log time information for debugging tours
                 if event_type == 'tour':

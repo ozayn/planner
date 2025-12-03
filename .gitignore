@@ -153,3 +153,9 @@ backups/
 
 # Uploaded images
 uploads/
+
+# Temporary scraping files
+dc_scraped_data.json
+scraping_progress.json
+*_scraped_data.json
+*_scraping_progress.json
