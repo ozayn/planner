@@ -320,6 +320,11 @@ class VenueEventScraper:
                                 if pattern in url_lower:
                                     # Extract the path after the pattern
                                     path_after = url_lower.split(pattern)[1].split('/')[0].split('?')[0]
+                                    # Skip category pages (not individual exhibitions)
+                                    category_pages = ['traveling', 'past', 'upcoming', 'washington', 'newyork', 'online', 'current', 'future']
+                                    if path_after.lower() in category_pages:
+                                        logger.debug(f"⚠️ Skipping category page: {exhibition_url}")
+                                        continue
                                     # Check if there's a meaningful slug (not empty, has letters, reasonable length)
                                     if path_after and len(path_after) > 3 and any(c.isalpha() for c in path_after):
                                         # Count path parts to ensure it's not too nested (likely a listing page)
@@ -527,6 +532,11 @@ class VenueEventScraper:
                                     for pattern in ['/exhibition/', '/exhibitions/', '/exhibition-experiences/', '/whats-on/exhibitions/']:
                                         if pattern in url_lower:
                                             path_after = url_lower.split(pattern)[1].split('/')[0].split('?')[0]
+                                            # Skip category pages (not individual exhibitions)
+                                            category_pages = ['traveling', 'past', 'upcoming', 'washington', 'newyork', 'online', 'current', 'future']
+                                            if path_after.lower() in category_pages:
+                                                logger.debug(f"⚠️ Skipping category page: {exhibition_url}")
+                                                break
                                             if path_after and len(path_after) > 3 and any(c.isalpha() for c in path_after):
                                                 exhibition_event = self._extract_exhibition_from_page(exhibition_soup, venue, exhibition_url, event_type, time_range)
                                                 if exhibition_event:
@@ -1493,6 +1503,150 @@ class VenueEventScraper:
             max_exhibitions_per_venue = 5
         
         try:
+            # NGA calendar page format: exhibitions listed with "Closing [date]" or date ranges
+            if 'nga.gov' in page_url and ('calendar' in page_url or 'tab=exhibitions' in page_url):
+                # Look for exhibition items in the calendar view
+                # NGA uses various selectors - try multiple approaches
+                exhibition_items = []
+                
+                # Try finding exhibition cards/items
+                exhibition_items = soup.find_all(['article', 'div', 'li'], 
+                    class_=lambda c: c and ('exhibition' in str(c).lower() or 'event' in str(c).lower() or 'calendar' in str(c).lower()))
+                
+                # If no specific exhibition items found, look for links to exhibitions
+                if not exhibition_items:
+                    exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in href.lower())
+                    # Group links by their parent container
+                    seen_containers = set()
+                    for link in exhibition_links:
+                        parent = link.find_parent(['article', 'div', 'li', 'section'])
+                        if parent and id(parent) not in seen_containers:
+                            exhibition_items.append(parent)
+                            seen_containers.add(id(parent))
+                
+                logger.info(f"🔍 Processing {len(exhibition_items)} NGA exhibition items (limit: {max_exhibitions_per_venue})")
+                
+                seen_titles = set()  # Track seen titles to avoid duplicates
+                
+                for item in exhibition_items:
+                    if len(events) >= max_exhibitions_per_venue:
+                        break
+                    
+                    # Find the exhibition link
+                    link = item.find('a', href=lambda href: href and '/exhibitions/' in href.lower())
+                    if not link:
+                        continue
+                    
+                    href = link.get('href', '')
+                    if not href or href == '/exhibitions' or href == '/exhibitions/':
+                        continue
+                    
+                    # Get title from link or heading
+                    title = link.get_text(strip=True)
+                    if not title or len(title) < 5:
+                        heading = item.find(['h2', 'h3', 'h4', 'h5'])
+                        if heading:
+                            title = heading.get_text(strip=True)
+                    
+                    if not title or len(title) < 5:
+                        continue
+                    
+                    # Skip generic titles
+                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all', 'more']
+                    if title.lower() in generic_titles:
+                        continue
+                    
+                    # Skip if we've already seen this title
+                    title_lower = title.lower().strip()
+                    if title_lower in seen_titles:
+                        continue
+                    seen_titles.add(title_lower)
+                    
+                    from urllib.parse import urljoin
+                    exhibition_url = urljoin(page_url, href)
+                    
+                    # Extract date text from the item
+                    item_text = item.get_text()
+                    date_text = None
+                    
+                    # Look for "Closing [date]" pattern (NGA format)
+                    closing_match = re.search(r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})', item_text)
+                    if closing_match:
+                        date_text = f"Closing {closing_match.group(1)}"
+                    # Look for date ranges
+                    elif re.search(r'[A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]', item_text):
+                        date_range_match = re.search(r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})', item_text)
+                        if date_range_match:
+                            date_text = date_range_match.group(1)
+                    # Look for "Ongoing"
+                    elif 'ongoing' in item_text.lower():
+                        date_text = 'Ongoing'
+                    
+                    if not date_text:
+                        # Try to get date from a specific date element
+                        date_elem = item.find(['time', 'span', 'div'], 
+                            class_=lambda c: c and ('date' in str(c).lower() or 'closing' in str(c).lower()))
+                        if date_elem:
+                            date_text = date_elem.get_text(strip=True)
+                    
+                    if not date_text:
+                        continue
+                    
+                    # Parse dates
+                    start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
+                        date_text, page_url, venue, time_range=time_range
+                    )
+                    
+                    # Skip if no start date
+                    if not start_date:
+                        continue
+                    
+                    # Skip past exhibitions
+                    today = date.today()
+                    if end_date and end_date < today:
+                        continue
+                    if end_date is None and start_date < today:
+                        continue
+                    
+                    # Extract description
+                    description = None
+                    desc_elem = item.find(['p', 'div'], class_=lambda c: c and ('description' in str(c).lower() or 'summary' in str(c).lower()))
+                    if desc_elem:
+                        description = desc_elem.get_text(strip=True)[:500]
+                    
+                    # Extract image
+                    image_url = None
+                    img = item.find('img')
+                    if img:
+                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                        if img_src:
+                            image_url = urljoin(page_url, img_src)
+                    
+                    # Create event data
+                    event_data = {
+                        'title': title,
+                        'description': description or '',
+                        'url': exhibition_url,
+                        'image_url': image_url or '',
+                        'start_date': start_date.isoformat() if start_date else None,
+                        'end_date': end_date.isoformat() if end_date else None,
+                        'start_time': None,
+                        'end_time': None,
+                        'event_type': 'exhibition',
+                        'venue_id': venue.id,
+                        'city_id': venue.city_id,
+                        'source': 'website',
+                        'source_url': page_url
+                    }
+                    
+                    if self._is_valid_event(event_data):
+                        events.append(event_data)
+                        logger.info(f"✅ Extracted exhibition from NGA calendar: '{title}' ({start_date} to {end_date})")
+                
+                if events:
+                    logger.info(f"📦 NGA calendar page returning {len(events)} exhibitions (limit: {max_exhibitions_per_venue})")
+                    return events[:max_exhibitions_per_venue]
+            
             # Met Museum format: exhibition cards with class "exhibition-card_exhibitionCard__I9gVC"
             # Dates are in format "Through [Month Day, Year]" or "Ongoing"
             if 'metmuseum.org' in page_url:
