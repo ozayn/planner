@@ -1533,6 +1533,17 @@ def load_data():
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scraping():
     """Trigger the scraping process to refresh event data"""
+    import signal
+    import sys
+    from requests.exceptions import Timeout, ConnectionError, RequestException
+    
+    # Prevent SIGABRT from causing worker exit
+    def handle_abort(signum, frame):
+        app_logger.warning(f"Received signal {signum} during scraping - ignoring to prevent worker crash")
+        return
+    
+    original_abort = signal.signal(signal.SIGABRT, handle_abort)
+    
     try:
         import json
         from datetime import datetime
@@ -1615,11 +1626,15 @@ def trigger_scraping():
                 )
                 all_events.extend(venue_events)
                 app_logger.info(f"Scraped {len(venue_events)} events from venues")
-            except Exception as e:
-                app_logger.error(f"Error scraping venues: {e}")
+            except (ConnectionError, Timeout, Exception) as e:
+                app_logger.error(f"Error scraping venues: {type(e).__name__}: {e}")
                 import traceback
                 app_logger.error(f"Traceback: {traceback.format_exc()}")
                 # Continue with empty list rather than failing completely
+                all_events.extend([])
+            except SystemExit:
+                # Prevent gunicorn worker from exiting on connection errors
+                app_logger.error("SystemExit caught in scraping - preventing worker crash")
                 all_events.extend([])
         
         # Scrape sources if any selected
@@ -1883,6 +1898,19 @@ def trigger_scraping():
             'total_scraped': len(venue_ids) + len(source_ids)
         })
         
+    except SystemExit:
+        # Prevent gunicorn worker from exiting on connection errors
+        app_logger.error("SystemExit caught in scraping - preventing worker crash")
+        return jsonify({
+            'error': 'Scraping failed due to connection error',
+            'details': 'Network connection error occurred. Please try again.'
+        }), 500
+    except (ConnectionError, Timeout, RequestException) as e:
+        app_logger.error(f"Network error during scraping: {type(e).__name__}: {e}")
+        return jsonify({
+            'error': 'Scraping failed due to network error',
+            'details': str(e)
+        }), 500
     except Exception as e:
         app_logger.error(f"Scraping error: {e}")
         import traceback
@@ -1891,6 +1919,12 @@ def trigger_scraping():
             'error': 'Scraping failed',
             'details': str(e)
         }), 500
+    finally:
+        # Restore original signal handler
+        try:
+            signal.signal(signal.SIGABRT, original_abort)
+        except:
+            pass
 
 # OAuth Routes
 @app.route('/auth/login')

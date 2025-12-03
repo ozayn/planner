@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import requests
+from requests.exceptions import Timeout, ConnectionError, RequestException
 import logging
 from datetime import datetime, timedelta, date, time as time_class
 from bs4 import BeautifulSoup
@@ -54,6 +55,25 @@ class VenueEventScraper:
         self.session.verify = False
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        # Configure adapter with longer timeouts, connection pooling, and retry logic
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        retry_strategy = Retry(
+            total=2,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["GET"],
+            connect=2,  # Retry on connection errors
+            read=2,     # Retry on read errors
+            redirect=2  # Retry on redirect errors
+        )
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,
+            pool_maxsize=10
+        )
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
         self.scraped_events = []
         
     def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today', max_exhibitions_per_venue=5, max_events_per_venue=10):
@@ -207,17 +227,35 @@ class VenueEventScraper:
                         # Rate limiting
                         time.sleep(1)
                         
+                    except Timeout:
+                        logger.error(f"⏱️ Timeout error scraping {venue.name} ({venue.website_url}) - skipping")
+                        continue
+                    except ConnectionError as e:
+                        logger.error(f"🔌 Connection error scraping {venue.name} ({venue.website_url}): {e} - skipping")
+                        continue
+                    except RequestException as e:
+                        logger.error(f"❌ Request error scraping {venue.name} ({venue.website_url}): {e} - skipping")
+                        continue
                     except Exception as e:
-                        logger.error(f"Error scraping {venue.name}: {e}")
+                        logger.error(f"❌ Error scraping {venue.name}: {e}")
                         import traceback
-                        logger.debug(f"Traceback: {traceback.format_exc()}")
+                        logger.error(f"Traceback: {traceback.format_exc()}")
                         continue
                 
                 logger.info(f"Total unique events scraped: {len(self.scraped_events)}")
                 return self.scraped_events
                 
+        except Timeout:
+            logger.error(f"⏱️ Timeout error in scrape_venue_events - returning empty list")
+            return []
+        except ConnectionError as e:
+            logger.error(f"🔌 Connection error in scrape_venue_events: {e} - returning empty list")
+            return []
+        except RequestException as e:
+            logger.error(f"❌ Request error in scrape_venue_events: {e} - returning empty list")
+            return []
         except Exception as e:
-            logger.error(f"Error in scrape_venue_events: {e}")
+            logger.error(f"❌ Unexpected error in scrape_venue_events: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return []
@@ -239,8 +277,18 @@ class VenueEventScraper:
         
         try:
             logger.info(f"Scraping website: {venue.website_url}")
-            response = self.session.get(venue.website_url, timeout=10)
-            response.raise_for_status()
+            try:
+                response = self.session.get(venue.website_url, timeout=15)
+                response.raise_for_status()
+            except Timeout:
+                logger.error(f"⏱️ Timeout error accessing {venue.website_url} - skipping")
+                return events
+            except ConnectionError as e:
+                logger.error(f"🔌 Connection error accessing {venue.website_url}: {e} - skipping")
+                return events
+            except RequestException as e:
+                logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
+                return events
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -710,8 +758,20 @@ class VenueEventScraper:
                 main_events = self._extract_events_from_html(soup, venue, event_type=event_type, time_range=time_range)
                 events.extend(main_events)
             
+        except Timeout:
+            logger.error(f"⏱️ Timeout error scraping website {venue.website_url} - returning empty list")
+            return events
+        except ConnectionError as e:
+            logger.error(f"🔌 Connection error scraping website {venue.website_url}: {e} - returning empty list")
+            return events
+        except RequestException as e:
+            logger.error(f"❌ Request error scraping website {venue.website_url}: {e} - returning empty list")
+            return events
         except Exception as e:
-            logger.error(f"Error scraping website {venue.website_url}: {e}")
+            logger.error(f"❌ Unexpected error scraping website {venue.website_url}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return events
         
         # Final limit check - ensure we don't return more than max_exhibitions_per_venue for exhibitions
         if event_type and event_type.lower() == 'exhibition':
