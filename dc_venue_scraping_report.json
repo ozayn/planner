@@ -1,0 +1,205 @@
+{
+  "total_venues": 68,
+  "venues_with_websites": 14,
+  "venues_without_websites": 0,
+  "successful_scrapes": 13,
+  "failed_scrapes": 0,
+  "venues_with_events": 13,
+  "total_events_found": 182,
+  "venue_details": [
+    {
+      "venue_id": 9,
+      "venue_name": "International Spy Museum",
+      "website_url": "https://www.spymuseum.org",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 1,
+      "event_types": {
+        "exhibition": 1
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 16,
+      "venue_name": "National Air and Space Museum",
+      "website_url": "https://airandspace.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 1,
+      "event_types": {
+        "exhibition": 1
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 17,
+      "venue_name": "National Gallery of Art",
+      "website_url": "https://www.nga.gov",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 5,
+      "event_types": {
+        "exhibition": 5
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 19,
+      "venue_name": "National Portrait Gallery",
+      "website_url": "https://npg.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 5,
+      "event_types": {
+        "exhibition": 5
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 21,
+      "venue_name": "Newseum",
+      "website_url": "https://www.newseum.com",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": false,
+      "error": "Closed venue",
+      "events_found": 0,
+      "event_types": {},
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 23,
+      "venue_name": "Smithsonian Arthur M. Sackler Gallery",
+      "website_url": "https://www.asia.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 10,
+      "event_types": {
+        "exhibition": 10
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 24,
+      "venue_name": "Smithsonian Freer Gallery of Art",
+      "website_url": "https://www.asia.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 15,
+      "event_types": {
+        "exhibition": 15
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 25,
+      "venue_name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
+      "website_url": "https://hirshhorn.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 20,
+      "event_types": {
+        "exhibition": 20
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 26,
+      "venue_name": "Smithsonian National Air and Space Museum",
+      "website_url": "https://airandspace.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 20,
+      "event_types": {
+        "exhibition": 20
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 27,
+      "venue_name": "Smithsonian National Museum of African American History and Culture",
+      "website_url": "https://nmaahc.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 21,
+      "event_types": {
+        "exhibition": 21
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 17,
+      "venue_name": "National Gallery of Art",
+      "website_url": "https://www.nga.gov",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 21,
+      "event_types": {
+        "exhibition": 21
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 19,
+      "venue_name": "National Portrait Gallery",
+      "website_url": "https://npg.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 21,
+      "event_types": {
+        "exhibition": 21
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 23,
+      "venue_name": "Smithsonian Arthur M. Sackler Gallery",
+      "website_url": "https://www.asia.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 21,
+      "event_types": {
+        "exhibition": 21
+      },
+      "needs_improvement": false
+    },
+    {
+      "venue_id": 24,
+      "venue_name": "Smithsonian Freer Gallery of Art",
+      "website_url": "https://www.asia.si.edu",
+      "venue_type": "museum",
+      "has_website": true,
+      "scrape_success": true,
+      "error": null,
+      "events_found": 21,
+      "event_types": {
+        "exhibition": 21
+      },
+      "needs_improvement": false
+    }
+  ]
+}

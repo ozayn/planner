@@ -65,10 +65,51 @@ def extract_event_data_from_url(url):
             logger.warning(f"Finding Awe scraper failed, falling back to general scraper: {e}")
             # Fall through to general scraper
     
+    # Check if this is a Hirshhorn tour page - use venue scraper's extraction logic
+    if 'hirshhorn.si.edu' in url.lower() and '/event/' in url.lower():
+        try:
+            logger.info(f"🎯 Detected Hirshhorn tour page - using specialized extraction")
+            from scripts.venue_event_scraper import VenueEventScraper
+            from app import Venue, City
+            
+            # Find Hirshhorn venue
+            with app.app_context():
+                hirshhorn = Venue.query.filter(Venue.name.ilike('%hirshhorn%')).first()
+                if hirshhorn:
+                    scraper = VenueEventScraper()
+                    tour_event = scraper._scrape_hirshhorn_tour_event_page(
+                        url, 
+                        hirshhorn, 
+                        hirshhorn.website_url, 
+                        time_range='this_month'
+                    )
+                    if tour_event:
+                        logger.info(f"✅ Successfully extracted using Hirshhorn scraper")
+                        return {
+                            'title': tour_event.get('title'),
+                            'description': tour_event.get('description'),
+                            'start_date': tour_event.get('start_date'),
+                            'start_time': tour_event.get('start_time'),
+                            'end_time': tour_event.get('end_time'),
+                            'location': tour_event.get('start_location'),
+                            'image_url': tour_event.get('image_url'),
+                            'event_type': tour_event.get('event_type', 'tour'),
+                            'is_registration_required': tour_event.get('is_registration_required', False),
+                            'registration_url': tour_event.get('registration_url'),
+                            'registration_info': tour_event.get('registration_info'),
+                            'schedule_info': None,
+                            'days_of_week': []
+                        }
+        except Exception as e:
+            logger.warning(f"Hirshhorn specialized extraction failed: {e}, falling back to general scraper")
+            # Fall through to general scraper
+    
     bot_detected = False
     
     try:
         import cloudscraper
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
         # Create a cloudscraper session
         scraper = cloudscraper.create_scraper(
@@ -78,6 +119,9 @@ def extract_event_data_from_url(url):
                 'desktop': True
             }
         )
+        
+        # Disable SSL verification (like venue scraper does)
+        scraper.verify = False
         
         # Add headers
         scraper.headers.update({
@@ -707,7 +751,10 @@ def _extract_schedule(page_text):
     # Pattern to match day(s) + time range
     # Examples: "Fridays 6:30pm - 7:30pm", "Weekdays 3:00pm", "Monday-Friday 10am-5pm"
     # Also: "Saturday, Jan 31, 2026 | 10:30 a.m. – 12:15 p.m." (NGA format)
+    # Also: "December 6, 2025 | 11:30 am–12:30 pm" (Hirshhorn format)
     day_time_patterns = [
+        # Hirshhorn format: "December 6, 2025 | 11:30 am–12:30 pm"
+        r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',
         # NGA format: "Saturday, Jan 31, 2026 | 10:30 a.m. – 12:15 p.m."
         # This pattern captures the date in the middle: (Jan|Feb|...) (\d{1,2}), (\d{4})
         r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[,\s]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*([ap])\.m\.\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.m\.',
@@ -717,35 +764,71 @@ def _extract_schedule(page_text):
         r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Weekday|Weekend)s?\s+(\d{1,2}):(\d{2})\s*([ap]m)',
         # Range of days with time
         r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*-\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})\s*([ap]m)',
+        # Just time range without day: "11:30 am–12:30 pm"
+        r'(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',
     ]
     
     for pattern in day_time_patterns:
         match = re.search(pattern, page_text, re.IGNORECASE)
         if match:
             schedule_info = match.group(0)
-            day_mentioned = match.group(1).lower()
             
-            # Parse day(s)
-            if 'weekday' in day_mentioned:
-                days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-            elif 'weekend' in day_mentioned:
-                days_of_week = ['saturday', 'sunday']
+            # Check if this is Hirshhorn format (starts with month name)
+            if len(match.groups()) >= 7 and re.match(r'^[A-Z][a-z]+', match.group(1) or ''):
+                # Hirshhorn format: "December 6, 2025 | 11:30 am–12:30 pm"
+                # Groups: month_day_year, start_hour, start_min, start_ampm, end_hour, end_min, end_ampm
+                try:
+                    hour = int(match.group(2))
+                    minute = int(match.group(3))
+                    ampm_raw = match.group(4).upper()
+                    day_mentioned = None  # No day of week in this format
+                    days_of_week = []
+                except (IndexError, ValueError):
+                    continue
+            elif len(match.groups()) >= 6 and not any(day in (match.group(1) or '').lower() for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'weekday', 'weekend']):
+                # Just time range without day: "11:30 am–12:30 pm"
+                # Groups: start_hour, start_min, start_ampm, end_hour, end_min, end_ampm
+                try:
+                    hour = int(match.group(1))
+                    minute = int(match.group(2))
+                    ampm_raw = match.group(3).upper()
+                    day_mentioned = None
+                    days_of_week = []
+                except (IndexError, ValueError):
+                    continue
             else:
-                days_of_week = [day_mentioned]
+                # Standard format with day
+                day_mentioned = match.group(1).lower() if match.group(1) else None
+                
+                # Parse day(s)
+                if day_mentioned:
+                    if 'weekday' in day_mentioned:
+                        days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+                    elif 'weekend' in day_mentioned:
+                        days_of_week = ['saturday', 'sunday']
+                    else:
+                        days_of_week = [day_mentioned]
+                else:
+                    days_of_week = []
             
             # Parse start time
             try:
                 # Check if this is the NGA format with date (has more groups)
-                if len(match.groups()) >= 10:
+                if len(match.groups()) >= 10 and day_mentioned and day_mentioned in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
                     # NGA format: groups are: day, month, day_num, year, start_hour, start_min, start_ampm, end_hour, end_min, end_ampm
                     hour = int(match.group(5))
                     minute = int(match.group(6))
                     ampm_raw = match.group(7).upper()
-                else:
+                elif len(match.groups()) >= 7 and day_mentioned:
                     # Standard format: groups are: day, start_hour, start_min, start_ampm, ...
                     hour = int(match.group(2))
                     minute = int(match.group(3))
                     ampm_raw = match.group(4).upper()
+                elif len(match.groups()) >= 6 and not day_mentioned:
+                    # Hirshhorn or time-only format - already parsed above
+                    pass
+                else:
+                    continue
                 
                 # Handle both "am"/"pm" and "a"/"p" formats (NGA uses "a.m." which becomes "a" in regex)
                 if len(ampm_raw) == 1:
@@ -762,16 +845,32 @@ def _extract_schedule(page_text):
                 start_time = time(hour, minute)
                 
                 # Parse end time if available
-                if len(match.groups()) >= 10:
+                if len(match.groups()) >= 10 and day_mentioned and day_mentioned in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
                     # NGA format
                     end_hour = int(match.group(8))
                     end_minute = int(match.group(9))
                     end_ampm_raw = match.group(10).upper()
-                elif len(match.groups()) >= 7:
-                    # Standard format
+                elif len(match.groups()) >= 7 and day_mentioned:
+                    # Standard format with day
                     end_hour = int(match.group(5))
                     end_minute = int(match.group(6))
                     end_ampm_raw = match.group(7).upper()
+                elif len(match.groups()) >= 6 and not day_mentioned:
+                    # Hirshhorn or time-only format
+                    if len(match.groups()) == 7:
+                        # Hirshhorn format: groups 5, 6, 7 are end time
+                        end_hour = int(match.group(5))
+                        end_minute = int(match.group(6))
+                        end_ampm_raw = match.group(7).upper()
+                    elif len(match.groups()) == 6:
+                        # Time-only format: groups 4, 5, 6 are end time
+                        end_hour = int(match.group(4))
+                        end_minute = int(match.group(5))
+                        end_ampm_raw = match.group(6).upper()
+                    else:
+                        end_hour = None
+                        end_minute = None
+                        end_ampm_raw = None
                 else:
                     end_hour = None
                     end_minute = None

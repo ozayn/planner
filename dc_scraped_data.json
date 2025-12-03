@@ -1,84 +1,14 @@
 {
   "metadata": {
-    "scraped_at": "2025-12-02T22:50:48.168959",
-    "total_events": 3,
+    "scraped_at": "2025-12-03T13:53:49.358921",
+    "total_events": 0,
     "scraper_version": "3.0",
     "venue_ids": [
-      159,
-      160,
-      161,
-      162,
-      163
+      25
     ],
-    "source_ids": [
-      "37"
-    ],
-    "city_id": 17,
-    "event_type": "exhibition"
+    "source_ids": [],
+    "city_id": 1,
+    "event_type": ""
   },
-  "events": [
-    {
-      "title": "Art After Hours: Step into the Sublime",
-      "description": "Baltimore\u2019s favorite late-night art party returns with an unforgettable evening of art, music, and creative expression inspired by the special exhibitionAmy Sherald: American Sublime.",
-      "start_date": "2025-12-02",
-      "end_date": "2025-12-09",
-      "start_time": null,
-      "end_time": null,
-      "start_location": "Baltimore Museum of Art",
-      "meeting_point": "11",
-      "venue_id": 159,
-      "city_id": 17,
-      "event_type": "exhibition",
-      "url": "https://artbma.org/event/art-after-hours-step-into-the-sublime/",
-      "image_url": "https://cdn.artbma.org/2025/09/25115021/aah_sublime2.jpg",
-      "source": "website",
-      "source_url": "https://artbma.org",
-      "organizer": "Baltimore Museum of Art",
-      "artists": "the special exhibition Amy Sherald, transdisciplinary artist, DJ Saucee in the heart of the museum, Black Assets, multi, DJ Saucee\nFox Court, VILLAGER\nJoseph Education Center Studio, Kenny Allen\nJacobs Gallery, the music she grew up listening to as, the New York underground club scene",
-      "exhibition_type": "solo",
-      "collection_period": "Contemporary",
-      "admission_price": 35.0
-    },
-    {
-      "title": "Soulful Creatures: Animal Mummies in Ancient Egypt - The Walters Art Museum",
-      "description": "September 27, 2025\u2013January 11, 2026 Centre Street Building, Level 1 Animals played an important role in ancient Egyptian society, both in life and in the afterlife, where they were variously viewed as predators, pets, pests, sources of food, and symbols of the gods. One mysterious and fascinating aspect of ancient Egyptian culture was its practice of mummification, which extended to include the preservation of animal remains from a variety of species, including dogs, cats, birds, snakes, and more. Millions of mummified animals have been excavated at more than 30 burial sites across Egypt, leading to questions about how and why these animals were mummified.",
-      "start_date": "2025-09-27",
-      "end_date": "2026-01-11",
-      "start_time": null,
-      "end_time": null,
-      "start_location": "Walters Art Museum",
-      "venue_id": 163,
-      "city_id": 17,
-      "event_type": "exhibition",
-      "url": "https://thewalters.org/exhibitions/soulful-creatures/",
-      "image_url": "https://thewalters.org/wp-content/uploads/2025/06/exhibition_soulful-creatures.jpg",
-      "source": "website",
-      "source_url": "https://thewalters.org",
-      "organizer": "Walters Art Museum",
-      "artists": "The Boshell Foundation",
-      "collection_period": "Modern Art",
-      "number_of_artworks": 100,
-      "admission_price": 0.0
-    },
-    {
-      "title": "Paws on Parchment",
-      "description": "August 06, 2025\u2013February 22, 2026 Centre Street Building, Level 3, Medieval Gallery Cat lovers unite! The Walters is celebrating our feline friends with this paws-itively adorable exhibition.Paws on Parchmentexplores how medieval people thought about, engaged with, and admired cats through the animals\u2019 presence in manuscripts from the period. Centuries before cat memes took over the internet, the antics of fanciful felines were already popular in the margins of medieval manuscripts. These furry animals delighted readers back then just as they amuse us today.",
-      "start_date": "2025-08-06",
-      "end_date": "2026-02-22",
-      "start_time": null,
-      "end_time": null,
-      "start_location": "Walters Art Museum",
-      "venue_id": 163,
-      "city_id": 17,
-      "event_type": "exhibition",
-      "url": "https://thewalters.org/exhibitions/paws/",
-      "image_url": "https://thewalters.org/wp-content/uploads/2025/04/exhibition_paws.jpg",
-      "source": "website",
-      "source_url": "https://thewalters.org",
-      "organizer": "Walters Art Museum",
-      "artists": "Supporters of the Walters Art Museum, Henry Walters",
-      "collection_period": "Medieval",
-      "admission_price": 0.0
-    }
-  ]
+  "events": []
 }

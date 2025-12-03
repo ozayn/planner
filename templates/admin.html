@@ -975,15 +975,47 @@
                     </select>
                     <button onclick="applyEventFilters()" class="filter-button">🔍 Filter</button>
                     <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
-                    <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
-                    <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
-                    <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL (Advanced)</button>
-                    <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
-                    <button onclick="exportSelectedEventsToCalendar()" class="add-button" style="background: #ff8c42;" id="bulkExportBtn" disabled>📅 Export Selected to Calendar</button>
-                    <button onclick="deleteSelectedEvents()" class="add-button" style="background: #dc3545;" id="bulkDeleteBtn" disabled>🗑️ Delete Selected</button>
+                </div>
+                
+                <!-- Action Buttons - Organized into sections -->
+                <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Create Events Section -->
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <h4 style="margin: 0 0 10px 0; color: #1e40af; font-size: 14px; font-weight: 600;">➕ Create Events</h4>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
+                            <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL</button>
+                            <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
+                            <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bulk Actions Section -->
+                    <div style="padding: 12px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #dc3545;">
+                        <h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: 600;">⚡ Bulk Actions</h4>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button onclick="exportSelectedEventsToCalendar()" class="add-button" style="background: #ff8c42;" id="bulkExportBtn" disabled>📅 Export Selected</button>
+                            <button onclick="deleteSelectedEvents()" class="add-button" style="background: #dc3545;" id="bulkDeleteBtn" disabled>🗑️ Delete Selected</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Event Scraping Section -->
+                    <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+                        <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size: 14px; font-weight: 600;">🕷️ Event Scraping</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                            <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
+                            <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
+                            <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
+                            <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
+                            <button onclick="startFindingAweScraping()" class="add-button" style="background: #17a2b8;">✨ Finding Awe</button>
+                            <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Webster's</button>
+                            <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
+                        </div>
+                        <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
+                    </div>
                     
                     <!-- Quick URL Event Creator -->
-                    <div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <div style="margin-top: 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             <label style="font-weight: 600; color: #1e40af; white-space: nowrap;">🔗 Quick Add from URL:</label>
                             <input type="url" id="quickEventUrl" placeholder="Paste event URL (e.g., nga.gov/calendar/...)" 
@@ -994,19 +1026,6 @@
                             </button>
                         </div>
                         <div id="quickUrlStatus" style="margin-top: 8px; font-size: 13px; color: #64748b;"></div>
-                    </div>
-                    
-                    <!-- Event Scraping Controls -->
-                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
-                        <h4 style="margin: 0 0 10px 0; color: #007bff;">🕷️ Event Scraping</h4>
-                        <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Scrape Smithsonian</button>
-                        <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Scrape Museums</button>
-                        <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Scrape Hirshhorn</button>
-                        <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 Scrape All Venues</button>
-                        <button onclick="startFindingAweScraping()" class="add-button" style="background: #17a2b8;">✨ Scrape Finding Awe</button>
-                        <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Scrape Webster's Cafe</button>
-                        <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
-                        <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
                     </div>
                 </div>
 
@@ -5005,6 +5024,33 @@
             });
         }
         
+        // Suppress browser extension errors (they're not our problem)
+        window.addEventListener('error', function(event) {
+            // Ignore errors from browser extensions
+            if (event.message && (
+                event.message.includes('message channel closed') ||
+                event.message.includes('Extension context invalidated') ||
+                event.message.includes('Receiving end does not exist')
+            )) {
+                event.preventDefault();
+                return false;
+            }
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            // Ignore promise rejections from browser extensions
+            if (event.reason && (
+                event.reason.message && (
+                    event.reason.message.includes('message channel closed') ||
+                    event.reason.message.includes('Extension context invalidated') ||
+                    event.reason.message.includes('Receiving end does not exist')
+                )
+            )) {
+                event.preventDefault();
+                return false;
+            }
+        });
+        
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, calling loadOverview...');
@@ -7611,7 +7657,7 @@
         }
         
         async function startMuseumScraping() {
-            updateScrapingStatus('🏛️ Starting museum scraping...', 'info');
+            showScrapingProgressModal('Museums');
             
             try {
                 const response = await fetch('/api/admin/scrape-museums', {
@@ -7622,19 +7668,31 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    updateScrapingStatus(`✅ Museum scraping completed! Scraped ${result.museums_scraped} museums, saved ${result.events_saved} events`, 'success');
-                    // Reload events table
+                    updateScrapingProgress({
+                        percentage: 100,
+                        message: `✅ Scraping completed! Scraped ${result.museums_scraped} museums, saved ${result.events_saved} events`,
+                        events_saved: result.events_saved
+                    });
                     await loadEvents();
+                    setTimeout(() => closeScrapingProgressModal(), 3000);
                 } else {
-                    updateScrapingStatus(`❌ Museum scraping failed: ${result.error}`, 'error');
+                    updateScrapingProgress({
+                        percentage: 0,
+                        message: `❌ Scraping failed: ${result.error}`,
+                        error: true
+                    });
                 }
             } catch (error) {
-                updateScrapingStatus(`❌ Museum scraping error: ${error.message}`, 'error');
+                updateScrapingProgress({
+                    percentage: 0,
+                    message: `❌ Scraping error: ${error.message}`,
+                    error: true
+                });
             }
         }
         
         async function startHirshhornScraping() {
-            updateScrapingStatus('🎨 Starting Hirshhorn Museum scraping...', 'info');
+            showScrapingProgressModal('Hirshhorn Museum');
             
             try {
                 const response = await fetch('/api/admin/scrape-hirshhorn', {
@@ -7645,19 +7703,36 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    updateScrapingStatus(`✅ Hirshhorn scraping completed! Found ${result.events_found} exhibitions, saved ${result.events_saved} events`, 'success');
+                    updateScrapingProgress({
+                        percentage: 100,
+                        message: `✅ Scraping completed! Found ${result.events_found} exhibitions, saved ${result.events_saved} events`,
+                        events_saved: result.events_saved,
+                        events_found: result.events_found
+                    });
                     // Reload events table
                     await loadEvents();
+                    // Close modal after 3 seconds
+                    setTimeout(() => {
+                        closeScrapingProgressModal();
+                    }, 3000);
                 } else {
-                    updateScrapingStatus(`❌ Hirshhorn scraping failed: ${result.error}`, 'error');
+                    updateScrapingProgress({
+                        percentage: 0,
+                        message: `❌ Scraping failed: ${result.error}`,
+                        error: true
+                    });
                 }
             } catch (error) {
-                updateScrapingStatus(`❌ Hirshhorn scraping error: ${error.message}`, 'error');
+                updateScrapingProgress({
+                    percentage: 0,
+                    message: `❌ Scraping error: ${error.message}`,
+                    error: true
+                });
             }
         }
         
         async function startAllVenuesScraping() {
-            updateScrapingStatus('🌐 Starting all venues scraping...', 'info');
+            showScrapingProgressModal('All Venues');
             
             try {
                 const response = await fetch('/api/admin/scrape-all-venues', {
@@ -7668,14 +7743,26 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    updateScrapingStatus(`✅ All venues scraping completed! Scraped ${result.venues_scraped} venues, saved ${result.events_saved} events`, 'success');
-                    // Reload events table
+                    updateScrapingProgress({
+                        percentage: 100,
+                        message: `✅ Scraping completed! Scraped ${result.venues_scraped} venues, saved ${result.events_saved} events`,
+                        events_saved: result.events_saved
+                    });
                     await loadEvents();
+                    setTimeout(() => closeScrapingProgressModal(), 3000);
                 } else {
-                    updateScrapingStatus(`❌ All venues scraping failed: ${result.error}`, 'error');
+                    updateScrapingProgress({
+                        percentage: 0,
+                        message: `❌ Scraping failed: ${result.error}`,
+                        error: true
+                    });
                 }
             } catch (error) {
-                updateScrapingStatus(`❌ All venues scraping error: ${error.message}`, 'error');
+                updateScrapingProgress({
+                    percentage: 0,
+                    message: `❌ Scraping error: ${error.message}`,
+                    error: true
+                });
             }
         }
         
@@ -7778,6 +7865,232 @@
                 // Keep error messages visible longer
                 statusDiv.innerHTML = statusMessage;
                 statusDiv.style.color = type === 'error' ? '#dc3545' : '#007bff';
+            }
+        }
+        
+        // Progress modal functions
+        let progressPollInterval = null;
+        
+        function showScrapingProgressModal(sourceName = 'Scraping') {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('scrapingProgressModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'scrapingProgressModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h2>🔄 ${sourceName} Progress</h2>
+                            <button onclick="closeScrapingProgressModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+                        </div>
+                        <div id="progressBarContainer" style="margin-bottom: 20px;">
+                            <div style="background: #e5e7eb; border-radius: 10px; height: 30px; overflow: hidden; position: relative;">
+                                <div id="progressBar" style="background: linear-gradient(90deg, #3b82f6, #8b5cf6); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;"></div>
+                            </div>
+                            <div id="progressPercentage" style="text-align: center; margin-top: 8px; font-weight: bold; color: #4a5568;">0%</div>
+                        </div>
+                        <div id="progressMessage" style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            Starting...
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="margin-bottom: 10px; color: #4a5568;">📊 Statistics</h3>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                                <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Events Found</div>
+                                    <div id="eventsFound" style="font-size: 28px; font-weight: bold; color: #3b82f6;">0</div>
+                                </div>
+                                <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Events Saved</div>
+                                    <div id="eventsSaved" style="font-size: 28px; font-weight: bold; color: #10b981;">0</div>
+                                </div>
+                            </div>
+                            <div id="additionalStats" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                                <div id="venuesProcessedContainer" style="padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb; display: none;">
+                                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Venues Processed</div>
+                                    <div id="venuesProcessed" style="font-size: 20px; font-weight: bold; color: #8b5cf6;">0/0</div>
+                                </div>
+                                <div id="sourcesProcessedContainer" style="padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb; display: none;">
+                                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Sources Processed</div>
+                                    <div id="sourcesProcessed" style="font-size: 20px; font-weight: bold; color: #f59e0b;">0/0</div>
+                                </div>
+                            </div>
+                            <div id="currentVenueContainer" style="margin-top: 10px; padding: 10px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6; display: none;">
+                                <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Currently Processing</div>
+                                <div id="currentVenue" style="font-size: 14px; font-weight: 600; color: #1e40af;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 10px; color: #4a5568;">📝 Recent Events</h3>
+                            <div id="recentEvents" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 10px;">
+                                <div style="color: #6b7280; text-align: center; padding: 20px;">No events extracted yet...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            modal.style.display = 'block';
+            
+            // Start polling for progress
+            if (progressPollInterval) {
+                clearInterval(progressPollInterval);
+            }
+            progressPollInterval = setInterval(pollScrapingProgress, 1000); // Poll every second
+        }
+        
+        function closeScrapingProgressModal() {
+            const modal = document.getElementById('scrapingProgressModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            if (progressPollInterval) {
+                clearInterval(progressPollInterval);
+                progressPollInterval = null;
+            }
+        }
+        
+        async function pollScrapingProgress() {
+            // Check if modal is still open before polling
+            const modal = document.getElementById('scrapingProgressModal');
+            if (!modal || modal.style.display === 'none') {
+                // Modal is closed, stop polling
+                if (progressPollInterval) {
+                    clearInterval(progressPollInterval);
+                    progressPollInterval = null;
+                }
+                return;
+            }
+            
+            try {
+                // Use AbortController for timeout (more compatible)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/scrape-progress', {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const progress = await response.json();
+                
+                if (progress.error) {
+                    console.error('Error fetching progress:', progress.error);
+                    return;
+                }
+                
+                updateScrapingProgress(progress);
+                
+                // Stop polling if scraping is complete
+                if (progress.percentage >= 100 || (progress.message && progress.message.toLowerCase().includes('complete'))) {
+                    if (progressPollInterval) {
+                        clearInterval(progressPollInterval);
+                        progressPollInterval = null;
+                    }
+                    // Auto-close modal after 3 seconds
+                    setTimeout(() => {
+                        closeScrapingProgressModal();
+                    }, 3000);
+                }
+            } catch (error) {
+                // Only log if it's not an abort/timeout error
+                if (error.name !== 'AbortError' && error.name !== 'TimeoutError') {
+                    console.error('Error polling progress:', error);
+                }
+                // Don't stop polling on network errors - they might be temporary
+            }
+        }
+        
+        function updateScrapingProgress(progress) {
+            const progressBar = document.getElementById('progressBar');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const progressMessage = document.getElementById('progressMessage');
+            const eventsFound = document.getElementById('eventsFound');
+            const eventsSaved = document.getElementById('eventsSaved');
+            const recentEvents = document.getElementById('recentEvents');
+            
+            if (!progressBar) return;
+            
+            const percentage = progress.percentage || progress.progress || 0;
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+            progressPercentage.textContent = percentage + '%';
+            
+            // Build a more detailed message
+            let message = progress.message || 'Processing...';
+            if (progress.current_step) {
+                message = `Step ${progress.current_step}/${progress.total_steps || 3}: ${message}`;
+            }
+            if (progress.current_venue) {
+                message += `<br><small style="opacity: 0.8;">📍 ${progress.current_venue}</small>`;
+            }
+            
+            const isError = progress.error || false;
+            progressMessage.innerHTML = message;
+            progressMessage.style.borderLeftColor = isError ? '#ef4444' : '#3b82f6';
+            progressMessage.style.background = isError ? '#fef2f2' : '#f0f9ff';
+            
+            if (eventsFound) {
+                eventsFound.textContent = progress.events_found || 0;
+            }
+            if (eventsSaved) {
+                eventsSaved.textContent = progress.events_saved || 0;
+            }
+            
+            // Show/hide venues processed
+            if (progress.venues_processed !== undefined && progress.total_venues !== undefined) {
+                const container = document.getElementById('venuesProcessedContainer');
+                const venuesInfo = document.getElementById('venuesProcessed');
+                if (container && venuesInfo) {
+                    container.style.display = 'block';
+                    venuesInfo.textContent = `${progress.venues_processed}/${progress.total_venues}`;
+                }
+            }
+            
+            // Show/hide sources processed
+            if (progress.sources_processed !== undefined && progress.total_sources !== undefined) {
+                const container = document.getElementById('sourcesProcessedContainer');
+                const sourcesInfo = document.getElementById('sourcesProcessed');
+                if (container && sourcesInfo) {
+                    container.style.display = 'block';
+                    sourcesInfo.textContent = `${progress.sources_processed}/${progress.total_sources}`;
+                }
+            }
+            
+            // Show/hide current venue
+            if (progress.current_venue) {
+                const container = document.getElementById('currentVenueContainer');
+                const currentVenueEl = document.getElementById('currentVenue');
+                if (container && currentVenueEl) {
+                    container.style.display = 'block';
+                    currentVenueEl.textContent = progress.current_venue;
+                }
+            }
+            
+            // Update recent events with more detail
+            if (recentEvents && progress.recent_events && progress.recent_events.length > 0) {
+                recentEvents.innerHTML = progress.recent_events.slice(0, 10).map(event => {
+                    const timeStr = event.start_time ? ` at ${event.start_time}` : '';
+                    const locationStr = event.start_location ? ` • ${event.start_location}` : '';
+                    return `
+                    <div style="padding: 10px; margin-bottom: 6px; background: white; border-radius: 6px; border-left: 4px solid #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #1f2937; margin-bottom: 4px;">${event.title || 'Untitled Event'}</div>
+                        <div style="font-size: 12px; color: #6b7280; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${event.event_type || 'event'}</span>
+                            <span>${event.start_date || 'No date'}${timeStr}</span>
+                            ${locationStr ? `<span>${locationStr.replace(' • ', '')}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                }).join('');
+            } else if (recentEvents && (!progress.recent_events || progress.recent_events.length === 0)) {
+                recentEvents.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px;">No events extracted yet...</div>';
             }
         }
 

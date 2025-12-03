@@ -1673,7 +1673,15 @@ def trigger_scraping():
             'total_steps': 3,
             'percentage': 10,
             'message': f'Starting scraping for {city_name} ({", ".join(scraping_summary)})...',
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'venues_processed': 0,
+            'total_venues': len(venue_ids),
+            'sources_processed': 0,
+            'total_sources': len(source_ids),
+            'current_venue': None,
+            'recent_events': []
         }
         
         with open('scraping_progress.json', 'w') as f:
@@ -1700,6 +1708,17 @@ def trigger_scraping():
                 app_logger.info(f"📊 Backend: Received max_events_per_venue={max_events_per_venue} from request (raw: {data.get('max_events_per_venue')}, fallback: {data.get('max_exhibitions_per_venue')})")
                 # For exhibitions, use the same limit
                 max_exhibitions_per_venue = max_events_per_venue if event_type == 'exhibition' or not event_type else max_events_per_venue
+                # Update progress before scraping
+                progress_data.update({
+                    'current_step': 2,
+                    'percentage': 20,
+                    'message': f'Scraping events from {len(venue_ids)} venues...',
+                    'events_found': 0,
+                    'venues_processed': 0
+                })
+                with open('scraping_progress.json', 'w') as f:
+                    json.dump(progress_data, f)
+                
                 venue_events = venue_scraper.scrape_venue_events(
                     city_id=city_id,
                     event_type=event_type,
@@ -1709,6 +1728,17 @@ def trigger_scraping():
                     max_events_per_venue=max_events_per_venue
                 )
                 all_events.extend(venue_events)
+                
+                # Update progress after scraping
+                progress_data.update({
+                    'events_found': len(venue_events),
+                    'venues_processed': len(venue_ids),
+                    'percentage': 50,
+                    'message': f'Found {len(venue_events)} events from {len(venue_ids)} venues. Saving to database...'
+                })
+                with open('scraping_progress.json', 'w') as f:
+                    json.dump(progress_data, f)
+                
                 app_logger.info(f"Scraped {len(venue_events)} events from venues")
             except (ConnectionError, Timeout, Exception) as e:
                 app_logger.error(f"Error scraping venues: {type(e).__name__}: {e}")
@@ -1797,7 +1827,8 @@ def trigger_scraping():
         progress_data.update({
             'current_step': 3,
             'percentage': 70,
-            'message': 'Loading events into database...'
+            'message': f'Loading {len(events_scraped)} events into database...',
+            'events_found': len(events_scraped)
         })
         
         with open('scraping_progress.json', 'w') as f:
@@ -1853,45 +1884,229 @@ def trigger_scraping():
                     start_date = date.today()
                 
                 # Check if identical event already exists
-                # For exhibitions, check by title + venue + start_date (URL may be shared for listing pages)
-                if event_type == 'exhibition' and venue_id:
-                    venue = Venue.query.get(venue_id)
-                    if venue and venue.website_url:
-                        # For exhibitions, check by title + venue + start_date
-                        # Don't check URL since multiple exhibitions from listing pages share the same URL
-                        existing_event = db.session.query(Event).join(Venue).filter(
-                            Event.title == title,
-                            Event.event_type == 'exhibition',
-                            Venue.website_url == venue.website_url,
-                            Event.city_id == city_id_event,
-                            Event.start_date == start_date
-                        ).first()
-                    else:
-                        # Fallback to venue_id check
-                        existing_event = Event.query.filter_by(
-                            title=title,
-                            venue_id=venue_id,
-                            city_id=city_id_event,
-                            start_date=start_date
-                        ).first()
-                else:
-                    # For non-exhibitions, use standard check
-                    existing_event = Event.query.filter_by(
-                        title=title,
-                        venue_id=venue_id,
-                        city_id=city_id_event,
-                        start_date=start_date
-                    ).first()
+                # For tours, prefer URL matching (most reliable), then fall back to title + venue + date
+                event_url = event_data.get('url', '')
+                existing_event = None
                 
+                if event_type == 'tour' and event_url:
+                    # For tours, try to match by URL first (most reliable)
+                    # Normalize URL for matching (remove trailing slashes, etc.)
+                    normalized_url = event_url.rstrip('/')
+                    existing_event = Event.query.filter(
+                        (Event.url == event_url) | (Event.url == normalized_url),
+                        Event.event_type == 'tour',
+                        Event.city_id == city_id_event
+                    ).first()
+                    if existing_event:
+                        app_logger.info(f"   ✅ Found existing tour by URL: {event_url}")
+                    else:
+                        app_logger.info(f"   🔍 No tour found by URL: {event_url}")
+                
+                # If not found by URL, try title + venue + date matching
+                if not existing_event:
+                    if event_type == 'exhibition' and venue_id:
+                        venue = Venue.query.get(venue_id)
+                        if venue and venue.website_url:
+                            # For exhibitions, check by title + venue + start_date
+                            # Don't check URL since multiple exhibitions from listing pages share the same URL
+                            existing_event = db.session.query(Event).join(Venue).filter(
+                                Event.title == title,
+                                Event.event_type == 'exhibition',
+                                Venue.website_url == venue.website_url,
+                                Event.city_id == city_id_event,
+                                Event.start_date == start_date
+                            ).first()
+                        else:
+                            # Fallback to venue_id check
+                            existing_event = Event.query.filter_by(
+                                title=title,
+                                venue_id=venue_id,
+                                city_id=city_id_event,
+                                start_date=start_date
+                            ).first()
+                    else:
+                        # For non-exhibitions (tours, talks, etc.), use title + venue + date
+                        # Also try matching by URL if available (in case URL wasn't checked above)
+                        if event_url and not existing_event:
+                            normalized_url = event_url.rstrip('/')
+                            existing_event = Event.query.filter(
+                                ((Event.url == event_url) | (Event.url == normalized_url)) |
+                                ((Event.title == title) & (Event.venue_id == venue_id) & (Event.city_id == city_id_event) & (Event.start_date == start_date)),
+                                Event.event_type == event_type
+                            ).first()
+                        else:
+                            existing_event = Event.query.filter_by(
+                                title=title,
+                                venue_id=venue_id,
+                                city_id=city_id_event,
+                                start_date=start_date
+                            ).first()
+                        if existing_event:
+                            app_logger.info(f"   ✅ Found existing {event_type} by title+venue+date: '{title}' at venue {venue_id} on {start_date}")
+                        else:
+                            app_logger.info(f"   🔍 No existing {event_type} found by title+venue+date: '{title}' at venue {venue_id} on {start_date}")
+                
+                # Get time strings early for both updates and new events
+                start_time_str = event_data.get('start_time')
+                end_time_str = event_data.get('end_time')
+                
+                # Log what we received from scraper
+                app_logger.info(f"📥 Received event data for '{title}': start_time_str={start_time_str}, end_time_str={end_time_str}")
+                
+                # Check if event exists - if so, update it instead of skipping
+                # For updates, we allow missing times (they might be getting fixed)
                 if existing_event:
-                    app_logger.info(f"⚠️ Skipped duplicate event in database: '{title}' (venue_id: {venue_id})")
+                    app_logger.info(f"🔄 Updating existing event: '{title}' (venue_id: {venue_id}, date: {start_date})")
+                    app_logger.info(f"   Current times - start: {existing_event.start_time}, end: {existing_event.end_time}")
+                    app_logger.info(f"   Scraped times - start: {start_time_str}, end: {end_time_str}")
+                    event = existing_event
+                    updated_fields = []
+                    
+                    # Update fields if new data is available
+                    if event_data.get('description') and event_data.get('description') != event.description:
+                        event.description = event_data.get('description')
+                        updated_fields.append('description')
+                    
+                    if event_data.get('url') and event_data.get('url') != event.url:
+                        event.url = event_data.get('url')
+                        updated_fields.append('url')
+                    
+                    if event_data.get('image_url') and event_data.get('image_url') != event.image_url:
+                        event.image_url = event_data.get('image_url')
+                        updated_fields.append('image_url')
+                    
+                    # Update times if they're missing or if new times are provided
+                    # Always update if event is missing times, or if new times are different
+                    if start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                        app_logger.info(f"   🔍 Attempting to parse start_time_str: '{start_time_str}' (type: {type(start_time_str)})")
+                        try:
+                            new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                            app_logger.info(f"   ✅ Parsed start_time as '%H:%M:%S': {new_start_time}")
+                        except ValueError:
+                            try:
+                                new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
+                                app_logger.info(f"   ✅ Parsed start_time as '%H:%M': {new_start_time}")
+                            except ValueError as e:
+                                app_logger.warning(f"   ❌ Failed to parse start_time_str '{start_time_str}': {e}")
+                                new_start_time = None
+                        
+                        # Update if: times are missing OR new time is different
+                        if new_start_time:
+                            old_start_time = event.start_time
+                            if not event.start_time or event.start_time != new_start_time:
+                                event.start_time = new_start_time
+                                updated_fields.append('start_time')
+                                app_logger.info(f"   ⏰ Updated start_time: {new_start_time} (was: {old_start_time})")
+                            else:
+                                app_logger.info(f"   ⏸️  start_time unchanged: {new_start_time}")
+                        else:
+                            app_logger.warning(f"   ⚠️  Could not parse start_time_str: '{start_time_str}'")
+                    else:
+                        app_logger.info(f"   ⏭️  Skipping start_time update: start_time_str={start_time_str}")
+                    
+                    if end_time_str and end_time_str != 'None' and str(end_time_str).strip():
+                        app_logger.info(f"   🔍 Attempting to parse end_time_str: '{end_time_str}' (type: {type(end_time_str)})")
+                        try:
+                            new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
+                            app_logger.info(f"   ✅ Parsed end_time as '%H:%M:%S': {new_end_time}")
+                        except ValueError:
+                            try:
+                                new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
+                                app_logger.info(f"   ✅ Parsed end_time as '%H:%M': {new_end_time}")
+                            except ValueError as e:
+                                app_logger.warning(f"   ❌ Failed to parse end_time_str '{end_time_str}': {e}")
+                                new_end_time = None
+                        
+                        # Update if: times are missing OR new time is different
+                        if new_end_time:
+                            old_end_time = event.end_time
+                            if not event.end_time or event.end_time != new_end_time:
+                                event.end_time = new_end_time
+                                updated_fields.append('end_time')
+                                app_logger.info(f"   ⏰ Updated end_time: {new_end_time} (was: {old_end_time})")
+                            else:
+                                app_logger.info(f"   ⏸️  end_time unchanged: {new_end_time}")
+                        else:
+                            app_logger.warning(f"   ⚠️  Could not parse end_time_str: '{end_time_str}'")
+                    else:
+                        app_logger.info(f"   ⏭️  Skipping end_time update: end_time_str={end_time_str}")
+                    
+                    # Update location if provided
+                    if event_data.get('start_location') and event_data.get('start_location') != event.start_location:
+                        event.start_location = event_data.get('start_location')
+                        updated_fields.append('start_location')
+                    
+                    # Update registration info if provided
+                    if hasattr(Event, 'is_registration_required'):
+                        new_reg_required = event_data.get('is_registration_required', False)
+                        if event.is_registration_required != new_reg_required:
+                            event.is_registration_required = new_reg_required
+                            updated_fields.append('is_registration_required')
+                    
+                    if hasattr(Event, 'registration_url') and event_data.get('registration_url'):
+                        if event.registration_url != event_data.get('registration_url'):
+                            event.registration_url = event_data.get('registration_url')
+                            updated_fields.append('registration_url')
+                    
+                    if hasattr(Event, 'registration_info') and event_data.get('registration_info'):
+                        if event.registration_info != event_data.get('registration_info'):
+                            event.registration_info = event_data.get('registration_info')
+                            updated_fields.append('registration_info')
+                    
+                    # CRITICAL: Always update times if they're missing, even if nothing else changed
+                    # This ensures times get added to existing events
+                    if (not event.start_time and start_time_str and start_time_str != 'None' and str(start_time_str).strip()) or \
+                       (not event.end_time and end_time_str and end_time_str != 'None' and str(end_time_str).strip()):
+                        # Times are missing but we have them - force update
+                        if not event.start_time and start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                            try:
+                                new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                            except ValueError:
+                                try:
+                                    new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
+                                except ValueError:
+                                    new_start_time = None
+                            if new_start_time:
+                                event.start_time = new_start_time
+                                if 'start_time' not in updated_fields:
+                                    updated_fields.append('start_time')
+                                app_logger.info(f"   ⏰ FORCED UPDATE: Added missing start_time: {new_start_time}")
+                        
+                        if not event.end_time and end_time_str and end_time_str != 'None' and str(end_time_str).strip():
+                            try:
+                                new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
+                            except ValueError:
+                                try:
+                                    new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
+                                except ValueError:
+                                    new_end_time = None
+                            if new_end_time:
+                                event.end_time = new_end_time
+                                if 'end_time' not in updated_fields:
+                                    updated_fields.append('end_time')
+                                app_logger.info(f"   ⏰ FORCED UPDATE: Added missing end_time: {new_end_time}")
+                    
+                    if updated_fields:
+                        app_logger.info(f"   ✅ Updated fields: {', '.join(updated_fields)}")
+                        events_loaded += 1  # Count updates as loaded
+                    else:
+                        app_logger.info(f"   ℹ️ No changes needed")
+                    
+                    # Continue to next event (don't create new one)
                     continue
                 
                 # SAFETY CHECK: Tours, talks, and workshops must have a start time - reject if missing
-                start_time_str = event_data.get('start_time')
+                # This only applies to NEW events, not updates (updates are handled above)
                 if event_type in ['tour', 'talk', 'workshop'] and (not start_time_str or start_time_str == 'None'):
-                    app_logger.info(f"⚠️ Skipped {event_type} event '{title}' - no start time (safety check)")
+                    app_logger.warning(f"⚠️ Skipped {event_type} event '{title}' - no start time (safety check)")
+                    app_logger.warning(f"   Event data keys: {list(event_data.keys())}")
+                    app_logger.warning(f"   start_time value: {repr(start_time_str)}")
+                    app_logger.warning(f"   URL: {event_data.get('url', 'N/A')}")
                     continue
+                
+                # Log time information for debugging tours
+                if event_type == 'tour':
+                    app_logger.info(f"📅 Tour '{title}' - start_time: {start_time_str}, end_time: {end_time_str}")
                 
                 # Limit events per venue for non-exhibition event types
                 # Only count events in THIS batch (consistent with exhibitions logic)
@@ -1918,13 +2133,27 @@ def trigger_scraping():
                 if end_date_str:
                     event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
                 
-                # Times
+                # Times - handle both HH:MM:SS and HH:MM formats
                 if start_time_str and start_time_str != 'None':
-                    event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
+                    try:
+                        event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
+                    except ValueError:
+                        try:
+                            event.start_time = dt.strptime(start_time_str, '%H:%M').time()
+                        except ValueError:
+                            app_logger.warning(f"Could not parse start_time '{start_time_str}' for event '{title}'")
+                            event.start_time = None
                 
                 end_time_str = event_data.get('end_time')
                 if end_time_str and end_time_str != 'None':
-                    event.end_time = dt.strptime(end_time_str, '%H:%M:%S').time()
+                    try:
+                        event.end_time = dt.strptime(end_time_str, '%H:%M:%S').time()
+                    except ValueError:
+                        try:
+                            event.end_time = dt.strptime(end_time_str, '%H:%M').time()
+                        except ValueError:
+                            app_logger.warning(f"Could not parse end_time '{end_time_str}' for event '{title}'")
+                            event.end_time = None
                 
                 # Location and venue
                 event.start_location = event_data.get('start_location', '')
@@ -1936,8 +2165,48 @@ def trigger_scraping():
                 event.source_url = event_data.get('source_url', '')
                 event.organizer = event_data.get('organizer', '')
                 
+                # Registration information
+                if hasattr(Event, 'is_registration_required'):
+                    event.is_registration_required = event_data.get('is_registration_required', False)
+                if hasattr(Event, 'registration_url'):
+                    event.registration_url = event_data.get('registration_url')
+                if hasattr(Event, 'registration_info'):
+                    event.registration_info = event_data.get('registration_info')
+                if hasattr(Event, 'registration_opens_date') and event_data.get('registration_opens_date'):
+                    try:
+                        event.registration_opens_date = dt.strptime(event_data['registration_opens_date'], '%Y-%m-%d').date()
+                    except (ValueError, TypeError):
+                        pass
+                if hasattr(Event, 'registration_opens_time') and event_data.get('registration_opens_time'):
+                    try:
+                        event.registration_opens_time = dt.strptime(event_data['registration_opens_time'], '%H:%M:%S').time()
+                    except (ValueError, TypeError):
+                        pass
+                
                 db.session.add(event)
                 events_loaded += 1
+                
+                # Update progress with recent events (keep last 10)
+                if 'recent_events' not in progress_data:
+                    progress_data['recent_events'] = []
+                progress_data['recent_events'].append({
+                    'title': title[:50],
+                    'venue_id': venue_id,
+                    'event_type': event_type,
+                    'start_date': start_date_str
+                })
+                if len(progress_data['recent_events']) > 10:
+                    progress_data['recent_events'].pop(0)
+                
+                # Update progress every 5 events
+                if events_loaded % 5 == 0:
+                    progress_data.update({
+                        'events_saved': events_loaded,
+                        'percentage': min(70 + int((events_loaded / len(events_scraped)) * 20), 90),
+                        'message': f'Saving events to database... ({events_loaded}/{len(events_scraped)})'
+                    })
+                    with open('scraping_progress.json', 'w') as f:
+                        json.dump(progress_data, f)
                 
                 # Track exhibition count for this venue
                 if event_type == 'exhibition' and venue_id:
@@ -5945,9 +6214,27 @@ def scrape_finding_awe():
 
 @app.route('/api/admin/scrape-hirshhorn', methods=['POST'])
 def scrape_hirshhorn():
-    """Scrape exhibitions from Hirshhorn Museum and Sculpture Garden."""
+    """Scrape exhibitions and tours from Hirshhorn Museum and Sculpture Garden."""
     try:
         app_logger.info("Starting Hirshhorn Museum scraping...")
+        
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 10,
+            'message': 'Starting Hirshhorn Museum scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': None,
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         # Find Hirshhorn venue
         hirshhorn = Venue.query.filter(
@@ -5955,6 +6242,13 @@ def scrape_hirshhorn():
         ).first()
         
         if not hirshhorn:
+            progress_data.update({
+                'percentage': 100,
+                'message': '❌ Hirshhorn Museum venue not found in database',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': 'Hirshhorn Museum venue not found in database',
@@ -5964,19 +6258,45 @@ def scrape_hirshhorn():
         
         app_logger.info(f"Found Hirshhorn venue: {hirshhorn.name} (ID: {hirshhorn.id})")
         
+        progress_data.update({
+            'current_step': 2,
+            'percentage': 20,
+            'message': f'Scraping exhibitions and tours from {hirshhorn.name}...',
+            'current_venue': hirshhorn.name
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Import the venue event scraper
         from scripts.venue_event_scraper import VenueEventScraper
         
-        # Scrape Hirshhorn exhibitions
+        # Scrape Hirshhorn exhibitions and tours
         scraper = VenueEventScraper()
+        
+        # First scrape exhibitions
+        exhibitions = []
+        tours = []
+        
         try:
-            scraped_events = scraper.scrape_venue_events(
+            exhibitions = scraper.scrape_venue_events(
                 venue_ids=[hirshhorn.id],
                 event_type='exhibition',
-                time_range='all',  # Get all current and future exhibitions (not just this month)
+                time_range='all',  # Get all current and future exhibitions
                 max_exhibitions_per_venue=10,
                 max_events_per_venue=10
-            )
+            ) or []
+            
+            # Then scrape tours
+            tours = scraper.scrape_venue_events(
+                venue_ids=[hirshhorn.id],
+                event_type='tour',
+                time_range='all',  # Get all current and future tours
+                max_exhibitions_per_venue=5,
+                max_events_per_venue=20
+            ) or []
+            
+            # Combine both types
+            scraped_events = exhibitions + tours
             
             # Handle case where scraper returns None
             if scraped_events is None:
@@ -5990,20 +6310,46 @@ def scrape_hirshhorn():
         
         app_logger.info(f"Scraped {len(scraped_events) if scraped_events else 0} events from Hirshhorn")
         
+        # Update progress - events found
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 60,
+            'message': f'Found {len(scraped_events)} events. Saving to database...',
+            'events_found': len(scraped_events),
+            'venues_processed': 1
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         if not scraped_events:
             return jsonify({
                 'success': False,
-                'error': 'No exhibitions found or scraping failed. Check logs for details.',
+                'error': 'No exhibitions or tours found or scraping failed. Check logs for details.',
                 'events_found': 0,
-                'events_saved': 0
+                'events_saved': 0,
+                'exhibitions_found': len(exhibitions) if exhibitions else 0,
+                'tours_found': len(tours) if tours else 0
             }), 404
+        
+        # Update progress - events found
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 60,
+            'message': f'Found {len(scraped_events)} events. Saving to database...',
+            'events_found': len(scraped_events),
+            'venues_processed': 1
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         # Save events to database using the same logic as the main scrape endpoint
         events_saved = 0
+        events_updated = 0
         venue_exhibition_counts = {}
         max_exhibitions_per_venue = 10
+        recent_events_list = []
         
-        for event_data in scraped_events:
+        for idx, event_data in enumerate(scraped_events):
             try:
                 title = event_data.get('title', 'Untitled Event')
                 venue_id = event_data.get('venue_id')
@@ -6019,19 +6365,145 @@ def scrape_hirshhorn():
                     from datetime import date
                     start_date = date.today()
                 
-                # Check if exhibition already exists (by title + venue + start_date)
-                existing_event = Event.query.filter_by(
-                    title=title,
-                    venue_id=venue_id,
-                    city_id=city_id_event,
-                    start_date=start_date
-                ).first()
+                # Check if event already exists - UPDATE instead of skip
+                event_url = event_data.get('url', '')
+                existing_event = None
                 
+                # For tours, try to match by URL first (most reliable)
+                if event_type == 'tour' and event_url:
+                    normalized_url = event_url.rstrip('/')
+                    existing_event = Event.query.filter(
+                        (Event.url == event_url) | (Event.url == normalized_url),
+                        Event.event_type == 'tour',
+                        Event.city_id == city_id_event
+                    ).first()
+                
+                # If not found by URL, try title + venue + date matching
+                if not existing_event:
+                    existing_event = Event.query.filter_by(
+                        title=title,
+                        venue_id=venue_id,
+                        city_id=city_id_event,
+                        start_date=start_date
+                    ).first()
+                
+                # Get time strings early for both updates and new events
+                start_time_str = event_data.get('start_time')
+                end_time_str = event_data.get('end_time')
+                
+                # If event exists, UPDATE it instead of skipping
                 if existing_event:
-                    app_logger.info(f"⚠️ Skipped duplicate event: '{title}'")
+                    app_logger.info(f"🔄 Updating existing event: '{title}' (venue_id: {venue_id}, date: {start_date})")
+                    app_logger.info(f"   Current times - start: {existing_event.start_time}, end: {existing_event.end_time}")
+                    app_logger.info(f"   Scraped times - start: {start_time_str}, end: {end_time_str}")
+                    event = existing_event
+                    updated_fields = []
+                    
+                    # Update fields if new data is available
+                    if event_data.get('description') and event_data.get('description') != event.description:
+                        event.description = event_data.get('description')
+                        updated_fields.append('description')
+                    
+                    if event_data.get('url') and event_data.get('url') != event.url:
+                        event.url = event_data.get('url')
+                        updated_fields.append('url')
+                    
+                    if event_data.get('image_url') and event_data.get('image_url') != event.image_url:
+                        event.image_url = event_data.get('image_url')
+                        updated_fields.append('image_url')
+                    
+                    # Update times if they're missing or if new times are provided
+                    if start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                        try:
+                            new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                        except ValueError:
+                            try:
+                                new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
+                            except ValueError:
+                                new_start_time = None
+                        
+                        if new_start_time:
+                            old_start_time = event.start_time
+                            if not event.start_time or event.start_time != new_start_time:
+                                event.start_time = new_start_time
+                                updated_fields.append('start_time')
+                                app_logger.info(f"   ⏰ Updated start_time: {new_start_time} (was: {old_start_time})")
+                    
+                    if end_time_str and end_time_str != 'None' and str(end_time_str).strip():
+                        try:
+                            new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
+                        except ValueError:
+                            try:
+                                new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
+                            except ValueError:
+                                new_end_time = None
+                        
+                        if new_end_time:
+                            old_end_time = event.end_time
+                            if not event.end_time or event.end_time != new_end_time:
+                                event.end_time = new_end_time
+                                updated_fields.append('end_time')
+                                app_logger.info(f"   ⏰ Updated end_time: {new_end_time} (was: {old_end_time})")
+                    
+                    # FORCED UPDATE for missing times
+                    if (not event.start_time and start_time_str and start_time_str != 'None' and str(start_time_str).strip()) or \
+                       (not event.end_time and end_time_str and end_time_str != 'None' and str(end_time_str).strip()):
+                        if not event.start_time and start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                            try:
+                                new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                            except ValueError:
+                                try:
+                                    new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
+                                except ValueError:
+                                    new_start_time = None
+                            if new_start_time:
+                                event.start_time = new_start_time
+                                if 'start_time' not in updated_fields:
+                                    updated_fields.append('start_time')
+                                app_logger.info(f"   ⏰ FORCED UPDATE: Added missing start_time: {new_start_time}")
+                        
+                        if not event.end_time and end_time_str and end_time_str != 'None' and str(end_time_str).strip():
+                            try:
+                                new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
+                            except ValueError:
+                                try:
+                                    new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
+                                except ValueError:
+                                    new_end_time = None
+                            if new_end_time:
+                                event.end_time = new_end_time
+                                if 'end_time' not in updated_fields:
+                                    updated_fields.append('end_time')
+                                app_logger.info(f"   ⏰ FORCED UPDATE: Added missing end_time: {new_end_time}")
+                    
+                    if updated_fields:
+                        app_logger.info(f"   ✅ Updated fields: {', '.join(updated_fields)}")
+                        events_saved += 1
+                        events_updated += 1
+                        # Add to recent events
+                        recent_events_list.append({
+                            'title': title,
+                            'event_type': event_type,
+                            'start_date': start_date.isoformat(),
+                            'start_time': str(event.start_time) if event.start_time else None,
+                            'start_location': event.start_location
+                        })
+                        # Update progress every 5 events
+                        if events_saved % 5 == 0:
+                            progress_data.update({
+                                'percentage': 60 + int((events_saved / len(scraped_events)) * 30) if scraped_events else 90,
+                                'events_saved': events_saved,
+                                'recent_events': recent_events_list[-10:]  # Keep last 10
+                            })
+                            with open('scraping_progress.json', 'w') as f:
+                                json.dump(progress_data, f)
+                    else:
+                        app_logger.info(f"   ℹ️ No changes needed")
+                    
+                    # Continue to next event (don't create new one)
                     continue
                 
-                # Check exhibition count limit
+                # Check exhibition count limit (only for new events)
                 if event_type == 'exhibition' and venue_id:
                     current_count = venue_exhibition_counts.get(venue_id, 0)
                     if current_count >= max_exhibitions_per_venue:
@@ -6051,6 +6523,27 @@ def scrape_hirshhorn():
                 if end_date_str:
                     event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
                 
+                # Times - handle both HH:MM:SS and HH:MM formats
+                if start_time_str and start_time_str != 'None':
+                    try:
+                        event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
+                    except ValueError:
+                        try:
+                            event.start_time = dt.strptime(start_time_str, '%H:%M').time()
+                        except ValueError:
+                            app_logger.warning(f"Could not parse start_time '{start_time_str}' for event '{title}'")
+                            event.start_time = None
+                
+                if end_time_str and end_time_str != 'None':
+                    try:
+                        event.end_time = dt.strptime(end_time_str, '%H:%M:%S').time()
+                    except ValueError:
+                        try:
+                            event.end_time = dt.strptime(end_time_str, '%H:%M').time()
+                        except ValueError:
+                            app_logger.warning(f"Could not parse end_time '{end_time_str}' for event '{title}'")
+                            event.end_time = None
+                
                 event.start_location = event_data.get('start_location', '')
                 event.venue_id = venue_id
                 event.city_id = city_id_event
@@ -6058,8 +6551,35 @@ def scrape_hirshhorn():
                 event.source_url = event_data.get('source_url', '')
                 event.organizer = event_data.get('organizer', '')
                 
+                # Registration information
+                if hasattr(Event, 'is_registration_required'):
+                    event.is_registration_required = event_data.get('is_registration_required', False)
+                if hasattr(Event, 'registration_url'):
+                    event.registration_url = event_data.get('registration_url')
+                if hasattr(Event, 'registration_info'):
+                    event.registration_info = event_data.get('registration_info')
+                
                 db.session.add(event)
                 events_saved += 1
+                
+                # Add to recent events
+                recent_events_list.append({
+                    'title': title,
+                    'event_type': event_type,
+                    'start_date': start_date.isoformat(),
+                    'start_time': str(event.start_time) if event.start_time else None,
+                    'start_location': event.start_location
+                })
+                
+                # Update progress every 5 events
+                if events_saved % 5 == 0:
+                    progress_data.update({
+                        'percentage': 60 + int((events_saved / len(scraped_events)) * 30),
+                        'events_saved': events_saved,
+                        'recent_events': recent_events_list[-10:]  # Keep last 10
+                    })
+                    with open('scraping_progress.json', 'w') as f:
+                        json.dump(progress_data, f)
                 
             except Exception as e:
                 app_logger.error(f"Error saving event {event_data.get('title', 'Unknown')}: {e}")
@@ -6068,7 +6588,19 @@ def scrape_hirshhorn():
         # Commit all events
         db.session.commit()
         
-        app_logger.info(f"Hirshhorn scraping completed: found {len(scraped_events)} events, saved {events_saved}")
+        # Final progress update
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,
+            'percentage': 100,
+            'message': f'✅ Scraping completed! Found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated)',
+            'events_saved': events_saved,
+            'recent_events': recent_events_list[-10:]  # Keep last 10
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        app_logger.info(f"Hirshhorn scraping completed: found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated)")
         
         # Provide clearer message when events are found but skipped as duplicates
         if len(scraped_events) > 0 and events_saved == 0:

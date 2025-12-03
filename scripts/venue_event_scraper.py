@@ -610,11 +610,31 @@ class VenueEventScraper:
             
             # Only scrape tour pages if event_type is 'tour' or None (all types)
             if not event_type or event_type.lower() == 'tour':
-                # Look for tour-specific pages
+                # Special handling for Hirshhorn Museum tours page
+                if 'hirshhorn.si.edu' in venue.website_url.lower():
+                    tours_page_url = urljoin(venue.website_url, '/explore/tours/')
+                    try:
+                        logger.info(f"🔍 Checking Hirshhorn tours page: {tours_page_url}")
+                        tours_response = self.session.get(tours_page_url, timeout=10)
+                        if tours_response.status_code == 200:
+                            tours_soup = BeautifulSoup(tours_response.content, 'html.parser')
+                            hirshhorn_tours = self._extract_hirshhorn_tours(
+                                tours_soup, venue, tours_page_url, event_type=event_type, time_range=time_range
+                            )
+                            events.extend(hirshhorn_tours)
+                            logger.info(f"   Found {len(hirshhorn_tours)} Hirshhorn tours")
+                    except Exception as e:
+                        logger.debug(f"⚠️ Error scraping Hirshhorn tours page: {e}")
+                
+                # Look for tour-specific pages (general case)
                 tour_links = soup.find_all('a', href=lambda href: href and 'tour' in href.lower())
                 for link in tour_links[:5]:  # Check first 5 tour links
                     try:
                         tour_url = urljoin(venue.website_url, link['href'])
+                        # Skip if we already scraped the Hirshhorn tours page
+                        if 'hirshhorn.si.edu' in tour_url.lower() and '/explore/tours/' in tour_url.lower():
+                            continue
+                        
                         logger.info(f"Scraping tour page: {tour_url}")
                         tour_response = self.session.get(tour_url, timeout=10)
                         tour_response.raise_for_status()
@@ -2323,698 +2343,948 @@ class VenueEventScraper:
                     logger.info(f"📦 Hirshhorn listing page extraction complete: found {len(events)} exhibitions")
                     return events[:max_exhibitions_per_venue]
             
-            # Smithsonian National Museum of the American Indian listing pages
-            # Format: Title (repeated as link) followed by date range and location
-            if 'americanindian.si.edu' in page_url and '/explore/exhibitions/' in page_url:
-                # Check if this is a listing page (washington, newyork, etc.)
-                if any(category in page_url.lower() for category in ['/washington', '/newyork', '/online', '/upcoming', '/past', '/traveling']):
-                    logger.info(f"🔍 Processing Smithsonian NMAI listing page: {page_url}")
-                    
-                    # Find all headings that might be exhibition titles
-                    headings = soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])
-                    
-                    seen_titles = set()
-                    
-                    for heading in headings:
-                        if len(events) >= max_exhibitions_per_venue:
-                            break
-                        
-                        # Get the heading text
-                        title = heading.get_text(strip=True)
-                        if not title or len(title) < 5:
-                            continue
-                        
-                        # Clean title
-                        title = self._clean_title(title)
-                        
-                        # Skip generic headings
-                        generic_titles = ['exhibitions', 'exhibition', 'washington, dc', 'new york, ny', 'online', 'traveling', 'past', 'upcoming']
-                        if title.lower() in generic_titles:
-                            continue
-                        
-                        # Skip if we've seen this title
-                        title_lower = title.lower().strip()
-                        if title_lower in seen_titles:
-                            continue
-                        seen_titles.add(title_lower)
-                        
-                        # Look for date and location in the heading's parent or next siblings
-                        parent = heading.parent
-                        if not parent:
-                            continue
-                        
-                        parent_text = parent.get_text()
-                        
-                        # Extract date range
-                        date_text = None
-                        date_patterns = [
-                            r'([A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4})',  # November 25, 2025–January 1, 2027
-                            r'([A-Z][a-z]{2,9}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4})',  # Nov 25–Jan 1, 2027
-                            r'(Ongoing)',
-                        ]
-                        
-                        for pattern in date_patterns:
-                            match = re.search(pattern, parent_text)
-                            if match:
-                                date_text = match.group(1)
-                                break
-                        
-                        if not date_text:
-                            continue
-                        
-                        # Check location matches the page
-                        # If scraping /washington page, venue should be in Washington DC
-                        # If scraping /newyork page, venue should be in New York
-                        location_text = parent_text.lower()
-                        if '/washington' in page_url.lower():
-                            if 'new york' in location_text or 'newyork' in location_text:
-                                continue  # Skip New York exhibitions when scraping Washington page
-                        elif '/newyork' in page_url.lower():
-                            if 'washington' in location_text or 'washington, dc' in location_text:
-                                continue  # Skip Washington exhibitions when scraping New York page
-                        
-                        # Parse dates
-                        start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
-                            date_text, page_url, venue, time_range=time_range
-                        )
-                        
-                        if not start_date:
-                            continue
-                        
-                        # Skip past exhibitions
-                        today = date.today()
-                        if end_date and end_date < today:
-                            continue
-                        if end_date is None and start_date < today:
-                            continue
-                        
-                        # Find link to individual exhibition page
-                        exhibition_url = page_url
-                        link = heading.find('a', href=True) or parent.find('a', href=lambda href: href and '/explore/exhibitions/item?id=' in (href or '').lower())
-                        if link:
-                            href = link.get('href', '')
-                            if href:
-                                from urllib.parse import urljoin
-                                exhibition_url = urljoin(page_url, href)
-                        
-                        # Extract description
-                        description = None
-                        next_p = heading.find_next('p')
-                        if next_p:
-                            description = next_p.get_text(strip=True)[:500]
-                        
-                        # Extract image
-                        image_url = None
-                        img = parent.find('img') or heading.find_next('img')
-                        if img and img.get('src'):
-                            from urllib.parse import urljoin
-                            image_url = urljoin(page_url, img['src'])
-                        
-                        # Create event data
-                        event_data = {
-                            'title': title,
-                            'description': description or '',
-                            'start_date': start_date.isoformat() if start_date else None,
-                            'end_date': end_date.isoformat() if end_date is not None else None,
-                            'start_time': None,
-                            'end_time': None,
-                            'start_location': venue.name,
-                            'venue_id': venue.id,
-                            'city_id': venue.city_id,  # Use venue's city_id
-                            'event_type': 'exhibition',
-                            'url': exhibition_url,
-                            'image_url': image_url,
-                            'source': 'website',
-                            'source_url': page_url,
-                            'organizer': venue.name
-                        }
-                        
-                        if self._is_valid_event(event_data):
-                            end_date_str = end_date.isoformat() if end_date else "ongoing"
-                            logger.info(f"✅ Extracted Smithsonian NMAI exhibition: '{title}' ({start_date.isoformat()} to {end_date_str})")
-                            events.append(event_data)
-                    
-                    if events:
-                        logger.info(f"📦 Smithsonian NMAI listing page returning {len(events)} exhibitions (limit: {max_exhibitions_per_venue})")
-                        return events[:max_exhibitions_per_venue]
-            
-            # NGA calendar page format: exhibitions listed with "Closing [date]" or date ranges
-            if 'nga.gov' in page_url and ('calendar' in page_url or 'tab=exhibitions' in page_url):
-                # Look for exhibition items in the calendar view
-                # NGA uses various selectors - try multiple approaches
-                exhibition_items = []
-                
-                # Try finding exhibition cards/items
-                exhibition_items = soup.find_all(['article', 'div', 'li'], 
-                    class_=lambda c: c and ('exhibition' in str(c).lower() or 'event' in str(c).lower() or 'calendar' in str(c).lower()))
-                
-                # If no specific exhibition items found, look for links to exhibitions
-                if not exhibition_items:
-                    exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in href.lower())
-                    # Group links by their parent container
-                    seen_containers = set()
-                    for link in exhibition_links:
-                        parent = link.find_parent(['article', 'div', 'li', 'section'])
-                        if parent and id(parent) not in seen_containers:
-                            exhibition_items.append(parent)
-                            seen_containers.add(id(parent))
-                
-                logger.info(f"🔍 Processing {len(exhibition_items)} NGA exhibition items (limit: {max_exhibitions_per_venue})")
-                
-                seen_titles = set()  # Track seen titles to avoid duplicates
-                
-                for item in exhibition_items:
-                    if len(events) >= max_exhibitions_per_venue:
-                        break
-                    
-                    # Find the exhibition link
-                    link = item.find('a', href=lambda href: href and '/exhibitions/' in href.lower())
-                    if not link:
-                        continue
-                    
-                    href = link.get('href', '')
-                    if not href or href == '/exhibitions' or href == '/exhibitions/':
-                        continue
-                    
-                    # Get title from link or heading
-                    title = link.get_text(strip=True)
-                    if not title or len(title) < 5:
-                        heading = item.find(['h2', 'h3', 'h4', 'h5'])
-                        if heading:
-                            title = heading.get_text(strip=True)
-                    
-                    if not title or len(title) < 5:
-                        continue
-                    
-                    # Clean and normalize title
-                    title = self._clean_title(title)
-                    
-                    # Skip generic titles
-                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all', 'more', 'our staff',
-                                     'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
-                                     'join us for an event', 'join us', 'join us for', 'join us!']
-                    if title.lower() in generic_titles:
-                        continue
-                    
-                    # Skip if we've already seen this title
-                    title_lower = title.lower().strip()
-                    if title_lower in seen_titles:
-                        continue
-                    seen_titles.add(title_lower)
-                    
-                    from urllib.parse import urljoin
-                    exhibition_url = urljoin(page_url, href)
-                    
-                    # Extract date text from the item
-                    item_text = item.get_text()
-                    date_text = None
-                    
-                    # Look for "Closing [date]" pattern (NGA format)
-                    closing_match = re.search(r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})', item_text)
-                    if closing_match:
-                        date_text = f"Closing {closing_match.group(1)}"
-                    # Look for date ranges
-                    elif re.search(r'[A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]', item_text):
-                        date_range_match = re.search(r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})', item_text)
-                        if date_range_match:
-                            date_text = date_range_match.group(1)
-                    # Look for "Ongoing"
-                    elif 'ongoing' in item_text.lower():
-                        date_text = 'Ongoing'
-                    
-                    if not date_text:
-                        # Try to get date from a specific date element
-                        date_elem = item.find(['time', 'span', 'div'], 
-                            class_=lambda c: c and ('date' in str(c).lower() or 'closing' in str(c).lower()))
-                        if date_elem:
-                            date_text = date_elem.get_text(strip=True)
-                    
-                    if not date_text:
-                        continue
-                    
-                    # Parse dates
-                    start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
-                        date_text, page_url, venue, time_range=time_range
-                    )
-                    
-                    # Skip if no start date
-                    if not start_date:
-                        continue
-                    
-                    # Skip past exhibitions
-                    today = date.today()
-                    if end_date and end_date < today:
-                        continue
-                    if end_date is None and start_date < today:
-                        continue
-                    
-                    # Extract description
-                    description = None
-                    desc_elem = item.find(['p', 'div'], class_=lambda c: c and ('description' in str(c).lower() or 'summary' in str(c).lower()))
-                    if desc_elem:
-                        description = desc_elem.get_text(strip=True)[:500]
-                    
-                    # Extract image
-                    image_url = None
-                    img = item.find('img')
-                    if img:
-                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
-                        if img_src:
-                            image_url = urljoin(page_url, img_src)
-                    
-                    # Create event data
-                    event_data = {
-                        'title': title,
-                        'description': description or '',
-                        'url': exhibition_url,
-                        'image_url': image_url or '',
-                        'start_date': start_date.isoformat() if start_date else None,
-                        'end_date': end_date.isoformat() if end_date else None,
-                        'start_time': None,
-                        'end_time': None,
-                        'event_type': 'exhibition',
-                        'venue_id': venue.id,
-                        'city_id': venue.city_id,
-                        'source': 'website',
-                        'source_url': page_url
-                    }
-                    
-                    if self._is_valid_event(event_data):
-                        events.append(event_data)
-                        logger.info(f"✅ Extracted exhibition from NGA calendar: '{title}' ({start_date} to {end_date})")
-                
-                if events:
-                    logger.info(f"📦 NGA calendar page returning {len(events)} exhibitions (limit: {max_exhibitions_per_venue})")
-                    return events[:max_exhibitions_per_venue]
-            
-            # Met Museum format: exhibition cards with class "exhibition-card_exhibitionCard__I9gVC"
-            # Dates are in format "Through [Month Day, Year]" or "Ongoing"
-            if 'metmuseum.org' in page_url:
-                exhibition_cards = soup.find_all(['article', 'div'], 
-                    class_=lambda c: c and 'exhibition-card' in str(c).lower())
-                
-                # Limit to maximum exhibitions per venue (continue until we have max_exhibitions_per_venue valid ones)
-                logger.info(f"🔍 Processing {len(exhibition_cards)} Met Museum exhibition cards (limit: {max_exhibitions_per_venue})")
-                for card in exhibition_cards:
-                    # CRITICAL: Check limit at the START of each iteration
-                    if len(events) >= max_exhibitions_per_venue:
-                        logger.info(f"✅ Reached limit of {max_exhibitions_per_venue} exhibitions, stopping card processing")
-                        break
-                    # Get link first (it contains the title)
-                    link = card.find('a', href=lambda href: href and '/exhibitions/' in href and href != '/exhibitions' and href != '/exhibitions/')
-                    if not link:
-                        continue
-                    
-                    href = link.get('href', '')
-                    if not href or href == '/exhibitions' or href == '/exhibitions/':
-                        continue
-                    
-                    # Get title from link text or from heading inside the link
-                    title = link.get_text(strip=True)
-                    if not title or len(title) < 5:
-                        # Try to find heading inside the link
-                        title_elem = link.find(['h2', 'h3', 'h4', 'span'])
-                        if title_elem:
-                            title = title_elem.get_text(strip=True)
-                    
-                    # Also try to find title in a div with class containing "title"
-                    if not title or len(title) < 5:
-                        title_elem = card.find(['div', 'h2', 'h3', 'h4'], 
-                            class_=lambda c: c and 'title' in str(c).lower())
-                        if title_elem:
-                            title = title_elem.get_text(strip=True)
-                    
-                    if not title or len(title) < 5:
-                        continue
-                    
-                    # Skip generic titles
-                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all', 'our staff',
-                                     'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
-                                     'join us for an event', 'join us', 'join us for', 'join us!']
-                    if title.lower() in generic_titles:
-                        continue
-                    
-                    from urllib.parse import urljoin
-                    exhibition_url = urljoin(page_url, href)
-                    
-                    # Get date from meta div (class contains "meta")
-                    date_text = None
-                    meta_div = card.find(['div', 'span'], class_=lambda c: c and 'meta' in str(c).lower())
-                    if meta_div:
-                        meta_text = meta_div.get_text(strip=True)
-                        # Look for "Through [date]" or "Ongoing"
-                        through_match = re.search(r'Through\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})', meta_text)
-                        if through_match:
-                            date_text = f"Through {through_match.group(1)}"
-                        elif 'ongoing' in meta_text.lower():
-                            date_text = 'Ongoing'
-                    
-                    if not date_text:
-                        continue
-                    
-                    # Parse dates
-                    start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
-                        date_text, page_url, venue, time_range=time_range
-                    )
-                    
-                    # Handle permanent exhibitions without start dates
-                    if not start_date:
-                        # Check if this might be a permanent exhibition
-                        card_text_lower = card.get_text().lower()
-                        is_permanent = any(indicator in card_text_lower for indicator in [
-                            'permanent', 'ongoing', 'always on view', 'always on display',
-                            'permanent collection', 'permanent exhibition'
-                        ])
-                        
-                        if is_permanent or not date_text:
-                            # Set default dates for permanent exhibitions
-                            from datetime import timedelta
-                            start_date = date.today()
-                            end_date = start_date + timedelta(days=730)  # 2 years from now
-                            logger.info(f"✅ Treating '{title}' as permanent exhibition from card (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
-                        else:
-                            # Has date text but couldn't parse - skip
-                            logger.debug(f"⚠️ Could not parse date for '{title}': '{date_text}' - skipping")
-                            continue
-                    
-                    # For ongoing exhibitions (end_date is None), skip if start_date is in the past
-                    # For exhibitions with end dates, skip if they've ended
-                    today = date.today()
-                    if end_date is None:
-                        # Ongoing exhibition - skip if start date is in the past (shouldn't happen, but just in case)
-                        if start_date < today:
-                            logger.debug(f"⏰ Skipping past ongoing exhibition start: {title} (started {start_date.isoformat()})")
-                            continue
-                    elif end_date < today:
-                        logger.debug(f"⏰ Skipping past exhibition: {title} (ended {end_date.isoformat()})")
-                        continue
-                    
-                    # Extract description
-                    # Met Museum listing page cards don't have descriptions - try to get from individual page
-                    description = None
-                    
-                    # First, try to find description in the card itself (some museums include it)
-                    desc_elem = card.find(['p', 'div'], class_=lambda c: c and ('description' in str(c).lower() or 'summary' in str(c).lower()))
-                    if desc_elem:
-                        description = desc_elem.get_text(strip=True)
-                    
-                    # If no description in card, try to fetch from individual exhibition page
-                    if not description and exhibition_url:
-                        try:
-                            logger.debug(f"Fetching description from individual page: {exhibition_url}")
-                            desc_response = self.session.get(exhibition_url, timeout=10)
-                            desc_response.raise_for_status()
-                            desc_soup = BeautifulSoup(desc_response.content, 'html.parser')
-                            
-                            # Try multiple selectors for description
-                            desc_selectors = [
-                                '.exhibition-description',
-                                '.description',
-                                '.content',
-                                'article p',
-                                '.summary',
-                                '[class*=\"description\"]',
-                                '[class*=\"summary\"]'
-                            ]
-                            
-                            for selector in desc_selectors:
-                                desc_element = desc_soup.select_one(selector)
-                                if desc_element:
-                                    desc_text = desc_element.get_text(strip=True)
-                                    if desc_text and len(desc_text) > 50:  # Only use if substantial
-                                        description = desc_text[:500]  # Limit length
-                                        logger.debug(f"Found description using selector '{selector}'")
-                                        break
-                            
-                            # Fallback: try meta description
-                            if not description:
-                                meta_desc = desc_soup.find('meta', attrs={'name': 'description'})
-                                if meta_desc and meta_desc.get('content'):
-                                    description = meta_desc.get('content')
-                                    logger.debug("Found description from meta tag")
-                        except Exception as e:
-                            logger.debug(f"Could not fetch description from {exhibition_url}: {e}")
-                    
-                    # Extract image
-                    image_url = None
-                    img = card.find('img')
-                    if img:
-                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
-                        if img_src:
-                            image_url = urljoin(page_url, img_src)
-                    
-                    # Create event data
-                    event_data = {
-                        'title': title,
-                        'description': description or '',
-                        'start_date': start_date.isoformat() if start_date else None,
-                        'end_date': end_date.isoformat() if end_date is not None else None,  # None for ongoing exhibitions
-                        'start_time': None,
-                        'end_time': None,
-                        'start_location': venue.name,
-                        'venue_id': venue.id,
-                        'city_id': venue.city_id,
-                        'event_type': 'exhibition',
-                        'url': exhibition_url,
-                        'image_url': image_url,
-                        'source': 'website',
-                        'source_url': venue.website_url,
-                        'organizer': venue.name
-                    }
-                    
-                    # Validate
-                    if self._is_valid_event(event_data):
-                        # CRITICAL: Check limit BEFORE appending
-                        if len(events) >= max_exhibitions_per_venue:
-                            logger.info(f"✅ Reached limit of {max_exhibitions_per_venue} exhibitions BEFORE adding '{title}' - stopping")
-                            break
-                        
-                        logger.info(f"✅ Extracted exhibition from listing page (Met Museum): '{title}' ({start_date.isoformat()} to {end_date.isoformat() if end_date else 'ongoing'}) [count: {len(events) + 1}/{max_exhibitions_per_venue}]")
-                        events.append(event_data)
-                        
-                        # CRITICAL: Double-check limit immediately after appending
-                        if len(events) >= max_exhibitions_per_venue:
-                            logger.info(f"✅ Reached limit of {max_exhibitions_per_venue} exhibitions AFTER adding '{title}' - stopping immediately")
-                            break
-                    else:
-                        logger.debug(f"⚠️ Exhibition from listing page did not pass validation: '{title}'")
-                
-                if events:
-                    # CRITICAL: Final safety check - should never happen if limit checks work, but enforce it anyway
-                    if len(events) > max_exhibitions_per_venue:
-                        logger.error(f"❌ CRITICAL ERROR: Met Museum section extracted {len(events)} exhibitions but limit is {max_exhibitions_per_venue}!")
-                        logger.error(f"   Exhibition titles: {[e.get('title') for e in events]}")
-                        logger.error(f"   This indicates a bug in the limit checking logic above!")
-                    limited_events = events[:max_exhibitions_per_venue]
-                    logger.info(f"📦 Met Museum section returning {len(limited_events)} exhibitions (extracted {len(events)}, limit {max_exhibitions_per_venue})")
-                    return limited_events
-            
-            # Look for exhibition entries on the page
-            # Pattern: Title followed by date range
-            # Smithsonian format: "Title Title" followed by "Month Day, Year–Month Day, Year" or "Ongoing"
-            
-            # Find all headings that might be exhibition titles
-            headings = soup.find_all(['h2', 'h3', 'h4', 'h5'])
-            
-            for heading in headings:
-                # Stop if we've reached the maximum
-                if len(events) >= max_exhibitions_per_venue:
-                    break
-                
-                title = heading.get_text(strip=True)
-                if not title or len(title) < 5:
-                    continue
-                
-                # Clean and normalize title
-                title = self._clean_title(title)
-                
-                # Skip generic headings
-                generic_titles = ['exhibitions', 'exhibition', 'current exhibitions', 'upcoming exhibitions', 
-                                 'past exhibitions', 'washington, dc', 'new york, ny', 'online', 'traveling', 'our staff',
-                                 'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
-                                 'join us for an event', 'join us', 'join us for', 'join us!']
-                if title.lower() in generic_titles:
-                    continue
-                
-                # Look for date information in the heading's parent or siblings
-                parent = heading.parent
-                if not parent:
-                    continue
-                
-                parent_text = parent.get_text()
-                
-                # Extract date range from parent text - IMPORTANT: Extract fresh for each heading
-                date_text = None
-                date_patterns = [
-                    r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Nov 25, 2025–Jan 1, 2027
-                    r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Nov 25–Jan 1, 2027
-                    r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Sep 29, 2024–Jan 19, 2026 (Hirshhorn)
-                    r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # NGA format: "Closing August 2, 2026"
-                    r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2})',  # NGA format: "Closing August 2"
-                    r'(Ongoing)',
-                ]
-                
-                for pattern in date_patterns:
-                    match = re.search(pattern, parent_text)
-                    if match:
-                        date_text = match.group(1)
-                        break
-                
-                if not date_text:
-                    continue
-                
-                # Parse dates
-                start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
-                    date_text, page_url, venue, time_range=time_range
-                )
-                
-                # Handle permanent exhibitions without start dates
-                if not start_date:
-                    # Check if this might be a permanent exhibition
-                    item_text_lower = item.get_text().lower()
-                    is_permanent = any(indicator in item_text_lower for indicator in [
-                        'permanent', 'ongoing', 'always on view', 'always on display',
-                        'permanent collection', 'permanent exhibition'
-                    ])
-                    
-                    if is_permanent or not date_text:
-                        # Set default dates for permanent exhibitions
-                        from datetime import timedelta
-                        start_date = date.today()
-                        end_date = start_date + timedelta(days=730)  # 2 years from now
-                        logger.info(f"✅ Treating '{title}' as permanent exhibition from listing page (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
-                    else:
-                        # Has date text but couldn't parse - skip
-                        logger.debug(f"⚠️ Could not parse date for '{title}': '{date_text}' - skipping")
-                        continue
-                
-                # For ongoing exhibitions (end_date is None), skip if start_date is in the past
-                # For exhibitions with end dates, skip if they've ended
-                today = date.today()
-                if end_date is None:
-                    # Ongoing exhibition - skip if start date is in the past (shouldn't happen, but just in case)
-                    if start_date < today:
-                        logger.debug(f"⏰ Skipping past ongoing exhibition start: {title} (started {start_date.isoformat()})")
-                        continue
-                elif end_date < today:
-                    logger.debug(f"⏰ Skipping past exhibition: {title} (ended {end_date.isoformat()})")
-                    continue
-                
-                # Try to find a link to the exhibition page
-                exhibition_url = page_url
-                link = heading.find('a', href=True) or parent.find('a', href=True)
-                if link:
-                    href = link.get('href', '')
-                    if href:
-                        from urllib.parse import urljoin
-                        exhibition_url = urljoin(page_url, href)
-                
-                # Extract description from parent or next siblings
-                description = None
-                desc_elements = parent.find_all(['p', 'div'], class_=lambda c: c and ('description' in str(c).lower() or 'summary' in str(c).lower()))
-                if desc_elements:
-                    description = desc_elements[0].get_text(strip=True)
-                else:
-                    # Get first paragraph after heading
-                    next_p = heading.find_next('p')
-                    if next_p:
-                        description = next_p.get_text(strip=True)
-                
-                # Extract image - look within the parent container first to avoid getting images from other exhibitions
-                image_url = None
-                img = None
-                
-                # Strategy 1: Look for image in parent container or nearby containers (best for listing pages)
-                if parent:
-                    # First try direct parent
-                    img = parent.find('img')
-                    
-                    # If not found, walk up the DOM to find container (like li, article, div)
-                    if not img:
-                        container = parent
-                        for _ in range(3):  # Check up to 3 levels up
-                            if container:
-                                # Look for image within this container
-                                img = container.find('img')
-                                if img:
-                                    break
-                                
-                                # Also check for container indicators (card, item, etc.)
-                                container_classes = ' '.join(container.get('class', []))
-                                if any(keyword in container_classes.lower() for keyword in ['card', 'item', 'exhibition', 'list']):
-                                    # We're in a container, look for image here or in siblings
-                                    if not img:
-                                        # Check previous siblings for image (some sites put image before heading)
-                                        prev = container.find_previous_sibling()
-                                        if prev:
-                                            prev_img = prev.find('img')
-                                            if prev_img:
-                                                img = prev_img
-                                    break
-                                container = container.parent
-                
-                # Strategy 2: If still no image, look for images before/after heading in same section
-                if not img:
-                    # Check previous elements for image (some layouts have image before heading)
-                    prev_elements = heading.find_all_previous(['img', 'div', 'figure'], limit=3)
-                    for elem in prev_elements:
-                        if elem.name == 'img':
-                            img = elem
-                            break
-                        elif elem.find('img'):
-                            img = elem.find('img')
-                            break
-                
-                # Strategy 3: Fallback to next image (but this is less reliable for listing pages)
-                if not img:
-                    img = heading.find_next('img')
-                
-                if img:
-                    # Try multiple src attributes (handle lazy loading)
-                    img_src = (img.get('src') or 
-                              img.get('data-src') or 
-                              img.get('data-lazy-src') or
-                              img.get('data-original') or
-                              img.get('data-image'))
-                    if img_src:
-                        from urllib.parse import urljoin
-                        image_url = urljoin(page_url, img_src)
-                
-                # Create event data
-                event_data = {
-                    'title': title,
-                    'description': description or '',
-                    'start_date': start_date.isoformat() if start_date else None,
-                    'end_date': end_date.isoformat() if end_date is not None else None,  # None for ongoing exhibitions
-                    'start_time': None,
-                    'end_time': None,
-                    'start_location': venue.name,
-                    'venue_id': venue.id,
-                    'city_id': venue.city_id,
-                    'event_type': 'exhibition',
-                    'url': exhibition_url,
-                    'image_url': image_url,
-                    'source': 'website',
-                    'source_url': venue.website_url,
-                    'organizer': venue.name
-                }
-                
-                # Validate
-                if self._is_valid_event(event_data):
-                    end_date_str = end_date.isoformat() if end_date else "ongoing"
-                    logger.info(f"✅ Extracted exhibition from listing page: '{title}' ({start_date.isoformat()} to {end_date_str})")
-                    events.append(event_data)
-                    # Stop if we've reached the maximum
-                    if len(events) >= max_exhibitions_per_venue:
-                        break
-                else:
-                    logger.debug(f"⚠️ Exhibition from listing page did not pass validation: '{title}'")
+            return events
         
         except Exception as e:
-            logger.debug(f"Error extracting exhibitions from listing page {page_url}: {e}")
+            logger.error(f"Error extracting exhibitions from listing page: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
         
-        # Limit to maximum exhibitions per venue
-        return events[:max_exhibitions_per_venue]
+        return events
+    
+    def _extract_hirshhorn_tours(self, soup, venue, page_url, event_type=None, time_range='today', max_tours_per_venue=20):
+        """Extract tours from Hirshhorn tours page using JSON-LD structured data and individual event pages
+        
+        Args:
+            soup: BeautifulSoup object of the tours page
+            venue: Venue object
+            page_url: URL of the tours page
+            event_type: Optional filter for event type
+            time_range: Time range for events
+            max_tours_per_venue: Maximum number of tours to extract
+        
+        Returns:
+            List of tour events
+        """
+        events = []
+        scraped_urls = set()  # Track URLs we've already scraped
+        
+        try:
+            logger.info(f"🔍 Extracting Hirshhorn tours from JSON-LD structured data")
+            
+            # First, find all individual tour event page URLs
+            tour_event_urls = []
+            
+            # Look for links to individual event pages (pattern: /event/.../YYYY-MM-DD/)
+            event_links = soup.find_all('a', href=re.compile(r'/event/.*/\d{4}-\d{2}-\d{2}/'))
+            for link in event_links:
+                href = link.get('href', '')
+                if href:
+                    full_url = urljoin(page_url, href)
+                    if full_url not in scraped_urls:
+                        tour_event_urls.append(full_url)
+                        scraped_urls.add(full_url)
+            
+            # Also look for links in JSON-LD data
+            json_ld_scripts = soup.find_all('script', type='application/ld+json')
+            
+            for script in json_ld_scripts:
+                try:
+                    import json
+                    data = json.loads(script.string)
+                    
+                    # Handle both single objects and arrays
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and item.get('@type') == 'Event':
+                                event_url = item.get('url', '')
+                                if event_url and event_url not in scraped_urls:
+                                    tour_event_urls.append(event_url)
+                                    scraped_urls.add(event_url)
+                                
+                                tour_event = self._parse_hirshhorn_tour_from_json_ld(item, venue, page_url, time_range)
+                                if tour_event and self._is_valid_event(tour_event):
+                                    events.append(tour_event)
+                    elif isinstance(data, dict):
+                        # Check if this is a graph structure
+                        if '@graph' in data:
+                            for item in data['@graph']:
+                                if isinstance(item, dict) and item.get('@type') == 'Event':
+                                    event_url = item.get('url', '')
+                                    if event_url and event_url not in scraped_urls:
+                                        tour_event_urls.append(event_url)
+                                        scraped_urls.add(event_url)
+                                    
+                                    tour_event = self._parse_hirshhorn_tour_from_json_ld(item, venue, page_url, time_range)
+                                    if tour_event and self._is_valid_event(tour_event):
+                                        events.append(tour_event)
+                        elif data.get('@type') == 'Event':
+                            event_url = data.get('url', '')
+                            if event_url and event_url not in scraped_urls:
+                                tour_event_urls.append(event_url)
+                                scraped_urls.add(event_url)
+                            
+                            tour_event = self._parse_hirshhorn_tour_from_json_ld(data, venue, page_url, time_range)
+                            if tour_event and self._is_valid_event(tour_event):
+                                events.append(tour_event)
+                
+                except json.JSONDecodeError as e:
+                    logger.debug(f"⚠️ Error parsing JSON-LD: {e}")
+                    continue
+                except Exception as e:
+                    logger.debug(f"⚠️ Error processing JSON-LD item: {e}")
+                    continue
+            
+            # Now scrape individual tour event pages for more detailed information
+            logger.info(f"🔍 Found {len(tour_event_urls)} individual tour event pages to scrape")
+            for event_url in tour_event_urls[:max_tours_per_venue]:  # Limit to max_tours_per_venue
+                try:
+                    logger.info(f"📄 Scraping individual tour event page: {event_url}")
+                    tour_event = self._scrape_hirshhorn_tour_event_page(event_url, venue, page_url, time_range)
+                    if tour_event and self._is_valid_event(tour_event):
+                        # Check if we already have this event from JSON-LD
+                        existing = False
+                        for existing_event in events:
+                            if (existing_event.get('url') == tour_event.get('url') and 
+                                existing_event.get('start_date') == tour_event.get('start_date')):
+                                # Update existing event with more detailed info from page scraping
+                                existing_event.update(tour_event)
+                                existing = True
+                                break
+                        
+                        if not existing:
+                            events.append(tour_event)
+                except Exception as e:
+                    logger.debug(f"⚠️ Error scraping tour event page {event_url}: {e}")
+                    continue
+            
+            logger.info(f"📦 Extracted {len(events)} tours from Hirshhorn tours page")
+            return events[:max_tours_per_venue]
+        
+        except Exception as e:
+            logger.error(f"Error extracting Hirshhorn tours: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        return events
+    
+    def _scrape_hirshhorn_tour_event_page(self, event_url, venue, page_url, time_range='today'):
+        """Scrape individual Hirshhorn tour event page to extract detailed information
+        
+        Args:
+            event_url: URL of the individual tour event page
+            venue: Venue object
+            page_url: Source tours page URL
+            time_range: Time range filter
+        
+        Returns:
+            Dictionary with event data or None
+        """
+        try:
+            from datetime import datetime, date, time as time_class
+            import html
+            import re
+            
+            logger.info(f"🔍 Scraping Hirshhorn tour event page: {event_url}")
+            
+            # Fetch the page
+            try:
+                response = self.session.get(event_url, timeout=10)
+                response.raise_for_status()
+            except Exception as e:
+                logger.debug(f"⚠️ Error fetching tour event page: {e}")
+                return None
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Extract title from h1
+            title = None
+            h1 = soup.find('h1')
+            if h1:
+                title = h1.get_text(strip=True)
+                title = html.unescape(title)
+            
+            if not title:
+                logger.debug(f"⚠️ No title found on tour event page")
+                return None
+            
+            # Extract date and time from the page
+            # Look for pattern like "December 5, 2025 | 11:30 am–12:00 pm"
+            date_time_text = None
+            
+            # Get full page text for searching
+            page_text = soup.get_text()
+            
+            # Try to find date/time in h2 after h1
+            if h1:
+                # Try next sibling h2 (most common case)
+                next_h2 = h1.find_next_sibling('h2')
+                if not next_h2:
+                    # Also try finding h2 in the same parent or nearby
+                    parent = h1.parent
+                    if parent:
+                        next_h2 = parent.find('h2')
+                if not next_h2:
+                    # Try finding h2 anywhere after h1 in the document
+                    next_h2 = h1.find_next('h2')
+                if next_h2:
+                    date_time_text = next_h2.get_text(strip=True)
+                    logger.info(f"   📅 Found date/time in h2: {date_time_text}")
+                else:
+                    # Also check if h1 itself contains date/time
+                    h1_text = h1.get_text(strip=True)
+                    if '|' in h1_text and re.search(r'\d{1,2}:\d{2}\s*[ap]m', h1_text, re.IGNORECASE):
+                        date_time_text = h1_text
+                        logger.info(f"   📅 Found date/time in h1: {date_time_text}")
+            
+            # Also check for date/time in the page text near the title
+            if not date_time_text:
+                # Look for pattern: "Month Day, Year | time–time" near the h1
+                if h1:
+                    # Get text from h1 and next few siblings
+                    parent = h1.parent
+                    if parent:
+                        siblings_text = []
+                        for sibling in h1.next_siblings:
+                            if hasattr(sibling, 'get_text'):
+                                text = sibling.get_text(strip=True)
+                                if text:
+                                    siblings_text.append(text)
+                                    if len(siblings_text) >= 3:  # Check first 3 siblings
+                                        break
+                        combined_text = ' '.join(siblings_text)
+                        # Look for date/time pattern
+                        date_time_match = re.search(r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*\|\s*(\d{1,2}:\d{2}\s*[ap]m[–—\-]\d{1,2}:\d{2}\s*[ap]m)', combined_text, re.IGNORECASE)
+                        if date_time_match:
+                            date_time_text = date_time_match.group(0)
+                            logger.info(f"   📅 Found date/time near h1: {date_time_text}")
+            
+            # Also search the full page text for date/time patterns
+            if not date_time_text:
+                # Look for "Month Day, Year | time–time" pattern anywhere in page
+                # Try multiple patterns to catch different formats
+                patterns = [
+                    r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*\|\s*(\d{1,2}:\d{2}\s*[ap]m\s*[–—\-]\s*\d{1,2}:\d{2}\s*[ap]m)',  # With pipe separator
+                    r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s+(\d{1,2}:\d{2}\s*[ap]m\s*[–—\-]\s*\d{1,2}:\d{2}\s*[ap]m)',  # Without pipe
+                    r'(\d{1,2}:\d{2}\s*[ap]m\s*[–—\-]\s*\d{1,2}:\d{2}\s*[ap]m)',  # Just time range
+                ]
+                for pattern in patterns:
+                    date_time_match = re.search(pattern, page_text, re.IGNORECASE)
+                    if date_time_match:
+                        date_time_text = date_time_match.group(0)
+                        logger.info(f"   📅 Found date/time in page text: {date_time_text}")
+                        break
+            
+            # Check JSON-LD on the page for structured data (but don't return early - we want to extract more details)
+            json_ld_start_date = None
+            json_ld_end_date = None
+            json_ld_start_time = None
+            json_ld_end_time = None
+            
+            json_ld_scripts = soup.find_all('script', type='application/ld+json')
+            for script in json_ld_scripts:
+                try:
+                    import json
+                    data = json.loads(script.string)
+                    if isinstance(data, dict) and data.get('@type') == 'Event':
+                        start_date_str = data.get('startDate', '')
+                        end_date_str = data.get('endDate', '')
+                        if start_date_str:
+                            try:
+                                from datetime import datetime as dt
+                                dt_start = dt.fromisoformat(start_date_str.replace('Z', '+00:00'))
+                                json_ld_start_date = dt_start.date()
+                                json_ld_start_time = dt_start.time()
+                                logger.info(f"   📅 Found start date/time in JSON-LD: {json_ld_start_date} {json_ld_start_time}")
+                            except:
+                                pass
+                        if end_date_str:
+                            try:
+                                from datetime import datetime as dt
+                                dt_end = dt.fromisoformat(end_date_str.replace('Z', '+00:00'))
+                                json_ld_end_date = dt_end.date()
+                                json_ld_end_time = dt_end.time()
+                                logger.info(f"   📅 Found end date/time in JSON-LD: {json_ld_end_date} {json_ld_end_time}")
+                            except:
+                                pass
+                except:
+                    continue
+            
+            # Parse date and time from text
+            # Prefer JSON-LD if available, but also try to parse from page text
+            start_date = json_ld_start_date
+            end_date = json_ld_end_date
+            start_time = json_ld_start_time
+            end_time = json_ld_end_time
+            
+            # If we have JSON-LD data, use it as primary source
+            if json_ld_start_date and json_ld_start_time:
+                logger.info(f"   ✅ Using JSON-LD date/time: {start_date} {start_time}")
+            
+            # Also try to parse from date_time_text if available (this will override JSON-LD if more specific)
+            if date_time_text:
+                logger.info(f"   📝 Parsing date/time from text: {date_time_text}")
+                # Parse date: "December 5, 2025" or "December 6, 2025"
+                date_match = re.search(r'([A-Z][a-z]+)\s+(\d{1,2}),?\s+(\d{4})', date_time_text)
+                if date_match:
+                    month_name = date_match.group(1)
+                    day = int(date_match.group(2))
+                    year = int(date_match.group(3))
+                    
+                    month_map = {
+                        'January': 1, 'February': 2, 'March': 3, 'April': 4,
+                        'May': 5, 'June': 6, 'July': 7, 'August': 8,
+                        'September': 9, 'October': 10, 'November': 11, 'December': 12
+                    }
+                    month = month_map.get(month_name)
+                    if month:
+                        start_date = date(year, month, day)
+                        end_date = start_date
+                        logger.info(f"   📅 Parsed date from text: {start_date}")
+            
+                # Parse time range: "11:30 am–12:30 pm" or "11:30 am - 12:30 pm"
+                # Try multiple patterns to handle different dash types and spacing
+                time_patterns = [
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',  # Standard with em/en dash
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s*-\s*(\d{1,2}):(\d{2})\s*([ap]m)',  # With hyphen
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s+to\s+(\d{1,2}):(\d{2})\s*([ap]m)',  # With "to"
+                ]
+                
+                time_range_match = None
+                for pattern in time_patterns:
+                    time_range_match = re.search(pattern, date_time_text, re.IGNORECASE)
+                    if time_range_match:
+                        logger.info(f"   ⏰ Matched time pattern: {time_range_match.group(0)}")
+                        break
+                
+                if time_range_match:
+                    start_hour = int(time_range_match.group(1))
+                    start_min = int(time_range_match.group(2))
+                    start_ampm = time_range_match.group(3).upper()
+                    end_hour = int(time_range_match.group(4))
+                    end_min = int(time_range_match.group(5))
+                    end_ampm = time_range_match.group(6).upper()
+                    
+                    # Convert to 24-hour format
+                    if start_ampm == 'PM' and start_hour != 12:
+                        start_hour += 12
+                    elif start_ampm == 'AM' and start_hour == 12:
+                        start_hour = 0
+                    
+                    if end_ampm == 'PM' and end_hour != 12:
+                        end_hour += 12
+                    elif end_ampm == 'AM' and end_hour == 12:
+                        end_hour = 0
+                    
+                    start_time = time_class(start_hour, start_min)
+                    end_time = time_class(end_hour, end_min)
+                    logger.info(f"   ✅ Parsed times: {start_time} - {end_time}")
+                else:
+                    # Try single time: "11:30 am"
+                    single_time_match = re.search(r'(\d{1,2}):(\d{2})\s*([ap]m)', date_time_text, re.IGNORECASE)
+                    if single_time_match:
+                        hour = int(single_time_match.group(1))
+                        minute = int(single_time_match.group(2))
+                        ampm = single_time_match.group(3).upper()
+                        
+                        if ampm == 'PM' and hour != 12:
+                            hour += 12
+                        elif ampm == 'AM' and hour == 12:
+                            hour = 0
+                        
+                        start_time = time_class(hour, minute)
+                        # Assume 1-hour duration if no end time
+                        from datetime import timedelta
+                        start_datetime = datetime.combine(start_date or date.today(), start_time)
+                        end_datetime = start_datetime + timedelta(hours=1)
+                        end_time = end_datetime.time()
+            
+            # If we still don't have date/time, try to extract from URL (e.g., /2025-12-05/)
+            if not start_date:
+                url_date_match = re.search(r'/(\d{4})-(\d{2})-(\d{2})/', event_url)
+                if url_date_match:
+                    year = int(url_date_match.group(1))
+                    month = int(url_date_match.group(2))
+                    day = int(url_date_match.group(3))
+                    start_date = date(year, month, day)
+                    end_date = start_date
+                    logger.info(f"   📅 Extracted date from URL: {start_date}")
+            
+            # If we still don't have times, try to extract from page text more broadly
+            if not start_time or not end_time:
+                logger.info(f"   🔍 Searching for times in page text (start_time={start_time}, end_time={end_time})")
+                # Look for time patterns anywhere in the page text
+                # Try multiple patterns to handle different dash types
+                time_patterns = [
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',  # Standard with em/en dash
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s*-\s*(\d{1,2}):(\d{2})\s*([ap]m)',  # With hyphen
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s+to\s+(\d{1,2}):(\d{2})\s*([ap]m)',  # With "to"
+                ]
+                
+                time_range_match = None
+                for pattern in time_patterns:
+                    time_range_match = re.search(pattern, page_text, re.IGNORECASE)
+                    if time_range_match:
+                        logger.info(f"   ⏰ Found time range in page text: {time_range_match.group(0)}")
+                        break
+                
+                if time_range_match:
+                    start_hour = int(time_range_match.group(1))
+                    start_min = int(time_range_match.group(2))
+                    start_ampm = time_range_match.group(3).upper()
+                    end_hour = int(time_range_match.group(4))
+                    end_min = int(time_range_match.group(5))
+                    end_ampm = time_range_match.group(6).upper()
+                    
+                    # Convert to 24-hour format
+                    if start_ampm == 'PM' and start_hour != 12:
+                        start_hour += 12
+                    elif start_ampm == 'AM' and start_hour == 12:
+                        start_hour = 0
+                    
+                    if end_ampm == 'PM' and end_hour != 12:
+                        end_hour += 12
+                    elif end_ampm == 'AM' and end_hour == 12:
+                        end_hour = 0
+                    
+                    start_time = time_class(start_hour, start_min)
+                    end_time = time_class(end_hour, end_min)
+                    logger.info(f"   ⏰ Extracted times from page text: {start_time} - {end_time}")
+                else:
+                    # Try single time pattern
+                    single_time_match = re.search(r'(\d{1,2}):(\d{2})\s*([ap]m)', page_text, re.IGNORECASE)
+                    if single_time_match and not start_time:
+                        hour = int(single_time_match.group(1))
+                        minute = int(single_time_match.group(2))
+                        ampm = single_time_match.group(3).upper()
+                        
+                        if ampm == 'PM' and hour != 12:
+                            hour += 12
+                        elif ampm == 'AM' and hour == 12:
+                            hour = 0
+                        
+                        start_time = time_class(hour, minute)
+                        # Assume 1-hour duration if no end time
+                        from datetime import timedelta
+                        start_datetime = datetime.combine(start_date or date.today(), start_time)
+                        end_datetime = start_datetime + timedelta(hours=1)
+                        end_time = end_datetime.time()
+                        logger.info(f"   ⏰ Extracted single time from page text: {start_time} (assuming 1-hour duration: {end_time})")
+            
+            # Extract description
+            description = ''
+            # Look for description in various places
+            desc_selectors = [
+                '.event-description',
+                '.description',
+                '.content',
+                'article p',
+                '.event-details p'
+            ]
+            for selector in desc_selectors:
+                desc_elem = soup.select_one(selector)
+                if desc_elem:
+                    description = desc_elem.get_text(separator=' ', strip=True)
+                    if description:
+                        break
+            
+            # If no description found, try to get text from main content area
+            if not description:
+                main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|event'))
+                if main_content:
+                    # Get all paragraph text
+                    paragraphs = main_content.find_all('p')
+                    desc_parts = [p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)]
+                    description = ' '.join(desc_parts[:3])  # Take first 3 paragraphs
+            
+            # Extract image
+            image_url = None
+            
+            # Try to find image in various places
+            img_selectors = [
+                'meta[property="og:image"]',
+                'meta[name="twitter:image"]',
+                '.event-image img',
+                '.featured-image img',
+                'article img',
+                'main img'
+            ]
+            for selector in img_selectors:
+                img_elem = soup.select_one(selector)
+                if img_elem:
+                    if img_elem.name == 'meta':
+                        image_url = img_elem.get('content')
+                    else:
+                        image_url = img_elem.get('src') or img_elem.get('data-src')
+                    
+                    if image_url:
+                        # Make absolute URL if relative
+                        if not image_url.startswith('http'):
+                            image_url = urljoin(event_url, image_url)
+                        break
+            
+            # Extract meeting point/location - extract just the location name, not the full text
+            location = venue.name
+            meeting_point = None
+            
+            # Look for "MEET IN THE LOBBY" or similar text patterns
+            # The location text might be: "Smithsonian Hirshhorn Museum and Sculpture Garden - THE LOBBY  30–60 Minutes..."
+            # We want to extract just "THE LOBBY"
+            
+            # First, try to find location in structured elements (h2, h3, divs with location classes)
+            location_elements = soup.find_all(['h2', 'h3', 'div', 'p'], class_=re.compile(r'location|meeting|where', re.I))
+            for elem in location_elements:
+                elem_text = elem.get_text(strip=True)
+                # Look for pattern like "venue name - LOCATION" or just "LOCATION"
+                if venue.name in elem_text and ' - ' in elem_text:
+                    # Extract part after " - "
+                    parts = elem_text.split(' - ', 1)
+                    if len(parts) > 1:
+                        location_part = parts[1].strip()
+                        # Stop at common delimiters
+                        location_part = re.split(r'\s+\d|FREE|Registration|Join|Duration|Minutes|30|60|–', location_part, flags=re.IGNORECASE)[0].strip()
+                        if location_part and len(location_part) < 100:  # Reasonable length
+                            location = location_part
+                            logger.info(f"   📍 Extracted location from element: {location}")
+                            break
+            
+            # If not found in structured elements, search page text
+            if location == venue.name:
+                # Pattern 1: "venue name - LOCATION" format
+                venue_location_pattern = re.escape(venue.name) + r'\s*-\s*([A-Z][A-Z\s]+?)(?:\s+\d|FREE|Registration|Join|Duration|Minutes|30|60|–)'
+                match = re.search(venue_location_pattern, page_text, re.IGNORECASE)
+                if match:
+                    location = match.group(1).strip()
+                    # Clean up - remove extra whitespace
+                    location = re.sub(r'\s+', ' ', location)
+                    logger.info(f"   📍 Extracted location from venue pattern: {location}")
+                else:
+                    # Pattern 2: "MEET IN THE LOBBY" or "MEET AT THE LOBBY"
+                    meeting_patterns = [
+                        r'MEET\s+(?:IN|AT)\s+(THE\s+[A-Z]+(?:\s+[A-Z]+)*?)(?:\s+\d|FREE|Registration|Join|Duration|Minutes|30|60|–|$)',  # "MEET IN THE LOBBY"
+                        r'MEET\s+(?:IN|AT)\s+([A-Z][A-Z\s]{2,30}?)(?:\s+\d|FREE|Registration|Join|Duration|Minutes|30|60|–|$)',  # More flexible
+                    ]
+                    
+                    for pattern in meeting_patterns:
+                        meeting_match = re.search(pattern, page_text, re.IGNORECASE)
+                        if meeting_match:
+                            meeting_point = meeting_match.group(1).strip()
+                            # Clean up the meeting point
+                            meeting_point = re.sub(r'\s+', ' ', meeting_point)  # Normalize whitespace
+                            # Remove venue name if it got captured
+                            if venue.name.upper() in meeting_point.upper():
+                                meeting_point = meeting_point.replace(venue.name, '').strip(' -')
+                            if meeting_point and len(meeting_point) < 100:
+                                location = meeting_point
+                                logger.info(f"   📍 Extracted location from meeting pattern: {location}")
+                                break
+            
+            # If still not found, try JSON-LD
+            if location == venue.name:
+                json_ld_scripts = soup.find_all('script', type='application/ld+json')
+                for script in json_ld_scripts:
+                    try:
+                        import json
+                        data = json.loads(script.string)
+                        if isinstance(data, dict) and data.get('@type') == 'Event':
+                            if 'location' in data:
+                                loc = data['location']
+                                if isinstance(loc, dict):
+                                    loc_name = loc.get('name', '')
+                                    if loc_name and loc_name != venue.name:
+                                        # Extract just the location part if it contains venue name
+                                        if venue.name in loc_name and ' - ' in loc_name:
+                                            # Extract part after " - "
+                                            parts = loc_name.split(' - ', 1)
+                                            if len(parts) > 1:
+                                                location = parts[1].strip()
+                                                # Stop at common delimiters
+                                                location = re.split(r'\s+\d|FREE|Registration|Join|Duration|Minutes|30|60|–', location, flags=re.IGNORECASE)[0].strip()
+                                            else:
+                                                location = loc_name
+                                        else:
+                                            location = loc_name
+                                        if location and len(location) < 100:
+                                            logger.info(f"   📍 Extracted location from JSON-LD: {location}")
+                                            break
+                    except:
+                        continue
+            
+            # Extract registration information
+            is_registration_required = False
+            registration_url = None
+            registration_info = None
+            registration_opens_date = None
+            registration_opens_time = None
+            
+            # Look for registration-related text patterns
+            registration_patterns = [
+                r'registration\s+is\s+not\s+required',
+                r'registration\s+is\s+required',
+                r'registration\s+required',
+                r'advance\s+registration',
+                r'pre-registration',
+                r'registration\s+opens',
+                r'register\s+now',
+                r'registration\s+not\s+required',
+                r'no\s+registration\s+required',
+                r'free\s+admission',
+                r'free\s+event'
+            ]
+            
+            for pattern in registration_patterns:
+                match = re.search(pattern, page_text, re.IGNORECASE)
+                if match:
+                    registration_text = match.group(0)
+                    
+                    # Determine if registration is required
+                    if any(phrase in registration_text.lower() for phrase in ['not required', 'no registration', 'free admission', 'free event']):
+                        is_registration_required = False
+                    elif any(phrase in registration_text.lower() for phrase in ['required', 'register now', 'advance registration', 'pre-registration']):
+                        is_registration_required = True
+                    
+                    # Store the registration info text
+                    if not registration_info:
+                        # Try to get the full sentence or context
+                        context_match = re.search(r'[^.!?]*(?:' + re.escape(registration_text) + r')[^.!?]*[.!?]?', page_text, re.IGNORECASE)
+                        if context_match:
+                            registration_info = context_match.group(0).strip()
+                        else:
+                            registration_info = registration_text
+                    
+                    logger.info(f"   📝 Found registration info: {registration_info} (required: {is_registration_required})")
+                    break
+            
+            # Look for registration URL/links
+            registration_link_patterns = [
+                r'href=["\']([^"\']*(?:register|registration|rsvp|ticket|book|reserve)[^"\']*)["\']',
+                r'https?://[^\s]*(?:register|registration|rsvp|ticket|book|reserve)[^\s]*'
+            ]
+            
+            for pattern in registration_link_patterns:
+                matches = re.finditer(pattern, str(soup), re.IGNORECASE)
+                for match in matches:
+                    potential_url = match.group(1) if match.groups() else match.group(0)
+                    # Clean up the URL
+                    potential_url = potential_url.strip('"\'')
+                    if potential_url.startswith('http'):
+                        registration_url = potential_url
+                        logger.info(f"   🔗 Found registration URL: {registration_url}")
+                        break
+                if registration_url:
+                    break
+            
+            # Also check for registration links in anchor tags
+            if not registration_url:
+                reg_links = soup.find_all('a', href=re.compile(r'register|registration|rsvp|ticket|book|reserve', re.I))
+                for link in reg_links:
+                    href = link.get('href', '')
+                    link_text = link.get_text(strip=True).lower()
+                    if any(word in link_text for word in ['register', 'registration', 'rsvp', 'ticket', 'book', 'reserve']):
+                        if href:
+                            if not href.startswith('http'):
+                                registration_url = urljoin(event_url, href)
+                            else:
+                                registration_url = href
+                            logger.info(f"   🔗 Found registration URL from link: {registration_url}")
+                            break
+            
+            # Look for registration opens date/time
+            registration_opens_patterns = [
+                r'registration\s+opens\s+(?:on\s+)?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})',
+                r'registration\s+opens\s+(\d{1,2})/(\d{1,2})/(\d{4})',
+                r'registration\s+opens\s+(\d{4})-(\d{2})-(\d{2})',
+                r'registration\s+opens\s+(?:at\s+)?(\d{1,2}):(\d{2})\s*([ap]m)'
+            ]
+            
+            for pattern in registration_opens_patterns:
+                match = re.search(pattern, page_text, re.IGNORECASE)
+                if match:
+                    if len(match.groups()) >= 3 and any(month in match.group(0) for month in ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']):
+                        # Date pattern
+                        month_name = match.group(1)
+                        day = int(match.group(2))
+                        year = int(match.group(3))
+                        month_map = {
+                            'January': 1, 'February': 2, 'March': 3, 'April': 4,
+                            'May': 5, 'June': 6, 'July': 7, 'August': 8,
+                            'September': 9, 'October': 10, 'November': 11, 'December': 12
+                        }
+                        month = month_map.get(month_name)
+                        if month:
+                            registration_opens_date = date(year, month, day)
+                            logger.info(f"   📅 Found registration opens date: {registration_opens_date}")
+                    elif ':' in match.group(0):
+                        # Time pattern
+                        hour = int(match.group(1))
+                        minute = int(match.group(2))
+                        ampm = match.group(3).upper() if len(match.groups()) >= 3 else 'AM'
+                        if ampm == 'PM' and hour != 12:
+                            hour += 12
+                        elif ampm == 'AM' and hour == 12:
+                            hour = 0
+                        registration_opens_time = time_class(hour, minute)
+                        logger.info(f"   ⏰ Found registration opens time: {registration_opens_time}")
+                    break
+            
+            # Clean title
+            title = self._clean_title(title)
+            
+            # Don't filter by date here - allow all dates through for updates
+            # The higher-level code will handle date filtering if needed
+            # This allows us to update existing events regardless of their date
+            if start_date and time_range == 'today':
+                today = date.today()
+                if start_date != today:
+                    logger.debug(f"⚠️ Tour '{title}' - date {start_date} not today (today is {today}), but allowing for potential update")
+                    # Don't return None - allow it through for updates
+            
+            # For tours, we need at least a start date
+            if not start_date:
+                logger.warning(f"⚠️ Tour '{title}' - missing date, cannot create event")
+                logger.warning(f"   URL: {event_url}")
+                logger.warning(f"   Page text sample: {page_text[:500]}")
+                return None
+            
+            # For times: if missing, log but still return event data (for updates)
+            # The update logic in app.py will handle adding times to existing events
+            if not start_time:
+                logger.warning(f"⚠️ Tour '{title}' - missing start time, trying harder to find it")
+                logger.warning(f"   URL: {event_url}")
+                logger.warning(f"   Date found: {start_date}")
+                
+                # Try one more time to find times in the raw HTML
+                html_str = str(soup)
+                
+                # Try multiple patterns in raw HTML
+                time_patterns = [
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',  # Standard
+                    r'(\d{1,2}):(\d{2})\s*([ap]m)\s*-\s*(\d{1,2}):(\d{2})\s*([ap]m)',  # With hyphen
+                ]
+                
+                for pattern in time_patterns:
+                    time_in_html = re.search(pattern, html_str, re.IGNORECASE)
+                    if time_in_html:
+                        logger.warning(f"   ⚠️ Found time in HTML: {time_in_html.group(0)}")
+                        try:
+                            start_hour = int(time_in_html.group(1))
+                            start_min = int(time_in_html.group(2))
+                            start_ampm = time_in_html.group(3).upper()
+                            end_hour = int(time_in_html.group(4))
+                            end_min = int(time_in_html.group(5))
+                            end_ampm = time_in_html.group(6).upper()
+                            
+                            if start_ampm == 'PM' and start_hour != 12:
+                                start_hour += 12
+                            elif start_ampm == 'AM' and start_hour == 12:
+                                start_hour = 0
+                            
+                            if end_ampm == 'PM' and end_hour != 12:
+                                end_hour += 12
+                            elif end_ampm == 'AM' and end_hour == 12:
+                                end_hour = 0
+                            
+                            start_time = time_class(start_hour, start_min)
+                            end_time = time_class(end_hour, end_min)
+                            logger.info(f"   ✅ Successfully parsed times from HTML: {start_time} - {end_time}")
+                            break
+                        except Exception as e:
+                            logger.warning(f"   ⚠️ Error parsing time from HTML: {e}")
+                            continue
+                
+                # If still no times, log detailed info but allow event through for updates
+                if not start_time:
+                    logger.warning(f"   Page text sample: {page_text[:1000]}")
+                    logger.warning(f"   ⚠️ Still no times found - will return event data for potential update")
+                    # Don't return None - allow event through for updates
+                    # The update logic in app.py will add times if they become available
+            
+            # Log extracted information for debugging
+            logger.info(f"   ✅ Successfully extracted tour details:")
+            logger.info(f"      Title: {title}")
+            logger.info(f"      Date: {start_date}")
+            logger.info(f"      Start time: {start_time}")
+            logger.info(f"      End time: {end_time}")
+            logger.info(f"      URL: {event_url}")
+            
+            # Create event data
+            start_time_str = start_time.isoformat() if start_time else None
+            end_time_str = end_time.isoformat() if end_time else None
+            
+            tour_event = {
+                'title': title,
+                'description': description or '',
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat() if end_date else start_date.isoformat(),
+                'start_time': start_time_str,
+                'end_time': end_time_str,
+                'start_location': location,
+                'venue_id': venue.id,
+                'city_id': venue.city_id,
+                'event_type': 'tour',
+                'url': event_url,
+                'image_url': image_url,
+                'source': 'website',
+                'source_url': page_url,
+                'organizer': venue.name,
+                'is_registration_required': is_registration_required,
+                'registration_url': registration_url,
+                'registration_info': registration_info,
+                'registration_opens_date': registration_opens_date.isoformat() if registration_opens_date else None,
+                'registration_opens_time': registration_opens_time.isoformat() if registration_opens_time else None
+            }
+            
+            # Log success with times if available - CRITICAL LOGGING
+            if start_time:
+                logger.info(f"✅ Scraped Hirshhorn tour event page: '{title}' ({start_date.isoformat()} {start_time.isoformat()}{' - ' + end_time.isoformat() if end_time else ''})")
+                logger.info(f"   📤 RETURNING event with start_time='{start_time_str}', end_time='{end_time_str}'")
+                logger.info(f"   📤 Full event data: start_time={tour_event.get('start_time')}, end_time={tour_event.get('end_time')}")
+            else:
+                logger.warning(f"⚠️ Scraped Hirshhorn tour event page but NO TIMES: '{title}' ({start_date.isoformat()})")
+                logger.warning(f"   📤 RETURNING event with start_time=None, end_time=None")
+                logger.warning(f"   📤 Full event data: start_time={tour_event.get('start_time')}, end_time={tour_event.get('end_time')}")
+            
+            return tour_event
+        
+        except Exception as e:
+            logger.error(f"Error scraping Hirshhorn tour event page: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    def _parse_hirshhorn_tour_from_json_ld(self, event_data, venue, page_url, time_range='today'):
+        """Parse a single tour event from JSON-LD structured data
+        
+        Args:
+            event_data: Dictionary containing JSON-LD Event data
+            venue: Venue object
+            page_url: Source page URL
+            time_range: Time range filter
+        
+        Returns:
+            Dictionary with event data or None
+        """
+        try:
+            from datetime import datetime
+            import html
+            
+            # Extract title
+            title = event_data.get('name', '').strip()
+            if not title:
+                return None
+            
+            # Clean HTML entities
+            title = html.unescape(title)
+            
+            # Extract description
+            description = event_data.get('description', '')
+            if description:
+                # Remove HTML tags and decode entities
+                from bs4 import BeautifulSoup as BS
+                description = BS(description, 'html.parser').get_text(separator=' ', strip=True)
+                description = html.unescape(description)
+            
+            # Extract dates and times
+            start_date = None
+            end_date = None
+            start_time = None
+            end_time = None
+            
+            start_date_str = event_data.get('startDate', '')
+            end_date_str = event_data.get('endDate', '')
+            
+            if start_date_str:
+                try:
+                    # Parse ISO 8601 format: "2025-12-05T11:30:00-05:00"
+                    dt = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+                    start_date = dt.date()
+                    start_time = dt.time()
+                except Exception as e:
+                    logger.debug(f"⚠️ Error parsing startDate '{start_date_str}': {e}")
+            
+            if end_date_str:
+                try:
+                    dt = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+                    end_date = dt.date()
+                    end_time = dt.time()
+                except Exception as e:
+                    logger.debug(f"⚠️ Error parsing endDate '{end_date_str}': {e}")
+            
+            # For tours, we need at least a start date and time
+            if not start_date or not start_time:
+                logger.debug(f"⚠️ Skipping tour '{title}' - missing date or time")
+                return None
+            
+            # Extract image URL
+            image_url = None
+            if 'image' in event_data:
+                img = event_data['image']
+                if isinstance(img, str):
+                    image_url = img
+                elif isinstance(img, dict):
+                    image_url = img.get('url') or img.get('contentUrl')
+            
+            # Extract event URL
+            event_url = event_data.get('url', page_url)
+            
+            # Extract location
+            location = venue.name
+            if 'location' in event_data:
+                loc = event_data['location']
+                if isinstance(loc, dict):
+                    location = loc.get('name', location)
+            
+            # Clean title
+            title = self._clean_title(title)
+            
+            # Extract registration information from JSON-LD if available
+            is_registration_required = False
+            registration_url = None
+            registration_info = None
+            
+            # Check for registration-related fields in JSON-LD
+            if 'offers' in event_data:
+                offers = event_data['offers']
+                if isinstance(offers, dict):
+                    # Check if there's a price or availability info
+                    if offers.get('price') == '0' or offers.get('price') == 'Free':
+                        is_registration_required = False
+                    elif offers.get('url'):
+                        registration_url = offers.get('url')
+                        is_registration_required = True
+            
+            # Create event data
+            tour_event = {
+                'title': title,
+                'description': description or '',
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat() if end_date else None,
+                'start_time': start_time.isoformat() if start_time else None,
+                'end_time': end_time.isoformat() if end_time else None,
+                'start_location': location,
+                'venue_id': venue.id,
+                'city_id': venue.city_id,
+                'event_type': 'tour',
+                'url': event_url,
+                'image_url': image_url,
+                'source': 'website',
+                'source_url': page_url,
+                'organizer': venue.name,
+                'is_registration_required': is_registration_required,
+                'registration_url': registration_url,
+                'registration_info': registration_info,
+                'registration_opens_date': None,
+                'registration_opens_time': None
+            }
+            
+            logger.info(f"✅ Parsed Hirshhorn tour: '{title}' ({start_date.isoformat()} {start_time.isoformat()})")
+            return tour_event
+        
+        except Exception as e:
+            logger.error(f"Error parsing Hirshhorn tour from JSON-LD: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
     
     def _extract_exhibition_dates(self, soup):
         """Extract date text from exhibition page"""
