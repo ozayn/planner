@@ -566,6 +566,8 @@ class Event(db.Model):
     
     def to_dict(self):
         """Convert event to dictionary with all relevant fields"""
+        from urllib.parse import quote
+        
         # Handle image_url - convert photo data to public Google Maps URL (no API key required)
         image_url = self.image_url
         if image_url and isinstance(image_url, dict) and 'photo_reference' in image_url:
@@ -589,6 +591,16 @@ class Event(db.Model):
             else:
                 # Ultimate fallback
                 image_url = "https://via.placeholder.com/400x300/667eea/ffffff?text=Event"
+        
+        # Route external image URLs through proxy to bypass hotlinking restrictions
+        if image_url and isinstance(image_url, str) and image_url.startswith('http'):
+            from urllib.parse import quote
+            # Check if it's from a domain that blocks hotlinking (e.g., hirshhorn.si.edu)
+            blocked_domains = ['hirshhorn.si.edu', 'si.edu']
+            if any(domain in image_url for domain in blocked_domains):
+                # Route through our proxy endpoint
+                encoded_url = quote(image_url, safe='')
+                image_url = f"/api/image-proxy?url={encoded_url}"
         
         # Generate Google Maps link for navigation
         # Priority: venue coordinates/name > event coordinates > event location
@@ -1261,6 +1273,82 @@ def get_venue_image(photo_reference):
         app_logger.error(f"Error fetching image for photo reference {photo_reference}: {e}")
         return jsonify({'error': 'Failed to fetch image'}), 500
 
+@app.route('/api/image-proxy')
+def proxy_external_image():
+    """Proxy external images to bypass hotlinking restrictions (e.g., Cloudflare)"""
+    from flask import request
+    from urllib.parse import unquote, quote
+    import requests
+    from flask import Response
+    
+    try:
+        image_url = request.args.get('url')
+        if not image_url:
+            return jsonify({'error': 'Missing url parameter'}), 400
+        
+        # Decode the URL if it was encoded
+        image_url = unquote(image_url)
+        
+        # Validate that it's an HTTP(S) URL
+        if not image_url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid URL'}), 400
+        
+        # Disable SSL verification warnings
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        # Set proper headers to avoid bot detection and hotlinking restrictions
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://hirshhorn.si.edu/',  # Add referer to make request look legitimate (bypasses hotlinking)
+            'Origin': 'https://hirshhorn.si.edu',
+        }
+        
+        # Try regular requests first (works well with proper headers)
+        try:
+            response = requests.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            # If regular requests fails, try cloudscraper (for Cloudflare protection)
+            try:
+                import cloudscraper
+                scraper = cloudscraper.create_scraper()
+                app_logger.info(f"Regular request failed, trying cloudscraper for {image_url}")
+                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True)
+                response.raise_for_status()
+            except ImportError:
+                # cloudscraper not available, re-raise original error
+                raise e
+            except Exception as e2:
+                # cloudscraper also failed, log and raise
+                app_logger.error(f"Both regular requests and cloudscraper failed for {image_url}: {e}, {e2}")
+                raise e
+        
+        # Determine content type
+        content_type = response.headers.get('Content-Type', 'image/jpeg')
+        if not content_type.startswith('image/'):
+            content_type = 'image/jpeg'
+        
+        # Return the image with proper headers
+        return Response(
+            response.content,
+            mimetype=content_type,
+            headers={
+                'Cache-Control': 'public, max-age=86400',  # Cache for 24 hours
+                'Content-Type': content_type,
+                'Access-Control-Allow-Origin': '*'  # Allow cross-origin requests
+            }
+        )
+        
+    except requests.exceptions.RequestException as e:
+        app_logger.error(f"Error proxying image from {image_url}: {e}")
+        return jsonify({'error': f'Failed to fetch image: {str(e)}'}), 500
+    except Exception as e:
+        app_logger.error(f"Unexpected error proxying image: {e}")
+        return jsonify({'error': 'Failed to proxy image'}), 500
+
 @app.route('/api/scrape-progress')
 def get_scraping_progress():
     """Get real-time scraping progress"""
@@ -1765,17 +1853,18 @@ def trigger_scraping():
                     start_date = date.today()
                 
                 # Check if identical event already exists
-                # For exhibitions, also check across venues with same website
+                # For exhibitions, check by title + venue + start_date (URL may be shared for listing pages)
                 if event_type == 'exhibition' and venue_id:
                     venue = Venue.query.get(venue_id)
                     if venue and venue.website_url:
-                        # Check if same exhibition (title + URL) exists for any venue with same website
+                        # For exhibitions, check by title + venue + start_date
+                        # Don't check URL since multiple exhibitions from listing pages share the same URL
                         existing_event = db.session.query(Event).join(Venue).filter(
                             Event.title == title,
                             Event.event_type == 'exhibition',
-                            Event.url == event_data.get('url', ''),
                             Venue.website_url == venue.website_url,
-                            Event.city_id == city_id_event
+                            Event.city_id == city_id_event,
+                            Event.start_date == start_date
                         ).first()
                     else:
                         # Fallback to venue_id check
@@ -5847,6 +5936,158 @@ def scrape_finding_awe():
         
     except Exception as e:
         app_logger.error(f"Error scraping Finding Awe events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/scrape-hirshhorn', methods=['POST'])
+def scrape_hirshhorn():
+    """Scrape exhibitions from Hirshhorn Museum and Sculpture Garden."""
+    try:
+        app_logger.info("Starting Hirshhorn Museum scraping...")
+        
+        # Find Hirshhorn venue
+        hirshhorn = Venue.query.filter(
+            db.func.lower(Venue.name).like('%hirshhorn%')
+        ).first()
+        
+        if not hirshhorn:
+            return jsonify({
+                'success': False,
+                'error': 'Hirshhorn Museum venue not found in database',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        app_logger.info(f"Found Hirshhorn venue: {hirshhorn.name} (ID: {hirshhorn.id})")
+        
+        # Import the venue event scraper
+        from scripts.venue_event_scraper import VenueEventScraper
+        
+        # Scrape Hirshhorn exhibitions
+        scraper = VenueEventScraper()
+        try:
+            scraped_events = scraper.scrape_venue_events(
+                venue_ids=[hirshhorn.id],
+                event_type='exhibition',
+                time_range='all',  # Get all current and future exhibitions (not just this month)
+                max_exhibitions_per_venue=10,
+                max_events_per_venue=10
+            )
+            
+            # Handle case where scraper returns None
+            if scraped_events is None:
+                app_logger.warning("Hirshhorn scraper returned None - treating as empty list")
+                scraped_events = []
+        except Exception as scrape_error:
+            app_logger.error(f"Exception during Hirshhorn scraping: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            scraped_events = []
+        
+        app_logger.info(f"Scraped {len(scraped_events) if scraped_events else 0} events from Hirshhorn")
+        
+        if not scraped_events:
+            return jsonify({
+                'success': False,
+                'error': 'No exhibitions found or scraping failed. Check logs for details.',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        # Save events to database using the same logic as the main scrape endpoint
+        events_saved = 0
+        venue_exhibition_counts = {}
+        max_exhibitions_per_venue = 10
+        
+        for event_data in scraped_events:
+            try:
+                title = event_data.get('title', 'Untitled Event')
+                venue_id = event_data.get('venue_id')
+                city_id_event = event_data.get('city_id', hirshhorn.city_id)
+                start_date_str = event_data.get('start_date')
+                event_type = event_data.get('event_type', 'exhibition')
+                
+                # Check for duplicates (same logic as main scrape endpoint)
+                from datetime import datetime as dt
+                if start_date_str:
+                    start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
+                else:
+                    from datetime import date
+                    start_date = date.today()
+                
+                # Check if exhibition already exists (by title + venue + start_date)
+                existing_event = Event.query.filter_by(
+                    title=title,
+                    venue_id=venue_id,
+                    city_id=city_id_event,
+                    start_date=start_date
+                ).first()
+                
+                if existing_event:
+                    app_logger.info(f"⚠️ Skipped duplicate event: '{title}'")
+                    continue
+                
+                # Check exhibition count limit
+                if event_type == 'exhibition' and venue_id:
+                    current_count = venue_exhibition_counts.get(venue_id, 0)
+                    if current_count >= max_exhibitions_per_venue:
+                        continue
+                    venue_exhibition_counts[venue_id] = current_count + 1
+                
+                # Create new event
+                event = Event()
+                event.title = title
+                event.description = event_data.get('description', '')
+                event.event_type = event_type
+                event.url = event_data.get('url', '')
+                event.image_url = event_data.get('image_url', '')
+                event.start_date = start_date
+                
+                end_date_str = event_data.get('end_date')
+                if end_date_str:
+                    event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
+                
+                event.start_location = event_data.get('start_location', '')
+                event.venue_id = venue_id
+                event.city_id = city_id_event
+                event.source = 'website'
+                event.source_url = event_data.get('source_url', '')
+                event.organizer = event_data.get('organizer', '')
+                
+                db.session.add(event)
+                events_saved += 1
+                
+            except Exception as e:
+                app_logger.error(f"Error saving event {event_data.get('title', 'Unknown')}: {e}")
+                continue
+        
+        # Commit all events
+        db.session.commit()
+        
+        app_logger.info(f"Hirshhorn scraping completed: found {len(scraped_events)} events, saved {events_saved}")
+        
+        # Provide clearer message when events are found but skipped as duplicates
+        if len(scraped_events) > 0 and events_saved == 0:
+            message = f'Found {len(scraped_events)} exhibitions, but all already exist in database (skipped duplicates).'
+        elif events_saved > 0:
+            message = f'Successfully scraped {len(scraped_events)} exhibitions, saved {events_saved} new events to database'
+        else:
+            message = f'Successfully scraped {len(scraped_events)} exhibitions, saved {events_saved} to database'
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(scraped_events),
+            'events_saved': events_saved,
+            'message': message
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error scraping Hirshhorn: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
         return jsonify({

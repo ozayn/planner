@@ -125,20 +125,23 @@ class VenueEventScraper:
                         logger.info(f"Scraping events for: {venue.name}")
                         update_progress(2, 4, f"Scraping {venue.name}...")
                         # Add per-venue timeout to prevent worker hangs (max 20 seconds per venue)
+                        # Note: signal.SIGALRM only works in main thread, so we check before using it
                         import signal
-                        def timeout_handler(signum, frame):
-                            raise TimeoutError(f"Venue scraping timeout for {venue.name}")
+                        import threading
+                        use_signal_timeout = threading.current_thread() is threading.main_thread() and hasattr(signal, 'SIGALRM')
                         
-                        # Set alarm for 20 seconds (Unix only)
-                        if hasattr(signal, 'SIGALRM'):
+                        old_handler = None
+                        if use_signal_timeout:
+                            def timeout_handler(signum, frame):
+                                raise TimeoutError(f"Venue scraping timeout for {venue.name}")
                             old_handler = signal.signal(signal.SIGALRM, timeout_handler)
                             signal.alarm(20)
                         
                         try:
                             events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
                         finally:
-                            # Cancel alarm
-                            if hasattr(signal, 'SIGALRM'):
+                            # Cancel alarm (only if we set it)
+                            if use_signal_timeout and old_handler:
                                 signal.alarm(0)
                                 signal.signal(signal.SIGALRM, old_handler)
                         
@@ -2092,6 +2095,234 @@ class VenueEventScraper:
             max_exhibitions_per_venue = 5
         
         try:
+            # Special handling for Hirshhorn Museum listing page
+            # Hirshhorn uses a card-based layout where each exhibition has its own page
+            # We need to extract links and visit individual pages for full descriptions
+            if 'hirshhorn.si.edu' in page_url.lower() and '/exhibitions-events' in page_url.lower():
+                logger.info(f"🔍 Processing Hirshhorn listing page: {page_url}")
+                
+                # Find all exhibition links (format: /exhibitions/[slug]/)
+                exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in str(href).lower() and href != '/exhibitions/' and href != '/exhibitions-events/')
+                
+                # Filter to get unique exhibition URLs
+                seen_urls = set()
+                unique_exhibition_links = []
+                for link in exhibition_links:
+                    href = link.get('href', '')
+                    if href:
+                        # Make absolute URL
+                        from urllib.parse import urljoin
+                        full_url = urljoin(page_url, href)
+                        
+                        # Skip if not a proper exhibition page URL
+                        if '/exhibitions/' not in full_url.lower() or full_url.lower().endswith('/exhibitions/'):
+                            continue
+                        
+                        # Normalize URL (remove trailing slash, lowercase for comparison)
+                        normalized = full_url.rstrip('/').lower()
+                        if normalized not in seen_urls and 'hirshhorn.si.edu/exhibitions/' in normalized:
+                            seen_urls.add(normalized)
+                            unique_exhibition_links.append((link, full_url))
+                
+                logger.info(f"📋 Found {len(unique_exhibition_links)} unique Hirshhorn exhibition links")
+                
+                # Visit each exhibition page to extract full details
+                for link_elem, exhibition_url in unique_exhibition_links[:max_exhibitions_per_venue]:
+                    if len(events) >= max_exhibitions_per_venue:
+                        break
+                    
+                    try:
+                        # Extract title from listing page (faster than visiting page first)
+                        title = None
+                        # Try to get title from the link text or nearby elements
+                        title_elem = link_elem.find(['h4', 'h3', 'h2'], class_=lambda c: c and 'title' in str(c).lower()) or link_elem
+                        title = title_elem.get_text(strip=True)
+                        
+                        # Try parent container for title
+                        if not title or len(title) < 5:
+                            parent = link_elem.find_parent(['li', 'div', 'article'])
+                            if parent:
+                                title_elem = parent.find(['h4', 'h3', 'h2'], class_=lambda c: c and 'title' in str(c).lower())
+                                if title_elem:
+                                    title = title_elem.get_text(strip=True)
+                        
+                        # Extract date from listing page
+                        date_text = None
+                        parent = link_elem.find_parent(['li', 'div', 'article'])
+                        if parent:
+                            date_elem = parent.find('p', class_=lambda c: c and 'date' in str(c).lower())
+                            if date_elem:
+                                date_text = date_elem.get_text(strip=True)
+                        
+                        # Visit individual exhibition page for full description
+                        logger.info(f"🔍 Fetching Hirshhorn exhibition page: {exhibition_url}")
+                        try:
+                            exhibition_response = self.session.get(exhibition_url, timeout=10)
+                            exhibition_response.raise_for_status()
+                            exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
+                            
+                            # Extract title from page if not found (usually in h1)
+                            if not title or len(title) < 5:
+                                h1 = exhibition_soup.find('h1')
+                                if h1:
+                                    title = h1.get_text(strip=True)
+                            
+                            # Extract date range from page (usually in h2 after h1)
+                            if not date_text:
+                                h2 = exhibition_soup.find('h2')
+                                if h2:
+                                    h2_text = h2.get_text(strip=True)
+                                    # Check if it looks like a date range
+                                    if re.search(r'[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}[–—\-]', h2_text):
+                                        date_text = h2_text
+                            
+                            # Extract full description from page
+                            description = None
+                            # Special handling for Hirshhorn: description is often in paragraphs after h2 with dates
+                            h2 = exhibition_soup.find('h2')
+                            if h2:
+                                # Get paragraphs after the h2
+                                desc_parts = []
+                                next_elem = h2.find_next_sibling()
+                                while next_elem and len(desc_parts) < 5:  # Get up to 5 paragraphs
+                                    if next_elem.name == 'p':
+                                        text = next_elem.get_text(strip=True)
+                                        if text and len(text) > 20:
+                                            desc_parts.append(text)
+                                    elif next_elem.name in ['h1', 'h2', 'h3', 'section']:
+                                        # Stop at next heading or section
+                                        break
+                                    next_elem = next_elem.find_next_sibling()
+                                
+                                if desc_parts:
+                                    description = ' '.join(desc_parts)
+                                    logger.info(f"📝 Found Hirshhorn description ({len(description)} chars): {description[:100]}...")
+                            
+                            # Fallback to standard selectors if no description found
+                            if not description:
+                                desc_selectors = ['.exhibition-description', '.description', '.content', 'article p', '.summary']
+                                for selector in desc_selectors:
+                                    element = exhibition_soup.select_one(selector)
+                                    if element:
+                                        desc_text = element.get_text(strip=True)
+                                        if desc_text and len(desc_text) > 50:
+                                            description = desc_text[:1000]  # Limit length
+                                            break
+                            
+                            # If still no description, get first few paragraphs
+                            if not description:
+                                paragraphs = exhibition_soup.find_all('p')
+                                desc_parts = []
+                                for p in paragraphs[:3]:
+                                    text = p.get_text(strip=True)
+                                    if text and len(text) > 20 and not re.match(r'^[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}', text):
+                                        # Skip if it looks like a date
+                                        desc_parts.append(text)
+                                    if len(' '.join(desc_parts)) > 100:
+                                        break
+                                if desc_parts:
+                                    description = ' '.join(desc_parts)[:1000]
+                            
+                            # Extract image - use comprehensive extraction method for individual page
+                            image_url = self._extract_exhibition_image(exhibition_soup, exhibition_url, venue)
+                            
+                            # Fallback to listing page image if individual page didn't have one
+                            if not image_url and link_elem:
+                                parent = link_elem.find_parent(['li', 'div', 'article'])
+                                if parent:
+                                    # Look for image-frame div
+                                    image_frame = parent.find(['div'], class_=lambda c: c and 'image-frame' in str(c).lower())
+                                    if image_frame:
+                                        img = image_frame.find('img')
+                                        if img:
+                                            img_src = (img.get('src') or img.get('data-src') or 
+                                                     img.get('data-lazy-src') or img.get('data-original'))
+                                            if img_src:
+                                                # Filter out logos and icons
+                                                img_src_lower = img_src.lower()
+                                                if not any(skip in img_src_lower for skip in ['logo', 'icon', 'avatar', 'sponsor', 'si-white', 'theme']):
+                                                    # Check if it's a reasonable image size (likely exhibition image, not thumbnail)
+                                                    width = img.get('width')
+                                                    height = img.get('height')
+                                                    if width and height:
+                                                        try:
+                                                            if int(width) >= 200 and int(height) >= 200:
+                                                                from urllib.parse import urljoin
+                                                                image_url = urljoin(page_url, img_src)
+                                                        except:
+                                                            pass
+                                                    else:
+                                                        # No dimensions, but check if it looks like an exhibition image URL
+                                                        if '/wp-content/uploads/' in img_src_lower and ('exhibition' in img_src_lower or any(ext in img_src_lower for ext in ['.jpg', '.jpeg', '.png'])):
+                                                            from urllib.parse import urljoin
+                                                            image_url = urljoin(page_url, img_src)
+                            
+                            # Parse dates
+                            if date_text:
+                                start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
+                                    date_text, exhibition_url, venue, time_range=time_range
+                                )
+                            else:
+                                start_date, end_date = None, None
+                            
+                            # Handle permanent exhibitions without dates
+                            if not start_date:
+                                is_permanent = 'ongoing' in date_text.lower() if date_text else False
+                                if is_permanent:
+                                    from datetime import timedelta
+                                    start_date = date.today()
+                                    end_date = start_date + timedelta(days=730)
+                                else:
+                                    logger.debug(f"⚠️ Could not parse date for '{title}' - skipping")
+                                    continue
+                            
+                            # Skip past exhibitions
+                            today = date.today()
+                            if end_date and end_date < today:
+                                continue
+                            if end_date is None and start_date < today:
+                                continue
+                            
+                            # Clean title
+                            if title:
+                                title = self._clean_title(title)
+                            
+                            # Create event data
+                            event_data = {
+                                'title': title or 'Untitled Exhibition',
+                                'description': description or '',
+                                'start_date': start_date.isoformat() if start_date else None,
+                                'end_date': end_date.isoformat() if end_date is not None else None,
+                                'start_time': None,
+                                'end_time': None,
+                                'start_location': venue.name,
+                                'venue_id': venue.id,
+                                'city_id': venue.city_id,
+                                'event_type': 'exhibition',
+                                'url': exhibition_url,
+                                'image_url': image_url,
+                                'source': 'website',
+                                'source_url': page_url,
+                                'organizer': venue.name
+                            }
+                            
+                            if self._is_valid_event(event_data):
+                                end_date_str = end_date.isoformat() if end_date else "ongoing"
+                                logger.info(f"✅ Extracted Hirshhorn exhibition: '{title}' ({start_date.isoformat()} to {end_date_str}) [description: {len(description or '')} chars]")
+                                events.append(event_data)
+                        
+                        except Exception as e:
+                            logger.debug(f"⚠️ Error fetching Hirshhorn exhibition page {exhibition_url}: {e}")
+                            continue
+                    
+                    except Exception as e:
+                        logger.debug(f"⚠️ Error processing Hirshhorn exhibition link: {e}")
+                        continue
+                
+                if events:
+                    logger.info(f"📦 Hirshhorn listing page extraction complete: found {len(events)} exhibitions")
+                    return events[:max_exhibitions_per_venue]
+            
             # Smithsonian National Museum of the American Indian listing pages
             # Format: Title (repeated as link) followed by date range and location
             if 'americanindian.si.edu' in page_url and '/explore/exhibitions/' in page_url:
@@ -2612,23 +2843,22 @@ class VenueEventScraper:
                 
                 parent_text = parent.get_text()
                 
-                # Extract date range from parent text (if not already extracted from link)
-                if 'date_text' not in locals() or not date_text:
-                    date_text = None
-                    date_patterns = [
-                        r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Nov 25, 2025–Jan 1, 2027
-                        r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Nov 25–Jan 1, 2027
-                        r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Sep 29, 2024–Jan 19, 2026 (Hirshhorn)
-                        r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # NGA format: "Closing August 2, 2026"
-                        r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2})',  # NGA format: "Closing August 2"
-                        r'(Ongoing)',
-                    ]
-                    
-                    for pattern in date_patterns:
-                        match = re.search(pattern, parent_text)
-                        if match:
-                            date_text = match.group(1)
-                            break
+                # Extract date range from parent text - IMPORTANT: Extract fresh for each heading
+                date_text = None
+                date_patterns = [
+                    r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Nov 25, 2025–Jan 1, 2027
+                    r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Nov 25–Jan 1, 2027
+                    r'([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # Sep 29, 2024–Jan 19, 2026 (Hirshhorn)
+                    r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})',  # NGA format: "Closing August 2, 2026"
+                    r'Closing\s+([A-Z][a-z]{2,8}\s+\d{1,2})',  # NGA format: "Closing August 2"
+                    r'(Ongoing)',
+                ]
+                
+                for pattern in date_patterns:
+                    match = re.search(pattern, parent_text)
+                    if match:
+                        date_text = match.group(1)
+                        break
                 
                 if not date_text:
                     continue
@@ -2690,12 +2920,65 @@ class VenueEventScraper:
                     if next_p:
                         description = next_p.get_text(strip=True)
                 
-                # Extract image
+                # Extract image - look within the parent container first to avoid getting images from other exhibitions
                 image_url = None
-                img = parent.find('img') or heading.find_next('img')
-                if img and img.get('src'):
-                    from urllib.parse import urljoin
-                    image_url = urljoin(page_url, img['src'])
+                img = None
+                
+                # Strategy 1: Look for image in parent container or nearby containers (best for listing pages)
+                if parent:
+                    # First try direct parent
+                    img = parent.find('img')
+                    
+                    # If not found, walk up the DOM to find container (like li, article, div)
+                    if not img:
+                        container = parent
+                        for _ in range(3):  # Check up to 3 levels up
+                            if container:
+                                # Look for image within this container
+                                img = container.find('img')
+                                if img:
+                                    break
+                                
+                                # Also check for container indicators (card, item, etc.)
+                                container_classes = ' '.join(container.get('class', []))
+                                if any(keyword in container_classes.lower() for keyword in ['card', 'item', 'exhibition', 'list']):
+                                    # We're in a container, look for image here or in siblings
+                                    if not img:
+                                        # Check previous siblings for image (some sites put image before heading)
+                                        prev = container.find_previous_sibling()
+                                        if prev:
+                                            prev_img = prev.find('img')
+                                            if prev_img:
+                                                img = prev_img
+                                    break
+                                container = container.parent
+                
+                # Strategy 2: If still no image, look for images before/after heading in same section
+                if not img:
+                    # Check previous elements for image (some layouts have image before heading)
+                    prev_elements = heading.find_all_previous(['img', 'div', 'figure'], limit=3)
+                    for elem in prev_elements:
+                        if elem.name == 'img':
+                            img = elem
+                            break
+                        elif elem.find('img'):
+                            img = elem.find('img')
+                            break
+                
+                # Strategy 3: Fallback to next image (but this is less reliable for listing pages)
+                if not img:
+                    img = heading.find_next('img')
+                
+                if img:
+                    # Try multiple src attributes (handle lazy loading)
+                    img_src = (img.get('src') or 
+                              img.get('data-src') or 
+                              img.get('data-lazy-src') or
+                              img.get('data-original') or
+                              img.get('data-image'))
+                    if img_src:
+                        from urllib.parse import urljoin
+                        image_url = urljoin(page_url, img_src)
                 
                 # Create event data
                 event_data = {
@@ -3110,8 +3393,9 @@ class VenueEventScraper:
                         except:
                             pass
                     
-                    # Final check: skip logos and icons
-                    if not any(skip in img_src.lower() for skip in ['logo', 'icon', 'avatar', 'sponsor']):
+                    # Final check: skip logos, icons, and theme assets
+                    skip_keywords = ['logo', 'icon', 'avatar', 'sponsor', 'si-white', 'theme', '/themes/', '/assets/']
+                    if not any(skip in img_src.lower() for skip in skip_keywords):
                         logger.info(f"   📸 Found image via selector '{selector}': {img_src[:80]}...")
                         return img_src
         
@@ -3125,8 +3409,9 @@ class VenueEventScraper:
             if img:
                 img_src = self._get_image_src(img, url)
                 if img_src:
-                    # Skip logos and icons
-                    if not any(skip in img_src.lower() for skip in ['logo', 'icon', 'avatar', 'sponsor']):
+                    # Skip logos, icons, and theme assets
+                    skip_keywords = ['logo', 'icon', 'avatar', 'sponsor', 'si-white', 'theme', '/themes/', '/assets/']
+                    if not any(skip in img_src.lower() for skip in skip_keywords):
                         logger.info(f"   📸 Found image in hero section: {img_src[:80]}...")
                         return img_src
         
@@ -3156,7 +3441,8 @@ class VenueEventScraper:
             # Skip icons, logos, avatars, thumbnails, and other non-exhibition images
             skip_keywords = ['icon', 'logo', 'avatar', 'thumbnail', 'sponsor', 'partner', 
                            'social', 'facebook', 'twitter', 'instagram', 'youtube',
-                           'button', 'badge', 'stamp', 'seal', 'watermark']
+                           'button', 'badge', 'stamp', 'seal', 'watermark', 'si-white', 
+                           'theme', '/themes/', '/assets/']
             if any(skip in img_src.lower() for skip in skip_keywords):
                 continue
             
@@ -3191,8 +3477,9 @@ class VenueEventScraper:
                 best_image = img_src
         
         if best_image and best_size > 40000:  # At least 200x200
-            # Final check: skip if it's clearly a logo or icon
-            if not any(skip in best_image.lower() for skip in ['logo', 'icon', 'avatar']):
+            # Final check: skip if it's clearly a logo, icon, or theme asset
+            skip_keywords = ['logo', 'icon', 'avatar', 'si-white', 'theme', '/themes/', '/assets/']
+            if not any(skip in best_image.lower() for skip in skip_keywords):
                 logger.info(f"   📸 Found largest image ({best_size}px): {best_image[:80]}...")
                 return best_image
         

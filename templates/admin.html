@@ -1001,6 +1001,7 @@
                         <h4 style="margin: 0 0 10px 0; color: #007bff;">🕷️ Event Scraping</h4>
                         <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Scrape Smithsonian</button>
                         <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Scrape Museums</button>
+                        <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Scrape Hirshhorn</button>
                         <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 Scrape All Venues</button>
                         <button onclick="startFindingAweScraping()" class="add-button" style="background: #17a2b8;">✨ Scrape Finding Awe</button>
                         <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Scrape Webster's Cafe</button>
@@ -5699,6 +5700,13 @@
                 return;
             }
             
+            // Debug: Log event image_url
+            console.log('Event details:', {
+                title: event.title,
+                has_image_url: !!event.image_url,
+                image_url: event.image_url
+            });
+            
             // Populate the event details modal
             const content = generateEventDetailsHTML(event);
             document.getElementById('eventDetailsContent').innerHTML = content;
@@ -5756,10 +5764,35 @@
         }
         
         function generateEventDetailsHTML(event) {
+            // Helper function to format timestamps (remove seconds, make reader-friendly)
+            const formatTimestamp = (timestamp) => {
+                if (!timestamp) return '';
+                try {
+                    const date = new Date(timestamp);
+                    // Format: "Dec 3, 2025 at 7:05 PM"
+                    const options = { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    };
+                    return date.toLocaleString('en-US', options);
+                } catch (e) {
+                    return timestamp; // Fallback to original if parsing fails
+                }
+            };
+            
             // Helper function to add field only if value exists
-            const addField = (label, value, isLink = false) => {
+            const addField = (label, value, isLink = false, isTimestamp = false) => {
                 if (!value || value === 'N/A' || value === '') return '';
-                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                let displayValue = value;
+                if (isTimestamp) {
+                    displayValue = formatTimestamp(value);
+                } else if (isLink) {
+                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                }
                 return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
@@ -5785,14 +5818,49 @@
                 }
             };
             
+            // Format description to show more text
+            const formatDescription = (desc) => {
+                if (!desc) return '';
+                // Show first 500 characters, with "..." if longer
+                if (desc.length > 500) {
+                    return desc.substring(0, 500) + '...';
+                }
+                return desc;
+            };
+            
             let html = `
-                <!-- Event Header -->
-                <div style="background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
-                    <h2 style="margin: 0; font-size: 26px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${event.title || 'Untitled Event'}</h2>
-                    <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
-                        ${event.event_type ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">${event.event_type}</span>` : ''}
-                        ${event.venue_name ? `<span style="opacity: 0.8;">📍 ${event.venue_name}</span>` : ''}
+                <!-- Event Header with Image -->
+                <div style="display: grid; grid-template-columns: ${event.image_url ? '1fr 300px' : '1fr'}; gap: 20px; margin-bottom: 25px;">
+                    <div>
+                        <div style="background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; padding: 25px; border-radius: 12px; text-align: center;">
+                            <h2 style="margin: 0; font-size: 26px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${event.title || 'Untitled Event'}</h2>
+                            <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
+                                ${event.event_type ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">${event.event_type}</span>` : ''}
+                                ${event.venue_name ? `<span style="opacity: 0.8;">📍 ${event.venue_name}</span>` : ''}
+                            </div>
+                        </div>
+                        ${event.description ? `
+                            <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ff8c42;">
+                                <h4 style="margin: 0 0 8px 0; color: #4a5568; font-size: 14px; font-weight: 600;">📝 Description</h4>
+                                <p style="margin: 0; color: #2d3748; line-height: 1.6; white-space: pre-wrap;">${formatDescription(event.description)}</p>
+                                ${event.description.length > 500 ? `<small style="color: #666; font-style: italic;">(Truncated - full description available in database)</small>` : ''}
+                            </div>
+                        ` : ''}
                     </div>
+                    ${event.image_url ? `
+                        <div>
+                            <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 14px;">🖼️ Event Image</h4>
+                            <a href="${event.image_url}" target="_blank" style="display: block; text-decoration: none; border-radius: 12px; overflow: hidden;">
+                                <img src="${event.image_url}" alt="${event.title || 'Event'} Image" 
+                                     style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.2s; background: #f5f5f5;"
+                                     onerror="console.error('Failed to load image:', '${event.image_url}'); this.style.background='#f5f5f5'; this.alt='Image unavailable - click to view URL';"
+                                     onload="console.log('Image loaded:', '${event.image_url}');"
+                                     onmouseover="this.style.transform='scale(1.02)'"
+                                     onmouseout="this.style.transform='scale(1)'">
+                            </a>
+                            <small style="display: block; margin-top: 8px; color: #666; text-align: center;">Click image to view full size</small>
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
@@ -5801,7 +5869,10 @@
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             <div style="margin-bottom: 8px;"><strong>ID:</strong> ${event.id}</div>
                             ${addField('Type', event.event_type)}
-                            ${addField('Description', event.description)}
+                            ${addField('Price', event.price ? `$${event.price}` : (event.admission_price ? `$${event.admission_price}` : null))}
+                            ${addField('Language', event.language)}
+                            ${addField('Organizer', event.organizer)}
+                            ${addField('Is Online', event.is_online ? 'Yes (Virtual Event)' : 'No')}
                             <div style="margin-bottom: 8px;"><strong>Selected:</strong> ${event.is_selected ? 'Yes' : 'No'}</div>
                         </div>
                     </div>
@@ -5830,7 +5901,9 @@
                             ${addField('End Location', event.end_location)}
                             ${addField('City', event.city_name)}
                             ${addField('Venue', event.venue_name)}
+                            ${addField('Venue Address', event.venue_address)}
                             ${addField('Coordinates', event.start_latitude && event.start_longitude ? `${event.start_latitude}, ${event.start_longitude}` : null)}
+                            ${event.maps_link ? `<div style="margin-top: 10px;"><a href="${event.maps_link}" target="_blank" style="color: #2196f3; text-decoration: none; font-weight: 600;">🗺️ Open in Google Maps →</a></div>` : ''}
                         </div>
                     </div>
                     
@@ -5840,21 +5913,25 @@
                             ${addField('Source', event.source)}
                             ${addField('Source URL', event.source_url, true)}
                             ${addField('Event URL', event.url, true)}
-                            ${event.image_url ? `
-                                <div style="margin-bottom: 8px;">
-                                    <strong>🖼️ Event Image:</strong><br>
-                                    <a href="${event.image_url}" target="_blank" style="color: #2196f3; text-decoration: none;">
-                                        <img src="${event.image_url}" alt="Event Image" style="max-width: 200px; max-height: 150px; border-radius: 8px; margin-top: 8px; cursor: pointer; border: 2px solid #e0e0e0;" 
-                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                                        <div style="display: none; padding: 10px; background: #f5f5f5; border-radius: 4px; color: #666;">
-                                            <a href="${event.image_url}" target="_blank" style="color: #2196f3;">View Image</a>
-                                        </div>
-                                    </a>
-                                </div>
-                            ` : ''}
+                            ${addField('Social Media Platform', event.social_media_platform)}
+                            ${addField('Social Media Handle', event.social_media_handle ? `@${event.social_media_handle}` : null)}
+                            ${addField('Social Media URL', event.social_media_url, true)}
                         </div>
                     </div>
                 </div>
+                
+                ${event.is_registration_required ? `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568;">🎫 Registration</h4>
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                            <div style="margin-bottom: 8px;"><strong>Registration Required:</strong> Yes</div>
+                            ${addField('Registration Opens Date', event.registration_opens_date)}
+                            ${addField('Registration Opens Time', event.registration_opens_time)}
+                            ${addField('Registration URL', event.registration_url, true)}
+                            ${addField('Registration Info', event.registration_info)}
+                        </div>
+                    </div>
+                ` : ''}
             `;
             
             // Add event-specific fields based on event type
@@ -5940,8 +6017,8 @@
                 <div>
                     <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        ${addField('Created', event.created_at)}
-                        ${addField('Updated', event.updated_at)}
+                        ${addField('Created', event.created_at, false, true)}
+                        ${addField('Updated', event.updated_at, false, true)}
                     </div>
                 </div>
             `;
@@ -5950,10 +6027,34 @@
         }
         
         function generateVenueDetailsHTML(venue) {
+            // Helper function to format timestamps (remove seconds, make reader-friendly)
+            const formatTimestamp = (timestamp) => {
+                if (!timestamp) return '';
+                try {
+                    const date = new Date(timestamp);
+                    const options = { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    };
+                    return date.toLocaleString('en-US', options);
+                } catch (e) {
+                    return timestamp;
+                }
+            };
+            
             // Helper function to add field only if value exists
-            const addField = (label, value, isLink = false) => {
+            const addField = (label, value, isLink = false, isTimestamp = false) => {
                 if (!value || value === 'N/A' || value === '') return '';
-                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                let displayValue = value;
+                if (isTimestamp) {
+                    displayValue = formatTimestamp(value);
+                } else if (isLink) {
+                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                }
                 return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
@@ -6032,8 +6133,8 @@
                 <div>
                     <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        ${addField('Created', venue.created_at)}
-                        ${addField('Updated', venue.updated_at)}
+                        ${addField('Created', venue.created_at, false, true)}
+                        ${addField('Updated', venue.updated_at, false, true)}
                     </div>
                 </div>
             `;
@@ -6042,10 +6143,34 @@
         }
         
         function generateCityDetailsHTML(city) {
+            // Helper function to format timestamps (remove seconds, make reader-friendly)
+            const formatTimestamp = (timestamp) => {
+                if (!timestamp) return '';
+                try {
+                    const date = new Date(timestamp);
+                    const options = { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    };
+                    return date.toLocaleString('en-US', options);
+                } catch (e) {
+                    return timestamp;
+                }
+            };
+            
             // Helper function to add field only if value exists
-            const addField = (label, value, isLink = false) => {
+            const addField = (label, value, isLink = false, isTimestamp = false) => {
                 if (!value || value === 'N/A' || value === '') return '';
-                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                let displayValue = value;
+                if (isTimestamp) {
+                    displayValue = formatTimestamp(value);
+                } else if (isLink) {
+                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                }
                 return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
@@ -6087,8 +6212,8 @@
                 <div>
                     <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        ${addField('Created', city.created_at)}
-                        ${addField('Updated', city.updated_at)}
+                        ${addField('Created', city.created_at, false, true)}
+                        ${addField('Updated', city.updated_at, false, true)}
                     </div>
                 </div>
             `;
@@ -6097,10 +6222,34 @@
         }
         
         function generateSourceDetailsHTML(source) {
+            // Helper function to format timestamps (remove seconds, make reader-friendly)
+            const formatTimestamp = (timestamp) => {
+                if (!timestamp) return '';
+                try {
+                    const date = new Date(timestamp);
+                    const options = { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    };
+                    return date.toLocaleString('en-US', options);
+                } catch (e) {
+                    return timestamp;
+                }
+            };
+            
             // Helper function to add field only if value exists
-            const addField = (label, value, isLink = false) => {
+            const addField = (label, value, isLink = false, isTimestamp = false) => {
                 if (!value || value === 'N/A' || value === '') return '';
-                const displayValue = isLink ? `<a href="${value}" target="_blank">${value}</a>` : value;
+                let displayValue = value;
+                if (isTimestamp) {
+                    displayValue = formatTimestamp(value);
+                } else if (isLink) {
+                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                }
                 return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
@@ -6151,8 +6300,8 @@
                 <div>
                     <h4 style="margin-bottom: 10px; color: #4a5568;">⚙️ System Information</h4>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        ${addField('Created', source.created_at)}
-                        ${addField('Updated', source.updated_at)}
+                        ${addField('Created', source.created_at, false, true)}
+                        ${addField('Updated', source.updated_at, false, true)}
                     </div>
                 </div>
             `;
@@ -7481,6 +7630,29 @@
                 }
             } catch (error) {
                 updateScrapingStatus(`❌ Museum scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startHirshhornScraping() {
+            updateScrapingStatus('🎨 Starting Hirshhorn Museum scraping...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-hirshhorn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ Hirshhorn scraping completed! Found ${result.events_found} exhibitions, saved ${result.events_saved} events`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ Hirshhorn scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ Hirshhorn scraping error: ${error.message}`, 'error');
             }
         }
         

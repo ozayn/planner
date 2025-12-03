@@ -37,6 +37,7 @@ Welcome to the comprehensive documentation for the Planner application. This dir
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture overview
 - **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - API endpoints and usage
 - **[DATABASE_SCHEMA.md](DATABASE_SCHEMA.md)** - Database schema documentation
+- **[IMAGE_PROXY_TECHNIQUE.md](IMAGE_PROXY_TECHNIQUE.md)** - Image proxy for bypassing hotlinking protection
 
 ### 🔒 Security & Best Practices
 - **[SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)** - Security guidelines
@@ -50,6 +51,7 @@ Welcome to the comprehensive documentation for the Planner application. This dir
 - **[EMBASSY_SOCIAL_MEDIA_VERIFICATION.md](EMBASSY_SOCIAL_MEDIA_VERIFICATION.md)** - Embassy social media setup
 - **[INSTAGRAM_API_SETUP.md](INSTAGRAM_API_SETUP.md)** - Instagram API configuration
 - **[INSTAGRAM_EVENT_EXTRACTION_STRATEGY.md](INSTAGRAM_EVENT_EXTRACTION_STRATEGY.md)** - Instagram event extraction
+- **[IMAGE_PROXY_TECHNIQUE.md](IMAGE_PROXY_TECHNIQUE.md)** - Image proxy technique for hotlinking protection
 
 ## 🎯 Common Tasks
 
