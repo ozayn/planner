@@ -1535,9 +1535,17 @@
                         <button id="venuesTab" class="panel-tab active" data-panel="venues">🏛️ Venues</button>
                         <button id="sourcesTab" class="panel-tab" data-panel="sources">📱 Sources</button>
                     </div>
-                    <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Items">
-                        🚀
-                    </button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="deselectAllVenuesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Deselect All Venues">
+                            Deselect All Venues
+                        </button>
+                        <button id="deselectAllSourcesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Deselect All Sources">
+                            Deselect All Sources
+                        </button>
+                        <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Items">
+                            🚀
+                        </button>
+                    </div>
                 </div>
 
                 <div id="venuesContainer">
@@ -1644,6 +1652,18 @@
             // Update scrape button text
             const scrapeButton = document.getElementById('scrapeButton');
             scrapeButton.title = panelType === 'venues' ? 'Scrape Selected Venues' : 'Scrape Selected Sources';
+            
+            // Show/hide deselect buttons based on active panel
+            const deselectAllVenuesBtn = document.getElementById('deselectAllVenuesBtn');
+            const deselectAllSourcesBtn = document.getElementById('deselectAllSourcesBtn');
+            
+            if (panelType === 'venues') {
+                if (deselectAllVenuesBtn) deselectAllVenuesBtn.style.display = allVenues.length > 0 ? 'block' : 'none';
+                if (deselectAllSourcesBtn) deselectAllSourcesBtn.style.display = 'none';
+            } else {
+                if (deselectAllVenuesBtn) deselectAllVenuesBtn.style.display = 'none';
+                if (deselectAllSourcesBtn) deselectAllSourcesBtn.style.display = allSources.length > 0 ? 'block' : 'none';
+            }
             
             // Show appropriate content based on current data
             if (panelType === 'venues') {
@@ -1784,6 +1804,10 @@
             document.getElementById('toggleAllVenues').addEventListener('click', () => toggleAllVenueTypes());
             document.getElementById('toggleAllPlatforms').addEventListener('click', () => toggleAllPlatformTypes());
             document.getElementById('toggleAllContent').addEventListener('click', () => toggleAllContentTypes());
+            
+            // Add deselect all buttons
+            document.getElementById('deselectAllVenuesBtn').addEventListener('click', () => deselectAllVenues());
+            document.getElementById('deselectAllSourcesBtn').addEventListener('click', () => deselectAllSources());
             
             // Add panel tab listeners
             document.getElementById('venuesTab').addEventListener('click', () => switchPanel('venues'));
@@ -2171,6 +2195,16 @@
             // Auto-select all sources by default
             selectAllSources();
             
+            // Show deselect all sources button when sources are loaded
+            const deselectAllSourcesBtn = document.getElementById('deselectAllSourcesBtn');
+            if (deselectAllSourcesBtn && allSources.length > 0) {
+                // Only show if we're on the sources panel
+                const sourcesTab = document.getElementById('sourcesTab');
+                if (sourcesTab && sourcesTab.classList.contains('active')) {
+                    deselectAllSourcesBtn.style.display = 'block';
+                }
+            }
+            
             // Reset toggle button state
             const toggleAllSources = document.getElementById('toggleAllSources');
             if (toggleAllSources) {
@@ -2184,20 +2218,100 @@
             selectedSources.clear();
             allSources.forEach(source => {
                 selectedSources.add(source.id);
-                const checkbox = document.getElementById(`source_${source.id}`);
-                if (checkbox) checkbox.checked = true;
+                
+                // Try card format first (using venue-checkbox class)
+                const sourceCard = document.querySelector(`[data-source-id="${source.id}"]`);
+                if (sourceCard) {
+                    const checkbox = sourceCard.querySelector('.venue-checkbox');
+                    if (checkbox) checkbox.checked = true;
+                    sourceCard.classList.add('selected');
+                } else {
+                    // Fallback to old format (using ID)
+                    const checkbox = document.getElementById(`source_${source.id}`);
+                    if (checkbox) checkbox.checked = true;
+                }
             });
             updateStatus();
         }
 
         // Deselect all sources
         function deselectAllSources() {
+            console.log('Deselecting all sources...');
+            console.log('Current selectedSources before clear:', Array.from(selectedSources));
+            
+            // Clear the selected sources set
             selectedSources.clear();
+            
+            // Deselect all visible source cards (card format - most common)
+            // Sources are displayed in venuesContainer with data-source-id attribute
+            const sourceCards = document.querySelectorAll('[data-source-id]');
+            console.log(`Found ${sourceCards.length} source cards to deselect`);
+            
+            sourceCards.forEach(sourceCard => {
+                const checkbox = sourceCard.querySelector('.venue-checkbox');
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+                sourceCard.classList.remove('selected');
+                
+                // Get the source ID from the card
+                const sourceId = parseInt(sourceCard.getAttribute('data-source-id'));
+                if (sourceId && !isNaN(sourceId)) {
+                    selectedSources.delete(sourceId); // Ensure it's removed from set
+                }
+            });
+            
+            // Also handle list format (for sourcesList - older format)
+            const listCheckboxes = document.querySelectorAll('#sourcesList input[type="checkbox"]');
+            console.log(`Found ${listCheckboxes.length} list format checkboxes`);
+            listCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Also deselect sources from allSources array (backup - deselect all sources in memory)
             allSources.forEach(source => {
-                const checkbox = document.getElementById(`source_${source.id}`);
+                selectedSources.delete(source.id);
+            });
+            
+            // Ensure set is empty
+            selectedSources.clear();
+            
+            console.log('Selected sources after clear:', selectedSources.size);
+            
+            // Update status
+            updateStatus();
+            
+            // Update scrape button
+            const scrapeButton = document.getElementById('scrapeButton');
+            const hasSelectedItems = selectedVenues.size > 0 || selectedSources.size > 0;
+            if (scrapeButton) {
+                scrapeButton.disabled = !hasSelectedItems;
+            }
+            
+            // Update status display directly
+            const statusSelected = document.getElementById('statusSelected');
+            if (statusSelected) {
+                statusSelected.textContent = '-';
+            }
+            
+            console.log('Deselect all sources completed');
+        }
+        
+        // Deselect all venues
+        function deselectAllVenues() {
+            selectedVenues.clear();
+            allVenues.forEach(venue => {
+                const checkbox = document.querySelector(`[data-venue-id="${venue.id}"] .venue-checkbox`);
                 if (checkbox) checkbox.checked = false;
+                // Also update the venue card UI
+                const venueCard = document.querySelector(`[data-venue-id="${venue.id}"]`);
+                if (venueCard) venueCard.classList.remove('selected');
             });
             updateStatus();
+            // Update scrape button
+            const scrapeButton = document.getElementById('scrapeButton');
+            const hasSelectedItems = selectedVenues.size > 0 || selectedSources.size > 0;
+            if (scrapeButton) scrapeButton.disabled = !hasSelectedItems;
         }
 
         // Select all venue types
@@ -2674,6 +2788,16 @@
 
             venuesContainer.innerHTML = filteredSources.map(source => createSourceCard(source)).join('');
             
+            // Show deselect all sources button when sources are displayed
+            const deselectAllSourcesBtn = document.getElementById('deselectAllSourcesBtn');
+            if (deselectAllSourcesBtn && filteredSources.length > 0) {
+                // Only show if we're on the sources panel
+                const sourcesTab = document.getElementById('sourcesTab');
+                if (sourcesTab && sourcesTab.classList.contains('active')) {
+                    deselectAllSourcesBtn.style.display = 'block';
+                }
+            }
+            
             // Update status
             statusItemsFound.textContent = `${filteredSources.length} items`;
         }
@@ -2885,6 +3009,12 @@
                 selectedVenues.clear();
                 allVenues.forEach(venue => selectedVenues.add(venue.id));
                 
+                // Show deselect all venues button when venues are loaded
+                const deselectAllVenuesBtn = document.getElementById('deselectAllVenuesBtn');
+                if (deselectAllVenuesBtn && allVenues.length > 0) {
+                    deselectAllVenuesBtn.style.display = 'block';
+                }
+                
                 // Show event planning selection after venues are loaded
                 eventPlanningSelection.style.display = 'block';
                 
@@ -2925,10 +3055,23 @@
                         <p>No venues in our database for ${currentCity} that offer ${currentEventType}. Try a different city or event type.</p>
                     </div>
                 `;
+                // Hide deselect button when no venues
+                const deselectAllVenuesBtn = document.getElementById('deselectAllVenuesBtn');
+                if (deselectAllVenuesBtn) deselectAllVenuesBtn.style.display = 'none';
                 return;
             }
 
             venuesContainer.innerHTML = venues.map(venue => createVenueCard(venue)).join('');
+            
+            // Show deselect all venues button when venues are displayed
+            const deselectAllVenuesBtn = document.getElementById('deselectAllVenuesBtn');
+            if (deselectAllVenuesBtn && venues.length > 0) {
+                // Only show if we're on the venues panel
+                const venuesTab = document.getElementById('venuesTab');
+                if (venuesTab && venuesTab.classList.contains('active')) {
+                    deselectAllVenuesBtn.style.display = 'block';
+                }
+            }
         }
 
         // Create venue card

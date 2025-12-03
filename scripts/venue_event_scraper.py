@@ -1758,10 +1758,26 @@ class VenueEventScraper:
                 date_text, url, venue, time_range=time_range
             )
             
-            # If we couldn't parse start date, skip the exhibition (we need at least a start date)
+            # If we couldn't parse start date, handle permanent/ongoing exhibitions
             if not start_date:
-                logger.info(f"⚠️ Exhibition '{title}' has no start date - skipping")
-                return None
+                # Check if this might be a permanent/ongoing exhibition
+                page_text_lower = soup.get_text().lower()
+                is_permanent = any(indicator in page_text_lower for indicator in [
+                    'permanent', 'ongoing', 'always on view', 'always on display',
+                    'permanent collection', 'permanent exhibition'
+                ])
+                
+                if is_permanent or not date_text:
+                    # For permanent exhibitions or exhibitions without date info:
+                    # Set start_date to today and end_date to 2 years from now
+                    from datetime import timedelta
+                    start_date = date.today()
+                    end_date = start_date + timedelta(days=730)  # 2 years from now
+                    logger.info(f"✅ Treating '{title}' as permanent/ongoing exhibition (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
+                else:
+                    # Date text exists but couldn't parse it - skip
+                    logger.info(f"⚠️ Exhibition '{title}' has unparseable date text '{date_text}' - skipping")
+                    return None
             
             # For ongoing exhibitions (end_date is None), skip if start_date is in the past
             # For exhibitions with end dates, skip if they've ended
@@ -2430,9 +2446,25 @@ class VenueEventScraper:
                         date_text, page_url, venue, time_range=time_range
                     )
                     
-                    # Skip if no start date
+                    # Handle permanent exhibitions without start dates
                     if not start_date:
-                        continue
+                        # Check if this might be a permanent exhibition
+                        card_text_lower = card.get_text().lower()
+                        is_permanent = any(indicator in card_text_lower for indicator in [
+                            'permanent', 'ongoing', 'always on view', 'always on display',
+                            'permanent collection', 'permanent exhibition'
+                        ])
+                        
+                        if is_permanent or not date_text:
+                            # Set default dates for permanent exhibitions
+                            from datetime import timedelta
+                            start_date = date.today()
+                            end_date = start_date + timedelta(days=730)  # 2 years from now
+                            logger.info(f"✅ Treating '{title}' as permanent exhibition from card (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
+                        else:
+                            # Has date text but couldn't parse - skip
+                            logger.debug(f"⚠️ Could not parse date for '{title}': '{date_text}' - skipping")
+                            continue
                     
                     # For ongoing exhibitions (end_date is None), skip if start_date is in the past
                     # For exhibitions with end dates, skip if they've ended
@@ -2606,9 +2638,25 @@ class VenueEventScraper:
                     date_text, page_url, venue, time_range=time_range
                 )
                 
-                # Skip if no start date
+                # Handle permanent exhibitions without start dates
                 if not start_date:
-                    continue
+                    # Check if this might be a permanent exhibition
+                    item_text_lower = item.get_text().lower()
+                    is_permanent = any(indicator in item_text_lower for indicator in [
+                        'permanent', 'ongoing', 'always on view', 'always on display',
+                        'permanent collection', 'permanent exhibition'
+                    ])
+                    
+                    if is_permanent or not date_text:
+                        # Set default dates for permanent exhibitions
+                        from datetime import timedelta
+                        start_date = date.today()
+                        end_date = start_date + timedelta(days=730)  # 2 years from now
+                        logger.info(f"✅ Treating '{title}' as permanent exhibition from listing page (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
+                    else:
+                        # Has date text but couldn't parse - skip
+                        logger.debug(f"⚠️ Could not parse date for '{title}': '{date_text}' - skipping")
+                        continue
                 
                 # For ongoing exhibitions (end_date is None), skip if start_date is in the past
                 # For exhibitions with end dates, skip if they've ended
@@ -2950,11 +2998,14 @@ class VenueEventScraper:
                         except ValueError as e:
                             logger.debug(f"Invalid closing date values: {e}")
             
-            # Pattern: "Ongoing" - set start to today, end to None (no end date)
-            if not start_date and 'ongoing' in date_text.lower():
-                start_date = today
-                end_date = None  # Ongoing exhibitions have no end date
-                logger.info(f"📅 Parsed ongoing exhibition: {start_date.isoformat()} (ongoing, no end date)")
+            # Pattern: "Ongoing" or "Permanent" - set start to today, end to 2 years from now
+            if not start_date:
+                date_lower = date_text.lower()
+                if 'ongoing' in date_lower or 'permanent' in date_lower:
+                    from datetime import timedelta
+                    start_date = today
+                    end_date = today + timedelta(days=730)  # 2 years from now for permanent/ongoing
+                    logger.info(f"📅 Parsed permanent/ongoing exhibition: {start_date.isoformat()} to {end_date.isoformat()}")
             
             # Pattern: MM/DD/YYYY–MM/DD/YYYY
             if not start_date:
@@ -2975,16 +3026,25 @@ class VenueEventScraper:
                     except ValueError as e:
                         logger.debug(f"Invalid date values: {e}")
         
-        # If we couldn't parse dates, return None (don't use time_range defaults)
-        # This allows the caller to decide what to do (e.g., skip the exhibition)
-        # We need at least a start_date. end_date can be None for ongoing exhibitions.
+        # If we couldn't parse dates, check if it might be a permanent exhibition
+        # For permanent exhibitions without date info, we'll handle it in the caller
+        # This allows the caller to set default dates for permanent exhibitions
         if not start_date:
             if date_text:
+                # Check if date text suggests permanent/ongoing
+                date_lower = date_text.lower()
+                if any(indicator in date_lower for indicator in ['permanent', 'ongoing', 'always on view']):
+                    from datetime import timedelta
+                    start_date = today
+                    end_date = today + timedelta(days=730)  # 2 years from now
+                    logger.info(f"📅 Detected permanent exhibition from date text: {start_date.isoformat()} to {end_date.isoformat()}")
+                    return start_date, end_date, start_time, end_time
+                
                 # We tried to parse but failed - log and return None
                 logger.debug(f"⚠️ Could not parse date text: '{date_text}' - returning None")
             else:
-                # No date text found on page
-                logger.debug("⚠️ No date text found on exhibition page - returning None")
+                # No date text found on page - might be permanent, caller will handle
+                logger.debug("⚠️ No date text found on exhibition page - caller will handle as permanent")
             return None, None, None, None
         
         return start_date, end_date, start_time, end_time
