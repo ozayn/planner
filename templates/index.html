@@ -1264,14 +1264,14 @@
                 <h2>Discover</h2>
                 
                 <div class="form-group">
-                    <label>City</label>
+                    <label for="citySelect">City</label>
                     <select id="citySelect">
                         <option value="">Choose a city</option>
                     </select>
                 </div>
 
                 <div class="form-group" id="eventTypeGroup" style="display: none;">
-                    <label>Event Type</label>
+                    <label for="eventTypeSelect">Event Type</label>
                     <select id="eventTypeSelect">
                         <option value="">All Types</option>
                         <option value="tour">Tours</option>
@@ -1393,7 +1393,7 @@
                 <!-- Event Planning Selection (shown after venues are loaded) -->
                 <div id="eventPlanningSelection" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(0,0,0,0.08);">
                     <div class="form-group">
-                        <label>Event Type</label>
+                        <label for="eventTypeSelectStep2">Event Type</label>
                         <select id="eventTypeSelectStep2">
                             <option value="">All Types</option>
                             <option value="tour">Tours</option>
@@ -1406,7 +1406,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>When</label>
+                        <label for="dateRangeSelect">When</label>
                         <select id="dateRangeSelect">
                             <option value="today">Today</option>
                             <option value="tomorrow">Tomorrow</option>
@@ -1416,6 +1416,11 @@
                             <option value="next_month">Next Month</option>
                             <option value="custom">Custom Range</option>
                         </select>
+                    </div>
+
+                    <div class="form-group" id="maxExhibitionsGroup" style="display: none;">
+                        <label for="maxExhibitionsPerVenue">Max Exhibitions per Venue</label>
+                        <input type="number" id="maxExhibitionsPerVenue" min="1" max="20" value="5" style="padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); width: 100%;">
                     </div>
 
                     <div class="form-group" id="customDateGroup" style="display: none;">
@@ -1769,8 +1774,22 @@
             // Add date range filter listener
             document.getElementById('dateRangeSelect').addEventListener('change', handleDateRangeChange);
             
-            // Add event type change listener to show/hide sources
+            // Add event type change listener to show/hide sources and max exhibitions input
             eventTypeSelectStep2.addEventListener('change', handleEventTypeChange);
+            
+            // Show/hide max exhibitions input based on event type
+            function handleEventTypeChangeForMaxExhibitions() {
+                const eventType = eventTypeSelectStep2.value;
+                const maxExhibitionsGroup = document.getElementById('maxExhibitionsGroup');
+                if (eventType === 'exhibition') {
+                    maxExhibitionsGroup.style.display = 'block';
+                } else {
+                    maxExhibitionsGroup.style.display = 'none';
+                }
+            }
+            eventTypeSelectStep2.addEventListener('change', handleEventTypeChangeForMaxExhibitions);
+            // Check on page load
+            handleEventTypeChangeForMaxExhibitions();
             
             // Add toggle control listeners
             document.getElementById('toggleAllSources').addEventListener('click', () => toggleAllSources());
@@ -3098,6 +3117,15 @@
                 if (timeRange === 'custom') {
                     requestBody.custom_start_date = customStartDate;
                     requestBody.custom_end_date = customEndDate;
+                }
+                
+                // Add max_exhibitions_per_venue if event type is exhibition
+                if (eventType === 'exhibition') {
+                    const maxExhibitionsInput = document.getElementById('maxExhibitionsPerVenue');
+                    if (maxExhibitionsInput) {
+                        const maxExhibitions = parseInt(maxExhibitionsInput.value) || 5;
+                        requestBody.max_exhibitions_per_venue = maxExhibitions;
+                    }
                 }
                 
                 const response = await fetch('/api/scrape', {

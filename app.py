@@ -1598,15 +1598,25 @@ def trigger_scraping():
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
             
-            venue_scraper = VenueEventScraper()
-            venue_events = venue_scraper.scrape_venue_events(
-                city_id=city_id,
-                event_type=event_type,
-                time_range=time_range,
-                venue_ids=venue_ids
-            )
-            all_events.extend(venue_events)
-            app_logger.info(f"Scraped {len(venue_events)} events from venues")
+            try:
+                venue_scraper = VenueEventScraper()
+                # Get max_exhibitions_per_venue from request (default: 5)
+                max_exhibitions_per_venue = data.get('max_exhibitions_per_venue', 5)
+                venue_events = venue_scraper.scrape_venue_events(
+                    city_id=city_id,
+                    event_type=event_type,
+                    time_range=time_range,
+                    venue_ids=venue_ids,
+                    max_exhibitions_per_venue=max_exhibitions_per_venue
+                )
+                all_events.extend(venue_events)
+                app_logger.info(f"Scraped {len(venue_events)} events from venues")
+            except Exception as e:
+                app_logger.error(f"Error scraping venues: {e}")
+                import traceback
+                app_logger.error(f"Traceback: {traceback.format_exc()}")
+                # Continue with empty list rather than failing completely
+                all_events.extend([])
         
         # Scrape sources if any selected
         if source_ids:
@@ -1630,13 +1640,31 @@ def trigger_scraping():
             app_logger.info(f"Scraped {len(source_events)} events from sources")
         
         # Final deduplication across all scraped events
+        # For exhibitions, use URL + title to deduplicate across venues with same website
         unique_events = {}
+        venue_websites = {}  # Cache venue_id -> website_url mapping
+        
         for event in all_events:
-            # Create unique key based on title, date, and location
             title_clean = event.get('title', '').lower().strip()
             date_key = event.get('start_time', '')[:10] if event.get('start_time') else ''
-            location_key = event.get('venue_id', '') or event.get('source_id', '')
-            event_key = f"{title_clean}_{date_key}_{location_key}"
+            venue_id = event.get('venue_id')
+            event_type = event.get('event_type', 'tour')
+            event_url = event.get('url', '').lower().strip()
+            
+            # For exhibitions, deduplicate by title + URL across venues with same website
+            if event_type == 'exhibition' and venue_id and event_url:
+                # Get venue website (with caching)
+                if venue_id not in venue_websites:
+                    venue = Venue.query.get(venue_id)
+                    venue_websites[venue_id] = venue.website_url.lower().strip() if venue and venue.website_url else ''
+                
+                website = venue_websites[venue_id]
+                # Use title + URL + website as key to prevent duplicates across duplicate venues
+                event_key = f"exhibition_{title_clean}_{event_url}_{website}"
+            else:
+                # For other events, use venue_id as before
+                location_key = venue_id or event.get('source_id', '')
+                event_key = f"{title_clean}_{date_key}_{location_key}"
             
             if event_key not in unique_events:
                 unique_events[event_key] = event
@@ -1674,6 +1702,10 @@ def trigger_scraping():
         
         # Load events directly into database (we're already in app context)
         events_loaded = 0
+        # Track exhibitions per venue to enforce max_exhibitions_per_venue limit
+        venue_exhibition_counts = {}  # {venue_id: count}
+        max_exhibitions_per_venue = data.get('max_exhibitions_per_venue', 5)
+        
         for event_data in events_scraped:
             try:
                 # Check for existing duplicate events before adding
@@ -1681,6 +1713,28 @@ def trigger_scraping():
                 venue_id = event_data.get('venue_id')
                 city_id_event = event_data.get('city_id', city_id)
                 start_date_str = event_data.get('start_date')
+                event_type = event_data.get('event_type', 'tour')
+                
+                # CRITICAL: For exhibitions, check if we've already saved max_exhibitions_per_venue for this venue
+                # Also check across venues with same website to prevent duplicates
+                if event_type == 'exhibition' and venue_id:
+                    venue = Venue.query.get(venue_id)
+                    if venue and venue.website_url:
+                        # Count exhibitions saved for ALL venues with same website in this batch
+                        website = venue.website_url.lower().strip()
+                        current_count = 0
+                        for vid, count in venue_exhibition_counts.items():
+                            v = Venue.query.get(vid)
+                            if v and v.website_url and v.website_url.lower().strip() == website:
+                                current_count += count
+                    else:
+                        # Fallback to venue_id only
+                        current_count = venue_exhibition_counts.get(venue_id, 0)
+                    
+                    # Check if we've already saved enough in THIS batch
+                    if current_count >= max_exhibitions_per_venue:
+                        app_logger.info(f"⚠️ Skipped exhibition '{title}' - already saved {current_count} exhibitions for venue {venue_id} (website: {venue.website_url if venue else 'N/A'}) in this batch (limit: {max_exhibitions_per_venue})")
+                        continue
                 
                 # Create a unique key for duplicate checking
                 from datetime import datetime as dt
@@ -1691,19 +1745,40 @@ def trigger_scraping():
                     start_date = date.today()
                 
                 # Check if identical event already exists
-                existing_event = Event.query.filter_by(
-                    title=title,
-                    venue_id=venue_id,
-                    city_id=city_id_event,
-                    start_date=start_date
-                ).first()
+                # For exhibitions, also check across venues with same website
+                if event_type == 'exhibition' and venue_id:
+                    venue = Venue.query.get(venue_id)
+                    if venue and venue.website_url:
+                        # Check if same exhibition (title + URL) exists for any venue with same website
+                        existing_event = db.session.query(Event).join(Venue).filter(
+                            Event.title == title,
+                            Event.event_type == 'exhibition',
+                            Event.url == event_data.get('url', ''),
+                            Venue.website_url == venue.website_url,
+                            Event.city_id == city_id_event
+                        ).first()
+                    else:
+                        # Fallback to venue_id check
+                        existing_event = Event.query.filter_by(
+                            title=title,
+                            venue_id=venue_id,
+                            city_id=city_id_event,
+                            start_date=start_date
+                        ).first()
+                else:
+                    # For non-exhibitions, use standard check
+                    existing_event = Event.query.filter_by(
+                        title=title,
+                        venue_id=venue_id,
+                        city_id=city_id_event,
+                        start_date=start_date
+                    ).first()
                 
                 if existing_event:
-                    app_logger.info(f"⚠️ Skipped duplicate event in database: '{title}'")
+                    app_logger.info(f"⚠️ Skipped duplicate event in database: '{title}' (venue_id: {venue_id})")
                     continue
                 
                 # SAFETY CHECK: Tours must have a start time - reject if missing
-                event_type = event_data.get('event_type', 'tour')
                 start_time_str = event_data.get('start_time')
                 if event_type == 'tour' and (not start_time_str or start_time_str == 'None'):
                     app_logger.info(f"⚠️ Skipped tour event '{title}' - no start time (safety check)")
@@ -1744,7 +1819,13 @@ def trigger_scraping():
                 
                 db.session.add(event)
                 events_loaded += 1
-                app_logger.info(f"✅ Added new event to database: '{title}'")
+                
+                # Track exhibition count for this venue
+                if event_type == 'exhibition' and venue_id:
+                    venue_exhibition_counts[venue_id] = venue_exhibition_counts.get(venue_id, 0) + 1
+                    app_logger.info(f"✅ Added new exhibition to database: '{title}' (venue {venue_id} now has {venue_exhibition_counts[venue_id]} exhibitions in this batch)")
+                else:
+                    app_logger.info(f"✅ Added new event to database: '{title}'")
             except Exception as e:
                 app_logger.error(f"Error loading event: {e}")
                 continue

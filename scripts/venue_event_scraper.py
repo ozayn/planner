@@ -56,7 +56,7 @@ class VenueEventScraper:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.scraped_events = []
         
-    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today'):
+    def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today', max_exhibitions_per_venue=5):
         """Scrape events from selected venues - focused on TODAY
         
         Args:
@@ -101,7 +101,7 @@ class VenueEventScraper:
                     try:
                         logger.info(f"Scraping events for: {venue.name}")
                         update_progress(2, 4, f"Scraping {venue.name}...")
-                        events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range)
+                        events = self._scrape_venue_website(venue, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
                         
                         # Filter by event_type if specified
                         if event_type:
@@ -113,18 +113,70 @@ class VenueEventScraper:
                         logger.info(f"   After time_range filter: {len(events)} events")
                         
                         # Add unique events only with better deduplication
+                        # Limit to maximum exhibitions per venue (parameter passed from scrape_venue_events)
                         for event in events:
+                            # For exhibitions, check if we've reached the maximum for this venue BEFORE processing
+                            if event.get('event_type') == 'exhibition':
+                                venue_event_count = sum(1 for e in self.scraped_events if e.get('venue_id') == venue.id and e.get('event_type') == 'exhibition')
+                                if venue_event_count >= max_exhibitions_per_venue:
+                                    logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name} (already have {venue_event_count}) - skipping remaining events")
+                                    break
+                            
+                            # Normalize URL for better deduplication (remove trailing slashes, query params, fragments)
+                            def normalize_url(url):
+                                if not url:
+                                    return ''
+                                from urllib.parse import urlparse, urlunparse
+                                parsed = urlparse(url)
+                                # Remove query params and fragments, normalize path
+                                path = parsed.path.rstrip('/')
+                                normalized = urlunparse((parsed.scheme, parsed.netloc, path, '', '', ''))
+                                return normalized.lower()
+                            
                             # Create a more comprehensive unique key
                             title_clean = event['title'].lower().strip()
-                            url_key = event.get('url', '')[:50] if event.get('url') else ''  # Use URL for better deduplication
+                            url_normalized = normalize_url(event.get('url', ''))
+                            url_key = url_normalized[:100] if url_normalized else ''  # Use normalized URL
                             event_key = f"{title_clean}_{url_key}_{venue.id}"
                             
-                            if event_key not in unique_events:
-                                unique_events.add(event_key)
-                                self.scraped_events.append(event)
-                                logger.debug(f"✅ Added unique event: {event['title']}")
-                            else:
-                                logger.debug(f"⚠️ Skipped duplicate event: {event['title']}")
+                            # Check if this event is already in unique_events (from this scraping session)
+                            if event_key in unique_events:
+                                logger.debug(f"⚠️ Skipped duplicate event (in session): {event['title']}")
+                                continue
+                            
+                            # Also check if this event already exists in self.scraped_events for this venue
+                            # Compare by title and normalized URL
+                            is_duplicate = False
+                            for existing_event in self.scraped_events:
+                                if (existing_event.get('venue_id') == venue.id and 
+                                    existing_event.get('event_type') == event.get('event_type') and
+                                    existing_event.get('title', '').lower().strip() == title_clean):
+                                    existing_url = normalize_url(existing_event.get('url', ''))
+                                    if url_normalized and existing_url:
+                                        # If both have URLs, compare them
+                                        if url_normalized == existing_url:
+                                            is_duplicate = True
+                                            logger.debug(f"⚠️ Skipped duplicate event (existing): {event['title']} (URL: {url_normalized})")
+                                            break
+                                    elif not url_normalized and not existing_url:
+                                        # If neither has URL, compare by title only
+                                        is_duplicate = True
+                                        logger.debug(f"⚠️ Skipped duplicate event (existing, no URL): {event['title']}")
+                                        break
+                            
+                            if is_duplicate:
+                                continue
+                            
+                            # Add to unique_events and scraped_events
+                            unique_events.add(event_key)
+                            self.scraped_events.append(event)
+                            current_count = sum(1 for e in self.scraped_events if e.get('venue_id') == venue.id and e.get('event_type') == 'exhibition')
+                            logger.info(f"✅ Added unique event: {event['title']} (venue now has {current_count} exhibitions)")
+                            
+                            # For exhibitions, check again if we've reached the limit after adding
+                            if event.get('event_type') == 'exhibition' and current_count >= max_exhibitions_per_venue:
+                                logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name} - stopping")
+                                break
                         
                         # Also try social media if available
                         if venue.instagram_url:
@@ -153,13 +205,14 @@ class VenueEventScraper:
             logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
-    def _scrape_venue_website(self, venue, event_type=None, time_range='today'):
+    def _scrape_venue_website(self, venue, event_type=None, time_range='today', max_exhibitions_per_venue=5):
         """Scrape events from venue's main website
         
         Args:
             venue: Venue object to scrape
             event_type: Optional filter for event type (tour, exhibition, etc.)
             time_range: Time range for events (today, this_week, this_month, etc.)
+            max_exhibitions_per_venue: Maximum number of exhibitions to extract per venue (default: 5)
         """
         events = []
         
@@ -205,7 +258,12 @@ class VenueEventScraper:
             
             # Only scrape exhibition pages if event_type is 'exhibition' or None (all types)
             if not event_type or event_type.lower() == 'exhibition':
-                for link in unique_exhibition_links[:10]:  # Check first 10 exhibition links
+                for link in unique_exhibition_links:  # Process all links but stop when we reach the limit
+                    # Check if we've already reached the maximum
+                    if len(events) >= max_exhibitions_per_venue:
+                        logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name}")
+                        break
+                    
                     try:
                         exhibition_url = urljoin(venue.website_url, link['href'])
                         logger.info(f"Scraping exhibition page: {exhibition_url}")
@@ -242,7 +300,8 @@ class VenueEventScraper:
                             '/explore/exhibitions/upcoming' in url_path or
                             '/explore/exhibitions/past' in url_path or
                             '/calendar' in url_path and 'tab=exhibitions' in url_lower or  # NGA calendar exhibitions page
-                            '/exhibitions-events' in url_path  # Hirshhorn exhibitions page
+                            '/exhibitions-events' in url_path or  # Hirshhorn exhibitions page
+                            (url_path == '/exhibitions' or url_path == '/exhibitions/') and 'metmuseum.org' in url_lower  # Met Museum exhibitions listing
                         ])
                         
                         # Check if it's an individual exhibition page (has a specific name/slug after the exhibition path)
@@ -274,6 +333,11 @@ class VenueEventScraper:
                             logger.info(f"⚠️ URL not recognized as individual or listing page: {exhibition_url} (path: {url_path})")
                         
                         if is_individual_page:
+                            # Check if we've already reached the maximum before extracting
+                            if len(events) >= max_exhibitions_per_venue:
+                                logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name}")
+                                break
+                            
                             # This is an individual exhibition page - extract it as an event
                             logger.info(f"Extracting individual exhibition from: {exhibition_url}")
                             exhibition_event = self._extract_exhibition_from_page(exhibition_soup, venue, exhibition_url, event_type, time_range)
@@ -281,19 +345,50 @@ class VenueEventScraper:
                                 # Only add if it's current or future (check is done in _extract_exhibition_from_page)
                                 logger.info(f"✅ Successfully extracted exhibition: {exhibition_event.get('title')}")
                                 events.append(exhibition_event)
+                                # Stop if we've reached the maximum
+                                if len(events) >= max_exhibitions_per_venue:
+                                    break
                             else:
                                 logger.debug(f"⚠️ Failed to extract exhibition from: {exhibition_url}")
                         else:
-                            # This is a listing page - find links to individual exhibitions and follow them
-                            logger.info(f"Found listing page, searching for individual exhibition links...")
-                            # Find links to individual exhibitions on the listing page
-                            listing_exhibition_links = exhibition_soup.find_all('a', href=lambda href: href and (
-                                '/exhibitions/' in href.lower() or
-                                '/exhibition/' in href.lower() or
-                                '/exhibition-experiences/' in href.lower() or
-                                '/whats-on/exhibitions/' in href.lower() or
-                                '/explore/exhibitions/' in href.lower()  # Smithsonian museums
-                            ))
+                            # This is a listing page - try to extract exhibitions directly from the listing page first
+                            logger.info(f"Found listing page, trying to extract exhibitions directly...")
+                            # Calculate how many more exhibitions we can extract
+                            remaining_slots = max_exhibitions_per_venue - len(events)
+                            if remaining_slots <= 0:
+                                logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name}")
+                                break
+                            
+                            logger.info(f"🔍 Calling _extract_exhibitions_from_listing_page with remaining_slots={remaining_slots}, max_exhibitions_per_venue={max_exhibitions_per_venue}")
+                            listing_events = self._extract_exhibitions_from_listing_page(exhibition_soup, venue, exhibition_url, event_type, time_range, remaining_slots)
+                            if listing_events:
+                                logger.info(f"✅ _extract_exhibitions_from_listing_page returned {len(listing_events)} exhibitions (remaining_slots was {remaining_slots}, current events count: {len(events)})")
+                                # CRITICAL: Only add up to remaining_slots to prevent exceeding the limit
+                                events_to_add = listing_events[:remaining_slots]
+                                if len(listing_events) > remaining_slots:
+                                    logger.error(f"❌ ERROR: Function returned {len(listing_events)} but remaining_slots was {remaining_slots}!")
+                                events.extend(events_to_add)
+                                logger.info(f"   Added {len(events_to_add)} exhibitions (total now: {len(events)}/{max_exhibitions_per_venue})")
+                                # Stop here - don't also follow individual links to avoid duplicates
+                                # The listing page extraction already got the exhibitions we need
+                                # Break out of the loop since we've extracted from the listing page
+                                # Also check if we've reached the limit
+                                if len(events) > max_exhibitions_per_venue:
+                                    logger.error(f"❌ ERROR: After adding, events count ({len(events)}) exceeds limit ({max_exhibitions_per_venue})!")
+                                if len(events) >= max_exhibitions_per_venue:
+                                    logger.info(f"✅ Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name} after listing page extraction")
+                                break
+                            else:
+                                # Fallback: find links to individual exhibitions and follow them
+                                logger.info(f"Could not extract from listing page, searching for individual exhibition links...")
+                                # Find links to individual exhibitions on the listing page
+                                listing_exhibition_links = exhibition_soup.find_all('a', href=lambda href: href and (
+                                    '/exhibitions/' in href.lower() or
+                                    '/exhibition/' in href.lower() or
+                                    '/exhibition-experiences/' in href.lower() or
+                                    '/whats-on/exhibitions/' in href.lower() or
+                                    '/explore/exhibitions/' in href.lower()  # Smithsonian museums
+                                ))
                             
                             # Filter out listing page links and get unique individual exhibition URLs
                             seen_individual_urls = set()
@@ -346,15 +441,25 @@ class VenueEventScraper:
                                                 if individual_event:
                                                     # Only add if it's current or future (check is done in _extract_exhibition_from_page)
                                                     events.append(individual_event)
+                                                    # Stop if we've reached the maximum
+                                                    if len(events) >= max_exhibitions_per_venue:
+                                                        break
                                             except Exception as e:
                                                 logger.debug(f"Error following exhibition link {individual_url}: {e}")
                                                 continue
+                                        
+                                        # Stop if we've reached the maximum
+                                        if len(events) >= max_exhibitions_per_venue:
+                                            break
                             
-                            # Also try to extract events directly from listing page (for museums that list exhibitions inline)
-                            listing_events = self._extract_events_from_html(
-                                exhibition_soup, venue, exhibition_url, event_type=event_type, time_range=time_range
-                            )
-                            events.extend(listing_events)
+                            # Only try to extract events directly from listing page if we haven't already extracted from it
+                            # (This is a fallback for museums that don't have structured listing pages)
+                            # Skip this if we already extracted exhibitions from the listing page above
+                            if len(events) == 0:
+                                listing_events = self._extract_events_from_html(
+                                    exhibition_soup, venue, exhibition_url, event_type=event_type, time_range=time_range
+                                )
+                                events.extend(listing_events)
                     except Exception as e:
                         logger.debug(f"Error scraping exhibition page {link['href']}: {e}")
                         continue
@@ -426,6 +531,9 @@ class VenueEventScraper:
                                                 exhibition_event = self._extract_exhibition_from_page(exhibition_soup, venue, exhibition_url, event_type, time_range)
                                                 if exhibition_event:
                                                     events.append(exhibition_event)
+                                                    # Stop if we've reached the maximum
+                                                    if len(events) >= max_exhibitions_per_venue:
+                                                        break
                                                 break
                                 else:
                                     # Listing page - extract events from it
@@ -464,12 +572,51 @@ class VenueEventScraper:
                         logger.debug(f"Error scraping known tour page {tour_url}: {e}")
                     continue
             
-            # Also check main page for events
-            main_events = self._extract_events_from_html(soup, venue, event_type=event_type, time_range=time_range)
-            events.extend(main_events)
+            # Also check main page for events (but only if we haven't already extracted exhibitions)
+            # This prevents duplicates when exhibitions are already extracted from listing pages
+            if event_type and event_type.lower() == 'exhibition':
+                # For exhibitions, skip main page extraction if we already have exhibitions
+                # (they would have been extracted from listing pages)
+                # Also check if we've reached the limit
+                exhibition_count = len([e for e in events if e.get('event_type') == 'exhibition'])
+                if exhibition_count == 0 and len(events) < max_exhibitions_per_venue:
+                    main_events = self._extract_events_from_html(soup, venue, event_type=event_type, time_range=time_range)
+                    # Filter to only exhibitions and limit
+                    main_exhibitions = [e for e in main_events if e.get('event_type') == 'exhibition']
+                    remaining_slots = max_exhibitions_per_venue - exhibition_count
+                    events.extend(main_exhibitions[:remaining_slots])
+            else:
+                # For other event types, always check main page
+                main_events = self._extract_events_from_html(soup, venue, event_type=event_type, time_range=time_range)
+                events.extend(main_events)
             
         except Exception as e:
             logger.error(f"Error scraping website {venue.website_url}: {e}")
+        
+        # Final limit check - ensure we don't return more than max_exhibitions_per_venue for exhibitions
+        if event_type and event_type.lower() == 'exhibition':
+            exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
+            other_events = [e for e in events if e.get('event_type') != 'exhibition']
+            # Limit exhibitions to max_exhibitions_per_venue, keep all other event types
+            if len(exhibition_events) > max_exhibitions_per_venue:
+                logger.warning(f"⚠️ CRITICAL: Found {len(exhibition_events)} exhibitions for {venue.name}, limiting to {max_exhibitions_per_venue}")
+                logger.warning(f"   Exhibition titles: {[e.get('title') for e in exhibition_events]}")
+            limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+            events = limited_exhibitions + other_events
+            if len(exhibition_events) > max_exhibitions_per_venue:
+                logger.error(f"❌ CRITICAL ERROR: _scrape_venue_website found {len(exhibition_events)} exhibitions for {venue.name}, but limit is {max_exhibitions_per_venue}!")
+                logger.error(f"   Exhibition titles: {[e.get('title') for e in exhibition_events]}")
+            logger.info(f"📦 _scrape_venue_website FINAL RETURN: {len(limited_exhibitions)} exhibitions for {venue.name} (found {len(exhibition_events)}, limit {max_exhibitions_per_venue})")
+        
+        # ABSOLUTE FINAL CHECK: Never return more than max_exhibitions_per_venue exhibitions
+        # This is the last line of defense - slice the list one more time just to be absolutely sure
+        if event_type and event_type.lower() == 'exhibition':
+            final_exhibitions = [e for e in events if e.get('event_type') == 'exhibition']
+            final_others = [e for e in events if e.get('event_type') != 'exhibition']
+            final_limited = final_exhibitions[:max_exhibitions_per_venue]
+            events = final_limited + final_others
+            if len(final_exhibitions) > max_exhibitions_per_venue:
+                logger.error(f"❌ ABSOLUTE FINAL CHECK FAILED: Still had {len(final_exhibitions)} exhibitions after all checks!")
         
         return events
     
@@ -1271,14 +1418,20 @@ class VenueEventScraper:
                 date_text, url, venue, time_range=time_range
             )
             
-            # If we couldn't parse dates, skip the exhibition (we need valid dates)
-            if not start_date or not end_date:
-                logger.info(f"⚠️ Exhibition '{title}' has no valid dates - skipping")
+            # If we couldn't parse start date, skip the exhibition (we need at least a start date)
+            if not start_date:
+                logger.info(f"⚠️ Exhibition '{title}' has no start date - skipping")
                 return None
             
-            # Check if exhibition has ended - skip if end date is in the past
+            # For ongoing exhibitions (end_date is None), skip if start_date is in the past
+            # For exhibitions with end dates, skip if they've ended
             today = date.today()
-            if end_date < today:
+            if end_date is None:
+                # Ongoing exhibition - skip if start date is in the past (shouldn't happen, but just in case)
+                if start_date < today:
+                    logger.info(f"⏰ Skipping past ongoing exhibition start: {title} (started {start_date.isoformat()})")
+                    return None
+            elif end_date < today:
                 logger.info(f"⏰ Exhibition '{title}' ended on {end_date.isoformat()} - skipping")
                 return None
             
@@ -1319,11 +1472,211 @@ class VenueEventScraper:
             logger.debug(f"Error extracting exhibition from page {url}: {e}")
             return None
     
-    def _extract_exhibitions_from_listing_page(self, soup, venue, page_url, event_type=None, time_range='today'):
-        """Extract exhibitions directly from a listing page (e.g., Smithsonian museums)"""
+    def _extract_exhibitions_from_listing_page(self, soup, venue, page_url, event_type=None, time_range='today', max_exhibitions_per_venue=5):
+        """Extract exhibitions directly from a listing page (e.g., Smithsonian museums, Met Museum)
+        
+        Args:
+            soup: BeautifulSoup object of the listing page
+            venue: Venue object
+            page_url: URL of the listing page
+            event_type: Optional filter for event type
+            time_range: Time range for events
+            max_exhibitions_per_venue: Maximum number of exhibitions to extract (default: 5)
+        
+        Returns:
+            List of at most max_exhibitions_per_venue exhibition events
+        """
         events = []
+        # CRITICAL: Enforce limit - this function MUST NEVER return more than max_exhibitions_per_venue
+        if max_exhibitions_per_venue <= 0:
+            logger.warning(f"Invalid max_exhibitions_per_venue: {max_exhibitions_per_venue}, defaulting to 5")
+            max_exhibitions_per_venue = 5
         
         try:
+            # Met Museum format: exhibition cards with class "exhibition-card_exhibitionCard__I9gVC"
+            # Dates are in format "Through [Month Day, Year]" or "Ongoing"
+            if 'metmuseum.org' in page_url:
+                exhibition_cards = soup.find_all(['article', 'div'], 
+                    class_=lambda c: c and 'exhibition-card' in str(c).lower())
+                
+                # Limit to maximum exhibitions per venue (continue until we have max_exhibitions_per_venue valid ones)
+                logger.info(f"🔍 Processing {len(exhibition_cards)} Met Museum exhibition cards (limit: {max_exhibitions_per_venue})")
+                for card in exhibition_cards:
+                    # CRITICAL: Check limit at the START of each iteration
+                    if len(events) >= max_exhibitions_per_venue:
+                        logger.info(f"✅ Reached limit of {max_exhibitions_per_venue} exhibitions, stopping card processing")
+                        break
+                    # Get link first (it contains the title)
+                    link = card.find('a', href=lambda href: href and '/exhibitions/' in href and href != '/exhibitions' and href != '/exhibitions/')
+                    if not link:
+                        continue
+                    
+                    href = link.get('href', '')
+                    if not href or href == '/exhibitions' or href == '/exhibitions/':
+                        continue
+                    
+                    # Get title from link text or from heading inside the link
+                    title = link.get_text(strip=True)
+                    if not title or len(title) < 5:
+                        # Try to find heading inside the link
+                        title_elem = link.find(['h2', 'h3', 'h4', 'span'])
+                        if title_elem:
+                            title = title_elem.get_text(strip=True)
+                    
+                    # Also try to find title in a div with class containing "title"
+                    if not title or len(title) < 5:
+                        title_elem = card.find(['div', 'h2', 'h3', 'h4'], 
+                            class_=lambda c: c and 'title' in str(c).lower())
+                        if title_elem:
+                            title = title_elem.get_text(strip=True)
+                    
+                    if not title or len(title) < 5:
+                        continue
+                    
+                    # Skip generic titles
+                    generic_titles = ['ongoing', 'exhibitions', 'exhibition', 'view all', 'see all']
+                    if title.lower() in generic_titles:
+                        continue
+                    
+                    from urllib.parse import urljoin
+                    exhibition_url = urljoin(page_url, href)
+                    
+                    # Get date from meta div (class contains "meta")
+                    date_text = None
+                    meta_div = card.find(['div', 'span'], class_=lambda c: c and 'meta' in str(c).lower())
+                    if meta_div:
+                        meta_text = meta_div.get_text(strip=True)
+                        # Look for "Through [date]" or "Ongoing"
+                        through_match = re.search(r'Through\s+([A-Z][a-z]{2,8}\s+\d{1,2},?\s*\d{4})', meta_text)
+                        if through_match:
+                            date_text = f"Through {through_match.group(1)}"
+                        elif 'ongoing' in meta_text.lower():
+                            date_text = 'Ongoing'
+                    
+                    if not date_text:
+                        continue
+                    
+                    # Parse dates
+                    start_date, end_date, start_time, end_time = self._parse_exhibition_dates(
+                        date_text, page_url, venue, time_range=time_range
+                    )
+                    
+                    # Skip if no start date
+                    if not start_date:
+                        continue
+                    
+                    # For ongoing exhibitions (end_date is None), skip if start_date is in the past
+                    # For exhibitions with end dates, skip if they've ended
+                    today = date.today()
+                    if end_date is None:
+                        # Ongoing exhibition - skip if start date is in the past (shouldn't happen, but just in case)
+                        if start_date < today:
+                            logger.debug(f"⏰ Skipping past ongoing exhibition start: {title} (started {start_date.isoformat()})")
+                            continue
+                    elif end_date < today:
+                        logger.debug(f"⏰ Skipping past exhibition: {title} (ended {end_date.isoformat()})")
+                        continue
+                    
+                    # Extract description
+                    # Met Museum listing page cards don't have descriptions - try to get from individual page
+                    description = None
+                    
+                    # First, try to find description in the card itself (some museums include it)
+                    desc_elem = card.find(['p', 'div'], class_=lambda c: c and ('description' in str(c).lower() or 'summary' in str(c).lower()))
+                    if desc_elem:
+                        description = desc_elem.get_text(strip=True)
+                    
+                    # If no description in card, try to fetch from individual exhibition page
+                    if not description and exhibition_url:
+                        try:
+                            logger.debug(f"Fetching description from individual page: {exhibition_url}")
+                            desc_response = self.session.get(exhibition_url, timeout=10)
+                            desc_response.raise_for_status()
+                            desc_soup = BeautifulSoup(desc_response.content, 'html.parser')
+                            
+                            # Try multiple selectors for description
+                            desc_selectors = [
+                                '.exhibition-description',
+                                '.description',
+                                '.content',
+                                'article p',
+                                '.summary',
+                                '[class*=\"description\"]',
+                                '[class*=\"summary\"]'
+                            ]
+                            
+                            for selector in desc_selectors:
+                                desc_element = desc_soup.select_one(selector)
+                                if desc_element:
+                                    desc_text = desc_element.get_text(strip=True)
+                                    if desc_text and len(desc_text) > 50:  # Only use if substantial
+                                        description = desc_text[:500]  # Limit length
+                                        logger.debug(f"Found description using selector '{selector}'")
+                                        break
+                            
+                            # Fallback: try meta description
+                            if not description:
+                                meta_desc = desc_soup.find('meta', attrs={'name': 'description'})
+                                if meta_desc and meta_desc.get('content'):
+                                    description = meta_desc.get('content')
+                                    logger.debug("Found description from meta tag")
+                        except Exception as e:
+                            logger.debug(f"Could not fetch description from {exhibition_url}: {e}")
+                    
+                    # Extract image
+                    image_url = None
+                    img = card.find('img')
+                    if img:
+                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                        if img_src:
+                            image_url = urljoin(page_url, img_src)
+                    
+                    # Create event data
+                    event_data = {
+                        'title': title,
+                        'description': description or '',
+                        'start_date': start_date.isoformat() if start_date else None,
+                        'end_date': end_date.isoformat() if end_date is not None else None,  # None for ongoing exhibitions
+                        'start_time': None,
+                        'end_time': None,
+                        'start_location': venue.name,
+                        'venue_id': venue.id,
+                        'city_id': venue.city_id,
+                        'event_type': 'exhibition',
+                        'url': exhibition_url,
+                        'image_url': image_url,
+                        'source': 'website',
+                        'source_url': venue.website_url,
+                        'organizer': venue.name
+                    }
+                    
+                    # Validate
+                    if self._is_valid_event(event_data):
+                        # CRITICAL: Check limit BEFORE appending
+                        if len(events) >= max_exhibitions_per_venue:
+                            logger.info(f"✅ Reached limit of {max_exhibitions_per_venue} exhibitions BEFORE adding '{title}' - stopping")
+                            break
+                        
+                        logger.info(f"✅ Extracted exhibition from listing page (Met Museum): '{title}' ({start_date.isoformat()} to {end_date.isoformat() if end_date else 'ongoing'}) [count: {len(events) + 1}/{max_exhibitions_per_venue}]")
+                        events.append(event_data)
+                        
+                        # CRITICAL: Double-check limit immediately after appending
+                        if len(events) >= max_exhibitions_per_venue:
+                            logger.info(f"✅ Reached limit of {max_exhibitions_per_venue} exhibitions AFTER adding '{title}' - stopping immediately")
+                            break
+                    else:
+                        logger.debug(f"⚠️ Exhibition from listing page did not pass validation: '{title}'")
+                
+                if events:
+                    # CRITICAL: Final safety check - should never happen if limit checks work, but enforce it anyway
+                    if len(events) > max_exhibitions_per_venue:
+                        logger.error(f"❌ CRITICAL ERROR: Met Museum section extracted {len(events)} exhibitions but limit is {max_exhibitions_per_venue}!")
+                        logger.error(f"   Exhibition titles: {[e.get('title') for e in events]}")
+                        logger.error(f"   This indicates a bug in the limit checking logic above!")
+                    limited_events = events[:max_exhibitions_per_venue]
+                    logger.info(f"📦 Met Museum section returning {len(limited_events)} exhibitions (extracted {len(events)}, limit {max_exhibitions_per_venue})")
+                    return limited_events
+            
             # Look for exhibition entries on the page
             # Pattern: Title followed by date range
             # Smithsonian format: "Title Title" followed by "Month Day, Year–Month Day, Year" or "Ongoing"
@@ -1332,6 +1685,10 @@ class VenueEventScraper:
             headings = soup.find_all(['h2', 'h3', 'h4', 'h5'])
             
             for heading in headings:
+                # Stop if we've reached the maximum
+                if len(events) >= max_exhibitions_per_venue:
+                    break
+                
                 title = heading.get_text(strip=True)
                 if not title or len(title) < 5:
                     continue
@@ -1375,12 +1732,19 @@ class VenueEventScraper:
                     date_text, page_url, venue, time_range=time_range
                 )
                 
-                # Skip if no valid dates or if exhibition has ended
-                if not start_date or not end_date:
+                # Skip if no start date
+                if not start_date:
                     continue
                 
+                # For ongoing exhibitions (end_date is None), skip if start_date is in the past
+                # For exhibitions with end dates, skip if they've ended
                 today = date.today()
-                if end_date < today:
+                if end_date is None:
+                    # Ongoing exhibition - skip if start date is in the past (shouldn't happen, but just in case)
+                    if start_date < today:
+                        logger.debug(f"⏰ Skipping past ongoing exhibition start: {title} (started {start_date.isoformat()})")
+                        continue
+                elif end_date < today:
                     logger.debug(f"⏰ Skipping past exhibition: {title} (ended {end_date.isoformat()})")
                     continue
                 
@@ -1416,7 +1780,7 @@ class VenueEventScraper:
                     'title': title,
                     'description': description or '',
                     'start_date': start_date.isoformat() if start_date else None,
-                    'end_date': end_date.isoformat() if end_date else None,
+                    'end_date': end_date.isoformat() if end_date is not None else None,  # None for ongoing exhibitions
                     'start_time': None,
                     'end_time': None,
                     'start_location': venue.name,
@@ -1432,15 +1796,20 @@ class VenueEventScraper:
                 
                 # Validate
                 if self._is_valid_event(event_data):
-                    logger.info(f"✅ Extracted exhibition from listing page: '{title}' ({start_date.isoformat()} to {end_date.isoformat()})")
+                    end_date_str = end_date.isoformat() if end_date else "ongoing"
+                    logger.info(f"✅ Extracted exhibition from listing page: '{title}' ({start_date.isoformat()} to {end_date_str})")
                     events.append(event_data)
+                    # Stop if we've reached the maximum
+                    if len(events) >= max_exhibitions_per_venue:
+                        break
                 else:
                     logger.debug(f"⚠️ Exhibition from listing page did not pass validation: '{title}'")
         
         except Exception as e:
             logger.debug(f"Error extracting exhibitions from listing page {page_url}: {e}")
         
-        return events
+        # Limit to maximum exhibitions per venue
+        return events[:max_exhibitions_per_venue]
     
     def _extract_exhibition_dates(self, soup):
         """Extract date text from exhibition page"""
@@ -1475,6 +1844,7 @@ class VenueEventScraper:
             r'([A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14, 2021–May 9, 2021
             r'(\d{1,2}/\d{1,2}/\d{4}[–—\-]\d{1,2}/\d{1,2}/\d{4})',  # 2/14/2021–5/9/2021
             r'([A-Z][a-z]{2,8}\s+\d{1,2}\s*[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14 – May 9, 2021 (with spaces)
+            r'(\d{4}-\d{2}-\d{2}[–—\-]\d{4}-\d{2}-\d{2})',  # 2024-03-15–2024-06-20 (ISO format)
         ]
         
         for pattern in date_range_patterns:
@@ -1497,7 +1867,7 @@ class VenueEventScraper:
         return None
     
     def _parse_exhibition_dates(self, date_text, url, venue, time_range='today'):
-        """Parse exhibition dates from text like 'Feb 14–May 9, 2021'"""
+        """Parse exhibition dates from text like 'Feb 14–May 9, 2021' or ISO format '2024-03-15–2024-06-20'"""
         from datetime import datetime, timedelta
         
         today = date.today()
@@ -1508,6 +1878,39 @@ class VenueEventScraper:
         
         # If we have date text, try to parse it
         if date_text:
+            # First check if it's ISO format (YYYY-MM-DD–YYYY-MM-DD)
+            iso_pattern = r'(\d{4})-(\d{2})-(\d{2})[–—\-](\d{4})-(\d{2})-(\d{2})'
+            match = re.search(iso_pattern, date_text)
+            if match:
+                try:
+                    start_year = int(match.group(1))
+                    start_month = int(match.group(2))
+                    start_day = int(match.group(3))
+                    end_year = int(match.group(4))
+                    end_month = int(match.group(5))
+                    end_day = int(match.group(6))
+                    start_date = date(start_year, start_month, start_day)
+                    end_date = date(end_year, end_month, end_day)
+                    logger.info(f"📅 Parsed exhibition dates (ISO format): {start_date.isoformat()} to {end_date.isoformat()}")
+                    return start_date, end_date, start_time, end_time
+                except ValueError as e:
+                    logger.debug(f"Invalid ISO date values: {e}")
+            
+            # Also check for single ISO date
+            single_iso_pattern = r'(\d{4})-(\d{2})-(\d{2})'
+            match = re.search(single_iso_pattern, date_text)
+            if match and not start_date:
+                try:
+                    year = int(match.group(1))
+                    month = int(match.group(2))
+                    day = int(match.group(3))
+                    start_date = date(year, month, day)
+                    # If it's a single date, assume it's the start date and set end date to 1 year later
+                    end_date = date(year + 1, month, day)
+                    logger.info(f"📅 Parsed single ISO date: {start_date.isoformat()} (assuming 1 year duration)")
+                    return start_date, end_date, start_time, end_time
+                except ValueError as e:
+                    logger.debug(f"Invalid single ISO date value: {e}")
             # Convert month names to numbers (used in multiple patterns)
             month_map = {
                 'january': 1, 'jan': 1,
@@ -1591,6 +1994,40 @@ class VenueEventScraper:
                         except ValueError as e:
                             logger.debug(f"Invalid date values: {e}")
             
+            # Pattern: "Through [Month] [Day], [Year]" (Met Museum format)
+            if not start_date:
+                through_pattern = r'Through\s+([A-Z][a-z]{2,9})\s+(\d{1,2}),?\s*(\d{4})?'
+                match = re.search(through_pattern, date_text)
+                if match:
+                    month_name = match.group(1)
+                    day = int(match.group(2))
+                    year_str = match.group(3)
+                    
+                    month = month_map.get(month_name.lower())
+                    if month:
+                        # If year is provided, use it; otherwise assume current year
+                        if year_str:
+                            year = int(year_str)
+                        else:
+                            year = today.year
+                            # If through date has passed this year, assume next year
+                            try:
+                                through_date = date(year, month, day)
+                                if through_date < today:
+                                    year += 1
+                            except ValueError:
+                                pass
+                        
+                        try:
+                            end_date = date(year, month, day)
+                            # For "Through" format, start_date is unknown, so use today as a reasonable default
+                            # But only if the through date is in the future
+                            if end_date >= today:
+                                start_date = today
+                                logger.info(f"📅 Parsed through date: {end_date.isoformat()} (start: {start_date.isoformat()})")
+                        except ValueError as e:
+                            logger.debug(f"Invalid through date values: {e}")
+            
             # Pattern: "Closing [Month] [Day], [Year]" (NGA format)
             if not start_date:
                 closing_pattern = r'Closing\s+([A-Z][a-z]{2,9})\s+(\d{1,2}),?\s*(\d{4})?'
@@ -1625,11 +2062,11 @@ class VenueEventScraper:
                         except ValueError as e:
                             logger.debug(f"Invalid closing date values: {e}")
             
-            # Pattern: "Ongoing" - set start to today, end to far future
+            # Pattern: "Ongoing" - set start to today, end to None (no end date)
             if not start_date and 'ongoing' in date_text.lower():
                 start_date = today
-                end_date = date(today.year + 10, 12, 31)  # 10 years in the future
-                logger.info(f"📅 Parsed ongoing exhibition: {start_date.isoformat()} to {end_date.isoformat()}")
+                end_date = None  # Ongoing exhibitions have no end date
+                logger.info(f"📅 Parsed ongoing exhibition: {start_date.isoformat()} (ongoing, no end date)")
             
             # Pattern: MM/DD/YYYY–MM/DD/YYYY
             if not start_date:
@@ -1652,7 +2089,8 @@ class VenueEventScraper:
         
         # If we couldn't parse dates, return None (don't use time_range defaults)
         # This allows the caller to decide what to do (e.g., skip the exhibition)
-        if not start_date or not end_date:
+        # We need at least a start_date. end_date can be None for ongoing exhibitions.
+        if not start_date:
             if date_text:
                 # We tried to parse but failed - log and return None
                 logger.debug(f"⚠️ Could not parse date text: '{date_text}' - returning None")
@@ -2119,7 +2557,8 @@ class VenueEventScraper:
             
             try:
                 event_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-                event_end = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else event_start
+                # For ongoing exhibitions, end_date_str is None - treat as ongoing (no end date)
+                event_end = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else None
             except:
                 # If date parsing fails, include it
                 filtered.append(event)
@@ -2127,16 +2566,29 @@ class VenueEventScraper:
             
             # Check if event overlaps with time range
             if time_range == 'today':
-                if event_start <= today <= event_end:
+                # For ongoing exhibitions (event_end is None), include if started today or earlier
+                if event_end is None:
+                    if event_start <= today:
+                        filtered.append(event)
+                elif event_start <= today <= event_end:
                     filtered.append(event)
             elif time_range == 'this_week':
                 week_end = today + timedelta(days=7)
+                # For ongoing exhibitions (event_end is None), include if started before week_end
+                if event_end is None:
+                    if event_start <= week_end:
+                        filtered.append(event)
                 # Event overlaps if it starts before week_end and ends after today
-                if event_start <= week_end and event_end >= today:
+                elif event_start <= week_end and event_end >= today:
                     filtered.append(event)
             elif time_range == 'this_month':
                 month_end = today + timedelta(days=30)
-                if event_start <= month_end and event_end >= today:
+                # For ongoing exhibitions (event_end is None), include if started before month_end
+                if event_end is None:
+                    if event_start <= month_end:
+                        filtered.append(event)
+                # Event overlaps if it starts before month_end and ends after today
+                elif event_start <= month_end and event_end >= today:
                     filtered.append(event)
             else:
                 # Unknown time range, include all
