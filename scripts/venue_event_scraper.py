@@ -1303,7 +1303,8 @@ class VenueEventScraper:
                         else:
                             title = page_title_text
                         logger.info(f"📝 Extracted real title from page: '{title}'")
-                        return title
+                        # Clean title before returning
+                        return self._clean_title(title)
                 
                 # Also try h1 tags
                 h1_tag = soup.find('h1')
@@ -1312,7 +1313,8 @@ class VenueEventScraper:
                     if 'Collection Tour' in h1_text:
                         title = h1_text
                         logger.info(f"📝 Extracted title from h1: '{title}'")
-                        return title
+                        # Clean title before returning
+                        return self._clean_title(title)
                         
             except Exception as e:
                 logger.debug(f"Error extracting title from {tour_url}: {e}")
@@ -2504,6 +2506,10 @@ class VenueEventScraper:
                             if url_slug and url_slug != 'exhibitions':
                                 title = ' '.join(word.capitalize() for word in url_slug.replace('-', ' ').split())
                     
+                    # Clean title to remove dates, trailing commas, etc.
+                    if title:
+                        title = self._clean_title(title)
+                    
                     # Filter out section headings
                     if not title or title.lower() in ['current exhibitions', 'upcoming exhibitions', 'past exhibitions', 'exhibitions']:
                         continue
@@ -2560,6 +2566,10 @@ class VenueEventScraper:
                             img_src = img.get('src') or img.get('data-src')
                             if img_src:
                                 image_url = urljoin(page_url, img_src)
+                    
+                    # Clean title to remove dates, trailing commas, etc.
+                    if title:
+                        title = self._clean_title(title)
                     
                     events.append({
                         'title': title,
@@ -2644,6 +2654,8 @@ class VenueEventScraper:
                     # Remove time patterns like "11:00 AM" or "11:00–12:00 PM"
                     title = re.sub(r'\s+\d{1,2}:\d{2}\s*([ap])\.?m\.?(\s*[–—\-]\s*\d{1,2}:\d{2}\s*([ap])\.?m\.?)?.*$', '', title, flags=re.IGNORECASE)
                     title = title.strip()
+                    # Use the comprehensive _clean_title method for final cleaning
+                    title = self._clean_title(title)
                 
                 # Look for event type keywords at the start of any line
                 event_type_pattern = re.compile(r'^(Family Program|Tour|Public Program|Artist Talk|Past Tour|Past Family Program|Past Public Program)', re.IGNORECASE)
@@ -2735,6 +2747,10 @@ class VenueEventScraper:
                     url_slug = href.split('/')[-2] if href.endswith('/') else href.split('/')[-1]
                     if url_slug and url_slug != 'calendar':
                         title = ' '.join(word.capitalize() for word in url_slug.replace('-', ' ').split())
+                
+                # Clean title to remove dates, trailing commas, etc.
+                if title:
+                    title = self._clean_title(title)
                 
                 if not title or title.lower() in seen_titles:
                     continue
@@ -3252,6 +3268,10 @@ class VenueEventScraper:
                 if not start_date:
                     logger.warning(f"   ⚠️ Skipping event '{title}' - missing start_date")
                     continue
+                
+                # Final title cleaning to ensure it's always clean (in case title was modified elsewhere)
+                if title:
+                    title = self._clean_title(title)
                 
                 # Log what we're about to save
                 logger.info(f"   📦 Saving event: '{title}'")

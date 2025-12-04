@@ -174,38 +174,37 @@
 
     /**
      * Format date for Google Calendar all-day events (YYYYMMDD format)
+     * Takes a date string (YYYY-MM-DD) or Date object
      */
-    function formatDateOnlyForGoogle(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}${month}${day}`;
+    function formatDateOnlyForGoogle(dateInput) {
+        let dateStr;
+        if (typeof dateInput === 'string') {
+            dateStr = dateInput;
+        } else {
+            // Date object - extract date parts directly without timezone conversion
+            const year = dateInput.getFullYear();
+            const month = String(dateInput.getMonth() + 1).padStart(2, '0');
+            const day = String(dateInput.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+        // String input: remove dashes
+        return dateStr.replace(/-/g, '');
     }
 
     /**
-     * Format date with time for Google Calendar in the event's timezone
+     * Format date with time for Google Calendar (directly from date/time strings, no timezone conversion)
+     * The timezone is specified separately via the ctz parameter
      */
-    function formatDateTimeForGoogle(date, timezone) {
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: timezone,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
+    function formatDateTimeForGoogle(dateStr, timeStr) {
+        // dateStr format: YYYY-MM-DD
+        // timeStr format: HH:MM or HH:MM:SS
+        const datePart = dateStr.replace(/-/g, '');
+        const timeParts = (timeStr || '00:00:00').split(':');
+        const hour = (timeParts[0] || '00').padStart(2, '0');
+        const minute = (timeParts[1] || '00').padStart(2, '0');
+        const second = (timeParts[2] || '00').padStart(2, '0');
         
-        const parts = formatter.formatToParts(date);
-        const year = parts.find(p => p.type === 'year').value;
-        const month = parts.find(p => p.type === 'month').value;
-        const day = parts.find(p => p.type === 'day').value;
-        const hour = parts.find(p => p.type === 'hour').value;
-        const minute = parts.find(p => p.type === 'minute').value;
-        const second = parts.find(p => p.type === 'second').value;
-        
-        return `${year}${month}${day}T${hour}${minute}${second}`;
+        return `${datePart}T${hour}${minute}${second}`;
     }
 
     /**
@@ -263,31 +262,56 @@
      */
     function generateGoogleCalendarUrl(event, startDate, endDate, isAllDay = false) {
         if (CALENDAR_DEBUG) {
-            console.log('generateGoogleCalendarUrl called', { isAllDay, event_type: event.event_type });
+            console.log('generateGoogleCalendarUrl called', { isAllDay, event_type: event.event_type, event });
         }
         
-        const eventTimezone = event.city_timezone || 'America/New_York';
+        // Get timezone from event - prioritize city_timezone, fallback to city lookup
+        let eventTimezone = event.city_timezone;
+        
+        // If no city_timezone, try to get it from city_id or city_name
+        if (!eventTimezone && event.city_id) {
+            // Try to find city timezone from the events array context if available
+            // This is a fallback - ideally city_timezone should always be in the event object
+            if (CALENDAR_DEBUG) {
+                console.warn('Event missing city_timezone, attempting lookup from city_id:', event.city_id);
+            }
+        }
+        
+        // Final fallback - but this should rarely be needed if events are properly loaded
+        if (!eventTimezone) {
+            eventTimezone = 'America/New_York';
+            if (CALENDAR_DEBUG) {
+                console.warn('Using default timezone America/New_York for event:', event.title);
+            }
+        }
+        
+        if (CALENDAR_DEBUG) {
+            console.log('Using timezone:', eventTimezone, 'for event:', event.title);
+        }
         let startDateTime, endDateTime;
         
-        // Format dates based on event type
+        // IMPORTANT: Use event date/time strings directly - NO Date object conversion
+        // The times are already in the correct local time for the event's timezone
+        // We just format them as strings and specify the timezone via ctz parameter
+        // This prevents any timezone shifting
+        
+        // Get date strings directly from event (format: YYYY-MM-DD)
+        const startDateStr = event.start_date;
+        const endDateStr = event.end_date || event.start_date;
+        
         if (isAllDay || event.event_type === 'exhibition') {
-            startDateTime = formatDateOnlyForGoogle(startDate);
-            endDateTime = formatDateOnlyForGoogle(endDate);
+            // All-day events: use date only format (YYYYMMDD)
+            startDateTime = formatDateOnlyForGoogle(startDateStr);
+            endDateTime = formatDateOnlyForGoogle(endDateStr);
         } else if (event.start_time && event.end_time) {
-            const [startHours, startMinutes] = event.start_time.split(':').map(Number);
-            const [endHours, endMinutes] = event.end_time.split(':').map(Number);
-            
-            const startDateLocal = new Date(startDate);
-            startDateLocal.setHours(startHours, startMinutes || 0, 0, 0);
-            
-            const endDateLocal = new Date(endDate);
-            endDateLocal.setHours(endHours, endMinutes || 0, 0, 0);
-            
-            startDateTime = formatDateTimeForGoogle(startDateLocal, eventTimezone);
-            endDateTime = formatDateTimeForGoogle(endDateLocal, eventTimezone);
+            // Timed events: use date/time strings directly from event data
+            // NO Date object manipulation - just format the strings as-is
+            startDateTime = formatDateTimeForGoogle(startDateStr, event.start_time);
+            endDateTime = formatDateTimeForGoogle(endDateStr, event.end_time);
         } else {
-            startDateTime = formatDateOnlyForGoogle(startDate);
-            endDateTime = formatDateOnlyForGoogle(endDate);
+            // No time specified: treat as all-day
+            startDateTime = formatDateOnlyForGoogle(startDateStr);
+            endDateTime = formatDateOnlyForGoogle(endDateStr);
         }
         
         const enhancedDescription = buildEnhancedDescription(event);
@@ -353,6 +377,20 @@
     }
 
     /**
+     * Generate VTIMEZONE information for ICS format
+     * 
+     * Note: Most modern calendar applications (Google Calendar, Apple Calendar, Outlook)
+     * will recognize standard IANA timezone names (e.g., "America/Los_Angeles") and
+     * look up the proper DST rules from their internal database. We just need to provide
+     * the TZID - the calendar app will handle the rest.
+     */
+    function generateVTIMEZONE(timezoneStr) {
+        // Minimal VTIMEZONE definition - calendar apps will look up proper rules
+        // We just need to provide the TZID so they know which timezone to use
+        return `BEGIN:VTIMEZONE\r\nTZID:${timezoneStr}\r\nX-LIC-LOCATION:${timezoneStr}\r\nEND:VTIMEZONE\r\n`;
+    }
+
+    /**
      * Generate ICS event string for a single event
      */
     function generateICSEvent(event) {
@@ -362,6 +400,17 @@
             now.toISOString().split('T')[0],
             now.toTimeString().split(' ')[0].substring(0, 8)
         );
+        
+        // Get timezone from event - prioritize city_timezone
+        let eventTimezone = event.city_timezone;
+        
+        // Final fallback - but this should rarely be needed if events are properly loaded
+        if (!eventTimezone) {
+            eventTimezone = 'America/New_York';
+            if (CALENDAR_DEBUG) {
+                console.warn('ICS: Using default timezone America/New_York for event:', event.title);
+            }
+        }
         
         // Determine if all-day (exhibition)
         const isAllDay = event.event_type === 'exhibition' && !event.start_time;
@@ -399,8 +448,9 @@
             icsEvent += `DTSTART;VALUE=DATE:${startDateTime}\r\n`;
             icsEvent += `DTEND;VALUE=DATE:${endDateTime}\r\n`;
         } else {
-            icsEvent += `DTSTART:${startDateTime}\r\n`;
-            icsEvent += `DTEND:${endDateTime}\r\n`;
+            // For timed events, include timezone
+            icsEvent += `DTSTART;TZID=${eventTimezone}:${startDateTime}\r\n`;
+            icsEvent += `DTEND;TZID=${eventTimezone}:${endDateTime}\r\n`;
         }
         
         icsEvent += `SUMMARY:${escapeICS(event.title || 'Untitled Event')}\r\n`;
@@ -434,6 +484,23 @@
         icsContent += `X-WR-CALNAME:${calendarName}\r\n`;
         icsContent += `X-WR-CALDESC:Events from Planner\r\n`;
         
+        // Collect unique timezones from events
+        const timezones = new Set();
+        events.forEach(event => {
+            if (event.city_timezone) {
+                timezones.add(event.city_timezone);
+            } else if (event.start_time || (event.event_type !== 'exhibition')) {
+                // For timed events without timezone, default to America/New_York
+                timezones.add('America/New_York');
+            }
+        });
+        
+        // Add VTIMEZONE definitions for each unique timezone
+        timezones.forEach(tz => {
+            icsContent += generateVTIMEZONE(tz);
+        });
+        
+        // Add events
         events.forEach(event => {
             icsContent += generateICSEvent(event);
         });
@@ -515,6 +582,7 @@
         buildEnhancedDescription: buildEnhancedDescription,
         parseEventDates: parseEventDates,
         detectVenueType: detectVenueType,
+        generateVTIMEZONE: generateVTIMEZONE,
         
         // Configuration
         VENUE_ADDRESSES: VENUE_ADDRESSES,

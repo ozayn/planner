@@ -485,6 +485,47 @@ class GenericVenueScraper:
         
         return True
     
+    def _clean_title(self, title: str) -> str:
+        """Clean and normalize title text to fix common issues"""
+        if not title:
+            return title
+        
+        # Remove trailing commas and whitespace
+        title = re.sub(r',\s*$', '', title)
+        title = title.strip()
+        
+        # Remove dates from title (e.g., "December 10, 2025," or "Dec 10, 2025")
+        # Pattern: Month Day, Year or Month Day Year
+        date_patterns = [
+            r'\s*[A-Z][a-z]+\s+\d{1,2},?\s+\d{4},?\s*$',  # "December 10, 2025," or "December 10, 2025"
+            r'\s*[A-Z][a-z]{2,3}\.?\s+\d{1,2},?\s+\d{4},?\s*$',  # "Dec. 10, 2025," or "Dec 10, 2025"
+            r'\s*\d{1,2}/\d{1,2}/\d{4},?\s*$',  # "12/10/2025,"
+            r'\s*\d{1,2}-\d{1,2}-\d{4},?\s*$',  # "12-10-2025,"
+        ]
+        for pattern in date_patterns:
+            title = re.sub(pattern, '', title, flags=re.IGNORECASE)
+        
+        # Fix missing spaces after apostrophes (e.g., "Bellows'sLove" -> "Bellows's Love")
+        title = re.sub(r"([a-z]'s)([A-Z])", r"\1 \2", title)
+        
+        # Fix missing spaces after colons (e.g., "Title:Subtitle" -> "Title: Subtitle")
+        title = re.sub(r"([^:]):([A-Za-z])", r"\1: \2", title)
+        
+        # Fix missing spaces after periods (e.g., "Mr.John" -> "Mr. John")
+        title = re.sub(r"([a-z])\.([A-Z])", r"\1. \2", title)
+        
+        # Fix missing spaces before capital letters after lowercase (e.g., "wordWord" -> "word Word")
+        # But be careful not to break acronyms or proper nouns
+        title = re.sub(r"([a-z])([A-Z][a-z])", r"\1 \2", title)
+        
+        # Normalize multiple spaces to single space
+        title = re.sub(r'\s+', ' ', title)
+        
+        # Strip leading/trailing whitespace
+        title = title.strip()
+        
+        return title
+    
     def _parse_event_element(self, element, base_url: str, venue_name: str = None,
                             event_type: str = None, time_range: str = 'this_month') -> Optional[Dict]:
         """Parse a single event element from HTML"""
@@ -501,6 +542,9 @@ class GenericVenueScraper:
             # Validate title is actually an event, not navigation/page element
             if not self._is_valid_event_title(title):
                 return None
+            
+            # Clean title to remove dates, trailing commas, etc.
+            title = self._clean_title(title)
             
             # Extract description
             description = self._extract_text(element, [

@@ -544,10 +544,20 @@ class Venue(db.Model):
             'additional_info': self.additional_info,
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
-            'city_timezone': self.city.timezone if self.city else None,
+            'city_timezone': self._get_city_timezone(),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    def _get_city_timezone(self):
+        """Get city timezone, with fallback lookup if relationship not loaded"""
+        if self.city and self.city.timezone:
+            return self.city.timezone
+        if self.city_id:
+            city = db.session.get(City, self.city_id)
+            if city and city.timezone:
+                return city.timezone
+        return None
 
 class Event(db.Model):
     """Unified event class for all event types"""
@@ -711,6 +721,7 @@ class Event(db.Model):
             'venue_address': self.venue.address if self.venue else None,
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
+            'city_timezone': self._get_city_timezone(),
             'start_latitude': self.start_latitude,
             'start_longitude': self.start_longitude,
             'end_latitude': self.end_latitude,
@@ -745,6 +756,16 @@ class Event(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    def _get_city_timezone(self):
+        """Get city timezone, with fallback lookup if relationship not loaded"""
+        if self.city and self.city.timezone:
+            return self.city.timezone
+        if self.city_id:
+            city = db.session.get(City, self.city_id)
+            if city and city.timezone:
+                return city.timezone
+        return None
 
 class Source(db.Model):
     """Sources for events (Instagram accounts, websites, etc.)"""
@@ -1177,7 +1198,7 @@ def get_events():
             tour_filter,
             Event.start_date >= start_date,
             Event.start_date <= end_date
-        ).all()
+        ).options(db.joinedload(Event.city)).all()
         events.extend([event.to_dict() for event in tour_events])
     
     if not event_type or event_type == 'exhibition':
@@ -5868,12 +5889,14 @@ def add_event_to_calendar():
         event_type = data.get('event_type', 'event')
         city_id = data.get('city_id')
         
-        # Get city timezone if city_id is provided
-        timezone = 'UTC'  # Default timezone
-        if city_id:
-            city = City.query.get(city_id)
+        # Get city timezone - prioritize city_timezone from request, then lookup from city_id
+        timezone = data.get('city_timezone')  # Use city_timezone if provided in request
+        if not timezone and city_id:
+            city = db.session.get(City, city_id)
             if city and city.timezone:
                 timezone = city.timezone
+        if not timezone:
+            timezone = 'UTC'  # Final fallback
         
         # Create calendar event data with enhanced information
         calendar_event = {
