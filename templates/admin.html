@@ -7101,30 +7101,27 @@
         }
         
         function showVenueDetails(clickEvent, venueId) {
-            // Show the modal immediately - first thing, no checks
+            // Get elements once
             const modal = document.getElementById('venueDetailsModal');
             const contentDiv = document.getElementById('venueDetailsContent');
-            modal.style.display = 'block';
+            
+            // Show modal instantly using cssText for maximum performance
+            modal.style.cssText = 'display: block !important;';
             contentDiv.innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
             
-            // Defer all processing - use requestAnimationFrame for smoother experience
+            // Defer all processing
             requestAnimationFrame(() => {
-                // Find the venue data
                 const venue = window.allVenues && window.allVenues.find(v => v.id == venueId || String(v.id) === String(venueId));
                 if (!venue) {
-                    console.error('Venue not found for ID:', venueId);
                     modal.style.display = 'none';
                     return;
                 }
                 
-                // Generate and populate content
-                const content = generateVenueDetailsHTML(venue);
-                contentDiv.innerHTML = content;
+                contentDiv.innerHTML = generateVenueDetailsHTML(venue);
                 
                 // Lazy load images
                 requestAnimationFrame(() => {
-                    const images = modal.querySelectorAll('img[data-src]');
-                    images.forEach(img => {
+                    modal.querySelectorAll('img[data-src]').forEach(img => {
                         img.src = img.getAttribute('data-src');
                         img.removeAttribute('data-src');
                     });
@@ -7133,25 +7130,23 @@
         }
         
         function showCityDetails(clickEvent, cityId) {
-            // Show the modal immediately - first thing, no checks
+            // Get elements once
             const modal = document.getElementById('cityDetailsModal');
             const contentDiv = document.getElementById('cityDetailsContent');
-            modal.style.display = 'block';
+            
+            // Show modal instantly using cssText for maximum performance
+            modal.style.cssText = 'display: block !important;';
             contentDiv.innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
             
-            // Defer all processing - use requestAnimationFrame for smoother experience
+            // Defer all processing
             requestAnimationFrame(() => {
-                // Find the city data
                 const city = window.allCities && window.allCities.find(c => c.id == cityId || String(c.id) === String(cityId));
                 if (!city) {
-                    console.error('City not found for ID:', cityId);
                     modal.style.display = 'none';
                     return;
                 }
                 
-                // Generate and populate content
-                const content = generateCityDetailsHTML(city);
-                contentDiv.innerHTML = content;
+                contentDiv.innerHTML = generateCityDetailsHTML(city);
             });
         }
         
