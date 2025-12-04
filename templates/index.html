@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -98,6 +101,7 @@
             grid-template-columns: 400px 1fr;
             gap: 32px;
             margin-bottom: 32px;
+            align-items: start;
         }
 
         .control-panel {
@@ -153,6 +157,20 @@
         .discovered-events:hover {
             box-shadow: 0 12px 48px rgba(0, 0, 0, 0.08);
             border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .event-type-filter-btn:hover {
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(255,255,255,0.8);
+            color: rgba(0,0,0,0.8);
+            transform: translateY(-1px);
+        }
+
+        .event-type-filter-btn.active {
+            background: rgba(0,0,0,0.08);
+            border-color: rgba(0,0,0,0.15);
+            color: rgba(0,0,0,0.87);
+            font-weight: 500;
         }
 
         .time-selector {
@@ -230,46 +248,73 @@
 
         .discovered-event-card {
             display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px;
-            background: #f8f9fa;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            background: white;
             border-radius: 8px;
-            border: 1px solid #e9ecef;
+            border: 1px solid rgba(0, 0, 0, 0.06);
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .discovered-event-card:hover {
-            background: #ffffff;
-            border-color: #ff8c42;
-            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.1);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .discovered-event-card.new-event {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .discovered-event-card.updated-event {
+            border-left: 3px solid #10b981;
+        }
+
+        .discovered-event-card.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.04);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        }
+
+        .event-image-thumb {
+            width: 80px;
+            height: 80px;
+            min-width: 80px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #f3f4f6;
         }
 
         .event-time {
-            font-weight: 600;
-            color: #ff8c42;
-            font-size: 0.9rem;
-            min-width: 60px;
+            font-weight: 500;
+            color: #6b7280;
+            font-size: 0.75rem;
+            min-width: 50px;
+            margin-bottom: 4px;
         }
 
         .event-info {
             flex: 1;
+            min-width: 0;
         }
 
         .discovered-event-card .event-title {
             font-weight: 500;
-            color: #374151;
+            color: #111827;
             margin-bottom: 4px;
+            font-size: 0.875rem;
+            line-height: 1.4;
         }
 
         .discovered-event-card .event-location {
-            font-size: 0.85rem;
+            font-size: 0.8125rem;
             color: #6b7280;
             margin-bottom: 2px;
         }
 
         .discovered-event-card .event-type {
-            font-size: 0.75rem;
+            font-size: 0.6875rem;
             color: #9ca3af;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -277,6 +322,7 @@
 
         .discovered-event-card .event-actions {
             display: flex;
+            align-items: center;
             gap: 8px;
         }
 
@@ -376,6 +422,56 @@
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        /* Collapsible filter sections */
+        .filter-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 0;
+            margin-bottom: 8px;
+            transition: color 0.2s ease;
+        }
+
+        .filter-section-header:hover {
+            color: rgba(0,0,0,0.8);
+        }
+
+        .filter-section-header label {
+            margin-bottom: 0;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .filter-section-toggle {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+        }
+
+        .filter-section-content {
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin-top 0.3s ease;
+            max-height: 1000px;
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .form-group.collapsed .filter-section-content {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+        }
+
+        .form-group.collapsed .filter-section-toggle {
+            transform: rotate(-90deg);
         }
 
         .form-group select,
@@ -517,7 +613,7 @@
         .discover-button {
             width: 100% !important;
             padding: 14px 24px !important;
-            background: rgba(0,0,0,0.87) !important;
+            background: rgba(0,0,0,0.6) !important;
             color: white !important;
             border: none !important;
             border-radius: 12px !important;
@@ -526,13 +622,13 @@
             cursor: pointer !important;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
             margin-bottom: 0 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
             letter-spacing: 0.3px !important;
         }
 
         .discover-button:hover {
-            background: rgba(0,0,0,0.95) !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+            background: rgba(0,0,0,0.7) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
             transform: translateY(-1px);
         }
 
@@ -611,21 +707,73 @@
         }
 
         .status-section {
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid rgba(0,0,0,0.06);
-            margin-top: 24px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            margin-top: 16px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .status-section-header:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .status-section-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-section-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+        }
+
+        .status-section.collapsed .status-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .status-section-content {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .status-section.collapsed .status-section-content {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+            overflow: hidden;
         }
 
         .status-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            font-size: 0.8125rem;
-            padding: 6px 0;
+            margin-bottom: 8px;
+            padding: 4px 0;
+            min-height: 24px;
         }
 
         .status-item:last-child {
@@ -633,16 +781,27 @@
         }
 
         .status-label {
-            color: rgba(0,0,0,0.5);
+            color: #9ca3af;
             font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            font-size: 0.6875rem;
         }
 
         .status-value {
-            font-weight: 500;
-            color: rgba(0,0,0,0.87);
+            font-weight: 400;
+            color: #374151;
+            font-size: 0.8125rem;
+            min-height: 1em;
+        }
+
+        .status-value:empty::before {
+            content: '—';
+            color: #d1d5db;
+        }
+
+        .status-value:empty {
+            color: #d1d5db;
         }
 
         .venues-panel {
@@ -1233,20 +1392,300 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+
             .main-content {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
             
             .events-grid {
                 grid-template-columns: 1fr;
+                gap: 10px;
             }
             
+            .header {
+                padding: 16px 0;
+                margin-bottom: 16px;
+            }
+
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 0.75rem;
             }
 
             .time-selector {
-                justify-content: center;
+                justify-content: flex-start;
+                gap: 6px;
+                margin-bottom: 12px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 4px;
+            }
+
+            .time-selector::-webkit-scrollbar {
+                display: none;
+            }
+
+            .time-btn {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+                min-height: 36px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .event-type-filter {
+                gap: 6px;
+                margin-top: 12px;
+                margin-bottom: 12px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 4px;
+            }
+
+            .event-type-filter::-webkit-scrollbar {
+                display: none;
+            }
+
+            .event-type-filter-btn {
+                padding: 6px 12px !important;
+                font-size: 0.75rem !important;
+                min-height: 32px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .control-panel,
+            .venues-panel,
+            .events-panel,
+            .discovered-events {
+                padding: 14px;
+                border-radius: 10px;
+            }
+
+            .control-panel h2,
+            .venues-panel h2,
+            .events-panel h2 {
+                font-size: 1.125rem;
+                margin-bottom: 12px;
+            }
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .form-group label {
+                font-size: 0.8125rem;
+                margin-bottom: 4px;
+            }
+
+            .form-group select,
+            .form-group input {
+                padding: 10px;
+                font-size: 0.9375rem;
+                min-height: 40px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.875rem;
+                min-height: 40px;
+            }
+
+            .venue-item,
+            .event-item {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+
+            .venue-item h3,
+            .event-item h3 {
+                font-size: 1rem;
+            }
+
+            .venue-item p,
+            .event-item p {
+                font-size: 0.8125rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-width: 95%;
+                margin: 5px auto;
+                max-height: 95vh;
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .modal-header h2 {
+                font-size: 1.125rem;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 6px;
+            }
+
+            .header {
+                padding: 12px 0;
+                margin-bottom: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.375rem;
+            }
+
+            .header p {
+                font-size: 0.6875rem;
+            }
+
+            .main-content {
+                gap: 10px;
+            }
+
+            .control-panel,
+            .venues-panel,
+            .events-panel,
+            .discovered-events {
+                padding: 12px;
+            }
+
+            .control-panel h2,
+            .venues-panel h2,
+            .events-panel h2 {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+
+            .time-selector {
+                gap: 4px;
+                margin-bottom: 10px;
+            }
+
+            .time-btn {
+                padding: 6px 10px;
+                font-size: 0.6875rem;
+                min-height: 32px;
+            }
+
+            .event-type-filter {
+                gap: 4px;
+                margin-top: 10px;
+                margin-bottom: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 4px;
+            }
+
+            .event-type-filter::-webkit-scrollbar {
+                display: none;
+            }
+
+            .event-type-filter-btn {
+                padding: 5px 10px !important;
+                font-size: 0.6875rem !important;
+                min-height: 28px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .time-selector {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 4px;
+            }
+
+            .time-selector::-webkit-scrollbar {
+                display: none;
+            }
+
+            .time-btn {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.8125rem;
+                min-height: 36px;
+            }
+
+            .venue-item,
+            .event-item {
+                padding: 10px;
+                margin-bottom: 8px;
+            }
+
+            .venue-item h3,
+            .event-item h3 {
+                font-size: 0.9375rem;
+            }
+
+            .venue-item p,
+            .event-item p {
+                font-size: 0.75rem;
+            }
+
+            .form-group {
+                margin-bottom: 10px;
+            }
+
+            .form-group select,
+            .form-group input {
+                padding: 8px;
+                font-size: 0.875rem;
+                min-height: 36px;
+            }
+
+            .modal-content {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+                max-height: 100vh;
+                padding: 12px;
+            }
+
+            .modal-header h2 {
+                font-size: 1rem;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Mobile touch devices */
+            button,
+            .btn,
+            .time-btn,
+            .venue-item,
+            .event-item {
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+
+            button:active,
+            .btn:active,
+            .time-btn:active {
+                transform: scale(0.98);
             }
         }
     </style>
@@ -1255,7 +1694,6 @@
     <div class="container">
         <div class="header">
             <h1>Planner</h1>
-            <p>Discover events</p>
         </div>
 
         <div class="main-content">
@@ -1283,9 +1721,13 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label>Venue Types</label>
-                    <div class="venue-type-tabs">
+                <div class="form-group" id="venueTypesGroup">
+                    <div class="filter-section-header" onclick="toggleFilterSection('venueTypesGroup', event)">
+                        <label>Venue Types</label>
+                        <span class="filter-section-toggle">▼</span>
+                    </div>
+                    <div class="filter-section-content">
+                        <div class="venue-type-tabs">
                         <div class="venue-type-tab active" data-value="museum" data-id="venueTypeMuseum">
                             Museums
                         </div>
@@ -1308,15 +1750,20 @@
                             Other
                         </div>
                     </div>
-                    <div class="venue-controls" style="display: flex; gap: 6px; margin-top: 10px;">
-                        <button type="button" id="toggleAllVenues" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
+                        <div class="venue-controls" style="display: flex; gap: 6px; margin-top: 10px;">
+                            <button type="button" id="toggleAllVenues" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Source Platform Types -->
-                <div class="form-group">
-                    <label>Platforms</label>
-                    <div class="venue-type-tabs">
+                <div class="form-group" id="platformsGroup">
+                    <div class="filter-section-header" onclick="toggleFilterSection('platformsGroup', event)">
+                        <label>Platforms</label>
+                        <span class="filter-section-toggle">▼</span>
+                    </div>
+                    <div class="filter-section-content">
+                        <div class="venue-type-tabs">
                         <div class="venue-type-tab active" data-value="instagram" data-id="platformTypeInstagram">
                             Instagram
                         </div>
@@ -1336,15 +1783,20 @@
                             Other
                         </div>
                     </div>
-                    <div class="source-controls" style="display: flex; gap: 6px; margin-top: 10px;">
-                        <button type="button" id="toggleAllPlatforms" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
+                        <div class="source-controls" style="display: flex; gap: 6px; margin-top: 10px;">
+                            <button type="button" id="toggleAllPlatforms" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Source Content Types -->
-                <div class="form-group">
-                    <label>Content</label>
-                    <div class="venue-type-tabs">
+                <div class="form-group" id="contentGroup">
+                    <div class="filter-section-header" onclick="toggleFilterSection('contentGroup', event)">
+                        <label>Content</label>
+                        <span class="filter-section-toggle">▼</span>
+                    </div>
+                    <div class="filter-section-content">
+                        <div class="venue-type-tabs">
                         <div class="venue-type-tab active" data-value="art_exhibitions,cultural_events,gallery_openings,artist_showcases,visual_arts" data-id="contentTypeArts">
                             Arts
                         </div>
@@ -1364,20 +1816,26 @@
                             Other
                         </div>
                     </div>
-                    <div class="source-controls" style="display: flex; gap: 6px; margin-top: 10px;">
-                        <button type="button" id="toggleAllContent" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
+                        <div class="source-controls" style="display: flex; gap: 6px; margin-top: 10px;">
+                            <button type="button" id="toggleAllContent" class="source-control-btn" data-state="all" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5);">Reset</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Price</label>
-                    <div class="price-filter-buttons" style="display: flex; gap: 6px; margin-top: 12px;">
-                        <button type="button" class="price-filter-btn active" data-filter="free" title="Free venues only">
-                            Free <span class="count" id="countFree"></span>
-                        </button>
-                        <button type="button" class="price-filter-btn active" data-filter="paid" title="Paid venues only">
-                            Paid <span class="count" id="countPaid"></span>
-                        </button>
+                <div class="form-group" id="priceGroup">
+                    <div class="filter-section-header" onclick="toggleFilterSection('priceGroup', event)">
+                        <label>Price</label>
+                        <span class="filter-section-toggle">▼</span>
+                    </div>
+                    <div class="filter-section-content">
+                        <div class="price-filter-buttons" style="display: flex; gap: 6px; margin-top: 12px;">
+                            <button type="button" class="price-filter-btn active" data-filter="free" title="Free venues only">
+                                Free <span class="count" id="countFree"></span>
+                            </button>
+                            <button type="button" class="price-filter-btn active" data-filter="paid" title="Paid venues only">
+                                Paid <span class="count" id="countPaid"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1463,47 +1921,53 @@
                 </div>
 
                 <!-- Status Section -->
-                <div class="status-section">
-                    <div class="status-item">
-                        <span class="status-label">City</span>
-                        <span class="status-value" id="statusCity">-</span>
+                <div class="status-section collapsed" id="statusSection">
+                    <div class="status-section-header" onclick="toggleStatusSection()">
+                        <span class="status-section-title">Selection</span>
+                        <span class="status-section-toggle">▼</span>
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">Event Type</span>
-                        <span class="status-value" id="statusEventType">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Date Range</span>
-                        <span class="status-value" id="statusDateRange">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Venue Types</span>
-                        <span class="status-value" id="statusVenueTypes">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Platforms</span>
-                        <span class="status-value" id="statusPlatforms">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Content</span>
-                        <span class="status-value" id="statusContentTypes">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Price</span>
-                        <span class="status-value" id="statusPriceFilter">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Found</span>
-                        <span class="status-value" id="statusItemsFound">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Selected</span>
-                        <span class="status-value" id="statusSelected">-</span>
+                    <div class="status-section-content">
+                        <div class="status-item">
+                            <span class="status-label">City</span>
+                            <span class="status-value" id="statusCity"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Event Type</span>
+                            <span class="status-value" id="statusEventType"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Date Range</span>
+                            <span class="status-value" id="statusDateRange"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Venue Types</span>
+                            <span class="status-value" id="statusVenueTypes"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Platforms</span>
+                            <span class="status-value" id="statusPlatforms"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Content</span>
+                            <span class="status-value" id="statusContentTypes"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Price</span>
+                            <span class="status-value" id="statusPriceFilter"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Found</span>
+                            <span class="status-value" id="statusItemsFound"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Selected</span>
+                            <span class="status-value" id="statusSelected"></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Discovered Events Panel -->
+            <!-- Unified Events Panel -->
             <div class="discovered-events">
                 <h2 style="color: rgba(0,0,0,0.6); margin-bottom: 24px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
                 <div class="time-selector">
@@ -1512,8 +1976,16 @@
                     <button class="time-btn active" data-period="this_week">This Week</button>
                     <button class="time-btn" data-period="next_week">Next Week</button>
                     <button class="time-btn" data-period="this_month">This Month</button>
-                    <button class="time-btn" data-period="next_month">Next Month</button>
                     <button class="time-btn" data-period="custom">Custom Range</button>
+                </div>
+                <div class="event-type-filter" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; margin-bottom: 16px;">
+                    <button class="event-type-filter-btn active" data-event-type="" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.87); font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">All</button>
+                    <button class="event-type-filter-btn" data-event-type="tour" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Tours</button>
+                    <button class="event-type-filter-btn" data-event-type="exhibition" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Exhibitions</button>
+                    <button class="event-type-filter-btn" data-event-type="festival" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Festivals</button>
+                    <button class="event-type-filter-btn" data-event-type="photowalk" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Photowalks</button>
+                    <button class="event-type-filter-btn" data-event-type="film" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Films</button>
+                    <button class="event-type-filter-btn" data-event-type="talk" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Talks</button>
                 </div>
                 <div id="discoveredCustomDateGroup" style="display: none; margin-top: 12px;">
                     <div style="display: flex; gap: 8px;">
@@ -1521,16 +1993,19 @@
                         <input type="date" id="discoveredEndDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
                     </div>
                 </div>
-                <div style="margin-top: 16px; margin-bottom: 16px;">
-                    <button id="exportDiscoveredEventsBtn" class="export-btn" style="width: 100%; padding: 14px 24px; border-radius: 12px; background: rgba(0,0,0,0.87); color: white; border: none; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" disabled title="Export All Discovered Events to Calendar">
+                <div style="margin-top: 16px; margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button id="exportDiscoveredEventsBtn" class="export-btn" style="flex: 1; padding: 14px 24px; border-radius: 12px; background: rgba(0,0,0,0.87); color: white; border: none; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" disabled title="Export All Events to Calendar">
                         Export to Calendar
+                    </button>
+                    <button id="selectAllEventsBtn" class="export-btn" style="padding: 14px 16px; border-radius: 12px; background: transparent; color: rgba(0,0,0,0.6); border: 1px solid rgba(0,0,0,0.12); font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" title="Select/Deselect All Displayed Events">
+                        Select All
+                    </button>
+                    <button id="exportSelectedBtn" class="export-btn" style="padding: 14px 20px; border-radius: 12px; background: transparent; color: rgba(0,0,0,0.6); border: 1px solid rgba(0,0,0,0.12); font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" disabled title="Export Selected Events">
+                        Selected
                     </button>
                 </div>
                 <div id="discoveredEventsContainer">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🗓️</div>
-                        <h3>No Events Yet</h3>
-                        <p>Select a city and event type to discover events, or check back later for updates.</p>
                     </div>
                 </div>
             </div>
@@ -1557,35 +2032,10 @@
 
                 <div id="venuesContainer">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔍</div>
-                        <h3>Ready to Discover!</h3>
-                        <p>Select a city and configure your filters, then click "Discover" to find venues and sources that match your preferences.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Events Panel -->
-            <div class="events-panel">
-                <div class="events-header">
-                    <h2>🗓️</h2>
-                    <div class="export-buttons">
-                        <button id="exportSelectedBtn" class="export-btn" disabled title="Export Selected Events to Calendar File">
-                            🗓️
-                        </button>
-                        <button id="exportAllBtn" class="export-btn" disabled title="Export All Events to Calendar File">
-                            💾
-                        </button>
-                    </div>
-                </div>
-
-                <div id="eventsContainer">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🗓️</div>
-                        <h3>No Events Yet</h3>
-                        <p>Discover venues first, then scrape events from the selected venues.</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1616,6 +2066,68 @@
         let currentCity = null;
         let currentEventType = null;
         let currentPanel = 'venues'; // Track which panel is active
+        let statusSectionCollapsed = true; // Track status section state (default: collapsed)
+        let selectedEventTypeFilters = new Set(); // Track selected event type filters (can be multiple)
+
+        // Toggle status section
+        function toggleStatusSection() {
+            const statusSection = document.getElementById('statusSection');
+            if (statusSection) {
+                statusSectionCollapsed = !statusSectionCollapsed;
+                statusSection.classList.toggle('collapsed', statusSectionCollapsed);
+                // Save state to localStorage
+                localStorage.setItem('statusSectionCollapsed', statusSectionCollapsed);
+            }
+        }
+
+        // Toggle filter section (Venue Types, Platforms, Content, Price)
+        function toggleFilterSection(sectionId, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.toggle('collapsed');
+                // Save state to localStorage
+                const isCollapsed = section.classList.contains('collapsed');
+                localStorage.setItem(`filterSection_${sectionId}`, isCollapsed);
+            } else {
+                console.error(`Section ${sectionId} not found`);
+            }
+        }
+
+        // Make function globally accessible
+        window.toggleFilterSection = toggleFilterSection;
+
+        // Load filter section states from localStorage
+        function loadFilterSectionStates() {
+            const sections = ['venueTypesGroup', 'platformsGroup', 'contentGroup', 'priceGroup'];
+            sections.forEach(sectionId => {
+                const savedState = localStorage.getItem(`filterSection_${sectionId}`);
+                if (savedState === 'true') {
+                    const section = document.getElementById(sectionId);
+                    if (section) {
+                        section.classList.add('collapsed');
+                    }
+                }
+            });
+        }
+
+        // Load status section state from localStorage
+        function loadStatusSectionState() {
+            const savedState = localStorage.getItem('statusSectionCollapsed');
+            // Default to collapsed (true) if no saved state
+            if (savedState === null || savedState === 'true') {
+                statusSectionCollapsed = true;
+                const statusSection = document.getElementById('statusSection');
+                if (statusSection) {
+                    statusSection.classList.add('collapsed');
+                }
+            } else {
+                statusSectionCollapsed = false;
+            }
+        }
 
         // DOM elements
         const citySelect = document.getElementById('citySelect');
@@ -1684,7 +2196,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadCities();
             loadRealTimeStats();
+            loadStatusSectionState();
+            loadFilterSectionStates();
             setupEventListeners();
+            setupEventTypeFilters();
             
             // Initially hide source type controls until city is selected
             const platformLabel = document.querySelector('label[for="platformTypeInstagram"]');
@@ -1695,6 +2210,58 @@
             if (contentGroup) contentGroup.style.display = 'none';
         });
 
+        // Get current location and match to city
+        let currentCityId = null;
+        
+        async function getCurrentCity() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    console.log('Geolocation not supported');
+                    resolve(null);
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        try {
+                            const { latitude, longitude } = position.coords;
+                            console.log('Got location:', latitude, longitude);
+                            
+                            // Use OpenStreetMap Nominatim for reverse geocoding
+                            const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+                                {
+                                    headers: {
+                                        'User-Agent': 'Planner App'
+                                    }
+                                }
+                            );
+                            const data = await response.json();
+                            
+                            if (data && data.address) {
+                                const cityName = data.address.city || data.address.town || data.address.village || data.address.municipality;
+                                const stateName = data.address.state || data.address.region;
+                                const countryName = data.address.country;
+                                
+                                console.log('Detected location:', { cityName, stateName, countryName });
+                                resolve({ cityName, stateName, countryName });
+                            } else {
+                                resolve(null);
+                            }
+                        } catch (error) {
+                            console.error('Error in reverse geocoding:', error);
+                            resolve(null);
+                        }
+                    },
+                    (error) => {
+                        console.log('Geolocation error:', error.message);
+                        resolve(null);
+                    },
+                    { timeout: 5000, enableHighAccuracy: false }
+                );
+            });
+        }
+        
         // Load cities from API
         async function loadCities() {
             try {
@@ -1703,8 +2270,58 @@
                 const cities = await response.json();
                 console.log('Cities loaded:', cities.length);
                 
-                // Sort cities alphabetically by display name
+                // Try to get current location
+                const currentLocation = await getCurrentCity();
+                
+                // Find matching city
+                let matchedCity = null;
+                if (currentLocation) {
+                    matchedCity = cities.find(city => {
+                        const nameMatch = city.name.toLowerCase() === currentLocation.cityName?.toLowerCase() ||
+                                         city.name.toLowerCase().includes(currentLocation.cityName?.toLowerCase() || '') ||
+                                         currentLocation.cityName?.toLowerCase().includes(city.name.toLowerCase() || '');
+                        
+                        const stateMatch = !city.state || !currentLocation.stateName || 
+                                         city.state.toLowerCase() === currentLocation.stateName.toLowerCase() ||
+                                         city.state.toLowerCase().includes(currentLocation.stateName.toLowerCase());
+                        
+                        const countryMatch = city.country.toLowerCase() === currentLocation.countryName?.toLowerCase() ||
+                                           city.country === 'United States' && (currentLocation.countryName === 'United States' || currentLocation.countryName === 'USA');
+                        
+                        return nameMatch && (stateMatch || countryMatch);
+                    });
+                    
+                    if (matchedCity) {
+                        currentCityId = matchedCity.id;
+                        console.log('Matched current city:', matchedCity.display_name);
+                    }
+                }
+                
+                // Sort cities: current city first, then US cities (by state, then by name), then others alphabetically
                 const sortedCities = cities.sort((a, b) => {
+                    // Current city comes first
+                    if (a.id === currentCityId) return -1;
+                    if (b.id === currentCityId) return 1;
+                    
+                    // Check if city is in United States
+                    const aIsUS = a.country === 'United States' || a.country === 'USA' || a.country === 'US';
+                    const bIsUS = b.country === 'United States' || b.country === 'USA' || b.country === 'US';
+                    
+                    // US cities come first (after current city)
+                    if (aIsUS && !bIsUS) return -1;
+                    if (!aIsUS && bIsUS) return 1;
+                    
+                    // For US cities: sort by state first, then by city name
+                    if (aIsUS && bIsUS) {
+                        const aState = a.state || '';
+                        const bState = b.state || '';
+                        const stateCompare = aState.localeCompare(bState);
+                        if (stateCompare !== 0) return stateCompare;
+                        // Same state: sort by city name
+                        return a.name.localeCompare(b.name);
+                    }
+                    
+                    // For non-US cities, sort alphabetically by display name
                     return a.display_name.localeCompare(b.display_name);
                 });
                 
@@ -1712,10 +2329,22 @@
                 sortedCities.forEach(city => {
                     const option = document.createElement('option');
                     option.value = city.id;
-                    option.textContent = city.display_name;
+                    if (city.id === currentCityId) {
+                        option.textContent = `${city.display_name} • Current`;
+                        option.style.fontWeight = '500';
+                    } else {
+                        option.textContent = city.display_name;
+                    }
                     citySelect.appendChild(option);
                 });
-                console.log('Cities added to dropdown (sorted alphabetically)');
+                
+                // Auto-select current city if found
+                if (currentCityId) {
+                    citySelect.value = currentCityId;
+                    citySelect.dispatchEvent(new Event('change'));
+                }
+                
+                console.log('Cities added to dropdown (current location first, then US cities sorted by state)');
             } catch (error) {
                 console.error('Error loading cities:', error);
                 showNotification('Error loading cities', 'error');
@@ -1778,8 +2407,18 @@
         function setupEventListeners() {
             loadVenuesButton.addEventListener('click', handleLoadVenues);
             scrapeButton.addEventListener('click', handleScrapeEvents);
-            exportSelectedBtn.addEventListener('click', exportSelectedEvents);
-            exportAllBtn.addEventListener('click', exportAllEvents);
+            if (exportSelectedBtn) {
+                exportSelectedBtn.addEventListener('click', exportSelectedEvents);
+            }
+            if (exportAllBtn) {
+                exportAllBtn.addEventListener('click', exportAllEvents);
+            }
+            
+            // Select all events button
+            const selectAllEventsBtn = document.getElementById('selectAllEventsBtn');
+            if (selectAllEventsBtn) {
+                selectAllEventsBtn.addEventListener('click', selectAllDisplayedEvents);
+            }
             
             // Update status when selections change
             citySelect.addEventListener('change', function() {
@@ -1857,14 +2496,14 @@
                 // Load sources for this city
                 await loadSourcesForCity(cityId);
                 
-                // Load discovered events for this city
-                await loadDiscoveredEvents();
-                
-                // Load existing events from database for this city
+                // Load existing events from database for this city first
                 const timeRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
                 const eventType = document.getElementById('eventTypeSelectStep2')?.value || document.getElementById('eventTypeSelect')?.value || '';
                 // Load events even if eventType is empty (shows all event types)
                 await loadEvents(cityId, timeRange, eventType);
+                
+                // Load discovered events for this city (will trigger unified display)
+                await loadDiscoveredEvents();
             } else {
                 // Clear current city
                 currentCity = null;
@@ -1909,19 +2548,19 @@
                 'next_month': 'Next Month',
                 'custom': 'Custom Range'
             };
-            statusDateRange.textContent = dateRangeText[dateRange] || '-';
+            statusDateRange.textContent = dateRangeText[dateRange] || '';
             
             // Venue types
             const selectedVenueTypes = getSelectedVenueTypes();
-            statusVenueTypes.textContent = selectedVenueTypes.length > 0 ? `${selectedVenueTypes.length} types` : '-';
+            statusVenueTypes.textContent = selectedVenueTypes.length > 0 ? `${selectedVenueTypes.length} types` : '';
             
             // Platform types
             const selectedPlatformTypes = getSelectedPlatformTypes();
-            statusPlatforms.textContent = selectedPlatformTypes.length > 0 ? `${selectedPlatformTypes.length} platforms` : '-';
+            statusPlatforms.textContent = selectedPlatformTypes.length > 0 ? `${selectedPlatformTypes.length} platforms` : '';
             
             // Content types  
             const selectedContentTypes = getSelectedContentTypes();
-            statusContentTypes.textContent = selectedContentTypes.length > 0 ? `${selectedContentTypes.length} content types` : '-';
+            statusContentTypes.textContent = selectedContentTypes.length > 0 ? `${selectedContentTypes.length} content types` : '';
             
             // Price filter
             const selectedPriceFilters = getSelectedPriceFilters();
@@ -1932,14 +2571,14 @@
             } else if (selectedPriceFilters.includes('paid')) {
                 statusPriceFilter.textContent = 'Paid Only';
             } else {
-                statusPriceFilter.textContent = '-';
+                statusPriceFilter.textContent = '';
             }
             
             // Items found (will be updated when venues/sources are loaded)
-            statusItemsFound.textContent = allVenues.length > 0 ? `${allVenues.length} items` : '-';
+            statusItemsFound.textContent = allVenues.length > 0 ? `${allVenues.length} items` : '';
             
             // Selected count
-            statusSelected.textContent = selectedVenues.size > 0 ? selectedVenues.size : '-';
+            statusSelected.textContent = selectedVenues.size > 0 ? selectedVenues.size : '';
         }
 
         // Get selected venue types
@@ -2046,7 +2685,7 @@
             filteredVenues.forEach(venue => selectedVenues.add(venue.id));
             
             // Update status and display
-            statusItemsFound.textContent = filteredVenues.length > 0 ? `${filteredVenues.length} items` : '-';
+            statusItemsFound.textContent = filteredVenues.length > 0 ? `${filteredVenues.length} items` : '';
             statusSelected.textContent = selectedVenues.size;
             displayVenues(filteredVenues);
             
@@ -2146,7 +2785,7 @@
             loadVenuesButton.disabled = false;
             scrapeButton.disabled = true;
             exportSelectedBtn.disabled = true;
-            exportAllBtn.disabled = true;
+            if (exportAllBtn) exportAllBtn.disabled = true;
             
             showNotification('Filters cleared and reset to defaults', 'success');
         }
@@ -2313,7 +2952,7 @@
             // Update status display directly
             const statusSelected = document.getElementById('statusSelected');
             if (statusSelected) {
-                statusSelected.textContent = '-';
+                statusSelected.textContent = '';
             }
             
             console.log('Deselect all sources completed');
@@ -2927,7 +3566,7 @@
             sourceCard.classList.toggle('selected');
             
             // Update status
-            statusSelected.textContent = selectedSources.size > 0 ? selectedSources.size : '-';
+            statusSelected.textContent = selectedSources.size > 0 ? selectedSources.size : '';
             
             // Update scrape button
             scrapeButton.disabled = selectedSources.size === 0;
@@ -3382,7 +4021,7 @@
                 updateProgress(100, `Complete! Found ${events.length} events`);
                 
                 // Update export buttons
-                exportAllBtn.disabled = events.length === 0;
+                if (exportAllBtn) exportAllBtn.disabled = events.length === 0;
                 updateExportSelectedButton();
 
             } catch (error) {
@@ -3391,44 +4030,246 @@
             }
         }
 
-        // Display events
+        // Display events - now unified with discovered events
         function displayEvents(events) {
-            if (events.length === 0) {
-                eventsContainer.innerHTML = `
+            // Update allEvents and trigger unified display
+            allEvents = events;
+            displayUnifiedEvents();
+        }
+
+        // Unified display function that combines allEvents and discoveredEvents
+        function displayUnifiedEvents() {
+            const container = document.getElementById('discoveredEventsContainer');
+            const exportBtn = document.getElementById('exportDiscoveredEventsBtn');
+            const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+            
+            if (!container) {
+                console.error('discoveredEventsContainer not found');
+                return;
+            }
+            
+            // Combine both event sources and remove duplicates by ID
+            const combinedEvents = [];
+            const eventIds = new Set();
+            
+            console.log(`Displaying unified events: allEvents=${allEvents.length}, discoveredEvents=${discoveredEvents.length}`);
+            
+            [...allEvents, ...discoveredEvents].forEach(event => {
+                if (!eventIds.has(event.id)) {
+                    eventIds.add(event.id);
+                    combinedEvents.push(event);
+                }
+            });
+            
+            // Filter by event type if filters are selected
+            let filteredEvents = combinedEvents;
+            if (selectedEventTypeFilters.size > 0) {
+                filteredEvents = combinedEvents.filter(event => {
+                    // If no event_type, exclude it when filtering
+                    if (!event.event_type) return false;
+                    return selectedEventTypeFilters.has(event.event_type);
+                });
+            }
+            // If selectedEventTypeFilters is empty, show all events (no filtering)
+            
+            // Filter out past events, but keep current exhibitions
+            const todayForFilter = new Date();
+            todayForFilter.setHours(0, 0, 0, 0); // Reset to start of day for date comparison
+            
+            filteredEvents = filteredEvents.filter(event => {
+                if (!event.start_date) return false; // Exclude events without dates
+                
+                const startDate = new Date(event.start_date);
+                startDate.setHours(0, 0, 0, 0);
+                
+                // For exhibitions: keep if currently running (started but not ended)
+                if (event.event_type === 'exhibition') {
+                    if (event.end_date) {
+                        const endDate = new Date(event.end_date);
+                        endDate.setHours(23, 59, 59, 999); // End of day
+                        // Keep if it hasn't ended yet
+                        return endDate >= todayForFilter;
+                    } else {
+                        // No end date - keep if it has started
+                        return startDate <= todayForFilter;
+                    }
+                } else {
+                    // For other events: only show if start date is today or in the future
+                    // For events with time, check if the event time has passed today
+                    if (event.start_time && startDate.getTime() === todayForFilter.getTime()) {
+                        const [hours, minutes] = event.start_time.split(':').map(Number);
+                        const eventDateTime = new Date(todayForFilter);
+                        eventDateTime.setHours(hours, minutes, 0, 0);
+                        return eventDateTime >= new Date();
+                    }
+                    return startDate >= todayForFilter;
+                }
+            });
+            
+            console.log(`Combined events: ${combinedEvents.length} unique events, filtered: ${filteredEvents.length}`);
+            
+            if (filteredEvents.length === 0) {
+                container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔍</div>
-                        <h3>No Events Found</h3>
-                        <p>No ${currentEventType || 'events'} found for ${currentCity} in the selected time range. Try a different city or time range.</p>
                     </div>
                 `;
+                if (exportBtn) exportBtn.disabled = true;
+                if (exportSelectedBtn) exportSelectedBtn.disabled = true;
                 return;
             }
 
-            // Get current date and time range info
-            const now = new Date();
-            const currentDate = now.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            // Separate current exhibitions from upcoming events
+            const todayForGrouping = new Date();
+            todayForGrouping.setHours(0, 0, 0, 0);
+            
+            const currentExhibitions = [];
+            const upcomingEvents = [];
+            
+            filteredEvents.forEach(event => {
+                if (!event.start_date) {
+                    upcomingEvents.push(event);
+                    return;
+                }
+                
+                const startDate = new Date(event.start_date);
+                startDate.setHours(0, 0, 0, 0);
+                
+                // Check if it's a current exhibition (started in the past, still running)
+                const isCurrentExhibition = event.event_type === 'exhibition' && 
+                    startDate < todayForGrouping && 
+                    (!event.end_date || new Date(event.end_date) >= todayForGrouping);
+                
+                if (isCurrentExhibition) {
+                    currentExhibitions.push(event);
+                } else {
+                    upcomingEvents.push(event);
+                }
             });
-            const currentTime = now.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+            
+            // Sort current exhibitions by end date (soonest ending first) or alphabetically
+            currentExhibitions.sort((a, b) => {
+                if (a.end_date && b.end_date) {
+                    return new Date(a.end_date) - new Date(b.end_date);
+                }
+                if (a.end_date) return -1;
+                if (b.end_date) return 1;
+                return a.title.localeCompare(b.title);
             });
-
-            // Create date header
-            const dateHeader = `
-                <div class="events-header">
-                    <div class="events-date-info">
-                        <h3>🗓️ Events Found</h3>
-                        <p class="search-date">Search performed on ${currentDate} at ${currentTime}</p>
-                        <p class="events-count">Found ${events.length} ${currentEventType ? currentEventType + (events.length !== 1 ? 's' : '') : 'event' + (events.length !== 1 ? 's' : '')} in ${currentCity || 'selected city'}</p>
+            
+            // Sort upcoming events by date
+            upcomingEvents.sort((a, b) => {
+                const dateA = new Date(a.start_date + ' ' + (a.start_time || '00:00'));
+                const dateB = new Date(b.start_date + ' ' + (b.start_time || '00:00'));
+                return dateA - dateB;
+            });
+            
+            // Build HTML
+            let html = '';
+            
+            // Show current exhibitions first
+            if (currentExhibitions.length > 0) {
+                html += `
+                    <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
+                        Current
                     </div>
-                </div>
-            `;
+                `;
+                html += '<div class="events-list">';
+                currentExhibitions.forEach(event => {
+                    html += createDiscoveredEventCard(event);
+                });
+                html += '</div>';
+            }
+            
+            // Group upcoming events by date
+            const eventsByDate = {};
+            upcomingEvents.forEach(event => {
+                const dateKey = event.start_date || 'No Date';
+                if (!eventsByDate[dateKey]) {
+                    eventsByDate[dateKey] = [];
+                }
+                eventsByDate[dateKey].push(event);
+            });
+            
+            // Show upcoming events grouped by date
+            Object.keys(eventsByDate).sort().forEach(dateKey => {
+                const dateEvents = eventsByDate[dateKey];
+                const dateHeader = dateKey !== 'No Date' ? `
+                    <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
+                        ${formatDate(dateKey)}
+                    </div>
+                ` : '';
+                
+                html += dateHeader;
+                html += '<div class="events-list">';
+                dateEvents.forEach(event => {
+                    html += createDiscoveredEventCard(event);
+                });
+                html += '</div>';
+            });
 
-            eventsContainer.innerHTML = dateHeader + events.map(event => createEventCard(event)).join('');
+            container.innerHTML = html;
+            
+            // Update export buttons
+            if (exportBtn) exportBtn.disabled = filteredEvents.length === 0;
+            if (exportSelectedBtn) exportSelectedBtn.disabled = selectedEvents.size === 0;
+            
+            // Update select all button state
+            updateSelectAllButton();
+        }
+
+        // Handle event type filter button clicks
+        function setupEventTypeFilters() {
+            const filterButtons = document.querySelectorAll('.event-type-filter-btn');
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const eventType = this.dataset.eventType || '';
+                    
+                    // Toggle selection
+                    if (eventType === '') {
+                        // "All" button - clear all other selections
+                        selectedEventTypeFilters.clear();
+                        filterButtons.forEach(b => {
+                            b.classList.remove('active');
+                            b.style.background = 'rgba(255,255,255,0.6)';
+                            b.style.color = 'rgba(0,0,0,0.6)';
+                            b.style.fontWeight = '400';
+                        });
+                        this.classList.add('active');
+                        this.style.background = 'rgba(0,0,0,0.08)';
+                        this.style.color = 'rgba(0,0,0,0.87)';
+                        this.style.fontWeight = '500';
+                    } else {
+                        // Specific event type - toggle it
+                        if (selectedEventTypeFilters.has(eventType)) {
+                            selectedEventTypeFilters.delete(eventType);
+                            this.classList.remove('active');
+                            this.style.background = 'rgba(255,255,255,0.6)';
+                            this.style.color = 'rgba(0,0,0,0.6)';
+                            this.style.fontWeight = '400';
+                        } else {
+                            selectedEventTypeFilters.add(eventType);
+                            this.classList.add('active');
+                            this.style.background = 'rgba(0,0,0,0.08)';
+                            this.style.color = 'rgba(0,0,0,0.87)';
+                            this.style.fontWeight = '500';
+                        }
+                        
+                        // If any specific type is selected, deselect "All"
+                        if (selectedEventTypeFilters.size > 0) {
+                            const allBtn = document.querySelector('.event-type-filter-btn[data-event-type=""]');
+                            if (allBtn) {
+                                allBtn.classList.remove('active');
+                                allBtn.style.background = 'rgba(255,255,255,0.6)';
+                                allBtn.style.color = 'rgba(0,0,0,0.6)';
+                                allBtn.style.fontWeight = '400';
+                            }
+                        }
+                    }
+                    
+                    // Re-display events with filter
+                    displayUnifiedEvents();
+                });
+            });
         }
 
         // Helper function to get image URL (backend handles API key injection)
@@ -3539,16 +4380,32 @@
                 selectedEvents.add(eventId);
             }
             
-            // Update UI
+            // Update UI - check both possible selectors
             const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
-            eventCard.classList.toggle('selected');
+            if (eventCard) {
+                eventCard.classList.toggle('selected');
+                // Update checkbox state
+                const checkbox = eventCard.querySelector('.event-checkbox');
+                if (checkbox) {
+                    checkbox.checked = selectedEvents.has(eventId);
+                }
+            }
             
             updateExportSelectedButton();
+            updateSelectAllButton();
         }
 
         // Update export selected button
         function updateExportSelectedButton() {
-            exportSelectedBtn.disabled = selectedEvents.size === 0;
+            if (exportSelectedBtn) {
+                exportSelectedBtn.disabled = selectedEvents.size === 0;
+                // Update button text to show count
+                if (selectedEvents.size > 0) {
+                    exportSelectedBtn.textContent = `Selected (${selectedEvents.size})`;
+                } else {
+                    exportSelectedBtn.textContent = 'Selected';
+                }
+            }
         }
 
         // Add event to calendar
@@ -4055,9 +4912,20 @@
 
         // Export selected events
         function exportSelectedEvents() {
-            if (selectedEvents.size === 0) return;
+            if (selectedEvents.size === 0) {
+                showNotification('Please select at least one event to export', 'error');
+                return;
+            }
             
-            const selectedEventsList = allEvents.filter(event => selectedEvents.has(event.id));
+            // Get selected events from both sources
+            const allCombinedEvents = [...allEvents, ...discoveredEvents];
+            const selectedEventsList = allCombinedEvents.filter(event => selectedEvents.has(event.id));
+            
+            if (selectedEventsList.length === 0) {
+                showNotification('Selected events not found', 'error');
+                return;
+            }
+            
             exportToCalendar(selectedEventsList, 'selected');
         }
 
@@ -4322,14 +5190,16 @@
             }
 
             try {
+                // Use currentTimePeriod if set, otherwise default to 'this_week'
+                const timeRange = currentTimePeriod || 'this_week';
                 const params = new URLSearchParams({
                     city_id: cityId,
-                    time_range: currentTimePeriod,
+                    time_range: timeRange,
                     _t: Date.now() // Cache busting
                 });
                 
                 // Add custom dates if custom range is selected
-                if (currentTimePeriod === 'custom') {
+                if (timeRange === 'custom') {
                     const customStartDate = document.getElementById('discoveredStartDate')?.value;
                     const customEndDate = document.getElementById('discoveredEndDate')?.value;
                     
@@ -4353,79 +5223,120 @@
             }
         }
 
+        // Toggle select/deselect all currently displayed events
+        function selectAllDisplayedEvents() {
+            // Get all currently displayed events (after filtering)
+            const container = document.getElementById('discoveredEventsContainer');
+            if (!container) return;
+            
+            // Get all event cards that are currently visible
+            const visibleEventCards = container.querySelectorAll('.discovered-event-card[data-event-id]');
+            
+            if (visibleEventCards.length === 0) {
+                showNotification('No events to select', 'info');
+                return;
+            }
+            
+            // Check if all visible events are already selected
+            let allSelected = true;
+            const visibleEventIds = [];
+            visibleEventCards.forEach(card => {
+                const eventId = parseInt(card.dataset.eventId);
+                if (eventId) {
+                    visibleEventIds.push(eventId);
+                    if (!selectedEvents.has(eventId)) {
+                        allSelected = false;
+                    }
+                }
+            });
+            
+            if (allSelected) {
+                // Deselect all visible events
+                visibleEventIds.forEach(eventId => {
+                    selectedEvents.delete(eventId);
+                });
+                
+                visibleEventCards.forEach(card => {
+                    card.classList.remove('selected');
+                    const checkbox = card.querySelector('.event-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = false;
+                    }
+                });
+                
+                updateExportSelectedButton();
+                updateSelectAllButton();
+                showNotification(`Deselected ${visibleEventCards.length} event${visibleEventCards.length !== 1 ? 's' : ''}`, 'success');
+            } else {
+                // Select all visible events
+                visibleEventIds.forEach(eventId => {
+                    if (!selectedEvents.has(eventId)) {
+                        selectedEvents.add(eventId);
+                    }
+                });
+                
+                visibleEventCards.forEach(card => {
+                    const eventId = parseInt(card.dataset.eventId);
+                    if (eventId && selectedEvents.has(eventId)) {
+                        card.classList.add('selected');
+                        const checkbox = card.querySelector('.event-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    }
+                });
+                
+                updateExportSelectedButton();
+                updateSelectAllButton();
+                showNotification(`Selected ${visibleEventCards.length} event${visibleEventCards.length !== 1 ? 's' : ''}`, 'success');
+            }
+        }
+
+        // Update the select all button text based on current state
+        function updateSelectAllButton() {
+            const selectAllBtn = document.getElementById('selectAllEventsBtn');
+            if (!selectAllBtn) return;
+            
+            const container = document.getElementById('discoveredEventsContainer');
+            if (!container) return;
+            
+            const visibleEventCards = container.querySelectorAll('.discovered-event-card[data-event-id]');
+            if (visibleEventCards.length === 0) {
+                selectAllBtn.textContent = 'Select All';
+                return;
+            }
+            
+            // Check if all visible events are selected
+            let allSelected = true;
+            visibleEventCards.forEach(card => {
+                const eventId = parseInt(card.dataset.eventId);
+                if (eventId && !selectedEvents.has(eventId)) {
+                    allSelected = false;
+                }
+            });
+            
+            selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All';
+        }
+
         // Export all discovered events to calendar
         function exportDiscoveredEvents() {
-            if (discoveredEvents.length === 0) {
+            // Combine all events for export
+            const allCombinedEvents = [...allEvents, ...discoveredEvents];
+            const uniqueEvents = Array.from(new Map(allCombinedEvents.map(e => [e.id, e])).values());
+            
+            if (uniqueEvents.length === 0) {
                 showNotification('No events to export', 'error');
                 return;
             }
             
             // Use the existing exportToCalendar function
-            exportToCalendar(discoveredEvents, 'discovered');
+            exportToCalendar(uniqueEvents, 'discovered');
         }
         
-        // Update the discovered events display
+        // Update the discovered events display - now uses unified display
         function updateDiscoveredEventsDisplay(events) {
-            const container = document.getElementById('discoveredEventsContainer');
-            const exportBtn = document.getElementById('exportDiscoveredEventsBtn');
-            
-            // Update export button state
-            if (exportBtn) {
-                exportBtn.disabled = events.length === 0;
-                if (events.length > 0) {
-                    exportBtn.textContent = `📅 Export All ${events.length} Events to Calendar`;
-                } else {
-                    exportBtn.textContent = '📅 Export All Events to Calendar';
-                }
-            }
-            
-            if (events.length === 0) {
-                const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'selected city';
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🗓️</div>
-                        <h3>No Events Found</h3>
-                        <p>No events found for ${cityName} in ${currentTimePeriod.replace('_', ' ')}.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Group events by date
-            const eventsByDate = {};
-            events.forEach(event => {
-                const date = event.start_date;
-                if (!eventsByDate[date]) {
-                    eventsByDate[date] = [];
-                }
-                eventsByDate[date].push(event);
-            });
-
-            // Create HTML for events
-            let html = '';
-            Object.keys(eventsByDate).sort().forEach(date => {
-                const dateEvents = eventsByDate[date];
-                // Parse date correctly to avoid timezone issues
-                const [year, month, day] = date.split('-');
-                const dateObj = new Date(year, month - 1, day); // month is 0-indexed
-                const formattedDate = dateObj.toLocaleDateString('en-US', { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric',
-                    timeZone: 'UTC' // Force UTC to avoid timezone conversion
-                });
-                
-                html += `
-                    <div class="date-group">
-                        <h4 class="date-header">${formattedDate}</h4>
-                        <div class="events-list">
-                            ${dateEvents.map(event => createDiscoveredEventCard(event)).join('')}
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
+            discoveredEvents = events;
+            displayUnifiedEvents();
         }
 
         // Create a card for discovered events
@@ -4460,16 +5371,33 @@
             const isOnline = event.is_online || false;
             const locationDisplay = isOnline ? '🌐 Online Event' : (event.venue_name || event.start_location || 'Location TBD');
             
+            const imageUrl = getImageUrl(event.image_url);
+            const isSelected = selectedEvents.has(event.id);
+            const isNewEvent = event.is_new || false;
+            const isUpdatedEvent = event.is_updated || false;
+            
+            let cardClass = 'discovered-event-card';
+            if (isOnline) cardClass += ' online-event';
+            if (isNewEvent) cardClass += ' new-event';
+            if (isUpdatedEvent) cardClass += ' updated-event';
+            
             return `
-                <div class="discovered-event-card ${isOnline ? 'online-event' : ''}" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
-                    <div class="event-time">${timeStr}</div>
+                <div class="${cardClass} ${isSelected ? 'selected' : ''}" data-event-id="${event.id}" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
+                    ${imageUrl ? `
+                    <img src="${imageUrl}" alt="${event.title}" class="event-image-thumb" 
+                         onerror="this.style.display='none';">
+                    ` : '<div class="event-image-thumb" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.75rem;">📅</div>'}
                     <div class="event-info">
+                        <div class="event-time">${timeStr}</div>
                         <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}</div>
                         <div class="event-location">${locationDisplay}</div>
                         <div class="event-type">${event.event_type || 'Event'}</div>
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation();">
-                        <button class="action-btn calendar-btn" onclick="addDiscoveredEventToCalendar(${event.id})" title="Add to Calendar">
+                        <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 
+                               onchange="toggleEventSelection(${event.id}); event.stopPropagation();" 
+                               style="width: 18px; height: 18px; cursor: pointer; accent-color: #3b82f6; margin: 0; flex-shrink: 0;">
+                        <button class="action-btn calendar-btn" onclick="addDiscoveredEventToCalendar(${event.id}); event.stopPropagation();" title="Add to Calendar">
                             🗓️
                         </button>
                     </div>
@@ -4479,7 +5407,8 @@
 
         // Show discovered event details
         function showDiscoveredEventDetails(eventId) {
-            const event = discoveredEvents.find(e => e.id === eventId);
+            // Search in both discoveredEvents and allEvents
+            const event = discoveredEvents.find(e => e.id === eventId) || allEvents.find(e => e.id === eventId);
             if (!event) return;
 
             const content = generateDiscoveredEventDetailsHTML(event);
@@ -4627,7 +5556,8 @@
 
         // Add discovered event to calendar
         function addDiscoveredEventToCalendar(eventId) {
-            const event = discoveredEvents.find(e => e.id === eventId);
+            // Search in both discoveredEvents and allEvents
+            const event = discoveredEvents.find(e => e.id === eventId) || allEvents.find(e => e.id === eventId);
             if (!event) return;
 
             // Parse date correctly to avoid timezone issues
@@ -4661,13 +5591,6 @@
             }
         }
 
-        // Override the existing loadEvents function to also update discovered events
-        const originalLoadEvents = window.loadEvents;
-        window.loadEvents = async function(cityId, timeRange, eventType) {
-            await originalLoadEvents(cityId, timeRange, eventType);
-            // Also load discovered events when main events are loaded
-            loadDiscoveredEvents();
-        };
 
         // Initialize time selector when page loads
         document.addEventListener('DOMContentLoaded', () => {

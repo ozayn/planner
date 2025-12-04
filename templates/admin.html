@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Admin Dashboard - Event Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <metahttp-equiv="Expires" content="0">
@@ -15,11 +21,13 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: #f8f9fa;
             min-height: 100vh;
             padding: 20px;
             color: #495057;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .container {
@@ -32,50 +40,109 @@
         }
 
         .header {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 24px;
-            text-align: center;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 32px 40px;
+            color: #111827;
         }
 
         .header h1 {
-            font-size: 1.8rem;
-            margin-bottom: 8px;
-            font-weight: 500;
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            color: #111827;
+            line-height: 1.2;
         }
 
         .header p {
-            opacity: 0.7;
-            font-size: 1rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            margin: 0;
+        }
+
+        .back-home-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .back-home-link:hover {
+            color: #374151;
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .logout-link {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 4px;
+        }
+
+        .logout-link:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.15);
         }
 
         .nav {
-            background: white;
-            padding: 16px 24px;
-            border-bottom: 1px solid #e5e7eb;
+            background: transparent;
+            padding: 0 24px 16px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
             display: flex;
-            gap: 12px;
+            gap: 4px;
         }
 
         .nav button {
             background: transparent;
             color: #6b7280;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
 
         .nav button:hover {
-            background: #f3f4f6;
+            background: rgba(0, 0, 0, 0.04);
             color: #374151;
         }
 
         .nav button.active {
-            background: #dbeafe;
-            color: #1d4ed8;
+            background: transparent;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .nav button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #111827;
+            border-radius: 1px;
         }
 
         .content {
@@ -100,128 +167,391 @@
         /* Stats Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
 
         .stat-card {
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 10px;
+            padding: 28px 24px;
             text-align: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
         }
 
         .stat-card h3 {
             font-size: 2rem;
-            font-weight: 600;
-            color: #1d4ed8;
+            font-weight: 700;
+            color: #111827;
             margin-bottom: 4px;
+            letter-spacing: -0.04em;
+            line-height: 1;
         }
 
         .stat-card p {
             color: #6b7280;
-            font-size: 0.9rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+            margin: 0;
         }
 
         /* Search and Filter Controls */
         .search-controls {
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
         }
 
         .search-input {
             flex: 1;
             min-width: 200px;
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            padding: 10px 14px;
+            border: 1.5px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
             font-size: 0.9rem;
-            transition: border-color 0.2s ease;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .search-input:focus {
             outline: none;
             border-color: #3b82f6;
+            background: white;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
+        .search-input::placeholder {
+            color: #9ca3af;
+        }
+
         .filter-select {
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            padding: 10px 14px;
+            border: 1.5px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
             font-size: 0.9rem;
-            background: white;
+            background: rgba(255, 255, 255, 0.8);
             cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 150px;
         }
 
         .filter-select:focus {
             outline: none;
             border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
+        .filter-select:hover {
+            border-color: rgba(0, 0, 0, 0.15);
+            background: white;
+        }
+
+        /* Modern Minimal Button Styles */
         .filter-button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            background: transparent;
+            color: #3b82f6;
+            border: 1.5px solid #3b82f6;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #3b82f6;
+            transition: left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: -1;
         }
 
         .filter-button:hover {
-            background: #2563eb;
+            color: white;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .filter-button:hover::before {
+            left: 0;
+        }
+
+        .filter-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
         }
 
         .clear-filters {
-            background: #6b7280;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            background: transparent;
+            color: #6b7280;
+            border: 1.5px solid #e5e7eb;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .clear-filters:hover {
-            background: #4b5563;
+            color: #374151;
+            border-color: #d1d5db;
+            background: #f9fafb;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .clear-filters:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
         }
 
         .add-button {
-            background: #16a34a;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            background: rgba(22, 163, 74, 0.08);
+            color: #16a34a;
+            border: 1.5px solid rgba(22, 163, 74, 0.2);
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .add-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+            z-index: 1;
         }
 
         .add-button:hover {
-            background: #15803d;
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+
+        .add-button:hover::before {
+            left: 100%;
+        }
+
+        .add-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+        }
+
+        .add-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Override for colored add-buttons */
+        .add-button[style*="background: #8b5cf6"],
+        .add-button[style*="background:#8b5cf6"] {
+            background: rgba(139, 92, 246, 0.08) !important;
+            color: #8b5cf6 !important;
+            border-color: rgba(139, 92, 246, 0.2) !important;
+        }
+
+        .add-button[style*="background: #8b5cf6"]:hover,
+        .add-button[style*="background:#8b5cf6"]:hover {
+            background: #8b5cf6 !important;
+            color: white !important;
+            border-color: #8b5cf6 !important;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+        }
+
+        .add-button[style*="background: #f59e0b"],
+        .add-button[style*="background:#f59e0b"] {
+            background: rgba(245, 158, 11, 0.08) !important;
+            color: #f59e0b !important;
+            border-color: rgba(245, 158, 11, 0.2) !important;
+        }
+
+        .add-button[style*="background: #f59e0b"]:hover,
+        .add-button[style*="background:#f59e0b"]:hover {
+            background: #f59e0b !important;
+            color: white !important;
+            border-color: #f59e0b !important;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+        }
+
+        .add-button[style*="background: #10b981"],
+        .add-button[style*="background:#10b981"] {
+            background: rgba(16, 185, 129, 0.08) !important;
+            color: #10b981 !important;
+            border-color: rgba(16, 185, 129, 0.2) !important;
+        }
+
+        .add-button[style*="background: #10b981"]:hover,
+        .add-button[style*="background:#10b981"]:hover {
+            background: #10b981 !important;
+            color: white !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+        }
+
+        .add-button[style*="background: #ff8c42"],
+        .add-button[style*="background:#ff8c42"] {
+            background: rgba(255, 140, 66, 0.08) !important;
+            color: #ff8c42 !important;
+            border-color: rgba(255, 140, 66, 0.2) !important;
+        }
+
+        .add-button[style*="background: #ff8c42"]:hover,
+        .add-button[style*="background:#ff8c42"]:hover {
+            background: #ff8c42 !important;
+            color: white !important;
+            border-color: #ff8c42 !important;
+            box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3) !important;
+        }
+
+        .add-button[style*="background: #dc3545"],
+        .add-button[style*="background:#dc3545"] {
+            background: rgba(220, 53, 69, 0.08) !important;
+            color: #dc3545 !important;
+            border-color: rgba(220, 53, 69, 0.2) !important;
+        }
+
+        .add-button[style*="background: #dc3545"]:hover,
+        .add-button[style*="background:#dc3545"]:hover {
+            background: #dc3545 !important;
+            color: white !important;
+            border-color: #dc3545 !important;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+        }
+
+        .add-button[style*="background: #3b82f6"],
+        .add-button[style*="background:#3b82f6"] {
+            background: rgba(59, 130, 246, 0.08) !important;
+            color: #3b82f6 !important;
+            border-color: rgba(59, 130, 246, 0.2) !important;
+        }
+
+        .add-button[style*="background: #3b82f6"]:hover,
+        .add-button[style*="background:#3b82f6"]:hover {
+            background: #3b82f6 !important;
+            color: white !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+        }
+
+        /* Scraping button color overrides */
+        .add-button[style*="background: #e91e63"],
+        .add-button[style*="background:#e91e63"],
+        .add-button[style*="background: #17a2b8"],
+        .add-button[style*="background:#17a2b8"],
+        .add-button[style*="background: #6f42c1"],
+        .add-button[style*="background:#6f42c1"],
+        .add-button[style*="background: #20c997"],
+        .add-button[style*="background:#20c997"],
+        .add-button[style*="background: #fd7e14"],
+        .add-button[style*="background:#fd7e14"] {
+            background: rgba(0, 0, 0, 0.04) !important;
+            color: inherit !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .add-button[style*="background: #e91e63"]:hover,
+        .add-button[style*="background:#e91e63"]:hover {
+            background: #e91e63 !important;
+            color: white !important;
+            border-color: #e91e63 !important;
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3) !important;
+        }
+
+        .add-button[style*="background: #17a2b8"]:hover,
+        .add-button[style*="background:#17a2b8"]:hover {
+            background: #17a2b8 !important;
+            color: white !important;
+            border-color: #17a2b8 !important;
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3) !important;
+        }
+
+        .add-button[style*="background: #6f42c1"]:hover,
+        .add-button[style*="background:#6f42c1"]:hover {
+            background: #6f42c1 !important;
+            color: white !important;
+            border-color: #6f42c1 !important;
+            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3) !important;
+        }
+
+        .add-button[style*="background: #20c997"]:hover,
+        .add-button[style*="background:#20c997"]:hover {
+            background: #20c997 !important;
+            color: white !important;
+            border-color: #20c997 !important;
+            box-shadow: 0 4px 12px rgba(32, 201, 151, 0.3) !important;
+        }
+
+        .add-button[style*="background: #fd7e14"]:hover,
+        .add-button[style*="background:#fd7e14"]:hover {
+            background: #fd7e14 !important;
+            color: white !important;
+            border-color: #fd7e14 !important;
+            box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3) !important;
         }
 
         .filter-summary {
-            background: #e0f2fe;
-            border: 1px solid #81d4fa;
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            color: #0277bd;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.875rem;
+            color: #1e40af;
             margin-bottom: 16px;
             display: none;
+            backdrop-filter: blur(10px);
         }
 
         .filter-summary.active {
@@ -229,7 +559,9 @@
         }
 
         .filter-tag {
-            background: #3b82f6;
+            background: rgba(59, 130, 246, 0.12);
+            color: #1e40af;
+            border: 1px solid rgba(59, 130, 246, 0.2);
             color: white;
             padding: 2px 8px;
             border-radius: 4px;
@@ -573,23 +905,135 @@
         }
 
         /* Action Buttons */
+        /* Modern Minimal Table Action Buttons */
         .edit-btn, .delete-btn {
-            background: none;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 6px 10px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.875rem;
             margin: 0 2px;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            min-height: 32px;
         }
 
         .edit-btn:hover {
-            background: #dbeafe;
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
         }
 
         .delete-btn:hover {
-            background: #fee2e2;
+            background: rgba(220, 53, 69, 0.08);
+            border-color: rgba(220, 53, 69, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.15);
+        }
+
+        .edit-btn:active, .delete-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Minimal Button Variants */
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8125rem;
+            border-radius: 6px;
+            font-weight: 500;
+            min-height: 32px;
+            min-width: 32px;
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-danger:hover {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid rgba(107, 114, 128, 0.2);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-secondary:hover {
+            background: #6b7280;
+            color: white;
+            border-color: #6b7280;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(107, 114, 128, 0.25);
+        }
+
+        /* Icon-only minimal buttons for table actions */
+        .icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9375rem;
+            margin: 0 2px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            min-height: 32px;
+            line-height: 1;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .icon-btn:active {
+            transform: translateY(0);
+        }
+
+        .edit-icon-btn {
+            color: #3b82f6;
+        }
+
+        .edit-icon-btn:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
+        }
+
+        .delete-icon-btn {
+            color: #dc3545;
+        }
+
+        .delete-icon-btn:hover {
+            background: rgba(220, 53, 69, 0.08);
+            border-color: rgba(220, 53, 69, 0.2);
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.15);
+        }
+
+        .calendar-btn {
+            color: #ff8c42;
+        }
+
+        .calendar-btn:hover {
+            background: rgba(255, 140, 66, 0.08);
+            border-color: rgba(255, 140, 66, 0.2);
+            box-shadow: 0 2px 6px rgba(255, 140, 66, 0.15);
         }
 
         /* Loading States */
@@ -713,46 +1157,26 @@
         }
         
         .btn-primary {
-            background: #3b82f6;
-            color: white;
+            background: rgba(59, 130, 246, 0.08);
+            color: #3b82f6;
+            border: 1.5px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
+            background: #3b82f6;
             color: white;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
-        .btn-secondary:hover {
-            background: #4b5563;
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .search-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
 
-            .search-input {
-                min-width: auto;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .modal-content {
-                width: 95%;
-                margin: 5% auto;
-                max-height: 85vh;
-                overflow-y: auto;
-            }
-        }
-        
         /* Extracted Data Display Styles */
         .extracted-data-grid {
             display: grid;
@@ -783,14 +1207,391 @@
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
-        
+
+        /* Responsive Design */
         @media (max-width: 768px) {
+            body {
+                padding: 6px;
+            }
+
+            .container {
+                border-radius: 8px;
+            }
+
+            .header {
+                padding: 16px 12px;
+            }
+
+            .header > div {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+
+            .header > div > div:first-child {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px !important;
+                width: 100%;
+            }
+
+            .header > div > div:last-child {
+                width: 100%;
+                align-items: flex-start !important;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+                margin-bottom: 2px;
+            }
+
+            .header p {
+                font-size: 0.75rem;
+            }
+
+            .back-home-link,
+            .logout-link {
+                min-height: 40px;
+                display: inline-flex;
+                align-items: center;
+                padding: 6px 10px;
+                font-size: 0.8125rem;
+            }
+
+            .nav {
+                flex-wrap: wrap;
+                gap: 4px;
+                padding: 0 12px 12px 12px;
+            }
+
+            .nav button {
+                padding: 8px 12px;
+                font-size: 0.8125rem;
+                min-height: 40px;
+            }
+
+            .nav button.active::after {
+                bottom: -12px;
+            }
+
+            .content {
+                padding: 12px;
+            }
+
+            .data-section h2 {
+                font-size: 1.25rem !important;
+                margin-bottom: 12px !important;
+            }
+
+            /* Compact search and filter containers */
+            .search-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .search-input,
+            .filter-select {
+                min-width: auto;
+                padding: 10px;
+                font-size: 0.9375rem;
+                min-height: 40px;
+            }
+
+            /* Compact action button sections */
+            [style*="padding: 16px"] {
+                padding: 10px 12px !important;
+            }
+
+            [style*="margin-top: 12px"] {
+                margin-top: 8px !important;
+            }
+
+            [style*="gap: 8px"] {
+                gap: 6px !important;
+            }
+
+            h4[style*="margin: 0 0 12px"] {
+                margin: 0 0 8px !important;
+                font-size: 12px !important;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+
+            .stat-card {
+                padding: 20px 16px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.75rem;
+            }
+
+            .stat-card p {
+                font-size: 0.75rem;
+            }
+
+            .filter-summary {
+                padding: 8px 12px;
+                margin-bottom: 12px;
+                font-size: 0.8125rem;
+            }
+
+            .data-table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -12px;
+                padding: 0 12px;
+            }
+
+            .data-table {
+                min-width: 600px;
+                font-size: 0.8125rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 6px;
+            }
+
+            .action-btn {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+                min-height: 32px;
+                min-width: 32px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.875rem;
+                min-height: 40px;
+            }
+
+            .add-button {
+                padding: 8px 14px;
+                font-size: 0.8125rem;
+            }
+
+            .filter-button,
+            .clear-filters {
+                padding: 8px 16px;
+                font-size: 0.8125rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 5px auto;
+                max-height: 95vh;
+                overflow-y: auto;
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .modal-header h2 {
+                font-size: 1.125rem;
+            }
+
             .form-row {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
             
             .extracted-data-grid {
                 grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .form-group label {
+                font-size: 0.8125rem;
+                margin-bottom: 4px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                padding: 10px;
+                font-size: 0.9375rem;
+                min-height: 40px;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 16px;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+
+            .scroll-hint {
+                font-size: 0.75rem;
+                padding: 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 4px;
+            }
+
+            .header {
+                padding: 12px 10px;
+            }
+
+            .header h1 {
+                font-size: 1.125rem;
+            }
+
+            .header p {
+                font-size: 0.6875rem;
+            }
+
+            .content {
+                padding: 10px;
+            }
+
+            .nav {
+                padding: 0 10px 10px 10px;
+                gap: 2px;
+            }
+
+            .nav button {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+                min-height: 36px;
+            }
+
+            .nav button.active::after {
+                bottom: -10px;
+            }
+
+            .data-section h2 {
+                font-size: 1.125rem !important;
+                margin-bottom: 10px !important;
+            }
+
+            .stats-grid {
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 16px 12px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.5rem;
+            }
+
+            .stat-card p {
+                font-size: 0.6875rem;
+            }
+
+            .search-controls {
+                gap: 6px;
+            }
+
+            .search-input,
+            .filter-select {
+                padding: 8px;
+                font-size: 0.875rem;
+                min-height: 36px;
+            }
+
+            [style*="padding: 16px"] {
+                padding: 8px 10px !important;
+            }
+
+            [style*="padding: 10px 12px"] {
+                padding: 8px 10px !important;
+            }
+
+            .data-table {
+                font-size: 0.75rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 6px 4px;
+            }
+
+            .action-btn {
+                padding: 4px 8px;
+                font-size: 0.6875rem;
+                min-height: 28px;
+                min-width: 28px;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.8125rem;
+                min-height: 36px;
+            }
+
+            .add-button {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+
+            .filter-button,
+            .clear-filters {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+
+            .modal-content {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+                max-height: 100vh;
+                padding: 12px;
+            }
+
+            .modal-header h2 {
+                font-size: 1rem;
+            }
+
+            .form-group {
+                margin-bottom: 10px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                padding: 8px;
+                font-size: 0.875rem;
+                min-height: 36px;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Mobile touch devices */
+            button,
+            .btn,
+            .action-btn,
+            .nav button {
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+
+            button:active,
+            .btn:active,
+            .action-btn:active,
+            .nav button:active {
+                transform: scale(0.98);
+            }
+
+            /* Better scrolling on mobile */
+            .data-table-container {
+                -webkit-overflow-scrolling: touch;
             }
         }
     </style>
@@ -799,51 +1600,49 @@
     <div class="container">
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <a href="/" style="display: inline-flex; align-items: center; gap: 6px; color: #1976d2; text-decoration: none; font-size: 0.9rem; padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.3); transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.3)'">
-                        ← Back to Home
+                <div style="display: flex; align-items: center; gap: 24px;">
+                    <a href="/" class="back-home-link">
+                        <span style="opacity: 0.6;">←</span> Home
                     </a>
                     <div>
-                        <h1>🏛️ Event Planner Admin Dashboard</h1>
-                        <p>Complete management interface for Cities and Venues</p>
+                        <h1>Admin Dashboard</h1>
+                        <p>Manage cities, venues, sources, and events</p>
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">
-                        👤 {{ session.user_name or session.user_email or 'Local Development' }}
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                    <div style="color: #374151; font-size: 0.875rem; font-weight: 500;">
+                        {{ session.user_name or session.user_email or 'Local Development' }}
                     </div>
                     {% if request.host.startswith('localhost') or request.host.startswith('127.0.0.1') or request.host.startswith('10.') %}
-                    <div style="color: #f39c12; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                        🔧 Local Dev Mode (OAuth Bypassed)
+                    <div style="color: #f59e0b; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em;">
+                        Local Development
                     </div>
                     {% elif session.user_email %}
-                    <div style="color: #27ae60; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                        🔐 Authenticated via Google OAuth
+                    <div style="color: #10b981; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em;">
+                        Authenticated
                     </div>
                     {% else %}
-                    <div style="color: #e74c3c; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                        🔐 OAuth Required
+                    <div style="color: #ef4444; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em;">
+                        Authentication Required
                     </div>
                     {% endif %}
-                    <a href="/auth/logout" style="color: #e74c3c; text-decoration: none; font-size: 0.9rem;">
-                        🚪 Logout
-                    </a>
+                    <a href="/auth/logout" class="logout-link">Logout</a>
                 </div>
             </div>
         </div>
 
         <div class="nav">
-            <button onclick="showSection('overview')" class="nav-btn active" id="nav-overview">📊 Overview</button>
-            <button onclick="showSection('cities')" class="nav-btn" id="nav-cities">🏙️ Cities</button>
-            <button onclick="showSection('venues')" class="nav-btn" id="nav-venues">🏛️ Venues</button>
-            <button onclick="showSection('sources')" class="nav-btn" id="nav-sources">📱 Sources</button>
-            <button onclick="showSection('events')" class="nav-btn" id="nav-events">🎭 Events</button>
+            <button onclick="showSection('overview')" class="nav-btn active" id="nav-overview">Overview</button>
+            <button onclick="showSection('cities')" class="nav-btn" id="nav-cities">Cities</button>
+            <button onclick="showSection('venues')" class="nav-btn" id="nav-venues">Venues</button>
+            <button onclick="showSection('sources')" class="nav-btn" id="nav-sources">Sources</button>
+            <button onclick="showSection('events')" class="nav-btn" id="nav-events">Events</button>
         </div>
 
         <div class="content">
             <!-- Overview Section -->
             <div id="overview" class="data-section active">
-                <h2>📊 System Overview</h2>
+                <h2 style="font-size: 1.5rem; font-weight: 600; color: #111827; margin-bottom: 20px; letter-spacing: -0.03em;">Overview</h2>
                 <div class="stats-grid" id="statsGrid">
                     <div class="loading">Loading statistics...</div>
                 </div>
@@ -851,25 +1650,31 @@
 
             <!-- Cities Section -->
             <div id="cities" class="data-section">
-                <h2>🏙️ Cities Management</h2>
+                <h2 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em;">🏙️ Cities Management</h2>
                 
                 <!-- Search and Filter Controls -->
-                <div class="search-controls">
-                    <input type="text" id="citySearch" class="search-input" placeholder="🔍 Search cities...">
-                    <select id="cityCountryFilter" class="filter-select">
-                        <option value="">All Countries</option>
-                    </select>
-                    <select id="cityVenueFilter" class="filter-select">
-                        <option value="">All Venue Counts</option>
-                        <option value="0">None (0)</option>
-                        <option value="1-4">Few (1-4)</option>
-                        <option value="5+">Many (5+)</option>
-                    </select>
-                    <button onclick="applyCityFilters()" class="filter-button">🔍 Filter</button>
-                    <button onclick="clearCityFilters()" class="clear-filters">🗑️ Clear</button>
-                    <button onclick="openAddCityModal()" class="add-button">➕ Add City</button>
-                    <button onclick="exportCitiesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
-                        </div>
+                <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); margin-bottom: 16px;">
+                    <div class="search-controls">
+                        <input type="text" id="citySearch" class="search-input" placeholder="🔍 Search cities...">
+                        <select id="cityCountryFilter" class="filter-select">
+                            <option value="">All Countries</option>
+                        </select>
+                        <select id="cityVenueFilter" class="filter-select">
+                            <option value="">All Venue Counts</option>
+                            <option value="0">None (0)</option>
+                            <option value="1-4">Few (1-4)</option>
+                            <option value="5+">Many (5+)</option>
+                        </select>
+                        <button onclick="applyCityFilters()" class="filter-button">🔍 Filter</button>
+                        <button onclick="clearCityFilters()" class="clear-filters">🗑️ Clear</button>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button onclick="openAddCityModal()" class="add-button">➕ Add City</button>
+                        <button onclick="exportCitiesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
+                    </div>
+                </div>
 
                 <div id="cityFilterSummary" class="filter-summary"></div>
                 
@@ -900,45 +1705,51 @@
 
             <!-- Venues Section -->
             <div id="venues" class="data-section">
-                <h2>🏛️ Venues Management</h2>
+                <h2 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em;">🏛️ Venues Management</h2>
                 
                 <!-- Search and Filter Controls -->
-                <div class="search-controls">
-                    <input type="text" id="venueSearch" class="search-input" placeholder="🔍 Search venues...">
-                    <select id="venueTypeFilter" class="filter-select">
-                        <option value="">All Types</option>
-                            </select>
-                    <select id="venueCityFilter" class="filter-select">
-                        <option value="">All Cities</option>
-                            </select>
-                    <select id="venueFeeFilter" class="filter-select">
-                        <option value="">All Admission Fees</option>
-                        <option value="free">Free Admission</option>
-                        <option value="paid">Paid Admission</option>
-                    </select>
-                    <select id="venueClosureFilter" class="filter-select">
-                        <option value="">All Closure Status</option>
-                        <option value="open">🟢 Open</option>
-                        <option value="closed">🔴 Closed</option>
-                        <option value="unknown">🟡 Unknown</option>
-                    </select>
-                    <select id="venueSortBy" class="filter-select">
-                        <option value="">Sort by...</option>
-                        <option value="name">Name (A-Z)</option>
-                        <option value="name_desc">Name (Z-A)</option>
-                        <option value="updated_at_desc">Recently Updated</option>
-                        <option value="updated_at">Oldest Updated</option>
-                        <option value="created_at_desc">Recently Added</option>
-                        <option value="created_at">Oldest Added</option>
-                        <option value="venue_type">Type (A-Z)</option>
-                        <option value="city_name">City (A-Z)</option>
-                    </select>
-                    <button onclick="applyVenueFilters()" class="filter-button">🔍 Filter</button>
-                    <button onclick="clearVenueFilters()" class="clear-filters">🗑️ Clear</button>
-                    <button onclick="openAddVenueModal()" class="add-button">➕ Add Venue</button>
-                    <button onclick="manageJsonCopy()" class="add-button" style="background: #10b981;">📋 Manage venues.json</button>
-                    <button onclick="exportVenuesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
-                        </div>
+                <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); margin-bottom: 16px;">
+                    <div class="search-controls">
+                        <input type="text" id="venueSearch" class="search-input" placeholder="🔍 Search venues...">
+                        <select id="venueTypeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                                </select>
+                        <select id="venueCityFilter" class="filter-select">
+                            <option value="">All Cities</option>
+                                </select>
+                        <select id="venueFeeFilter" class="filter-select">
+                            <option value="">All Admission Fees</option>
+                            <option value="free">Free Admission</option>
+                            <option value="paid">Paid Admission</option>
+                        </select>
+                        <select id="venueClosureFilter" class="filter-select">
+                            <option value="">All Closure Status</option>
+                            <option value="open">🟢 Open</option>
+                            <option value="closed">🔴 Closed</option>
+                            <option value="unknown">🟡 Unknown</option>
+                        </select>
+                        <select id="venueSortBy" class="filter-select">
+                            <option value="">Sort by...</option>
+                            <option value="name">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="updated_at_desc">Recently Updated</option>
+                            <option value="updated_at">Oldest Updated</option>
+                            <option value="created_at_desc">Recently Added</option>
+                            <option value="created_at">Oldest Added</option>
+                            <option value="venue_type">Type (A-Z)</option>
+                            <option value="city_name">City (A-Z)</option>
+                        </select>
+                        <button onclick="applyVenueFilters()" class="filter-button">🔍 Filter</button>
+                        <button onclick="clearVenueFilters()" class="clear-filters">🗑️ Clear</button>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button onclick="openAddVenueModal()" class="add-button">➕ Add Venue</button>
+                        <button onclick="manageJsonCopy()" class="add-button" style="background: #10b981;">📋 Manage venues.json</button>
+                        <button onclick="exportVenuesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
+                    </div>
+                </div>
 
                 <div id="venueFilterSummary" class="filter-summary"></div>
                 
@@ -959,29 +1770,30 @@
 
             <!-- Events Section -->
             <div id="events" class="data-section">
-                <h2>🎭 Events Management</h2>
+                <h2 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em;">🎭 Events Management</h2>
                 
                 <!-- Search and Filter Controls -->
-                <div class="search-controls">
-                    <input type="text" id="eventSearch" class="search-input" placeholder="🔍 Search events...">
-                    <select id="eventTypeFilter" class="filter-select">
-                        <option value="">All Types</option>
-                    </select>
-                    <select id="eventCityFilter" class="filter-select">
-                        <option value="">All Cities</option>
-                    </select>
-                    <select id="eventVenueFilter" class="filter-select">
-                        <option value="">All Venues</option>
-                    </select>
-                    <button onclick="applyEventFilters()" class="filter-button">🔍 Filter</button>
-                    <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
-                </div>
-                
-                <!-- Action Buttons - Organized into sections -->
+                <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); margin-bottom: 16px;">
+                    <div class="search-controls">
+                        <input type="text" id="eventSearch" class="search-input" placeholder="🔍 Search events...">
+                        <select id="eventTypeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                        </select>
+                        <select id="eventCityFilter" class="filter-select">
+                            <option value="">All Cities</option>
+                        </select>
+                        <select id="eventVenueFilter" class="filter-select">
+                            <option value="">All Venues</option>
+                        </select>
+                        <button onclick="applyEventFilters()" class="filter-button">🔍 Filter</button>
+                        <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
+                    </div>
+                    
+                    <!-- Action Buttons - Organized into sections -->
                 <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
                     <!-- Create Events Section -->
-                    <div style="padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <h4 style="margin: 0 0 10px 0; color: #1e40af; font-size: 14px; font-weight: 600;">➕ Create Events</h4>
+                    <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.1);">
+                        <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">➕ Create Events</h4>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
                             <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL</button>
@@ -991,8 +1803,8 @@
                     </div>
                     
                     <!-- Bulk Actions Section -->
-                    <div style="padding: 12px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: 600;">⚡ Bulk Actions</h4>
+                    <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(220, 53, 69, 0.1);">
+                        <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">⚡ Bulk Actions</h4>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <button onclick="exportSelectedEventsToCalendar()" class="add-button" style="background: #ff8c42;" id="bulkExportBtn" disabled>📅 Export Selected</button>
                             <button onclick="deleteSelectedEvents()" class="add-button" style="background: #dc3545;" id="bulkDeleteBtn" disabled>🗑️ Delete Selected</button>
@@ -1000,8 +1812,8 @@
                     </div>
                     
                     <!-- Event Scraping Section -->
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
-                        <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size: 14px; font-weight: 600;">🕷️ Event Scraping</h4>
+                    <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 123, 255, 0.1);">
+                        <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">🕷️ Event Scraping</h4>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
                             <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
                             <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">🖼️ NGA</button>
@@ -1015,9 +1827,9 @@
                     </div>
                     
                     <!-- Quick URL Event Creator -->
-                    <div style="margin-top: 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <div style="margin-top: 0; padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.1);">
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            <label style="font-weight: 600; color: #1e40af; white-space: nowrap;">🔗 Quick Add from URL:</label>
+                            <label style="font-weight: 600; color: #374151; white-space: nowrap; font-size: 13px; letter-spacing: 0.3px;">🔗 Quick Add from URL:</label>
                             <input type="url" id="quickEventUrl" placeholder="Paste event URL (e.g., nga.gov/calendar/...)" 
                                    style="flex: 1; min-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;"
                                    onkeypress="if(event.key === 'Enter') quickCreateEventFromUrl();">
@@ -1051,26 +1863,32 @@
 
             <!-- Sources Section -->
             <div id="sources" class="data-section">
-                <h2>📱 Sources Management</h2>
+                <h2 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em;">📱 Sources Management</h2>
                 
                 <!-- Search and Filter Controls -->
-                <div class="search-controls">
-                    <input type="text" id="sourceSearch" class="search-input" placeholder="🔍 Search sources...">
-                    <select id="sourceTypeFilter" class="filter-select">
-                        <option value="">All Types</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="website">Website</option>
-                        <option value="eventbrite">Eventbrite</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="meetup">Meetup</option>
-                    </select>
-                    <select id="sourceCityFilter" class="filter-select">
-                        <option value="">All Cities</option>
-                    </select>
-                    <button onclick="applySourceFilters()" class="filter-button">🔍 Filter</button>
-                    <button onclick="clearSourceFilters()" class="clear-filters">🗑️ Clear</button>
-                    <button onclick="openAddSourceModal()" class="add-button">➕ Add Source</button>
-                    <button onclick="exportSourcesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
+                <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); margin-bottom: 16px;">
+                    <div class="search-controls">
+                        <input type="text" id="sourceSearch" class="search-input" placeholder="🔍 Search sources...">
+                        <select id="sourceTypeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="website">Website</option>
+                            <option value="eventbrite">Eventbrite</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="meetup">Meetup</option>
+                        </select>
+                        <select id="sourceCityFilter" class="filter-select">
+                            <option value="">All Cities</option>
+                        </select>
+                        <button onclick="applySourceFilters()" class="filter-button">🔍 Filter</button>
+                        <button onclick="clearSourceFilters()" class="clear-filters">🗑️ Clear</button>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button onclick="openAddSourceModal()" class="add-button">➕ Add Source</button>
+                        <button onclick="exportSourcesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
+                    </div>
                 </div>
 
                 <div id="sourceFilterSummary" class="filter-summary"></div>
@@ -2340,19 +3158,19 @@
                 statsGrid.innerHTML = 
                     '<div class="stat-card" onclick="showSection(\'cities\')" style="cursor: pointer;">' +
                         '<h3>' + citiesCount + '</h3>' +
-                        '<p>🏙️ Cities</p>' +
+                        '<p>Cities</p>' +
                     '</div>' +
                     '<div class="stat-card" onclick="showSection(\'venues\')" style="cursor: pointer;">' +
                         '<h3>' + venuesCount + '</h3>' +
-                        '<p>🏛️ Venues</p>' +
+                        '<p>Venues</p>' +
                     '</div>' +
                     '<div class="stat-card" onclick="showSection(\'sources\')" style="cursor: pointer;">' +
                         '<h3>' + sourcesCount + '</h3>' +
-                        '<p>📱 Sources</p>' +
+                        '<p>Sources</p>' +
                     '</div>' +
                     '<div class="stat-card" onclick="showSection(\'events\')" style="cursor: pointer;">' +
                         '<h3>' + eventsCount + '</h3>' +
-                        '<p>🎭 Events</p>' +
+                        '<p>Events</p>' +
                     '</div>';
                 
                 console.log('Statistics loaded successfully');
@@ -3032,9 +3850,7 @@
                     row += checkbox;
                     const calendarIcon = `<td style="text-align: center; padding: 8px;" onclick="event.stopPropagation();">
                         <button onclick="addEventToCalendar(${item.id})" 
-                                style="background: none; border: none; cursor: pointer; font-size: 16px; color: #ff8c42; padding: 4px; border-radius: 4px; transition: all 0.2s ease;"
-                                onmouseover="this.style.background='rgba(255, 140, 66, 0.1)'" 
-                                onmouseout="this.style.background='none'"
+                                class="icon-btn calendar-btn"
                                 title="Add to Calendar">
                             📅
                         </button>
@@ -3423,15 +4239,15 @@
         function generateActionButtons(id, tableType) {
             switch (tableType) {
                 case 'venues':
-                    return `<button onclick="event.stopPropagation(); editVenue(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="event.stopPropagation(); deleteVenue(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                    return `<button onclick="event.stopPropagation(); editVenue(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteVenue(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
                 case 'sources':
-                    return `<button onclick="event.stopPropagation(); editSource(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="event.stopPropagation(); deleteSource(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                    return `<button onclick="event.stopPropagation(); editSource(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteSource(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
                 case 'events':
-                    return `<button onclick="event.stopPropagation(); editEvent(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="event.stopPropagation(); deleteEvent(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                    return `<button onclick="event.stopPropagation(); editEvent(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteEvent(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
                 case 'cities':
-                    return `<button onclick="event.stopPropagation(); editCity(${id})" class="btn btn-sm btn-secondary">✏️</button> <button onclick="event.stopPropagation(); deleteCity(${id})" class="btn btn-sm btn-danger">🗑️</button>`;
+                    return `<button onclick="event.stopPropagation(); editCity(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteCity(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
                 default:
-                    return `<button onclick="event.stopPropagation(); editItem(${id})" class="btn btn-sm btn-secondary">✏️</button>`;
+                    return `<button onclick="event.stopPropagation(); editItem(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button>`;
             }
         }
         
