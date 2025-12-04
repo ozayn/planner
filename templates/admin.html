@@ -3536,25 +3536,41 @@
         
         // Load data for sections
         function loadSectionData(sectionName) {
+            // For events, if data is already loaded, just render the table
+            if (sectionName === 'events' && window.allEvents && window.allEvents.length > 0) {
+                renderEventsTable();
+                return;
+            }
+            
             switch(sectionName) {
                 case 'overview':
                     loadOverviewWithTimeout();
                     break;
                 case 'cities':
-                    loadCities();
+                    if (!window.allCities || window.allCities.length === 0) {
+                        loadCities();
+                    } else {
+                        renderCitiesTable();
+                    }
                     break;
                 case 'venues':
-                    loadVenues();
+                    if (!window.allVenues || window.allVenues.length === 0) {
+                        loadVenues();
+                    } else {
+                        renderVenuesTable();
+                    }
                     break;
                 case 'events':
                     loadEvents();
                     break;
                 case 'sources':
-                    loadSources();
+                    if (!window.allSources || window.allSources.length === 0) {
+                        loadSources();
+                    } else {
+                        renderSourcesTable();
+                    }
                     break;
             }
-            
-            console.log('Section switched successfully');
         }
         
         // Load cities data
