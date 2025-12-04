@@ -4079,7 +4079,7 @@
                     </td>`;
                     row += checkbox;
                     const calendarIcon = `<td style="text-align: center; padding: 8px;" onclick="event.stopPropagation();">
-                        <button onclick="addEventToCalendar(${item.id})" 
+                        <button onclick="event.stopPropagation(); addEventToCalendar(${item.id})" 
                                 class="icon-btn calendar-btn"
                                 title="Add to Calendar">
                             📅
@@ -4100,8 +4100,8 @@
                     }
                 });
                 
-                // Add actions column
-                row += `<td>${generateActionButtons(item.id, tableType)}</td>`;
+                // Add actions column - prevent row click when clicking action buttons
+                row += `<td onclick="event.stopPropagation();">${generateActionButtons(item.id, tableType)}</td>`;
                 
                 row += '</tr>';
                 return row;
@@ -4245,14 +4245,14 @@
             switch (fieldName) {
                 case 'website_url':
                 case 'url':
-                    return `<a href="${value}" target="_blank" style="color: #1976d2; text-decoration: none;">${value}</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">${value}</a>`;
                 
                 case 'youtube_url':
                     // Handle both full URLs and channel names
                     if (value.startsWith('@')) {
                         // It's already a channel handle like @username
                         const channel = value.substring(1); // Remove @
-                        return `<a href="https://www.youtube.com/@${channel}" target="_blank" style="color: #FF0000; text-decoration: none;">${value}</a>`;
+                        return `<a href="https://www.youtube.com/@${channel}" target="_blank" onclick="event.stopPropagation();" style="color: #FF0000; text-decoration: none;">${value}</a>`;
                     } else if (value.includes('youtube.com')) {
                         // It's a full URL - extract the meaningful part
                         const channelMatch = value.match(/youtube\.com\/(?:c\/|user\/|@)?([^\/\?]+)/);
@@ -4260,70 +4260,75 @@
                             const channel = channelMatch[1];
                             // Clean up the channel name for display
                             const displayName = channel.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            return `<a href="${value}" target="_blank" style="color: #FF0000; text-decoration: none;">${displayName}</a>`;
+                            return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #FF0000; text-decoration: none;">${displayName}</a>`;
                         }
                     }
-                    return `<a href="${value}" target="_blank" style="color: #FF0000; text-decoration: none;">YouTube</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #FF0000; text-decoration: none;">YouTube</a>`;
                 
                 case 'tiktok_url':
                     // Handle both full URLs and usernames
                     if (value.startsWith('@')) {
                         // It's already a username like @username
                         const username = value.substring(1); // Remove @
-                        return `<a href="https://www.tiktok.com/@${username}" target="_blank" style="color: #000000; text-decoration: none;">${value}</a>`;
+                        return `<a href="https://www.tiktok.com/@${username}" target="_blank" onclick="event.stopPropagation();" style="color: #000000; text-decoration: none;">${value}</a>`;
                     } else if (value.includes('tiktok.com')) {
                         // It's a full URL
                         const tiktokMatch = value.match(/tiktok\.com\/@([^\/\?]+)/);
                         if (tiktokMatch) {
                             const username = tiktokMatch[1];
-                            return `<a href="${value}" target="_blank" style="color: #000000; text-decoration: none;">@${username}</a>`;
+                            return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #000000; text-decoration: none;">@${username}</a>`;
                         }
                     }
-                    return `<a href="${value}" target="_blank" style="color: #000000; text-decoration: none;">TikTok</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #000000; text-decoration: none;">TikTok</a>`;
                 
                 case 'facebook_url':
                     // Extract page name from Facebook URL
                     const facebookMatch = value.match(/facebook\.com\/([^\/\?]+)/);
                     if (facebookMatch) {
                         const pageName = facebookMatch[1];
-                        return `<a href="${value}" target="_blank" style="color: #1877F2; text-decoration: none;">${pageName}</a>`;
+                        return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1877F2; text-decoration: none;">${pageName}</a>`;
                     }
-                    return `<a href="${value}" target="_blank" style="color: #1877F2; text-decoration: none;">Facebook</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1877F2; text-decoration: none;">Facebook</a>`;
                 
                 case 'instagram_url':
                     // Handle both full URLs and @handles
                     if (value.startsWith('@')) {
                         // It's already a handle like @username
                         const handle = value.substring(1); // Remove @
-                        return `<a href="https://www.instagram.com/${handle}/" target="_blank" style="color: #E4405F; text-decoration: none;">${value}</a>`;
+                        return `<a href="https://www.instagram.com/${handle}/" target="_blank" onclick="event.stopPropagation();" style="color: #E4405F; text-decoration: none;">${value}</a>`;
                     } else if (value.includes('instagram.com')) {
                         // It's a full URL
                         const instagramMatch = value.match(/instagram\.com\/([^\/\?]+)/);
                         if (instagramMatch) {
                             const handle = instagramMatch[1];
-                            return `<a href="https://www.instagram.com/${handle}/" target="_blank" style="color: #E4405F; text-decoration: none;">@${handle}</a>`;
+                            return `<a href="https://www.instagram.com/${handle}/" target="_blank" onclick="event.stopPropagation();" style="color: #E4405F; text-decoration: none;">@${handle}</a>`;
                         }
                     }
-                    return `<a href="${value}" target="_blank" style="color: #E4405F; text-decoration: none;">Instagram</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #E4405F; text-decoration: none;">Instagram</a>`;
                 
                 case 'twitter_url':
                     // Handle both full URLs and @handles
                     if (value.startsWith('@')) {
                         // It's already a handle like @username
                         const handle = value.substring(1); // Remove @
-                        return `<a href="https://twitter.com/${handle}" target="_blank" style="color: #1DA1F2; text-decoration: none;">${value}</a>`;
+                        return `<a href="https://twitter.com/${handle}" target="_blank" onclick="event.stopPropagation();" style="color: #1DA1F2; text-decoration: none;">${value}</a>`;
                     } else if (value.includes('twitter.com')) {
                         // It's a full URL
                         const twitterMatch = value.match(/twitter\.com\/([^\/\?]+)/);
                         if (twitterMatch) {
                             const handle = twitterMatch[1];
-                            return `<a href="https://twitter.com/${handle}" target="_blank" style="color: #1DA1F2; text-decoration: none;">@${handle}</a>`;
+                            return `<a href="https://twitter.com/${handle}" target="_blank" onclick="event.stopPropagation();" style="color: #1DA1F2; text-decoration: none;">@${handle}</a>`;
                         }
                     }
-                    return `<a href="${value}" target="_blank" style="color: #1DA1F2; text-decoration: none;">Twitter</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1DA1F2; text-decoration: none;">Twitter</a>`;
                 
                 case 'image_url':
-                    return `<a href="${value}" target="_blank" style="color: #1976d2; text-decoration: none;">View</a>`;
+                    // Check if it's a photo reference (long string without http)
+                    if (value && !value.startsWith('http') && value.length > 50) {
+                        // It's likely a Google Maps photo reference - use the image API endpoint
+                        return `<a href="/api/image/${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">View</a>`;
+                    }
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">View</a>`;
                 
                 case 'handle':
                     if (value.startsWith('@') && value.includes('instagram')) {
