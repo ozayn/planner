@@ -4077,13 +4077,13 @@
                 // Make all table rows clickable (double-click)
                 let rowClickable = '';
                 if (tableType === 'events') {
-                    rowClickable = 'ondblclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showEventDetails(event, ' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'venues') {
-                    rowClickable = 'ondblclick="showVenueDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showVenueDetails(event, ' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
-                    rowClickable = 'ondblclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showCityDetails(event, ' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
-                    rowClickable = 'ondblclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showSourceDetails(event, ' + item.id + ')" style="cursor: pointer;"';
                 }
                 let row = `<tr id="${tableType}-row-${item.id}" ${rowClickable}>`;
                 
@@ -7078,10 +7078,10 @@
         }
         
         // Image Upload Functions
-        function showEventDetails(eventId) {
+        function showEventDetails(clickEvent, eventId) {
             // Prevent if clicking on a link or button
-            if (event && event.target) {
-                const target = event.target;
+            if (clickEvent && clickEvent.target) {
+                const target = clickEvent.target;
                 const isLink = target.tagName === 'A' || target.closest('a');
                 const isButton = target.tagName === 'BUTTON' || target.closest('button');
                 if (isLink || isButton) {
@@ -7111,10 +7111,10 @@
             document.getElementById('eventDetailsModal').style.display = 'block';
         }
         
-        function showVenueDetails(venueId) {
+        function showVenueDetails(clickEvent, venueId) {
             // Prevent if clicking on a link or button
-            if (event && event.target) {
-                const target = event.target;
+            if (clickEvent && clickEvent.target) {
+                const target = clickEvent.target;
                 const isLink = target.tagName === 'A' || target.closest('a');
                 const isButton = target.tagName === 'BUTTON' || target.closest('button');
                 if (isLink || isButton) {
@@ -7148,10 +7148,10 @@
             }, 100);
         }
         
-        function showCityDetails(cityId) {
+        function showCityDetails(clickEvent, cityId) {
             // Prevent if clicking on a link or button
-            if (event && event.target) {
-                const target = event.target;
+            if (clickEvent && clickEvent.target) {
+                const target = clickEvent.target;
                 const isLink = target.tagName === 'A' || target.closest('a');
                 const isButton = target.tagName === 'BUTTON' || target.closest('button');
                 if (isLink || isButton) {
@@ -7175,10 +7175,10 @@
             document.getElementById('cityDetailsModal').style.display = 'block';
         }
         
-        function showSourceDetails(sourceId) {
+        function showSourceDetails(clickEvent, sourceId) {
             // Prevent if clicking on a link or button
-            if (event && event.target) {
-                const target = event.target;
+            if (clickEvent && clickEvent.target) {
+                const target = clickEvent.target;
                 const isLink = target.tagName === 'A' || target.closest('a');
                 const isButton = target.tagName === 'BUTTON' || target.closest('button');
                 if (isLink || isButton) {
