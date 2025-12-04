@@ -4081,7 +4081,7 @@
                 } else if (tableType === 'venues') {
                     rowClickable = 'onclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
-                    rowClickable = 'onclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'onclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showCityDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
                     rowClickable = 'onclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
                 }
