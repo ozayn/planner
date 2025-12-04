@@ -3294,6 +3294,9 @@
         </div>
     </div>
 
+    <!-- Unified Calendar Export Module -->
+    <script src="/static/js/calendar-export.js"></script>
+
     <script>
         console.log('Minimal script test - starting...');
         
@@ -5455,83 +5458,8 @@
                     return;
                 }
                 
-                // Determine calendar location - prioritize venue address for NGA events
-                let calendarLocation = '';
-                
-                // Check if this is an NGA or Hirshhorn event
-                const venueNameLower = (event.venue_name || '').toLowerCase();
-                const titleLower = (event.title || '').toLowerCase();
-                const urlLower = (event.url || '').toLowerCase();
-                const startLocLower = (event.start_location || '').toLowerCase();
-                
-                const hasNGAVenueName = venueNameLower.includes('national gallery') || venueNameLower.includes('nga');
-                const hasNGATitle = titleLower.includes('national gallery') || titleLower.includes('finding awe');
-                const hasNGAUrl = urlLower.includes('nga.gov');
-                const hasWestOrEastBuilding = startLocLower.includes('west building') || startLocLower.includes('east building');
-                const hasGalleryOrFloor = startLocLower.includes('gallery') || startLocLower.includes('floor') || startLocLower.includes('main floor') || startLocLower.includes('mezzanine') || startLocLower.includes('terrace');
-                const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
-                const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation;
-                
-                // Detect Hirshhorn events
-                const hasHirshhornVenueName = venueNameLower.includes('hirshhorn');
-                const hasHirshhornTitle = titleLower.includes('hirshhorn');
-                const hasHirshhornUrl = urlLower.includes('hirshhorn.si.edu');
-                const isHirshhornEvent = hasHirshhornVenueName || hasHirshhornTitle || hasHirshhornUrl;
-                
-                // Detect Webster's Bookstore Cafe events
-                const hasWebstersVenueName = venueNameLower.includes("webster's") || venueNameLower.includes('websters');
-                const hasWebstersTitle = titleLower.includes("webster's") || titleLower.includes('websters');
-                const hasWebstersUrl = urlLower.includes('webstersbooksandcafe.com');
-                const isWebstersEvent = hasWebstersVenueName || hasWebstersTitle || hasWebstersUrl;
-                
-                // Build location using <location> and <address> tags for Google Calendar
-                const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
-                const hasVenueAddress = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0;
-                
-                // For NGA and Hirshhorn events, use format: "Venue Name, Address" (comma-separated)
-                if (isNGAEvent || isHirshhornEvent) {
-                    if (hasVenueName && hasVenueAddress) {
-                        // Use format: "venue name, address" (comma-separated)
-                        calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
-                    } else if (hasVenueAddress) {
-                        calendarLocation = event.venue_address.trim();
-                    } else if (hasVenueName) {
-                        // Use venue name with hardcoded address as fallback
-                        if (isNGAEvent) {
-                            calendarLocation = `${event.venue_name.trim()}, Constitution Ave NW, Washington, DC 20565, USA`;
-                        } else if (isHirshhornEvent) {
-                            calendarLocation = `${event.venue_name.trim()}, Independence Ave SW, Washington, DC 20560, USA`;
-                        } else {
-                            calendarLocation = event.venue_name.trim();
-                        }
-                    } else {
-                        // Final fallback to known venue name + address
-                        if (isNGAEvent) {
-                            calendarLocation = 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA';
-                        } else if (isHirshhornEvent) {
-                            calendarLocation = 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA';
-                        } else {
-                            calendarLocation = '';
-                        }
-                    }
-                } else if (isWebstersEvent) {
-                    // For Webster's Cafe events, use comma-separated format
-                    calendarLocation = "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA";
-                } else {
-                    // For all other events, use <location> and <address> tags if both are available
-                    if (hasVenueName && hasVenueAddress) {
-                        calendarLocation = `<location>${event.venue_name.trim()}</location><address>${event.venue_address.trim()}</address>`;
-                    } else if (hasVenueAddress) {
-                        calendarLocation = `<address>${event.venue_address.trim()}</address>`;
-                    } else if (hasVenueName) {
-                        calendarLocation = `<location>${event.venue_name.trim()}</location>`;
-                        if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
-                            calendarLocation += `<address>${event.city_name.trim()}</address>`;
-                        }
-                    } else {
-                        calendarLocation = event.start_location || '';
-                    }
-                }
+                // Use unified module to get calendar location
+                const calendarLocation = CalendarExport.getCalendarLocation(event);
                 
                 // Prepare calendar event data
                 const calendarData = {
@@ -5635,260 +5563,33 @@
             }
         }
         
+        // Generate mobile calendar URL (using unified module)
         function generateMobileCalendarUrl(eventData) {
-            // Generate mobile calendar app URLs
-            const startDate = eventData.start_date;
-            const endDate = eventData.end_date || eventData.start_date;
-            const startTime = eventData.start_time;
-            const endTime = eventData.end_time;
-            const location = eventData.location;
-            const title = eventData.title;
-            const description = eventData.description;
-            
-            // Format dates for mobile calendar URLs
-            const formatDateForMobile = (dateStr) => {
-                // Parse date correctly to avoid timezone issues
-                const [year, month, day] = dateStr.split('-').map(Number);
-                const date = new Date(year, month - 1, day); // month is 0-indexed
-                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-            };
+            // Use unified module to parse dates and generate URL
+            const { startDate, endDate, isAllDay } = CalendarExport.parseEventDates(eventData);
+            const calendarUrl = CalendarExport.generateGoogleCalendarUrl(eventData, startDate, endDate, isAllDay);
             
             // Detect iOS vs Android
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const isAndroid = /Android/.test(navigator.userAgent);
             
             if (isIOS) {
-                // iOS Calendar URL scheme - use local time format (no timezone suffix)
-                if (startTime && endTime) {
-                    const startDateTime = `${startDate.replace(/-/g, '')}T${startTime.replace(/:/g, '')}`;
-                    const endDateTime = `${endDate.replace(/-/g, '')}T${endTime.replace(/:/g, '')}`;
-                    return `webcal://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
-                } else {
-                    // All-day event
-                    return `webcal://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate.replace(/-/g, '')}/${endDate.replace(/-/g, '')}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
-                }
+                return calendarUrl.replace('https://', 'webcal://');
             } else if (isAndroid) {
-                // Android Calendar URL scheme - use local time format (no timezone suffix)
-                if (startTime && endTime) {
-                    const startDateTime = `${startDate.replace(/-/g, '')}T${startTime.replace(/:/g, '')}`;
-                    const endDateTime = `${endDate.replace(/-/g, '')}T${endTime.replace(/:/g, '')}`;
-                    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
-                } else {
-                    // All-day event
-                    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate.replace(/-/g, '')}/${endDate.replace(/-/g, '')}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(location)}`;
-                }
+                return calendarUrl;
             }
             
             return null; // Not mobile or unsupported
         }
         
+        // Generate calendar URL (using unified module)
         function generateCalendarUrl(eventData) {
-            // Generate Google Calendar URL with proper date/time format
-            const startDate = eventData.start_date;
-            const endDate = eventData.end_date || eventData.start_date;
-            
-            // Format dates for Google Calendar (YYYYMMDD format)
-            const formatDateForGoogle = (dateStr) => {
-                return dateStr.replace(/-/g, '');
-            };
-            
-            // Format times for Google Calendar (HHMMSS format)
-            const formatTimeForGoogle = (timeStr) => {
-                if (!timeStr) return '';
-                // Convert "04:00 PM" to "040000" format
-                // Remove AM/PM and colons, then add seconds if missing
-                let formatted = timeStr.replace(/[:\s]/g, '');
-                formatted = formatted.replace(/AM|PM/gi, '');
-                
-                // Add seconds if not present (should be 6 digits total)
-                if (formatted.length === 4) {
-                    formatted += '00';
-                }
-                
-                return formatted;
-            };
-            
-            let startDateTime, endDateTime;
-            
-            if (eventData.start_time && eventData.end_time) {
-                // Event with specific times - use city's timezone
-                const cityTimezone = eventData.city_timezone || 'America/New_York'; // Default to Eastern if not specified
-                startDateTime = `${formatDateForGoogle(startDate)}T${formatTimeForGoogle(eventData.start_time)}`;
-                endDateTime = `${formatDateForGoogle(endDate)}T${formatTimeForGoogle(eventData.end_time)}`;
-            } else {
-                // All-day event
-                startDateTime = formatDateForGoogle(startDate);
-                endDateTime = formatDateForGoogle(endDate);
-            }
-            
-            // Debug logging
-            console.log('Calendar URL Debug:', {
-                originalData: eventData,
-                formattedStart: startDateTime,
-                formattedEnd: endDateTime
-            });
-            
-            // Build enhanced description with social media and additional information
-            let descriptionParts = [];
-            
-            // Add specific meeting location to the beginning of description if available
-            // This is for cases where the location is a specific room/gallery within a venue
-            if (eventData.start_location && eventData.start_location.trim()) {
-                const startLocLower = eventData.start_location.toLowerCase().trim();
-                const venueLower = (eventData.venue_name || '').toLowerCase().trim();
-                
-                // Add if start_location is different from venue name
-                // This handles cases like "West Building Main Floor, Gallery 61" vs "National Gallery of Art"
-                if (!venueLower || (startLocLower !== venueLower && !startLocLower.includes(venueLower) && !venueLower.includes(startLocLower))) {
-                    descriptionParts.unshift(`Meeting Location: ${eventData.start_location.trim()}`);
-                }
-            }
-            
-            if (eventData.description) {
-                descriptionParts.push(eventData.description);
-            }
-            
-            // Add event type
-            if (eventData.event_type) {
-                descriptionParts.push(`Event Type: ${eventData.event_type.charAt(0).toUpperCase() + eventData.event_type.slice(1)}`);
-            }
-            
-            // Add end location if different from start location
-            if (eventData.end_location && eventData.end_location !== eventData.start_location) {
-                descriptionParts.push(`End Location: ${eventData.end_location}`);
-            }
-            
-            // Add social media information
-            if (eventData.social_media_platform && eventData.social_media_handle) {
-                const platformName = eventData.social_media_platform.charAt(0).toUpperCase() + eventData.social_media_platform.slice(1);
-                descriptionParts.push(`${platformName}: @${eventData.social_media_handle}`);
-            }
-            
-            if (eventData.social_media_page_name) {
-                descriptionParts.push(`Page/Group: ${eventData.social_media_page_name}`);
-            }
-            
-            if (eventData.social_media_posted_by) {
-                descriptionParts.push(`Posted By: ${eventData.social_media_posted_by}`);
-            }
-            
-            if (eventData.social_media_url) {
-                descriptionParts.push(`Social Media URL: ${eventData.social_media_url}`);
-            }
-            
-            // Add website URL
-            if (eventData.url) {
-                descriptionParts.push(`Website: ${eventData.url}`);
-            }
-            
-            // Add source information
-            if (eventData.source) {
-                descriptionParts.push(`Source: ${eventData.source}`);
-            }
-            
-            if (eventData.source_url) {
-                descriptionParts.push(`Source URL: ${eventData.source_url}`);
-            }
-            
-            // Add organizer and pricing
-            if (eventData.organizer) {
-                descriptionParts.push(`Organizer: ${eventData.organizer}`);
-            }
-            
-            if (eventData.price) {
-                descriptionParts.push(`Price: $${eventData.price}`);
-            }
-            
-            const enhancedDescription = descriptionParts.join('\n\n');
-            
-            // Determine calendar location for Google Maps
-            // For NGA events, ALWAYS use venue address (not meeting point)
-            let calendarLocation = '';
-            
-            // Check if this is an NGA event
-            const venueNameLower = (eventData.venue_name || '').toLowerCase();
-            const titleLower = (eventData.title || '').toLowerCase();
-            const urlLower = (eventData.url || '').toLowerCase();
-            const startLocLower = (eventData.start_location || '').toLowerCase();
-            
-            const hasNGAVenueName = venueNameLower.includes('national gallery') || venueNameLower.includes('nga');
-            const hasNGATitle = titleLower.includes('national gallery') || titleLower.includes('finding awe');
-            const hasNGAUrl = urlLower.includes('nga.gov');
-            const hasWestOrEastBuilding = startLocLower.includes('west building') || startLocLower.includes('east building');
-            const hasGalleryOrFloor = startLocLower.includes('gallery') || startLocLower.includes('floor') || startLocLower.includes('main floor') || startLocLower.includes('mezzanine') || startLocLower.includes('terrace');
-            const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
-            const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation;
-            
-            // For NGA events, use venue name + address (not meeting point)
-            if (isNGAEvent) {
-                if (eventData.venue_name && typeof eventData.venue_name === 'string' && eventData.venue_name.trim() && 
-                    eventData.venue_address && typeof eventData.venue_address === 'string' && eventData.venue_address.trim().length > 0) {
-                    // Combine venue name with address for better clarity
-                    calendarLocation = `${eventData.venue_name.trim()}, ${eventData.venue_address.trim()}, USA`;
-                } else if (eventData.venue_address && typeof eventData.venue_address === 'string' && eventData.venue_address.trim().length > 0) {
-                    calendarLocation = eventData.venue_address.trim();
-                } else if (eventData.venue_name && typeof eventData.venue_name === 'string' && eventData.venue_name.trim()) {
-                    calendarLocation = eventData.venue_name.trim();
-                    if (eventData.city_name && typeof eventData.city_name === 'string' && eventData.city_name.trim()) {
-                        calendarLocation += `, ${eventData.city_name.trim()}`;
-                    }
-                } else {
-                    calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
-                }
-            } else {
-                // For non-NGA events, use venue address if available (for mappable location)
-                if (eventData.venue_address && eventData.venue_address.trim()) {
-                    calendarLocation = eventData.venue_address.trim();
-                } 
-                // If we have a venue name but no address, use venue name with city
-                else if (eventData.venue_name && eventData.venue_name.trim()) {
-                    calendarLocation = eventData.venue_name.trim();
-                    // Add city if available to make it more mappable
-                    if (eventData.city_name && eventData.city_name.trim()) {
-                        calendarLocation += `, ${eventData.city_name.trim()}`;
-                    }
-                }
-                // Fallback to start_location if no venue info (but NOT for NGA events)
-                else if (eventData.start_location && eventData.start_location.trim()) {
-                    calendarLocation = eventData.start_location.trim();
-                }
-            }
-            
-            // If start_location is empty, try to extract from description
-            if (!calendarLocation && eventData.description) {
-                // Look for location patterns in the description
-                const locationPatterns = [
-                    // "Join us at the [Location]" pattern
-                    /(?:join us at|meet at|at|location:)\s*([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i,
-                    // Direct location patterns
-                    /([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i
-                ];
-                
-                for (const pattern of locationPatterns) {
-                    const match = eventData.description.match(pattern);
-                    if (match) {
-                        calendarLocation = match[1].trim();
-                        // Clean up common prefixes
-                        calendarLocation = calendarLocation.replace(/^(the|at|join us at|meet at|location:)\s*/i, '');
-                        break;
-                    }
-                }
-            }
-            
-            const params = new URLSearchParams({
-                action: 'TEMPLATE',
-                text: eventData.title,
-                dates: `${startDateTime}/${endDateTime}`,
-                details: enhancedDescription,
-                location: calendarLocation,
-                ctz: eventData.city_timezone || 'America/New_York'  // Add timezone
-            });
-            
-            const url = `https://calendar.google.com/calendar/render?${params.toString()}`;
-            console.log('Generated Google Calendar URL:', url);
-            
-            return url;
+            const { startDate, endDate, isAllDay } = CalendarExport.parseEventDates(eventData);
+            return CalendarExport.generateGoogleCalendarUrl(eventData, startDate, endDate, isAllDay);
         }
+        
+        // Calendar export functions now use the unified CalendarExport module
+        // Helper functions are available via CalendarExport.* if needed
         
         // Multi-select and bulk export functions
         function toggleSelectAllEvents(checkbox) {
@@ -6035,156 +5736,15 @@
             }, 500);
         }
         
+        // Generate ICS for multiple events (using unified module)
         function generateICSForEvents(events) {
-            // Generate ICS content for multiple events
-            let icsContent = 'BEGIN:VCALENDAR\r\n';
-            icsContent += 'VERSION:2.0\r\n';
-            icsContent += 'PRODID:-//Event Planner//EN\r\n';
-            icsContent += 'CALSCALE:GREGORIAN\r\n';
-            icsContent += 'METHOD:PUBLISH\r\n';
-            
-            events.forEach(event => {
-                icsContent += generateICSEvent(event);
-            });
-            
-            icsContent += 'END:VCALENDAR\r\n';
-            return icsContent;
+            return CalendarExport.generateICS(events, 'Planner Events');
         }
         
+        // Generate ICS for single event (using unified module)
+        // Generate ICS for single event (using unified module)
         function generateICSEvent(event) {
-            // Format date/time for ICS (YYYYMMDDTHHMMSS)
-            const formatDateTime = (dateStr, timeStr) => {
-                if (!dateStr) return '';
-                const date = dateStr.replace(/-/g, '');
-                if (!timeStr) return date;
-                // Handle both HH:MM and HH:MM:SS formats
-                const timeParts = timeStr.split(':');
-                const time = (timeParts[0] || '00').padStart(2, '0') + 
-                            (timeParts[1] || '00').padStart(2, '0') + 
-                            (timeParts[2] || '00').padStart(2, '0');
-                return `${date}T${time}`;
-            };
-            
-            // Format date for ICS (YYYYMMDD)
-            const formatDate = (dateStr) => {
-                if (!dateStr) return '';
-                return dateStr.replace(/-/g, '');
-            };
-            
-            // Get current timestamp for DTSTAMP
-            const now = new Date();
-            const dtstamp = formatDateTime(
-                now.toISOString().split('T')[0],
-                now.toTimeString().split(' ')[0].substring(0, 8)
-            );
-            
-            const startDateTime = formatDateTime(event.start_date, event.start_time);
-            const endDateTime = formatDateTime(event.end_date || event.start_date, event.end_time || event.start_time);
-            
-            // If no time, treat as all-day event
-            const isAllDay = !event.start_time;
-            
-            // Generate unique ID
-            const uid = `event-${event.id}-${Date.now()}@planner`;
-            
-            // Build description
-            const descParts = [];
-            
-            if (event.start_location && event.start_location.trim()) {
-                descParts.push(`Meeting Location: ${event.start_location.trim()}`);
-            }
-            
-            if (event.description) {
-                descParts.push(event.description);
-            }
-            
-            if (event.event_type) {
-                descParts.push(`Event Type: ${event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}`);
-            }
-            
-            if (event.url) {
-                descParts.push(`Website: ${event.url}`);
-            }
-            
-            const description = descParts.join('\\n\\n');
-            
-            // Determine location (prioritize venue address for NGA events)
-            let location = '';
-            const isNGAEvent = (event.venue_name && event.venue_name.toLowerCase().includes('national gallery')) ||
-                              (event.title && event.title.toLowerCase().includes('finding awe')) ||
-                              (event.url && event.url.toLowerCase().includes('nga.gov'));
-            
-            if (isNGAEvent) {
-                // For NGA events, use venue address
-                if (event.venue_address) {
-                    location = event.venue_address;
-                } else if (event.venue_name) {
-                    location = event.venue_name;
-                    if (event.city_name) {
-                        location += `, ${event.city_name}`;
-                    }
-                } else {
-                    location = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
-                }
-            } else {
-                // For other events, use venue address or venue name
-                if (event.venue_address) {
-                    location = event.venue_address;
-                } else if (event.venue_name) {
-                    location = event.venue_name;
-                    if (event.city_name) {
-                        location += `, ${event.city_name}`;
-                    }
-                } else if (event.start_location) {
-                    location = event.start_location;
-                }
-            }
-            
-            // Escape special characters for ICS format
-            const escapeICS = (text) => {
-                if (!text) return '';
-                return String(text)
-                    .replace(/\\/g, '\\\\')
-                    .replace(/;/g, '\\;')
-                    .replace(/,/g, '\\,')
-                    .replace(/\n/g, '\\n')
-                    .replace(/\r/g, '');
-            };
-            
-            // Build ICS event (using actual \r\n for line breaks)
-            let icsEvent = 'BEGIN:VEVENT\r\n';
-            icsEvent += `UID:${uid}\r\n`;
-            icsEvent += `DTSTAMP:${dtstamp}\r\n`;
-            
-            if (isAllDay) {
-                icsEvent += `DTSTART;VALUE=DATE:${formatDate(event.start_date)}\r\n`;
-                const endDate = event.end_date || event.start_date;
-                // For all-day events, end date should be the day after
-                const endDateObj = new Date(endDate);
-                endDateObj.setDate(endDateObj.getDate() + 1);
-                icsEvent += `DTEND;VALUE=DATE:${formatDate(endDateObj.toISOString().split('T')[0])}\r\n`;
-            } else {
-                icsEvent += `DTSTART:${startDateTime}\r\n`;
-                icsEvent += `DTEND:${endDateTime}\r\n`;
-            }
-            
-            icsEvent += `SUMMARY:${escapeICS(event.title || 'Untitled Event')}\r\n`;
-            
-            if (description) {
-                icsEvent += `DESCRIPTION:${escapeICS(description)}\r\n`;
-            }
-            
-            if (location) {
-                icsEvent += `LOCATION:${escapeICS(location)}\r\n`;
-            }
-            
-            if (event.url) {
-                icsEvent += `URL:${escapeICS(event.url)}\r\n`;
-            }
-            
-            icsEvent += 'END:VEVENT\r\n';
-            
-            return icsEvent;
+            return CalendarExport.generateICSEvent(event);
         }
         
         function generateCalendarUrlForEvent(event) {

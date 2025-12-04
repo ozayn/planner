@@ -106,6 +106,14 @@ def setup_logging():
 # Setup logging
 app_logger, api_logger, venue_logger, llm_logger = setup_logging()
 
+# Calendar export configuration
+CALENDAR_DEBUG = os.getenv('CALENDAR_DEBUG', 'false').lower() == 'true'
+VENUE_ADDRESSES = {
+    'NGA': 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA',
+    'HIRSHHORN': 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA',
+    'WEBSTERS': "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA"
+}
+
 # Get app configuration
 app_config = get_app_config()
 DEFAULT_MAX_VENUES = app_config['max_venues_per_city']
@@ -5909,6 +5917,81 @@ def add_event_to_calendar():
         app_logger.error(f"Error adding event to calendar: {e}")
         return jsonify({'error': str(e)}), 500
 
+def detect_venue_type(venue_name=None, title=None, url=None, start_location=None):
+    """Detect special venue types (NGA, Hirshhorn, Webster's)"""
+    venue_name_lower = (venue_name or '').lower()
+    title_lower = (title or '').lower()
+    url_lower = (url or '').lower()
+    start_loc_lower = (start_location or '').lower()
+    
+    is_nga = (
+        'national gallery' in venue_name_lower or 'nga' in venue_name_lower or
+        'national gallery' in title_lower or 'finding awe' in title_lower or
+        'nga.gov' in url_lower or
+        (('west building' in start_loc_lower or 'east building' in start_loc_lower) and
+         ('gallery' in start_loc_lower or 'floor' in start_loc_lower))
+    )
+    
+    is_hirshhorn = 'hirshhorn' in venue_name_lower
+    
+    is_websters = (
+        "webster's" in venue_name_lower or 'websters' in venue_name_lower or
+        "webster's" in title_lower or 'websters' in title_lower or
+        'webstersbooksandcafe.com' in url_lower
+    )
+    
+    return {'is_nga': is_nga, 'is_hirshhorn': is_hirshhorn, 'is_websters': is_websters}
+
+def get_calendar_location(event_data):
+    """Get calendar location for event, handling special venues and fallbacks"""
+    venue_name = event_data.get('venue_name')
+    venue_address = event_data.get('venue_address')
+    title = event_data.get('title')
+    url = event_data.get('url')
+    start_location = event_data.get('start_location')
+    city_name = event_data.get('city_name')
+    
+    venue_types = detect_venue_type(venue_name, title, url, start_location)
+    has_venue_name = venue_name and isinstance(venue_name, str) and venue_name.strip()
+    has_venue_address = venue_address and isinstance(venue_address, str) and venue_address.strip()
+    
+    # Special venue handling
+    if venue_types['is_nga']:
+        if has_venue_name and has_venue_address:
+            return f"{venue_name.strip()}, {venue_address.strip()}"
+        elif has_venue_address:
+            return venue_address.strip()
+        elif has_venue_name:
+            return f"{venue_name.strip()}, Constitution Ave NW, Washington, DC 20565, USA"
+        return VENUE_ADDRESSES['NGA']
+    
+    if venue_types['is_hirshhorn']:
+        if has_venue_name and has_venue_address:
+            return f"{venue_name.strip()}, {venue_address.strip()}"
+        elif has_venue_address:
+            return venue_address.strip()
+        elif has_venue_name:
+            return f"{venue_name.strip()}, Independence Ave SW, Washington, DC 20560, USA"
+        return VENUE_ADDRESSES['HIRSHHORN']
+    
+    if venue_types['is_websters']:
+        return VENUE_ADDRESSES['WEBSTERS']
+    
+    # General venue handling - use XML tags for iCal format
+    if has_venue_name and has_venue_address:
+        return f"<location>{venue_name.strip()}</location><address>{venue_address.strip()}</address>"
+    elif has_venue_address:
+        return f"<address>{venue_address.strip()}</address>"
+    elif has_venue_name:
+        location = f"<location>{venue_name.strip()}</location>"
+        if city_name and isinstance(city_name, str) and city_name.strip():
+            location += f"<address>{city_name.strip()}</address>"
+        return location
+    elif start_location and isinstance(start_location, str) and start_location.strip():
+        return start_location.strip()
+    
+    return ''
+
 def generate_timezone_info(timezone_str):
     """Generate VTIMEZONE information for iCal format"""
     import pytz
@@ -6072,58 +6155,10 @@ def generate_ical_event(event_data):
     
     enhanced_description = '\\n\\n'.join(description_parts) if description_parts else event_data.get('description', '')
     
-    # Use location from event_data if already provided (from frontend calculation)
-    # Otherwise, calculate it based on venue information
+    # Get calendar location (use provided location or calculate from venue info)
     calendar_location = event_data.get('location', '')
-    
-    # Only recalculate if location was not provided
     if not calendar_location:
-        venue_name = event_data.get('venue_name')
-        venue_address = event_data.get('venue_address')
-        
-        # Check if this is an NGA or Hirshhorn event
-        is_nga = False
-        is_hirshhorn = False
-        if venue_name:
-            venue_name_lower = venue_name.lower()
-            is_nga = 'national gallery' in venue_name_lower or 'nga' in venue_name_lower
-            is_hirshhorn = 'hirshhorn' in venue_name_lower
-        
-        # For NGA and Hirshhorn events, use comma-separated format
-        if is_nga or is_hirshhorn:
-            if venue_name and venue_address:
-                calendar_location = f"{venue_name}, {venue_address}"
-            elif venue_address:
-                calendar_location = venue_address
-            elif venue_name:
-                # Use venue name with hardcoded address as fallback
-                if is_nga:
-                    calendar_location = f"{venue_name}, Constitution Ave NW, Washington, DC 20565, USA"
-                elif is_hirshhorn:
-                    calendar_location = f"{venue_name}, Independence Ave SW, Washington, DC 20560, USA"
-                else:
-                    calendar_location = venue_name
-            else:
-                # Final fallback
-                if is_nga:
-                    calendar_location = 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA'
-                elif is_hirshhorn:
-                    calendar_location = 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA'
-        else:
-            # For other events, use <location> and <address> tags
-            if venue_name and venue_address:
-                calendar_location = f"<location>{venue_name}</location><address>{venue_address}</address>"
-            elif venue_address:
-                calendar_location = f"<address>{venue_address}</address>"
-            elif venue_name:
-                calendar_location = f"<location>{venue_name}</location>"
-                # Add city if available
-                city_name = event_data.get('city_name')
-                if city_name:
-                    calendar_location += f"<address>{city_name}</address>"
-            # Fallback to start_location if no venue info
-            elif event_data.get('start_location'):
-                calendar_location = event_data.get('start_location')
+        calendar_location = get_calendar_location(event_data)
     
     # Generate timezone information for iCal
     timezone_info = generate_timezone_info(timezone_str)

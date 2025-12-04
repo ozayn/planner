@@ -2585,6 +2585,9 @@
         </div>
     </div>
 
+    <!-- Unified Calendar Export Module -->
+    <script src="/static/js/calendar-export.js"></script>
+
     <script>
         // Global variables
         let allVenues = [];
@@ -5417,525 +5420,13 @@
             }
         }
 
-        // Add event to calendar
+        // Add event to calendar (using unified module)
         function addToCalendar(eventId) {
-            const event = allEvents.find(e => e.id === eventId);
-            if (!event) {
-                console.error('Event not found:', eventId);
-                showNotification('Event not found', 'error');
-                return;
-            }
-
-            // Debug: Log event data before generating URL
-            console.log('🔴🔴🔴 === Event Data for Calendar === 🔴🔴🔴');
-            console.log('Event ID:', event.id);
-            console.log('Event title:', event.title);
-            console.log('Event start_date:', event.start_date);
-            console.log('Event end_date:', event.end_date);
-            console.log('Event end_date type:', typeof event.end_date);
-            console.log('Event end_date === undefined?', event.end_date === undefined);
-            console.log('Event end_date === null?', event.end_date === null);
-            console.log('Event event_type:', event.event_type);
-            console.log('All event keys:', Object.keys(event));
-            console.log('Full event object (JSON):', JSON.stringify(event, null, 2));
-            console.log('🔴🔴🔴 ============================== 🔴🔴🔴');
-
-            // Parse date correctly to avoid timezone issues
-            const [year, month, day] = event.start_date.split('-').map(Number);
-            const startDate = new Date(year, month - 1, day); // month is 0-indexed
-            // Ensure time is set to midnight (00:00:00) to avoid timezone issues
-            startDate.setHours(0, 0, 0, 0);
-            
-            // For exhibitions, always use date range (all-day events)
-            if (event.event_type === 'exhibition') {
-                // CRITICAL DEBUG: Log event data to see what we have
-                console.log('🔴🔴🔴 EXHIBITION CALENDAR EXPORT DEBUG 🔴🔴🔴');
-                console.log('Event title:', event.title);
-                console.log('Event start_date:', event.start_date);
-                console.log('Event end_date:', event.end_date);
-                console.log('Event end_date type:', typeof event.end_date);
-                console.log('Event end_date === start_date?', event.end_date === event.start_date);
-                console.log('Event keys:', Object.keys(event));
-                console.log('Full event object:', JSON.stringify(event, null, 2));
-                console.log('🔴🔴🔴 END DEBUG 🔴🔴🔴');
-                
-                let endDate;
-                if (event.end_date && event.end_date !== event.start_date) {
-                    // Use the actual end_date if it's different from start_date
-                    const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
-                    endDate = new Date(endYear, endMonth - 1, endDay);
-                    // Ensure time is set to midnight (00:00:00) to avoid timezone issues
-                    endDate.setHours(0, 0, 0, 0);
-                    console.log('✅ Using end_date from event:', event.end_date, '→', endDate.toISOString().split('T')[0]);
-                } else {
-                    // If no end_date or end_date equals start_date, use start_date (single-day exhibition)
-                    endDate = new Date(startDate);
-                    endDate.setHours(0, 0, 0, 0);
-                    console.log('❌❌❌ PROBLEM: No end_date or end_date equals start_date!');
-                    console.log('   event.end_date value:', event.end_date);
-                    console.log('   event.start_date value:', event.start_date);
-                    console.log('   Using start_date for both:', startDate.toISOString().split('T')[0]);
-                }
-                
-                // For all-day events, Google Calendar uses exclusive end date (day after)
-                // Create a new date object to avoid mutating the original
-                const exclusiveEndDate = new Date(endDate);
-                exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
-                // Ensure time is set to midnight (00:00:00) to avoid timezone issues
-                exclusiveEndDate.setHours(0, 0, 0, 0);
-                
-                console.log('📅 Date range for calendar:', {
-                    start: startDate.toISOString().split('T')[0],
-                    end_original: endDate.toISOString().split('T')[0],
-                    end_exclusive: exclusiveEndDate.toISOString().split('T')[0],
-                    startDate_obj: startDate,
-                    endDate_obj: endDate,
-                    exclusiveEndDate_obj: exclusiveEndDate
-                });
-                
-                console.log('🔵 Calling generateGoogleCalendarUrl with:', {
-                    startDate: startDate.toISOString().split('T')[0],
-                    exclusiveEndDate: exclusiveEndDate.toISOString().split('T')[0],
-                    isAllDay: true
-                });
-                
-                const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, exclusiveEndDate, true);
-                console.log('🔗 Generated Google Calendar URL:', googleCalendarUrl);
-                window.open(googleCalendarUrl, '_blank');
-                showNotification('Opening Google Calendar...', 'info');
-                return;
-            }
-            
-            // For other events, use time if available
-            if (event.start_time) {
-                const [hours, minutes] = event.start_time.split(':');
-                startDate.setHours(parseInt(hours), parseInt(minutes));
-            }
-
-            const endDate = new Date(startDate);
-            if (event.end_time) {
-                const [hours, minutes] = event.end_time.split(':');
-                endDate.setHours(parseInt(hours), parseInt(minutes));
-            } else {
-                endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
-            }
-
-            const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate, false);
-            window.open(googleCalendarUrl, '_blank');
-            
-            showNotification('Opening Google Calendar...', 'info');
+            CalendarExport.addToCalendar(eventId, allEvents);
         }
 
-        // Generate Google Calendar URL
-        // Version: 2.7 - Support for all-day exhibition events with date ranges
-        function generateGoogleCalendarUrl(event, startDate, endDate, isAllDay = false) {
-            console.log('🔧 generateGoogleCalendarUrl called (v2.7 - Exhibition all-day support)');
-            
-            // Format dates for Google Calendar all-day events (YYYYMMDD format, no time)
-            const formatDateOnlyForGoogle = (date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}${month}${day}`;
-            };
-            
-            // Format dates with time for Google Calendar in the event's timezone
-            // For Google Calendar, we need to format the time in the local timezone
-            // The ctz parameter tells Google Calendar which timezone to interpret the times in
-            const formatDateTimeForGoogle = (date, timezone) => {
-                // Create a formatter for the event's timezone
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                    timeZone: timezone,
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
-                });
-                
-                // Format the date in the event's timezone
-                const parts = formatter.formatToParts(date);
-                const year = parts.find(p => p.type === 'year').value;
-                const month = parts.find(p => p.type === 'month').value;
-                const day = parts.find(p => p.type === 'day').value;
-                const hour = parts.find(p => p.type === 'hour').value;
-                const minute = parts.find(p => p.type === 'minute').value;
-                const second = parts.find(p => p.type === 'second').value;
-                
-                // Return in format: YYYYMMDDTHHMMSS (no Z, since we're using local time with ctz)
-                return `${year}${month}${day}T${hour}${minute}${second}`;
-            };
-            
-            // Format times for Google Calendar (HHMMSS format)
-            const formatTimeForGoogle = (timeStr) => {
-                if (!timeStr) return '';
-                // Convert "11:00" to "110000" format
-                let formatted = timeStr.replace(/[:\s]/g, '');
-                // Add seconds if not present (should be 6 digits total)
-                if (formatted.length === 4) {
-                    formatted += '00';
-                }
-                return formatted;
-            };
-            
-            let startDateTime, endDateTime;
-            
-            // Get the event's timezone (default to America/New_York if not specified)
-            const eventTimezone = event.city_timezone || 'America/New_York';
-            
-            // For exhibitions or explicitly all-day events, use date-only format
-            console.log('🔵 generateGoogleCalendarUrl - Checking all-day condition:', {
-                isAllDay_param: isAllDay,
-                event_type: event.event_type,
-                condition_result: (isAllDay || event.event_type === 'exhibition')
-            });
-            
-            if (isAllDay || event.event_type === 'exhibition') {
-                // All-day event: use YYYYMMDD format (no time)
-                // IMPORTANT: For all-day events, Google Calendar expects dates in YYYYMMDD format
-                // and the end date should be EXCLUSIVE (one day after the actual end date)
-                startDateTime = formatDateOnlyForGoogle(startDate);
-                endDateTime = formatDateOnlyForGoogle(endDate);
-                console.log('📅 All-day event date formatting:', {
-                    startDate_obj: startDate,
-                    endDate_obj: endDate,
-                    startDate_iso: startDate.toISOString().split('T')[0],
-                    endDate_iso: endDate.toISOString().split('T')[0],
-                    startDateTime_formatted: startDateTime,
-                    endDateTime_formatted: endDateTime,
-                    isAllDay_param: isAllDay,
-                    event_type: event.event_type
-                });
-            } else if (event.start_time && event.end_time) {
-                // Event with specific times - format in the event's timezone
-                // Parse the time and create dates in the event's timezone
-                const [startHours, startMinutes] = event.start_time.split(':').map(Number);
-                const [endHours, endMinutes] = event.end_time.split(':').map(Number);
-                
-                // Create dates in the event's local timezone
-                const startDateLocal = new Date(startDate);
-                startDateLocal.setHours(startHours, startMinutes || 0, 0, 0);
-                
-                const endDateLocal = new Date(endDate);
-                endDateLocal.setHours(endHours, endMinutes || 0, 0, 0);
-                
-                // Format in the event's timezone (no Z suffix, ctz parameter handles timezone)
-                startDateTime = formatDateTimeForGoogle(startDateLocal, eventTimezone);
-                endDateTime = formatDateTimeForGoogle(endDateLocal, eventTimezone);
-            } else {
-                // All-day event (no times specified)
-                startDateTime = formatDateOnlyForGoogle(startDate);
-                endDateTime = formatDateOnlyForGoogle(endDate);
-            }
-            
-            // Build enhanced description with social media and additional information
-            let descriptionParts = [];
-            
-            // Add specific meeting location to the beginning of description if available
-            // This is for cases where the location is a specific room/gallery within a venue
-            // Always add if we have start_location and it's different from the venue name
-            if (event.start_location && event.start_location.trim()) {
-                const startLocLower = event.start_location.toLowerCase().trim();
-                const venueLower = (event.venue_name || '').toLowerCase().trim();
-                
-                // Add if start_location is different from venue name
-                // This handles cases like "West Building Main Floor, Gallery 61" vs "National Gallery of Art"
-                if (!venueLower || (startLocLower !== venueLower && !startLocLower.includes(venueLower) && !venueLower.includes(startLocLower))) {
-                    descriptionParts.unshift(`Meeting Location: ${event.start_location.trim()}`);
-                    console.log('Added Meeting Location to description:', event.start_location.trim());
-                } else {
-                    console.log('Skipped Meeting Location - same as venue name');
-                }
-            } else {
-                console.log('No start_location to add to description');
-            }
-            
-            if (event.description) {
-                descriptionParts.push(event.description);
-            }
-            
-            // Add event type
-            if (event.event_type) {
-                descriptionParts.push(`Event Type: ${event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}`);
-            }
-            
-            // Add end location if different from start location
-            if (event.end_location && event.end_location !== event.start_location) {
-                descriptionParts.push(`End Location: ${event.end_location}`);
-            }
-            
-            // Add social media information
-            if (event.social_media_platform && event.social_media_handle) {
-                const platformName = event.social_media_platform.charAt(0).toUpperCase() + event.social_media_platform.slice(1);
-                descriptionParts.push(`${platformName}: @${event.social_media_handle}`);
-            }
-            
-            if (event.social_media_page_name) {
-                descriptionParts.push(`Page/Group: ${event.social_media_page_name}`);
-            }
-            
-            if (event.social_media_posted_by) {
-                descriptionParts.push(`Posted By: ${event.social_media_posted_by}`);
-            }
-            
-            if (event.social_media_url) {
-                descriptionParts.push(`Social Media URL: ${event.social_media_url}`);
-            }
-            
-            // Add website URL
-            if (event.url) {
-                descriptionParts.push(`Website: ${event.url}`);
-            }
-            
-            // Add source information
-            if (event.source) {
-                descriptionParts.push(`Source: ${event.source}`);
-            }
-            
-            if (event.source_url) {
-                descriptionParts.push(`Source URL: ${event.source_url}`);
-            }
-            
-            // Add organizer and pricing
-            if (event.organizer) {
-                descriptionParts.push(`Organizer: ${event.organizer}`);
-            }
-            
-            if (event.price) {
-                descriptionParts.push(`Price: $${event.price}`);
-            }
-            
-            const enhancedDescription = descriptionParts.join('\n\n');
-            
-            // Determine calendar location for Google Maps
-            // PRIORITY: venue_address > venue_name+city > start_location > description extraction
-            // Use venue address if available (for mappable location), otherwise use venue name or start_location
-            let calendarLocation = '';
-            
-            // Debug: Check what data we have
-            console.log('=== Calendar Location Selection ===');
-            console.log('Event data:', {
-                venue_address: event.venue_address,
-                venue_name: event.venue_name,
-                city_name: event.city_name,
-                start_location: event.start_location,
-                title: event.title,
-                url: event.url,
-                has_venue_address: 'venue_address' in event,
-                venue_address_type: typeof event.venue_address,
-                venue_address_length: event.venue_address ? event.venue_address.length : 0,
-                all_keys: Object.keys(event)
-            });
-            
-            // PRIORITY 0: Hardcoded fallback for National Gallery of Art
-            // This ensures we ALWAYS use the venue address for NGA events, even if venue_address is missing
-            // Check multiple sources: venue_name, title, URL, start_location
-            const venueNameLower = (event.venue_name || '').toLowerCase();
-            const titleLower = (event.title || '').toLowerCase();
-            const urlLower = (event.url || '').toLowerCase();
-            const startLocLower = (event.start_location || '').toLowerCase();
-            
-            // More aggressive detection: if start_location mentions "West Building" or "East Building" with "Gallery" or "Floor", it's NGA
-            const hasNGAVenueName = venueNameLower.includes('national gallery') || venueNameLower.includes('nga');
-            const hasNGATitle = titleLower.includes('national gallery') || titleLower.includes('finding awe');
-            const hasNGAUrl = urlLower.includes('nga.gov');
-            // Check if start_location contains NGA building patterns
-            const hasWestOrEastBuilding = startLocLower.includes('west building') || startLocLower.includes('east building');
-            const hasGalleryOrFloor = startLocLower.includes('gallery') || startLocLower.includes('floor') || startLocLower.includes('main floor');
-            const hasNGALocation = hasWestOrEastBuilding && hasGalleryOrFloor;
-            
-            // EXTRA SAFETY: If start_location contains "Gallery" and a number (like "Gallery 61"), it's likely NGA
-            const hasGalleryWithNumber = /gallery\s+\d+/i.test(startLocLower);
-            const hasGalleryPattern = hasGalleryWithNumber && (hasWestOrEastBuilding || venueNameLower.includes('gallery'));
-            
-            // Also check for "Mezzanine Terrace" which is specific to NGA
-            const hasMezzanineTerrace = startLocLower.includes('mezzanine terrace') || startLocLower.includes('terrace');
-            
-            const isNGAEvent = hasNGAVenueName || hasNGATitle || hasNGAUrl || hasNGALocation || hasGalleryPattern || (hasMezzanineTerrace && hasWestOrEastBuilding);
-            
-            // Detect Webster's Bookstore Cafe events
-            const hasWebstersVenueName = venueNameLower.includes("webster's") || venueNameLower.includes('websters');
-            const hasWebstersTitle = titleLower.includes("webster's") || titleLower.includes('websters');
-            const hasWebstersUrl = urlLower.includes('webstersbooksandcafe.com');
-            const isWebstersEvent = hasWebstersVenueName || hasWebstersTitle || hasWebstersUrl;
-            
-            console.log('🔍 NGA Detection:', {
-                hasNGAVenueName,
-                hasNGATitle,
-                hasNGAUrl,
-                hasNGALocation,
-                hasGalleryWithNumber,
-                hasGalleryPattern,
-                isNGAEvent,
-                venue_name: event.venue_name,
-                title: event.title,
-                url: event.url,
-                start_location: event.start_location
-            });
-            
-            console.log('🔍 Webster\'s Detection:', {
-                hasWebstersVenueName,
-                hasWebstersTitle,
-                hasWebstersUrl,
-                isWebstersEvent,
-                venue_name: event.venue_name,
-                title: event.title,
-                url: event.url
-            });
-            
-            // PRIORITY 0.5: For NGA events, use venue name + address format (same as general format)
-            // This ensures NGA events always use the main venue address, not the meeting point
-            if (isNGAEvent) {
-                const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
-                const hasVenueAddress = event.venue_address && 
-                                       (typeof event.venue_address === 'string') && 
-                                       event.venue_address.trim().length > 0;
-                
-                if (hasVenueName && hasVenueAddress) {
-                    // Use format: "venue name, address" (same as general format)
-                    calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
-                    console.log('✅ PRIORITY 0.5: Using venue_name + venue_address for NGA event location:', calendarLocation);
-                } else if (hasVenueAddress) {
-                    calendarLocation = event.venue_address.trim();
-                    console.log('✅ PRIORITY 0.5: Using venue_address for NGA event location:', calendarLocation);
-                } else if (hasVenueName && 
-                          (event.venue_name.toLowerCase().includes('national gallery') || 
-                           event.venue_name.toLowerCase().includes('nga'))) {
-                    // Use venue name with hardcoded address as fallback
-                    calendarLocation = `${event.venue_name.trim()}, Constitution Ave. NW, Washington, DC 20565, USA`;
-                    console.log('⚠️ PRIORITY 0.5: Using venue_name + hardcoded address for NGA (venue_address missing):', calendarLocation);
-                } else {
-                    // Final fallback to known NGA name + address if both are missing from event data
-                    calendarLocation = 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
-                    console.log('⚠️ PRIORITY 0.5: Using hardcoded NGA name + address (venue data missing from event):', calendarLocation);
-                }
-                console.log('   Detected NGA event from:', {
-                    isNGAEvent,
-                    hasNGAVenueName,
-                    hasNGATitle,
-                    hasNGAUrl,
-                    hasNGALocation,
-                    hasGalleryPattern,
-                    venue_name: event.venue_name,
-                    title: event.title,
-                    url: event.url,
-                    start_location: event.start_location,
-                    venue_address: event.venue_address
-                });
-            }
-            // PRIORITY 0.6: For Webster's Cafe events, ALWAYS use the hardcoded address
-            else if (isWebstersEvent) {
-                calendarLocation = "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA";
-                console.log('✅ PRIORITY 0.6: Using hardcoded Webster\'s Cafe address:', calendarLocation);
-            }
-            // PRIORITY 1: If we have both venue name and address, use "venue name, address" format
-            // This is the preferred format for Google Maps
-            else {
-                const hasVenueName = event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim().length > 0;
-                const hasVenueAddress = event.venue_address && 
-                                       (typeof event.venue_address === 'string') && 
-                                       event.venue_address.trim().length > 0;
-                
-                if (hasVenueName && hasVenueAddress) {
-                    calendarLocation = `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
-                    console.log('✅ PRIORITY 1: Using venue_name + venue_address for location:', calendarLocation);
-                } else if (hasVenueAddress) {
-                    calendarLocation = event.venue_address.trim();
-                    console.log('✅ PRIORITY 1: Using venue_address for location (no venue name):', calendarLocation);
-                }
-            }
-            // PRIORITY 2: If we have a venue name but no address, use venue name with city
-            // BUT: Never use start_location for NGA or Webster's events - they should have been handled above
-            if (!calendarLocation && !isNGAEvent && !isWebstersEvent) {
-                // This is better than start_location for mapping
-                if (event.venue_name && typeof event.venue_name === 'string' && event.venue_name.trim()) {
-                    calendarLocation = event.venue_name.trim();
-                    // Add city if available to make it more mappable
-                    if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
-                        calendarLocation += `, ${event.city_name.trim()}`;
-                    }
-                    console.log('⚠️ PRIORITY 2: Using venue_name for location (no address):', calendarLocation);
-                    console.log('   venue_address was:', event.venue_address, '(type:', typeof event.venue_address + ')');
-                }
-            }
-            // PRIORITY 3: Only use start_location as absolute last resort if we have NO venue info at all
-            // IMPORTANT: NEVER use start_location for NGA or Webster's events - they should use venue address
-            if (!calendarLocation && !isNGAEvent && !isWebstersEvent && event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
-                calendarLocation = event.start_location.trim();
-                console.log('❌ PRIORITY 3: Using start_location (no venue info - this should not happen!):', calendarLocation);
-                console.log('   venue_address:', event.venue_address);
-                console.log('   venue_name:', event.venue_name);
-            }
-            
-            // Final safety check: If this is an NGA event and we still don't have a location, force it
-            if (isNGAEvent && (!calendarLocation || calendarLocation === event.start_location)) {
-                calendarLocation = event.venue_address && typeof event.venue_address === 'string' && event.venue_address.trim().length > 0
-                    ? event.venue_address.trim()
-                    : 'National Gallery of Art, Constitution Ave. NW, Washington, DC 20565, USA';
-                console.log('🔒 FINAL SAFETY: Forced NGA venue address for calendar location:', calendarLocation);
-            }
-            
-            // Only use description extraction as absolute last resort if we have NO location at all
-            // DO NOT overwrite venue_address or venue_name with description extraction
-            if (!calendarLocation && event.description) {
-                console.log('⚠️ No location found, trying to extract from description...');
-                // Look for location patterns in the description
-                const locationPatterns = [
-                    // "Join us at the [Location]" pattern
-                    /(?:join us at|meet at|at|location:)\s*([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i,
-                    // Direct location patterns
-                    /([A-Za-z\s]+(?:Ave|Street|St|Road|Rd|Metro|Station|Circle|Square|Mall|Park|Center|Building|Museum|Gallery|Theater|Theatre))/i
-                ];
-                
-                for (const pattern of locationPatterns) {
-                    const match = event.description.match(pattern);
-                    if (match) {
-                        calendarLocation = match[1].trim();
-                        // Clean up common prefixes
-                        calendarLocation = calendarLocation.replace(/^(the|at|join us at|meet at|location:)\s*/i, '');
-                        console.log('   Extracted from description:', calendarLocation);
-                        break;
-                    }
-                }
-            }
-            
-            console.log('Final calendar location:', calendarLocation);
-            
-            const params = new URLSearchParams({
-                action: 'TEMPLATE',
-                text: event.title,
-                dates: `${startDateTime}/${endDateTime}`,
-                details: enhancedDescription,
-                location: calendarLocation,
-                ctz: eventTimezone  // Use the event's city timezone (e.g., Europe/London, Asia/Tokyo)
-            });
-
-            const calendarUrl = `https://calendar.google.com/calendar/render?${params}`;
-            
-            // Debug: Log the generated URL and its components
-            console.log('=== Google Calendar Export Debug ===');
-            console.log('Event:', event.title);
-            console.log('Event type:', event.event_type);
-            console.log('Is all-day:', isAllDay);
-            console.log('Start date object:', startDate);
-            console.log('End date object:', endDate);
-            console.log('Start date formatted:', startDateTime);
-            console.log('End date formatted:', endDateTime);
-            console.log('Dates parameter:', `${startDateTime}/${endDateTime}`);
-            console.log('Location (for map):', calendarLocation);
-            console.log('Description preview (first 200 chars):', enhancedDescription.substring(0, 200));
-            console.log('Full URL:', calendarUrl);
-            console.log('URL Parameters:');
-            console.log('  - dates:', `${startDateTime}/${endDateTime}`);
-            console.log('  - location:', calendarLocation);
-            console.log('  - details length:', enhancedDescription.length);
-            console.log('  - details starts with:', enhancedDescription.substring(0, 50));
-            console.log('===================================');
-            
-            return calendarUrl;
-        }
+        // Calendar export functions now use the unified CalendarExport module
+        // Helper functions are available via CalendarExport.* if needed
 
         // Format date for Google Calendar
         function formatDateForGoogle(date) {
@@ -6022,24 +5513,19 @@
             exportToCalendar(allEvents, 'all');
         }
 
-        // Export events to calendar
+        // Export events to calendar (using unified module)
         function exportToCalendar(events, type) {
-            const icsContent = generateICSContent(events);
-            const blob = new Blob([icsContent], { type: 'text/calendar' });
-            const url = URL.createObjectURL(blob);
-            
             // Generate descriptive filename based on filters
             let dateRange, eventType, cityName;
             
             if (type === 'discovered') {
-                // For discovered events, use the current time period
                 dateRange = currentTimePeriod || 'this_week';
-                eventType = 'all'; // Discovered events don't filter by type
-                cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+                eventType = 'all';
+                cityName = citySelect?.options[citySelect.selectedIndex]?.textContent || 'Unknown';
             } else {
                 dateRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
                 eventType = eventTypeSelectStep2?.value || eventTypeSelect?.value || 'all';
-                cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+                cityName = citySelect?.options[citySelect.selectedIndex]?.textContent || 'Unknown';
             }
             
             // Abbreviate names for shorter filenames
@@ -6076,75 +5562,24 @@
             const cityAbbr = getCityAbbr(cityName);
             const eventTypeAbbr = getEventTypeAbbr(eventType);
             const dateRangeAbbr = getDateRangeAbbr(dateRange);
-            
-            // Add current date (just month-day for brevity)
             const today = new Date().toISOString().split('T')[0].substring(5);
-            
             const filename = `planner_${cityAbbr}_${eventTypeAbbr}_${dateRangeAbbr}_${type}_${today}.ics`;
             
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showNotification(`Exported ${events.length} events to calendar`, 'success');
+            // Use unified module to export
+            CalendarExport.exportToCalendar(events, filename);
         }
 
-        // Generate ICS content
+        // Generate ICS content (using unified module)
         function generateICSContent(events) {
-            const now = new Date();
-            const nowStr = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-            
             // Generate descriptive calendar name
-            const dateRange = document.getElementById('dateRangeSelect').value;
-            const eventType = eventTypeSelectStep2.value || eventTypeSelect.value || 'all';
-            const cityName = citySelect.options[citySelect.selectedIndex]?.textContent || 'Unknown';
+            const dateRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
+            const eventType = eventTypeSelectStep2?.value || eventTypeSelect?.value || 'all';
+            const cityName = citySelect?.options[citySelect.selectedIndex]?.textContent || 'Unknown';
             
             const calendarName = `Planner - ${cityName} ${eventType} (${dateRange.replace('_', ' ')})`;
             
-            let icsContent = [
-                'BEGIN:VCALENDAR',
-                'VERSION:2.0',
-                'PRODID:-//Planner//Events//EN',
-                'CALSCALE:GREGORIAN',
-                'METHOD:PUBLISH',
-                `X-WR-CALNAME:${calendarName}`,
-                `X-WR-CALDESC:Events from Planner for ${cityName} - ${eventType} events (${dateRange.replace('_', ' ')})`
-            ];
-
-            events.forEach(event => {
-                // Parse date correctly to avoid timezone issues
-                const [year, month, day] = event.start_date.split('-').map(Number);
-                const startDate = new Date(year, month - 1, day); // month is 0-indexed
-                if (event.start_time) {
-                    const [hours, minutes] = event.start_time.split(':');
-                    startDate.setHours(parseInt(hours), parseInt(minutes));
-                }
-                
-                const endDate = new Date(startDate);
-                endDate.setHours(endDate.getHours() + 2);
-
-                const startStr = startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-                const endStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-                icsContent.push(
-                    'BEGIN:VEVENT',
-                    `UID:${event.id}@smarteventplanner.com`,
-                    `DTSTAMP:${nowStr}`,
-                    `DTSTART:${startStr}`,
-                    `DTEND:${endStr}`,
-                    `SUMMARY:${event.title}`,
-                    `DESCRIPTION:${event.description || ''}`,
-                    `LOCATION:${event.venue_name || ''}`,
-                    'END:VEVENT'
-                );
-            });
-
-            icsContent.push('END:VCALENDAR');
-            return icsContent.join('\r\n');
+            // Use unified module to generate ICS
+            return CalendarExport.generateICS(events, calendarName);
         }
 
         // Update progress
@@ -6642,24 +6077,8 @@
         // Add discovered event to calendar
         function addDiscoveredEventToCalendar(eventId) {
             // Search in both discoveredEvents and allEvents
-            const event = discoveredEvents.find(e => e.id === eventId) || allEvents.find(e => e.id === eventId);
-            if (!event) return;
-
-            // Parse date correctly to avoid timezone issues
-            const [year, month, day] = event.start_date.split('-').map(Number);
-            const startDate = new Date(year, month - 1, day); // month is 0-indexed
-            if (event.start_time) {
-                const [hours, minutes] = event.start_time.split(':');
-                startDate.setHours(parseInt(hours), parseInt(minutes));
-            }
-
-            const endDate = new Date(startDate);
-            endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
-
-            const calendarUrl = generateGoogleCalendarUrl(event, startDate, endDate);
-            window.open(calendarUrl, '_blank');
-            
-            showNotification('Opening Google Calendar...', 'info');
+            const allCombinedEvents = [...discoveredEvents, ...allEvents];
+            CalendarExport.addToCalendar(eventId, allCombinedEvents);
         }
 
         // Toggle advanced controls

@@ -11,6 +11,14 @@ from datetime import datetime, date, time
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
+# Calendar export configuration
+CALENDAR_DEBUG = os.getenv('CALENDAR_DEBUG', 'false').lower() == 'true'
+VENUE_ADDRESSES = {
+    'NGA': 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA',
+    'HIRSHHORN': 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA',
+    'WEBSTERS': "Webster's Bookstore Cafe, 133 E Beaver Ave, State College, PA 16801, USA"
+}
+
 try:
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import Flow
@@ -268,6 +276,79 @@ class GoogleCalendarManager:
             logger.error(f"Error getting calendar list: {e}")
             return []
 
+def detect_venue_type_for_calendar(venue_name=None, title=None, url=None, start_location=None):
+    """Detect special venue types (NGA, Hirshhorn, Webster's)"""
+    venue_name_lower = (venue_name or '').lower()
+    title_lower = (title or '').lower()
+    url_lower = (url or '').lower()
+    start_loc_lower = (start_location or '').lower()
+    
+    is_nga = (
+        'national gallery' in venue_name_lower or 'nga' in venue_name_lower or
+        'national gallery' in title_lower or 'finding awe' in title_lower or
+        'nga.gov' in url_lower or
+        (('west building' in start_loc_lower or 'east building' in start_loc_lower) and
+         ('gallery' in start_loc_lower or 'floor' in start_loc_lower))
+    )
+    
+    is_hirshhorn = 'hirshhorn' in venue_name_lower
+    
+    is_websters = (
+        "webster's" in venue_name_lower or 'websters' in venue_name_lower or
+        "webster's" in title_lower or 'websters' in title_lower or
+        'webstersbooksandcafe.com' in url_lower
+    )
+    
+    return {'is_nga': is_nga, 'is_hirshhorn': is_hirshhorn, 'is_websters': is_websters}
+
+def get_calendar_location_for_integration(extracted_data, venue_data=None):
+    """Get calendar location for Google Calendar API integration"""
+    venue_name = venue_data.get('name') if venue_data else None
+    venue_address = venue_data.get('address') if venue_data else None
+    title = getattr(extracted_data, 'title', None)
+    url = getattr(extracted_data, 'url', None)
+    start_location = getattr(extracted_data, 'start_location', None)
+    
+    venue_types = detect_venue_type_for_calendar(venue_name, title, url, start_location)
+    has_venue_name = venue_name and isinstance(venue_name, str) and venue_name.strip()
+    has_venue_address = venue_address and isinstance(venue_address, str) and venue_address.strip()
+    
+    # Special venue handling - use comma-separated format for Google Calendar API
+    if venue_types['is_nga']:
+        if has_venue_name and has_venue_address:
+            return f"{venue_name.strip()}, {venue_address.strip()}"
+        elif has_venue_address:
+            return venue_address.strip()
+        elif has_venue_name:
+            return f"{venue_name.strip()}, Constitution Ave NW, Washington, DC 20565, USA"
+        return VENUE_ADDRESSES['NGA']
+    
+    if venue_types['is_hirshhorn']:
+        if has_venue_name and has_venue_address:
+            return f"{venue_name.strip()}, {venue_address.strip()}"
+        elif has_venue_address:
+            return venue_address.strip()
+        elif has_venue_name:
+            return f"{venue_name.strip()}, Independence Ave SW, Washington, DC 20560, USA"
+        return VENUE_ADDRESSES['HIRSHHORN']
+    
+    if venue_types['is_websters']:
+        return VENUE_ADDRESSES['WEBSTERS']
+    
+    # General venue handling - use comma-separated format for Google Calendar API
+    if has_venue_name and has_venue_address:
+        return f"{venue_name.strip()}, {venue_address.strip()}"
+    elif has_venue_address:
+        return venue_address.strip()
+    elif has_venue_name:
+        return venue_name.strip()
+    elif hasattr(extracted_data, 'location') and extracted_data.location:
+        return extracted_data.location
+    elif start_location:
+        return start_location
+    
+    return ''
+
 def create_calendar_event_from_extracted_data(extracted_data, venue_data=None, city_data=None) -> Optional[CalendarEvent]:
     """Create a CalendarEvent from extracted event data"""
     try:
@@ -327,56 +408,8 @@ def create_calendar_event_from_extracted_data(extracted_data, venue_data=None, c
         
         description = '\n\n'.join(description_parts) if description_parts else None
         
-        # Build location - use comma-separated format for NGA and Hirshhorn, tags for others
-        location = None
-        venue_name = None
-        venue_address = None
-        
-        if venue_data:
-            venue_name = venue_data.get('name')
-            venue_address = venue_data.get('address')
-        
-        # Check if this is an NGA or Hirshhorn event
-        is_nga = False
-        is_hirshhorn = False
-        if venue_name:
-            venue_name_lower = venue_name.lower()
-            is_nga = 'national gallery' in venue_name_lower or 'nga' in venue_name_lower
-            is_hirshhorn = 'hirshhorn' in venue_name_lower
-        
-        # For NGA and Hirshhorn events, use comma-separated format
-        if is_nga or is_hirshhorn:
-            if venue_name and venue_address:
-                location = f"{venue_name}, {venue_address}"
-            elif venue_address:
-                location = venue_address
-            elif venue_name:
-                # Use venue name with hardcoded address as fallback
-                if is_nga:
-                    location = f"{venue_name}, Constitution Ave NW, Washington, DC 20565, USA"
-                elif is_hirshhorn:
-                    location = f"{venue_name}, Independence Ave SW, Washington, DC 20560, USA"
-                else:
-                    location = venue_name
-            else:
-                # Final fallback
-                if is_nga:
-                    location = 'National Gallery of Art, Constitution Ave NW, Washington, DC 20565, USA'
-                elif is_hirshhorn:
-                    location = 'Smithsonian Hirshhorn Museum and Sculpture Garden, Independence Ave SW, Washington, DC 20560, USA'
-        else:
-            # For other events, use <location> and <address> tags
-            if venue_name and venue_address:
-                location = f"<location>{venue_name}</location><address>{venue_address}</address>"
-            elif venue_address:
-                location = f"<address>{venue_address}</address>"
-            elif venue_name:
-                location = f"<location>{venue_name}</location>"
-            elif extracted_data.location:
-                location = extracted_data.location
-            elif extracted_data.start_location:
-                # Only use start_location as fallback if no venue info available
-                location = extracted_data.start_location
+        # Build location using helper function
+        location = get_calendar_location_for_integration(extracted_data, venue_data)
         
         # Build start and end datetimes with timezone
         start_datetime = None
