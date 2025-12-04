@@ -4064,7 +4064,7 @@
                 if (tableType === 'events') {
                     rowClickable = 'onclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'venues') {
-                    rowClickable = 'onclick="if(event.target.tagName !== \'A\' && event.target.tagName !== \'BUTTON\') { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
+                    rowClickable = 'onclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
                     rowClickable = 'onclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
@@ -4101,7 +4101,7 @@
                 });
                 
                 // Add actions column - prevent row click when clicking action buttons
-                row += `<td onclick="event.stopPropagation();">${generateActionButtons(item.id, tableType)}</td>`;
+                row += `<td onclick="event.stopPropagation(); event.stopImmediatePropagation();">${generateActionButtons(item.id, tableType)}</td>`;
                 
                 row += '</tr>';
                 return row;
