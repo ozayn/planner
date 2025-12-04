@@ -7091,6 +7091,16 @@
         }
         
         function showVenueDetails(venueId) {
+            // Prevent if clicking on a link or button
+            if (event && event.target) {
+                const target = event.target;
+                const isLink = target.tagName === 'A' || target.closest('a');
+                const isButton = target.tagName === 'BUTTON' || target.closest('button');
+                if (isLink || isButton) {
+                    return;
+                }
+            }
+            
             // Find the venue data - use strict equality and handle both string and number IDs
             const venue = window.allVenues.find(v => v.id == venueId || String(v.id) === String(venueId));
             if (!venue) {
@@ -7145,6 +7155,16 @@
         }
         
         function showSourceDetails(sourceId) {
+            // Prevent if clicking on a link or button
+            if (event && event.target) {
+                const target = event.target;
+                const isLink = target.tagName === 'A' || target.closest('a');
+                const isButton = target.tagName === 'BUTTON' || target.closest('button');
+                if (isLink || isButton) {
+                    return;
+                }
+            }
+            
             // Find the source data
             const source = window.allSources.find(s => s.id == sourceId);
             if (!source) {
