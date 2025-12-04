@@ -4074,16 +4074,16 @@
             let rowsHTML = '';
             try {
                 rowsHTML = data.map(item => {
-                // Make all table rows clickable
+                // Make all table rows clickable (double-click)
                 let rowClickable = '';
                 if (tableType === 'events') {
-                    rowClickable = 'onclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'venues') {
-                    rowClickable = 'onclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
-                    rowClickable = 'onclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showCityDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showCityDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
-                    rowClickable = 'onclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
                 }
                 let row = `<tr id="${tableType}-row-${item.id}" ${rowClickable}>`;
                 
