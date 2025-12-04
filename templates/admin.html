@@ -4079,9 +4079,9 @@
                 if (tableType === 'events') {
                     rowClickable = 'ondblclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'venues') {
-                    rowClickable = 'ondblclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showVenueDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
-                    rowClickable = 'ondblclick="const target = event.target; const isLink = target.tagName === \'A\' || target.closest(\'a\'); const isButton = target.tagName === \'BUTTON\' || target.closest(\'button\'); if (!isLink && !isButton) { event.preventDefault(); event.stopPropagation(); showCityDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
+                    rowClickable = 'ondblclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
                     rowClickable = 'ondblclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
                 }
@@ -7118,6 +7118,16 @@
         }
         
         function showCityDetails(cityId) {
+            // Prevent if clicking on a link or button
+            if (event && event.target) {
+                const target = event.target;
+                const isLink = target.tagName === 'A' || target.closest('a');
+                const isButton = target.tagName === 'BUTTON' || target.closest('button');
+                if (isLink || isButton) {
+                    return;
+                }
+            }
+            
             // Find the city data - use strict equality and handle both string and number IDs
             const city = window.allCities.find(c => c.id == cityId || String(c.id) === String(cityId));
             if (!city) {
