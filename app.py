@@ -4111,6 +4111,7 @@ def reload_venues_from_json():
                 continue
             
             venue_name = venue_data.get('name', 'Unknown')
+            city_name = venue_data.get('city_name', '')
             
             # Find existing venue by name only (city_id might differ between local and production)
             venue = Venue.query.filter_by(name=venue_name).first()
@@ -4146,7 +4147,51 @@ def reload_venues_from_json():
                 venue.updated_at = datetime.utcnow()
                 updated_count += 1
             else:
-                app_logger.debug(f"⚠️ Venue not found in DB: {venue_name}")
+                # Venue doesn't exist - create it
+                # Find city by name (city_id differs between local and production)
+                city = None
+                if city_name:
+                    # Try exact match first
+                    city = City.query.filter_by(name=city_name).first()
+                    # If not found, try partial match (e.g., "Irvine" matches "Irvine, California, United States")
+                    if not city and ',' in city_name:
+                        city_name_base = city_name.split(',')[0].strip()
+                        city = City.query.filter(City.name.like(f"{city_name_base}%")).first()
+                
+                if not city:
+                    app_logger.warning(f"⚠️ City not found for venue {venue_name}: {city_name} - skipping creation")
+                    continue
+                
+                # Create new venue
+                app_logger.info(f"➕ Creating new venue: {venue_name} in {city.name}")
+                new_venue = Venue(
+                    name=venue_name,
+                    venue_type=venue_data.get('venue_type', 'venue'),
+                    address=venue_data.get('address'),
+                    city_id=city.id,
+                    latitude=venue_data.get('latitude'),
+                    longitude=venue_data.get('longitude'),
+                    image_url=venue_data.get('image_url'),
+                    instagram_url=venue_data.get('instagram_url'),
+                    facebook_url=venue_data.get('facebook_url'),
+                    twitter_url=venue_data.get('twitter_url'),
+                    youtube_url=venue_data.get('youtube_url'),
+                    tiktok_url=venue_data.get('tiktok_url'),
+                    website_url=venue_data.get('website_url'),
+                    description=venue_data.get('description'),
+                    opening_hours=venue_data.get('opening_hours'),
+                    holiday_hours=venue_data.get('holiday_hours'),
+                    phone_number=venue_data.get('phone_number'),
+                    email=venue_data.get('email'),
+                    tour_info=venue_data.get('tour_info'),
+                    admission_fee=venue_data.get('admission_fee'),
+                    additional_info=venue_data.get('additional_info'),
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.session.add(new_venue)
+                updated_count += 1
+                app_logger.info(f"✅ Created venue: {venue_name}")
         
         db.session.commit()
         app_logger.info(f"✅ Successfully reloaded {updated_count} venues from JSON")
