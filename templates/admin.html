@@ -7530,7 +7530,7 @@
                             // Check if it's a photo reference (long string without http)
                             let imageSrc = venue.image_url;
                             let imageHref = venue.image_url;
-                            if (venue.image_url && !venue.image_url.startsWith('http') && venue.image_url.length > 50) {
+                            if (venue.image_url && venue.image_url.trim() && !venue.image_url.startsWith('http') && venue.image_url.length > 50) {
                                 // It's likely a Google Maps photo reference - use the image API endpoint
                                 imageSrc = '/api/image/' + venue.image_url;
                                 imageHref = '/api/image/' + venue.image_url;

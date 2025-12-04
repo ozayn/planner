@@ -1299,6 +1299,11 @@ def get_venues():
 def get_venue_image(photo_reference):
     """Secure image proxy endpoint that adds API key server-side"""
     try:
+        # Validate photo reference is not empty
+        if not photo_reference or not photo_reference.strip():
+            app_logger.warning("Empty photo reference provided to /api/image/ endpoint")
+            return jsonify({'error': 'Invalid photo reference'}), 400
+        
         google_maps_api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         
         if not google_maps_api_key:
