@@ -1406,6 +1406,13 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="babyFriendlyFilter" style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="babyFriendlyFilter" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span>👶 Baby/Toddler Friendly</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
                         <label for="dateRangeSelect">When</label>
                         <select id="dateRangeSelect">
                             <option value="today">Today</option>
@@ -1781,6 +1788,21 @@
             });
             eventTypeSelect.addEventListener('change', updateStatus);
             eventTypeSelectStep2.addEventListener('change', updateStatus);
+            
+            // Add baby-friendly filter listener
+            const babyFriendlyFilter = document.getElementById('babyFriendlyFilter');
+            if (babyFriendlyFilter) {
+                babyFriendlyFilter.addEventListener('change', () => {
+                    // Re-filter and display events when checkbox changes
+                    if (allEvents && allEvents.length > 0) {
+                        let filtered = [...allEvents];
+                        if (babyFriendlyFilter.checked) {
+                            filtered = filtered.filter(event => event.is_baby_friendly === true);
+                        }
+                        displayEvents(filtered);
+                    }
+                });
+            }
             
             // Add enhanced filter event listeners
             setupEnhancedFilterListeners();
@@ -3427,13 +3449,14 @@
             const imageUrl = getImageUrl(event.image_url);
             
             const isOnline = event.is_online || false;
+            const isBabyFriendly = event.is_baby_friendly || false;
             const locationDisplay = isOnline ? '🌐 Online Event' : (event.venue_name || event.start_location || 'Location TBD');
             
             return `
                 <div class="event-card ${isSelected ? 'selected' : ''} ${isOnline ? 'online-event' : ''}" data-event-id="${event.id}">
                     <div class="event-header">
                         <div>
-                            <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}</div>
+                            <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}${isBabyFriendly ? ' <span class="baby-badge" style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; margin-left: 8px;">👶 Baby-Friendly</span>' : ''}</div>
                             <div class="event-venue">${locationDisplay}</div>
                         </div>
                         <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 

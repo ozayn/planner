@@ -248,81 +248,131 @@ def migrate_events_schema():
     db_url = os.getenv('DATABASE_URL', '')
     is_railway = os.getenv('RAILWAY_ENVIRONMENT') or ('postgresql' in db_url or 'postgres' in db_url)
     
-    if not is_railway or not db_url:
-        return False, "Not on Railway or DATABASE_URL not found", []
+    # Try Railway PostgreSQL migration first
+    if is_railway and db_url:
+        try:
+            import psycopg2
+            from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+            
+            # Connect to Railway PostgreSQL
+            railway_conn = psycopg2.connect(db_url)
+            railway_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            railway_cursor = railway_conn.cursor()
+            
+            # Get Railway schema
+            railway_cursor.execute("""
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'events'
+            """)
+            railway_columns = {row[0]: row[1] for row in railway_cursor.fetchall()}
+            
+            # Define expected columns (based on current Event model)
+            # This should match all columns in the Event model definition
+            expected_columns = [
+                # Social media fields
+                ('social_media_platform', 'VARCHAR(50)'),
+                ('social_media_handle', 'VARCHAR(100)'),
+                ('social_media_page_name', 'VARCHAR(100)'),
+                ('social_media_posted_by', 'VARCHAR(100)'),
+                ('social_media_url', 'VARCHAR(500)'),
+                # Location fields
+                ('start_location', 'VARCHAR(200)'),
+                ('end_location', 'VARCHAR(200)'),
+                # Online event field
+                ('is_online', 'BOOLEAN'),
+                # Baby-friendly field
+                ('is_baby_friendly', 'BOOLEAN'),
+                # Registration fields
+                ('is_registration_required', 'BOOLEAN'),
+                ('registration_opens_date', 'DATE'),
+                ('registration_opens_time', 'TIME'),
+                ('registration_url', 'VARCHAR(1000)'),
+                ('registration_info', 'TEXT'),
+                # Exhibition-specific fields
+                ('artists', 'TEXT'),
+                ('exhibition_type', 'VARCHAR(100)'),
+                ('collection_period', 'VARCHAR(200)'),
+                ('number_of_artworks', 'INTEGER'),
+                ('opening_reception_date', 'DATE'),
+                ('opening_reception_time', 'TIME'),
+                ('is_permanent', 'BOOLEAN'),
+                ('related_exhibitions', 'TEXT')
+            ]
+            
+            # Add missing columns with appropriate defaults
+            added_columns = []
+            errors = []
+            for col_name, pg_type in expected_columns:
+                if col_name not in railway_columns:
+                    try:
+                        # Add default values for BOOLEAN columns to match model defaults
+                        if col_name == 'is_online':
+                            railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                        elif col_name == 'is_baby_friendly':
+                            railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                        elif col_name == 'is_registration_required':
+                            railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                        elif col_name == 'is_permanent':
+                            railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                        else:
+                            railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type}")
+                        added_columns.append(col_name)
+                        print(f"✅ Auto-migrated: {col_name}")
+                    except Exception as e:
+                        error_msg = f"Failed to add {col_name}: {str(e)}"
+                        errors.append(error_msg)
+                        print(f"⚠️  Auto-migration failed for {col_name}: {e}")
+            
+            railway_cursor.close()
+            railway_conn.close()
+            
+            if added_columns:
+                message = f"Successfully added {len(added_columns)} columns: {', '.join(added_columns)}"
+                if errors:
+                    message += f". Errors: {'; '.join(errors)}"
+                return True, message, added_columns
+            elif errors:
+                return False, f"Migration failed: {'; '.join(errors)}", []
+            else:
+                return True, "Schema is already up to date", []
+        except ImportError:
+            # psycopg2 not available - fall through to SQLite migration
+            pass
+        except Exception as e:
+            # Railway migration failed - fall through to SQLite migration
+            pass
     
+    # Try SQLite migration for local development
     try:
-        import psycopg2
-        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        import sqlalchemy
+        inspector = sqlalchemy.inspect(db.engine)
+        existing_columns = [col['name'] for col in inspector.get_columns('events')]
         
-        # Connect to Railway PostgreSQL
-        railway_conn = psycopg2.connect(db_url)
-        railway_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        railway_cursor = railway_conn.cursor()
-        
-        # Get Railway schema
-        railway_cursor.execute("""
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'events'
-        """)
-        railway_columns = {row[0]: row[1] for row in railway_cursor.fetchall()}
-        
-        # Define expected columns (based on current Event model)
-        # This should match all columns in the Event model definition
+        # Define expected columns for SQLite
         expected_columns = [
-            # Social media fields
-            ('social_media_platform', 'VARCHAR(50)'),
-            ('social_media_handle', 'VARCHAR(100)'),
-            ('social_media_page_name', 'VARCHAR(100)'),
-            ('social_media_posted_by', 'VARCHAR(100)'),
-            ('social_media_url', 'VARCHAR(500)'),
-            # Location fields
-            ('start_location', 'VARCHAR(200)'),
-            ('end_location', 'VARCHAR(200)'),
-            # Online event field
-            ('is_online', 'BOOLEAN'),
-            # Registration fields
-            ('is_registration_required', 'BOOLEAN'),
-            ('registration_opens_date', 'DATE'),
-            ('registration_opens_time', 'TIME'),
-            ('registration_url', 'VARCHAR(1000)'),
-            ('registration_info', 'TEXT'),
-            # Exhibition-specific fields
-            ('artists', 'TEXT'),
-            ('exhibition_type', 'VARCHAR(100)'),
-            ('collection_period', 'VARCHAR(200)'),
-            ('number_of_artworks', 'INTEGER'),
-            ('opening_reception_date', 'DATE'),
-            ('opening_reception_time', 'TIME'),
-            ('is_permanent', 'BOOLEAN'),
-            ('related_exhibitions', 'TEXT')
+            ('is_baby_friendly', 'INTEGER', 0),  # SQLite uses INTEGER for BOOLEAN
+            ('is_online', 'INTEGER', 0),
+            ('is_registration_required', 'INTEGER', 0),
+            ('is_permanent', 'INTEGER', 0),
         ]
         
-        # Add missing columns with appropriate defaults
         added_columns = []
         errors = []
-        for col_name, pg_type in expected_columns:
-            if col_name not in railway_columns:
+        
+        for col_name, col_type, default_val in expected_columns:
+            if col_name not in existing_columns:
                 try:
-                    # Add default values for BOOLEAN columns to match model defaults
-                    if col_name == 'is_online':
-                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
-                    elif col_name == 'is_registration_required':
-                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
-                    elif col_name == 'is_permanent':
-                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
-                    else:
-                        railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type}")
+                    with db.engine.connect() as conn:
+                        conn.execute(sqlalchemy.text(f"ALTER TABLE events ADD COLUMN {col_name} {col_type} DEFAULT {default_val}"))
+                        conn.commit()
+                    
                     added_columns.append(col_name)
-                    print(f"✅ Auto-migrated: {col_name}")
+                    print(f"✅ Auto-migrated (SQLite): {col_name}")
                 except Exception as e:
                     error_msg = f"Failed to add {col_name}: {str(e)}"
                     errors.append(error_msg)
                     print(f"⚠️  Auto-migration failed for {col_name}: {e}")
-        
-        railway_cursor.close()
-        railway_conn.close()
         
         if added_columns:
             message = f"Successfully added {len(added_columns)} columns: {', '.join(added_columns)}"
@@ -333,19 +383,21 @@ def migrate_events_schema():
             return False, f"Migration failed: {'; '.join(errors)}", []
         else:
             return True, "Schema is already up to date", []
-            
-    except ImportError:
-        return False, "psycopg2 not available", []
     except Exception as e:
-        return False, f"Migration error: {str(e)}", []
+        return False, f"SQLite migration error: {str(e)}", []
 
 def auto_migrate_schema():
-    """Automatically migrate Railway PostgreSQL schema on startup."""
-    success, message, _ = migrate_events_schema()
-    if success:
-        print(f"✅ Schema migration: {message}")
-    else:
-        print(f"⚠️  Schema migration: {message}")
+    """Automatically migrate schema on startup (Railway PostgreSQL or local SQLite)."""
+    try:
+        with app.app_context():
+            success, message, _ = migrate_events_schema()
+            if success:
+                print(f"✅ Schema migration: {message}")
+            else:
+                print(f"⚠️  Schema migration: {message}")
+    except Exception as e:
+        # Migration can fail on startup if database isn't ready yet - that's okay
+        print(f"⚠️  Schema migration: {str(e)}")
 
 # Run auto-migration on startup
 auto_migrate_schema()
@@ -504,6 +556,7 @@ class Event(db.Model):
     url = db.Column(db.String(1000))  # Increased for long URLs
     is_selected = db.Column(db.Boolean, default=True)
     is_online = db.Column(db.Boolean, default=False)  # True for online/virtual events
+    is_baby_friendly = db.Column(db.Boolean, default=False)  # True for baby/toddler-friendly events
     event_type = db.Column(db.String(50), nullable=False)  # 'tour', 'exhibition', 'festival', 'photowalk'
     
     # Registration fields
@@ -634,6 +687,7 @@ class Event(db.Model):
             'image_url': image_url,
             'maps_link': maps_link,  # Add clickable Google Maps link
             'is_online': self.is_online if hasattr(self, 'is_online') else False,  # Online/virtual event flag
+            'is_baby_friendly': self.is_baby_friendly if hasattr(self, 'is_baby_friendly') else False,  # Baby/toddler-friendly event flag
             'url': self.url,
             'is_selected': self.is_selected,
             'event_type': self.event_type,
@@ -1876,6 +1930,28 @@ def trigger_scraping():
                         app_logger.info(f"⚠️ Skipped exhibition '{title}' - already saved {current_count} exhibitions for venue {venue_id} (website: {venue.website_url if venue else 'N/A'}) in this batch (limit: {max_exhibitions_per_venue})")
                         continue
                 
+                # Detect if event is baby-friendly
+                is_baby_friendly = False
+                title_lower = title.lower()
+                description_lower = (event_data.get('description', '') or '').lower()
+                combined_text = f"{title_lower} {description_lower}"
+                
+                # Keywords that indicate baby/toddler-friendly events
+                baby_keywords = [
+                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
+                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
+                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
+                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
+                    'stroller', 'strollers', 'nursing', 'breastfeeding',
+                    'family program', 'family-friendly', 'family friendly',
+                    'art & play', 'art and play', 'play time', 'playtime',
+                    'children', 'kids', 'little ones', 'young families'
+                ]
+                
+                if any(keyword in combined_text for keyword in baby_keywords):
+                    is_baby_friendly = True
+                    app_logger.info(f"   👶 Detected baby-friendly event: '{title}'")
+                
                 # Create a unique key for duplicate checking
                 from datetime import datetime as dt
                 if start_date_str:
@@ -1964,9 +2040,20 @@ def trigger_scraping():
                     updated_fields = []
                     
                     # Update fields if new data is available
-                    if event_data.get('description') and event_data.get('description') != event.description:
-                        event.description = event_data.get('description')
-                        updated_fields.append('description')
+                    # For description, update if missing or if new description is longer/more complete
+                    new_description = event_data.get('description', '')
+                    if new_description:
+                        if not event.description or len(new_description) > len(event.description):
+                            event.description = new_description
+                            updated_fields.append('description')
+                            app_logger.info(f"   📝 Updated description (length: {len(new_description)} chars)")
+                    
+                    # Update event_type if it's more specific (e.g., 'event' -> 'talk')
+                    new_event_type = event_data.get('event_type')
+                    if new_event_type and new_event_type != 'event' and event.event_type == 'event':
+                        event.event_type = new_event_type
+                        updated_fields.append('event_type')
+                        app_logger.info(f"   🏷️  Updated event_type: {event.event_type} -> {new_event_type}")
                     
                     if event_data.get('url') and event_data.get('url') != event.url:
                         event.url = event_data.get('url')
@@ -2019,17 +2106,29 @@ def trigger_scraping():
                                 new_end_time = None
                         
                         # Update if: times are missing OR new time is different
+                        # For talks and workshops, always update if missing (they need end times)
                         if new_end_time:
                             old_end_time = event.end_time
-                            if not event.end_time or event.end_time != new_end_time:
+                            should_update = False
+                            if not event.end_time:
+                                should_update = True
+                                app_logger.info(f"   ⏰ Missing end_time - will update to: {new_end_time}")
+                            elif event.end_time != new_end_time:
+                                should_update = True
+                                app_logger.info(f"   ⏰ end_time changed - will update from {old_end_time} to {new_end_time}")
+                            
+                            if should_update:
                                 event.end_time = new_end_time
                                 updated_fields.append('end_time')
-                                app_logger.info(f"   ⏰ Updated end_time: {new_end_time} (was: {old_end_time})")
+                                app_logger.info(f"   ✅ Updated end_time: {new_end_time} (was: {old_end_time})")
                             else:
                                 app_logger.info(f"   ⏸️  end_time unchanged: {new_end_time}")
                         else:
                             app_logger.warning(f"   ⚠️  Could not parse end_time_str: '{end_time_str}'")
                     else:
+                        # For talks and workshops, log if end_time is still missing
+                        if event.event_type in ['talk', 'workshop'] and not event.end_time:
+                            app_logger.warning(f"   ⚠️  Talk/workshop missing end_time and no end_time_str provided: {end_time_str}")
                         app_logger.info(f"   ⏭️  Skipping end_time update: end_time_str={end_time_str}")
                     
                     # Update location if provided
@@ -2050,9 +2149,18 @@ def trigger_scraping():
                             updated_fields.append('registration_url')
                     
                     if hasattr(Event, 'registration_info') and event_data.get('registration_info'):
-                        if event.registration_info != event_data.get('registration_info'):
-                            event.registration_info = event_data.get('registration_info')
+                        new_reg_info = event_data.get('registration_info')
+                        # Update if: registration_info is missing OR new info is different
+                        if not event.registration_info or event.registration_info != new_reg_info:
+                            event.registration_info = new_reg_info
                             updated_fields.append('registration_info')
+                            app_logger.info(f"   🎫 Updated registration_info: {new_reg_info[:100] if new_reg_info else 'None'}")
+                    
+                    # Update baby-friendly flag if detected
+                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
+                        if not event.is_baby_friendly:
+                            event.is_baby_friendly = True
+                            updated_fields.append('is_baby_friendly')
                     
                     # CRITICAL: Always update times if they're missing, even if nothing else changed
                     # This ensures times get added to existing events
@@ -2100,6 +2208,10 @@ def trigger_scraping():
                 # However, if we can't extract times, we'll still save the event but log a warning
                 # This only applies to NEW events, not updates (updates are handled above)
                 if event_type in ['tour', 'talk', 'workshop'] and (not start_time_str or start_time_str == 'None'):
+                    # Get venue if available for opening hours check
+                    venue = None
+                    if venue_id:
+                        venue = Venue.query.get(venue_id)
                     # For museum events, try to use opening hours as fallback
                     if venue and venue.opening_hours:
                         app_logger.info(f"ℹ️  {event_type} event '{title}' has no start time, but will be saved (venue has opening hours: {venue.opening_hours})")
@@ -2185,6 +2297,10 @@ def trigger_scraping():
                         event.registration_opens_time = dt.strptime(event_data['registration_opens_time'], '%H:%M:%S').time()
                     except (ValueError, TypeError):
                         pass
+                
+                # Baby-friendly flag
+                if hasattr(Event, 'is_baby_friendly'):
+                    event.is_baby_friendly = is_baby_friendly
                 
                 db.session.add(event)
                 events_loaded += 1

@@ -3,7 +3,7 @@
     "version": "1.0",
     "created": "2025-10-21",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 197,
+    "total_venues": 198,
     "last_updated": "2025-12-03 17:46:38"
   },
   "venues": {
@@ -4455,6 +4455,29 @@
       "admission_fee": "$3 per vehicle (weekdays), $5 (weekends)",
       "latitude": 33.6708,
       "longitude": -117.8447
+    },
+    "198": {
+      "name": "Orange County Museum of Art (OCMA)",
+      "venue_type": "museum",
+      "address": "3333 Avenue of the Arts, Costa Mesa, CA 92626",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "Contemporary art museum with over 4,500 objects focusing on 20th and 21st century art from California and Pacific Rim artists. Features paintings, sculptures, photography, video, digital, and installation art.",
+      "opening_hours": "Wed-Sun 11:00 AM - 6:00 PM, Closed Mon-Tue",
+      "phone_number": "(714) 780-2130",
+      "email": "[email protected]",
+      "website_url": "https://ocma.art",
+      "instagram_url": "",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "Free",
+      "image_url": "",
+      "latitude": 33.6906,
+      "longitude": -117.8847,
+      "created_at": null,
+      "updated_at": null
     }
   }
 }

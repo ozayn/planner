@@ -460,6 +460,9 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     end_time = dt_time(int(parts[0]), int(parts[1]))
                 except:
                     pass
+            
+            # Initialize event_type to None - will be determined later
+            event_type = None
         elif not event_data:
             # Scrape the data
             import cloudscraper
@@ -550,7 +553,9 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 existing = None
                 
                 # For exhibitions and tours, match by URL (they're typically single events with unique URLs)
-                if url and ('exhibition' in (event_type or '').lower() or 'tour' in (event_type or '').lower() or '/exhibitions/' in url.lower() or '/calendar/' in url.lower()):
+                # Check event_type safely (it might not be set yet)
+                event_type_lower = (event_type or '').lower()
+                if url and ('exhibition' in event_type_lower or 'tour' in event_type_lower or '/exhibitions/' in url.lower() or '/calendar/' in url.lower()):
                     # Normalize URL for comparison (remove trailing slash)
                     normalized_url = url.rstrip('/')
                     # Try exact URL match or URL with trailing slash

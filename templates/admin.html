@@ -1021,6 +1021,9 @@
                             <input type="url" id="quickEventUrl" placeholder="Paste event URL (e.g., nga.gov/calendar/...)" 
                                    style="flex: 1; min-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;"
                                    onkeypress="if(event.key === 'Enter') quickCreateEventFromUrl();">
+                            <select id="quickUrlCitySelect" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; min-width: 150px;">
+                                <option value="">Select City...</option>
+                            </select>
                             <button onclick="quickCreateEventFromUrl()" class="add-button" style="background: #3b82f6; white-space: nowrap;">
                                 ⚡ Quick Create
                             </button>
@@ -2569,12 +2572,51 @@
                 renderCitiesTable();
                 populateCityFilters();
                 
+                // Populate all city dropdowns
+                populateAllCityDropdowns();
+                
             } catch (error) {
                 console.error('Error loading cities:', error);
                 const citiesTable = document.getElementById('citiesTable');
                 if (citiesTable) {
                     citiesTable.innerHTML = '<tr><td colspan="11" class="no-results">❌ Failed to load cities: ' + error.message + '</td></tr>';
                 }
+            }
+        }
+        
+        // Helper function to populate all city dropdowns across the admin interface
+        function populateAllCityDropdowns() {
+            if (!window.allCities) {
+                console.warn('Cities not loaded yet, skipping dropdown population');
+                return;
+            }
+            
+            // Populate quick URL city selector
+            populateQuickUrlCitySelector();
+            
+            // Populate URL scraper city selector (if modal is open or on demand)
+            populateUrlCitySelector();
+        }
+        
+        // Populate the URL scraper modal city dropdown
+        function populateUrlCitySelector() {
+            if (!window.allCities) return;
+            
+            const select = document.getElementById('urlCitySelect');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Choose a city...</option>';
+            window.allCities.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.id;
+                option.textContent = `${city.name}${city.state ? ', ' + city.state : ''}, ${city.country || ''}`;
+                select.appendChild(option);
+            });
+            
+            // Try auto-selection if we have extracted data
+            if (window.extractedEventData && window.extractedEventData.city_id) {
+                select.value = window.extractedEventData.city_id;
+                console.log('✅ AUTO-SELECTED CITY:', window.extractedEventData.city_id);
             }
         }
         
@@ -5181,6 +5223,7 @@
                 if (window.allEvents) {
                     populateEventFilters();
                 }
+                // All city dropdowns are populated by loadCities() -> populateAllCityDropdowns()
             });
             
             // Setup forms
@@ -6670,27 +6713,18 @@
                 })
                 .catch(error => console.error('Error loading venues:', error));
             
-            // Populate city dropdown
-            fetch('/api/admin/cities')
-                .then(response => response.json())
-                .then(cities => {
-                    const select = document.getElementById('urlCitySelect');
-                    select.innerHTML = '<option value="">Choose a city...</option>';
-                    cities.forEach(city => {
-                        const option = document.createElement('option');
-                        option.value = city.id;
-                        option.textContent = `${city.display_name || city.name}, ${city.country}`;
-                        select.appendChild(option);
-                    });
-                    
-                    window.cityDropdownLoaded = true;
-                    // Try auto-selection if we have extracted data
-                    if (window.extractedEventData && window.extractedEventData.city_id) {
-                        select.value = window.extractedEventData.city_id;
-                        console.log('✅ AUTO-SELECTED CITY:', window.extractedEventData.city_id);
-                    }
-                })
-                .catch(error => console.error('Error loading cities:', error));
+            // Populate city dropdown using cached cities or fetch if needed
+            if (window.allCities) {
+                populateUrlCitySelector();
+            } else {
+                fetch('/api/admin/cities')
+                    .then(response => response.json())
+                    .then(cities => {
+                        window.allCities = cities;
+                        populateUrlCitySelector();
+                    })
+                    .catch(error => console.error('Error loading cities:', error));
+            }
         }
         
         function openImageUploadModal() {
@@ -6923,6 +6957,37 @@
             display.style.display = 'block';
         }
         
+        // Populate quick URL city selector
+        async function populateQuickUrlCitySelector() {
+            try {
+                const citySelect = document.getElementById('quickUrlCitySelect');
+                if (!citySelect) return;
+                
+                // Use cached cities if available, otherwise fetch
+                let cities = window.allCities;
+                if (!cities) {
+                    const response = await fetch('/api/admin/cities');
+                    cities = await response.json();
+                    window.allCities = cities;
+                }
+                
+                // Clear existing options except the first one
+                citySelect.innerHTML = '<option value="">Select City...</option>';
+                
+                // Add cities
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.id;
+                    option.textContent = city.name + (city.state ? `, ${city.state}` : '');
+                    citySelect.appendChild(option);
+                });
+                
+                console.log(`✅ Populated quick URL city selector with ${cities.length} cities`);
+            } catch (error) {
+                console.error('Error populating quick URL city selector:', error);
+            }
+        }
+        
         async function quickCreateEventFromUrl() {
             const urlInput = document.getElementById('quickEventUrl');
             const statusDiv = document.getElementById('quickUrlStatus');
@@ -6971,11 +7036,11 @@
                 
                 // If no city detected, try to detect from URL
                 if (!cityId) {
+                    const citiesResponse = await fetch('/api/admin/cities');
+                    const cities = await citiesResponse.json();
+                    
                     // Check for NGA (National Gallery of Art) - DC
                     if (url.includes('nga.gov') || url.toLowerCase().includes('national gallery')) {
-                        // Try to find DC city
-                        const citiesResponse = await fetch('/api/admin/cities');
-                        const cities = await citiesResponse.json();
                         const dcCity = cities.find(c => 
                             c.name.toLowerCase().includes('washington') || 
                             c.name.toLowerCase().includes('dc')
@@ -6998,17 +7063,40 @@
                             }
                         }
                     }
+                    // Check for OCMA (Orange County Museum of Art) - Irvine
+                    else if (url.includes('ocma.art') || url.toLowerCase().includes('orange county museum')) {
+                        const irvineCity = cities.find(c => 
+                            c.name.toLowerCase().includes('irvine') || 
+                            c.name.toLowerCase().includes('orange county')
+                        );
+                        if (irvineCity) {
+                            cityId = irvineCity.id;
+                            statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Auto-detected Irvine...</span>';
+                            
+                            // Try to find OCMA venue
+                            if (!venueId) {
+                                const venuesResponse = await fetch('/api/admin/venues');
+                                const venues = await venuesResponse.json();
+                                const ocmaVenue = venues.find(v => 
+                                    (v.name.toLowerCase().includes('ocma') || v.name.toLowerCase().includes('orange county museum')) && 
+                                    (v.city_id == cityId || v.city_name?.toLowerCase().includes('irvine'))
+                                );
+                                if (ocmaVenue) {
+                                    venueId = ocmaVenue.id;
+                                }
+                            }
+                        }
+                    }
                 }
                 
-                // If still no city, use first available city as fallback
+                // If still no city, check if user selected one from dropdown
                 if (!cityId) {
-                    const citiesResponse = await fetch('/api/admin/cities');
-                    const cities = await citiesResponse.json();
-                    if (cities.length > 0) {
-                        cityId = cities[0].id;
-                        statusDiv.innerHTML = '<span style="color: #f59e0b;">⚠️ Using default city. Please verify.</span>';
+                    const citySelect = document.getElementById('quickUrlCitySelect');
+                    if (citySelect && citySelect.value) {
+                        cityId = parseInt(citySelect.value);
+                        statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Using selected city...</span>';
                     } else {
-                        statusDiv.innerHTML = '<span style="color: #ef4444;">❌ No cities found. Please add a city first.</span>';
+                        statusDiv.innerHTML = '<span style="color: #ef4444;">❌ Please select a city from the dropdown above, or use the advanced "From URL" option.</span>';
                         return;
                     }
                 }

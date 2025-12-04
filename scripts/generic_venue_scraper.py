@@ -99,7 +99,9 @@ class GenericVenueScraper:
         
         # Common date/time patterns
         self.date_patterns = [
-            # Full dates with time
+            # Full dates with time (comma-separated format: "December 5, 2025, 5:00–6:00 PM")
+            r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',  # "December 5, 2025, 5:00–6:00 PM"
+            # Full dates with time (pipe-separated format: "December 5, 2025 | 11:30 am–12:00 pm")
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?',  # "December 5, 2025 | 11:30 am–12:00 pm"
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
             # Date ranges
@@ -219,13 +221,22 @@ class GenericVenueScraper:
             
             soup = BeautifulSoup(html_content, 'html.parser')
             
+            # Check if this is an exhibition listing page (e.g., OCMA)
+            if '/exhibitions' in url.lower() or event_type == 'exhibition':
+                exhibition_events = self._extract_exhibitions_from_listing_page(soup, url, venue_name, time_range)
+                if exhibition_events:
+                    logger.info(f"✅ Found {len(exhibition_events)} exhibitions from listing page")
+                    events.extend(exhibition_events)
+            
             # Try JSON-LD first (structured data)
             json_ld_events = self._extract_json_ld_events(soup, url)
             events.extend(json_ld_events)
             
             # Extract events from HTML
             html_events = self._extract_events_from_html(soup, url, venue_name, event_type, time_range)
-            events.extend(html_events)
+            # Filter out invalid events before adding
+            valid_html_events = [e for e in html_events if self._is_valid_generic_event(e)]
+            events.extend(valid_html_events)
             
         except Exception as e:
             logger.debug(f"Error scraping page {url}: {e}")
@@ -335,6 +346,33 @@ class GenericVenueScraper:
             logger.debug(f"Error parsing JSON-LD event: {e}")
             return None
     
+    def _should_skip_element(self, element) -> bool:
+        """Check if element should be skipped (navigation, calendar UI, etc.)"""
+        # Skip elements inside navigation menus
+        nav_parents = element.find_parents(['nav', 'header', 'footer', '.nav', '.navigation', '.menu'])
+        if nav_parents:
+            return True
+        
+        # Skip elements inside calendar UI (day headers, navigation)
+        calendar_parents = element.find_parents(['.calendar', '.datepicker', '.event-calendar', 
+                                                  '.tribe-events', '.calendar-nav', '.calendar-header'])
+        if calendar_parents:
+            # But allow if it's inside an event item within calendar
+            event_item_parents = element.find_parents(['.event-item', '.event-card', '.event', '[class*="event"]'])
+            if not event_item_parents:
+                return True
+        
+        # Skip script and style elements
+        if element.name in ['script', 'style', 'noscript']:
+            return True
+        
+        # Skip very small text elements (likely navigation labels)
+        text = element.get_text(strip=True)
+        if text and len(text) <= 2:
+            return True
+        
+        return False
+    
     def _extract_events_from_html(self, soup: BeautifulSoup, base_url: str, 
                                   venue_name: str = None, event_type: str = None, 
                                   time_range: str = 'this_month') -> List[Dict]:
@@ -349,6 +387,10 @@ class GenericVenueScraper:
                     logger.debug(f"Found {len(elements)} elements with selector: {selector}")
                     
                     for element in elements:
+                        # Skip navigation and calendar UI elements
+                        if self._should_skip_element(element):
+                            continue
+                        
                         event = self._parse_event_element(element, base_url, venue_name, event_type, time_range)
                         if event:
                             events.append(event)
@@ -358,6 +400,90 @@ class GenericVenueScraper:
                 continue
         
         return events
+    
+    def _is_valid_event_title(self, title: str) -> bool:
+        """Validate that a title is actually an event title, not navigation/page element"""
+        if not title or len(title) < 3:
+            return False
+        
+        title_lower = title.lower().strip()
+        title_original = title.strip()
+        
+        # Filter out navigation and page elements
+        invalid_patterns = [
+            # Calendar navigation - day abbreviations (with or without double letters)
+            r'^(s?sun|m?mon|t?tue|w?wed|t?thu|f?fri|s?sat)$',
+            # Calendar event counts
+            r'^\d+\s+events?,\s*\d+$',  # "0 events,3", "1 event,5"
+            r'^\d+\s+event,\d+$',  # "1 event,5"
+            r'^\d+\s+event,\s*\d+$',  # "1 event, 5"
+            # Navigation elements
+            r'^events?\s+search',  # "Events Search"
+            r'^event\s+views?\s+navigation',  # "Event Views Navigation"
+            r'^calendar\s+of\s+events?$',  # "Calendar of Events"
+            r'^view\s+calendar$',
+            r'^view\s+all\s+events?$',
+            r'^upcoming\s+events?$',
+            r'^past\s+events?$',
+            r'^all\s+events?$',
+            # Generic page elements
+            r'^(details?|organizer|venue|location|date|time)$',
+            r'^(filter|search|browse|explore)$',
+            r'^(loading|loading\s+view)$',
+            r'^(month|list|week|photo|day)$',
+            r'^(select\s+date|this\s+month)$',
+            # JavaScript/function code
+            r'^\s*\(?\s*function\s*\(',
+            r'^\s*var\s+\w+\s*=',
+            r'^\s*if\s*\(',
+            # Very short or generic
+            r'^[a-z]$',  # Single letter
+            r'^\d+$',  # Just numbers
+            r'^[a-z]\d+$',  # "M1", "T2", etc.
+            # Date-only patterns without event name
+            r'^(december|january|february|march|april|may|june|july|august|september|october|november)\s+\d+\s*@?\s*\d+:\d+',  # "December 5 @ 10:00"
+        ]
+        
+        for pattern in invalid_patterns:
+            if re.match(pattern, title_lower, re.IGNORECASE):
+                return False
+        
+        # Filter out titles that are clearly not events (exact matches)
+        invalid_keywords = [
+            'details', 'organizer', 'venue', 'location', 'date:', 'time:',
+            'filter', 'search', 'browse', 'explore', 'loading', 'select',
+            'month', 'list', 'week', 'photo', 'day', 'sun', 'mon', 'tue',
+            'wed', 'thu', 'fri', 'sat', 'view calendar', 'view all',
+            'upcoming events', 'past events', 'all events', 'all past events', 'all past events→', 'calendar of events',
+            'ssun', 'mmon', 'ttue', 'wwed', 'tthu', 'ffri', 'ssat',
+            'events search and views navigation', 'event views navigation',
+            'upcoming events', 'past events', 'all events'
+        ]
+        
+        if title_lower in invalid_keywords:
+            return False
+        
+        # Filter out titles that end with navigation symbols (arrows, etc.)
+        if title.endswith('→') or title.endswith('←') or title.endswith('›') or title.endswith('»'):
+            return False
+        
+        # Filter out titles that start with invalid keywords (partial match)
+        for keyword in ['details', 'organizer', 'venue', 'filter', 'search', 'loading']:
+            if title_lower.startswith(keyword + ' ') or title_lower == keyword:
+                return False
+        
+        # Filter out titles that are just dates/times without event info
+        # Pattern: "Month Day @ Time" or "Month Day Time"
+        date_time_pattern = r'^(december|january|february|march|april|may|june|july|august|september|october|november)\s+\d+(\s*@\s*|\s+)\d+:\d+'
+        if re.match(date_time_pattern, title_lower):
+            # This is just a date/time string, not an event title
+            return False
+        
+        # Filter out very short titles that are likely navigation
+        if len(title_original) <= 5 and title_lower in ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']:
+            return False
+        
+        return True
     
     def _parse_event_element(self, element, base_url: str, venue_name: str = None,
                             event_type: str = None, time_range: str = 'this_month') -> Optional[Dict]:
@@ -370,6 +496,10 @@ class GenericVenueScraper:
             ])
             
             if not title or len(title) < 3:
+                return None
+            
+            # Validate title is actually an event, not navigation/page element
+            if not self._is_valid_event_title(title):
                 return None
             
             # Extract description
@@ -399,6 +529,116 @@ class GenericVenueScraper:
             
             # Extract image
             image_url = self._extract_image(element, base_url)
+            
+            # IMPORTANT: Fetch individual event page for better data extraction (times, descriptions, etc.)
+            # This is similar to what we do in the OCMA scraper
+            if url and url != base_url and url.startswith('http'):
+                try:
+                    logger.debug(f"   🔍 Fetching individual event page for better extraction: {url}")
+                    event_response = self.session.get(url, timeout=10)
+                    if event_response.status_code == 200:
+                        event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                        event_main_content = event_soup.find('article') or event_soup.find('main') or event_soup
+                        
+                        # First, try to extract date/time from h2 tags (common pattern, e.g., OCMA)
+                        # Look for patterns like "December 5, 2025, 5:00–6:00 PM" in h2 tags
+                        h2_tags = event_soup.find_all('h2') if event_soup else []
+                        for h2 in h2_tags:
+                            h2_text = h2.get_text(strip=True)
+                            # Check for combined date+time pattern
+                            combined_pattern = r'(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?'
+                            match = re.search(combined_pattern, h2_text, re.IGNORECASE)
+                            if match:
+                                groups = match.groups()
+                                try:
+                                    # Parse date
+                                    month = self._month_name_to_num(groups[0])
+                                    day = int(groups[1])
+                                    year = int(groups[2])
+                                    start_date = date(year, month, day)
+                                    
+                                    # Parse start time
+                                    start_hour = int(groups[3])
+                                    start_min = int(groups[4])
+                                    start_ampm = groups[5].lower()
+                                    if start_ampm == 'p' and start_hour != 12:
+                                        start_hour += 12
+                                    elif start_ampm == 'a' and start_hour == 12:
+                                        start_hour = 0
+                                    start_time = time(start_hour, start_min)
+                                    
+                                    # Parse end time
+                                    if len(groups) >= 9:
+                                        end_hour = int(groups[6])
+                                        end_min = int(groups[7])
+                                        end_ampm = groups[8].lower()
+                                        if end_ampm == 'p' and end_hour != 12:
+                                            end_hour += 12
+                                        elif end_ampm == 'a' and end_hour == 12:
+                                            end_hour = 0
+                                        end_time = time(end_hour, end_min)
+                                    
+                                    logger.info(f"   ✅ Extracted date+time from h2 tag: {start_date} {start_time}-{end_time}")
+                                    break
+                                except (ValueError, IndexError) as e:
+                                    logger.debug(f"Error parsing h2 date+time: {e}")
+                                    continue
+                        
+                        # Extract description from event page (more complete)
+                        if event_main_content:
+                            event_desc_elem = event_main_content.find('p')
+                            if event_desc_elem:
+                                event_description = event_desc_elem.get_text(strip=True)
+                                # Get all paragraphs for full description
+                                all_paragraphs = event_main_content.find_all('p')
+                                if len(all_paragraphs) > 1:
+                                    event_description = ' '.join([p.get_text(strip=True) for p in all_paragraphs if p.get_text(strip=True)])
+                                
+                                # Use event page description if it's longer/more complete
+                                if event_description and (not description or len(event_description) > len(description)):
+                                    description = event_description
+                                    logger.debug(f"   📝 Updated description from event page (length: {len(description)} chars)")
+                            
+                            # Extract date/time from event page (more accurate)
+                            # Use the full text from the event page for better extraction
+                            event_text = event_main_content.get_text()
+                            
+                            # Re-parse dates and times from the full event page text
+                            # This will use the combined patterns to extract "December 5, 2025, 5:00–6:00 PM"
+                            if event_text:
+                                # Create a dummy element to pass to _parse_dates_and_times
+                                from bs4 import Tag
+                                dummy_elem = Tag(name='div')
+                                dummy_elem.string = event_text
+                                
+                                # Re-parse with full event page text
+                                parsed_start_date, parsed_end_date, parsed_start_time, parsed_end_time = self._parse_dates_and_times(
+                                    event_text, dummy_elem, url
+                                )
+                                
+                                # Update if we got better data from event page
+                                if parsed_start_date and not start_date:
+                                    start_date = parsed_start_date
+                                    logger.debug(f"   📅 Extracted date from event page: {start_date}")
+                                if parsed_end_date and not end_date:
+                                    end_date = parsed_end_date
+                                if parsed_start_time and not start_time:
+                                    start_time = parsed_start_time
+                                    logger.debug(f"   ⏰ Extracted start time from event page: {start_time}")
+                                if parsed_end_time and not end_time:
+                                    end_time = parsed_end_time
+                                    logger.debug(f"   ⏰ Extracted end time from event page: {end_time}")
+                        
+                        # Extract image from event page if not found
+                        if not image_url:
+                            event_img = event_soup.find('img')
+                            if event_img:
+                                img_src = event_img.get('src') or event_img.get('data-src') or event_img.get('data-lazy-src')
+                                if img_src:
+                                    from urllib.parse import urljoin
+                                    image_url = urljoin(url, img_src)
+                except Exception as e:
+                    logger.debug(f"Error fetching individual event page {url}: {e}")
             
             # Determine event type
             if not event_type:
@@ -496,8 +736,12 @@ class GenericVenueScraper:
         end_time = None
         today = date.today()
         
+        # Get full text from element if date_text is limited
+        full_text = element.get_text() if element else date_text or ''
+        search_text = full_text if len(full_text) > len(date_text or '') else (date_text or '')
+        
         # Try time[datetime] attribute first
-        time_elem = element.find('time', datetime=True)
+        time_elem = element.find('time', datetime=True) if element else None
         if time_elem:
             datetime_str = time_elem.get('datetime', '')
             parsed = self._parse_iso_datetime(datetime_str)
@@ -507,27 +751,76 @@ class GenericVenueScraper:
                 # Try to get end time from text content
                 time_text = time_elem.get_text(strip=True)
                 if time_text:
-                    time_match = re.search(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', time_text, re.IGNORECASE)
+                    time_match = re.search(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', time_text, re.IGNORECASE)
                     if time_match:
-                        _, _, end_time = self._parse_time_match(time_match)
+                        _, parsed_end = self._parse_time_match(time_match)
+                        if parsed_end:
+                            end_time = parsed_end
+        
+        # Parse combined date+time patterns first (e.g., "December 5, 2025, 5:00–6:00 PM")
+        # These patterns extract both date and time together
+        combined_patterns = [
+            # "December 5, 2025, 5:00–6:00 PM" (comma-separated)
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+            # "December 5, 2025 | 5:00–6:00 PM" (pipe-separated)
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+        ]
+        
+        for pattern in combined_patterns:
+            match = re.search(pattern, search_text, re.IGNORECASE)
+            if match:
+                groups = match.groups()
+                try:
+                    # Parse date
+                    month = self._month_name_to_num(groups[0])
+                    day = int(groups[1])
+                    year = int(groups[2])
+                    start_date = date(year, month, day)
+                    
+                    # Parse start time
+                    start_hour = int(groups[3])
+                    start_min = int(groups[4])
+                    start_ampm = groups[5].lower()
+                    if start_ampm == 'p' and start_hour != 12:
+                        start_hour += 12
+                    elif start_ampm == 'a' and start_hour == 12:
+                        start_hour = 0
+                    start_time = time(start_hour, start_min)
+                    
+                    # Parse end time
+                    if len(groups) >= 9:
+                        end_hour = int(groups[6])
+                        end_min = int(groups[7])
+                        end_ampm = groups[8].lower()
+                        if end_ampm == 'p' and end_hour != 12:
+                            end_hour += 12
+                        elif end_ampm == 'a' and end_hour == 12:
+                            end_hour = 0
+                        end_time = time(end_hour, end_min)
+                    
+                    logger.debug(f"   ✅ Extracted date+time from combined pattern: {start_date} {start_time}-{end_time}")
+                    break
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Error parsing combined date+time pattern: {e}")
+                    continue
         
         # Parse from text if we don't have dates yet
         if date_text and not start_date:
             # Try date patterns
             for pattern in self.date_patterns:
-                match = re.search(pattern, date_text, re.IGNORECASE)
+                match = re.search(pattern, search_text, re.IGNORECASE)
                 if match:
-                    parsed_start, parsed_end = self._parse_date_match(match, date_text)
+                    parsed_start, parsed_end = self._parse_date_match(match, search_text)
                     if parsed_start:
                         start_date = parsed_start
                         end_date = parsed_end
                         break
         
         # Parse times from text if we don't have them yet
-        if date_text and not start_time:
+        if search_text and not start_time:
             # Try time patterns
             for pattern in self.time_patterns:
-                match = re.search(pattern, date_text, re.IGNORECASE)
+                match = re.search(pattern, search_text, re.IGNORECASE)
                 if match:
                     parsed_start, parsed_end = self._parse_time_match(match)
                     if parsed_start:
@@ -736,18 +1029,311 @@ class GenericVenueScraper:
         else:
             return True  # No filter
     
+    def _is_valid_generic_event(self, event: Dict) -> bool:
+        """Additional validation for generic scraper events"""
+        title = event.get('title', '')
+        
+        # Must have a valid title
+        if not self._is_valid_event_title(title):
+            return False
+        
+        # Must have at least one of: date, URL (different from base), or meaningful description
+        has_date = event.get('start_date') is not None
+        url = event.get('url', '')
+        # URL is valid if it exists and is not just the base page
+        has_url = bool(url and len(url) > 10)  # Basic check that URL is substantial
+        description = event.get('description', '')
+        has_description = description and len(description.strip()) >= 20
+        
+        if not (has_date or has_url or has_description):
+            return False
+        
+        # Filter out events with URLs that are clearly not event pages
+        if url:
+            url_lower = url.lower()
+            invalid_url_patterns = [
+                'javascript:', 'mailto:', 'tel:',
+                '#',  # Anchor links only
+            ]
+            # Reject if URL matches invalid patterns
+            if any(pattern in url_lower for pattern in invalid_url_patterns):
+                return False
+            
+            # Reject calendar listing pages without specific event identifiers
+            if '/calendar' in url_lower or '/event/' in url_lower or '/events/' in url_lower:
+                # Allow if it has an event ID or slug (e.g., /events/specific-event-name)
+                if not re.search(r'/events?/[^/]+$', url_lower) and not re.search(r'event[_-]?id=', url_lower):
+                    # Might be a listing page, but allow if it has a date
+                    if not has_date:
+                        return False
+        
+        return True
+    
     def _deduplicate_events(self, events: List[Dict]) -> List[Dict]:
-        """Remove duplicate events based on title and date"""
+        """Remove duplicate events based on title, date, and URL"""
         seen = set()
         unique_events = []
         
         for event in events:
-            key = (event.get('title', '').lower().strip(), event.get('start_date'))
-            if key not in seen:
-                seen.add(key)
+            title = event.get('title', '').lower().strip()
+            start_date = event.get('start_date')
+            url = event.get('url', '')
+            
+            # Create multiple keys for better deduplication
+            # Key 1: title + date (most common)
+            key1 = (title, start_date)
+            
+            # Key 2: URL + date (for events with unique URLs)
+            key2 = (url, start_date) if url and url != event.get('source_url', '') else None
+            
+            # Key 3: title + URL (for recurring events)
+            key3 = (title, url) if url and url != event.get('source_url', '') else None
+            
+            # Check if we've seen any of these keys
+            is_duplicate = key1 in seen
+            if key2:
+                is_duplicate = is_duplicate or key2 in seen
+            if key3:
+                is_duplicate = is_duplicate or key3 in seen
+            
+            if not is_duplicate:
+                seen.add(key1)
+                if key2:
+                    seen.add(key2)
+                if key3:
+                    seen.add(key3)
                 unique_events.append(event)
         
         return unique_events
+    
+    def _extract_exhibitions_from_listing_page(self, soup: BeautifulSoup, base_url: str, 
+                                               venue_name: str = None, time_range: str = 'this_month') -> List[Dict]:
+        """Extract exhibitions from a listing page (e.g., OCMA exhibitions page)"""
+        events = []
+        
+        try:
+            # Look for exhibition sections (Current, Upcoming, etc.)
+            # OCMA format: Title followed by date range on same line or nearby
+            # Example: "Cynthia Daignault: Light Atlas September 20, 2025 – February 8, 2026"
+            
+            # Find all headings that might indicate exhibition sections
+            headings = soup.find_all(['h1', 'h2', 'h3'], string=lambda text: text and any(
+                keyword in text.lower() for keyword in ['current', 'upcoming', 'exhibition', 'on view']
+            ))
+            
+            # Also look for links to individual exhibition pages
+            exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in str(href).lower())
+            
+            seen_titles = set()
+            
+            # Method 1: Extract from links to individual exhibition pages
+            for link in exhibition_links:
+                href = link.get('href', '')
+                if not href or href == '/exhibitions/' or href.endswith('/exhibitions/'):
+                    continue
+                
+                # Get the link text as potential title
+                link_text = link.get_text(strip=True)
+                
+                # Find parent container (li, div, article, etc.)
+                parent = link.find_parent(['li', 'div', 'article', 'section', 'p'])
+                if not parent:
+                    parent = link.parent
+                
+                # Get all text from the parent element
+                parent_text = parent.get_text() if parent else ''
+                
+                # Pattern 1: Title followed by date range on same line
+                # Example: "Cynthia Daignault: Light Atlas September 20, 2025 – February 8, 2026"
+                date_range_pattern = re.compile(
+                    r'([A-Z][^:]+(?:[:][^:]+)?)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*[–—\-]\s*([A-Z][a-z]+\s+\d{1,2},?\s+(\d{4}))',
+                    re.MULTILINE
+                )
+                
+                title = None
+                date_text = None
+                
+                # Try to match the pattern in parent text
+                match = date_range_pattern.search(parent_text)
+                if match:
+                    title = match.group(1).strip()
+                    date_text = f"{match.group(2).strip()} – {match.group(3).strip()}"
+                else:
+                    # Pattern 2: Title on one line, date range on next line or nearby
+                    # Look for date range pattern anywhere in parent
+                    date_match = re.search(
+                        r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*[–—\-]\s*([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                        parent_text
+                    )
+                    if date_match:
+                        date_text = date_match.group(0)
+                        # Title might be the link text or text before the date
+                        title = link_text if link_text and len(link_text) > 5 else None
+                        if not title:
+                            # Try to extract title from text before the date
+                            text_before_date = parent_text[:date_match.start()].strip()
+                            # Take the last meaningful phrase (likely the title)
+                            title_parts = text_before_date.split('\n')
+                            for part in reversed(title_parts):
+                                part = part.strip()
+                                if part and len(part) > 5 and self._is_valid_event_title(part):
+                                    title = part
+                                    break
+                
+                # Fallback: use link text as title if we have a date
+                if not title and link_text and len(link_text) > 5:
+                    title = link_text
+                
+                # If we still don't have a title, try to extract from the URL slug
+                if not title or not self._is_valid_event_title(title):
+                    # Extract from URL: /exhibitions/yoshitomo-nara-i-dont-want-to-grow-up/ -> "Yoshitomo Nara: I Don't Want to Grow Up"
+                    url_slug = href.split('/')[-2] if href.endswith('/') else href.split('/')[-1]
+                    if url_slug and url_slug != 'exhibitions':
+                        # Convert slug to title: replace hyphens with spaces, capitalize words
+                        title = ' '.join(word.capitalize() for word in url_slug.replace('-', ' ').split())
+                
+                # Skip if title is invalid or already seen
+                if not title or not self._is_valid_event_title(title) or title.lower() in seen_titles:
+                    continue
+                
+                seen_titles.add(title.lower())
+                
+                # Parse dates from date_text
+                start_date = None
+                end_date = None
+                if date_text:
+                    dates = self._parse_dates_and_times(date_text, None, base_url)
+                    if dates:
+                        start_date = dates.get('start_date')
+                        end_date = dates.get('end_date')
+                
+                # Build full URL
+                from urllib.parse import urljoin
+                full_url = urljoin(base_url, href)
+                
+                # Only include current and upcoming exhibitions (not past)
+                # If no date, include it (might be ongoing)
+                if start_date:
+                    # For 'this_month' time_range, include if it's current or upcoming
+                    if time_range == 'this_month':
+                        # Include if end date is in the future (current or upcoming)
+                        from datetime import date
+                        if end_date and end_date < date.today():
+                            continue  # Skip past exhibitions
+                    elif not self._is_in_time_range(start_date, time_range):
+                        continue
+                
+                # Extract description from parent or nearby elements
+                description = None
+                if parent:
+                    # Look for paragraph after the link
+                    desc_elem = parent.find('p')
+                    if desc_elem:
+                        desc_text = desc_elem.get_text(strip=True)
+                        # Skip if it's just the date
+                        if not re.match(r'^[A-Z][a-z]+\s+\d{1,2}', desc_text):
+                            description = desc_text[:500]
+                    
+                    # Also try meta description
+                    if not description:
+                        meta_desc = soup.find('meta', property='og:description')
+                        if meta_desc:
+                            description = meta_desc.get('content', '')[:500]
+                
+                # Extract image from link or parent
+                image_url = None
+                if parent:
+                    img = parent.find('img')
+                    if img:
+                        img_src = img.get('src') or img.get('data-src')
+                        if img_src:
+                            image_url = urljoin(base_url, img_src)
+                
+                events.append({
+                    'title': title,
+                    'description': description or '',
+                    'start_date': start_date.isoformat() if start_date else None,
+                    'end_date': end_date.isoformat() if end_date else None,
+                    'start_time': None,
+                    'end_time': None,
+                    'start_location': venue_name,
+                    'url': full_url,
+                    'image_url': image_url,
+                    'event_type': 'exhibition'
+                })
+            
+            # Method 2: Extract from text patterns (for OCMA-style listings)
+            # Look for patterns like "Title Title Date Range"
+            page_text = soup.get_text()
+            
+            # Pattern: Title (with colon or multiple words) followed by date range
+            exhibition_pattern = re.compile(
+                r'([A-Z][^:]+(?:[:][^:]+)?)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*[–—\-]\s*([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                re.MULTILINE
+            )
+            
+            for match in exhibition_pattern.finditer(page_text):
+                title = match.group(1).strip()
+                start_date_str = match.group(2).strip()
+                end_date_str = match.group(3).strip()
+                
+                # Skip if title is too generic
+                if not self._is_valid_event_title(title) or title.lower() in seen_titles:
+                    continue
+                
+                seen_titles.add(title.lower())
+                
+                # Parse dates
+                start_date = None
+                end_date = None
+                
+                try:
+                    # Parse start date
+                    start_dates = self._parse_dates_and_times(start_date_str, None, base_url)
+                    if start_dates and start_dates.get('start_date'):
+                        start_date = start_dates['start_date']
+                    
+                    # Parse end date
+                    end_dates = self._parse_dates_and_times(end_date_str, None, base_url)
+                    if end_dates and end_dates.get('start_date'):
+                        end_date = end_dates['start_date']
+                except:
+                    pass
+                
+                # Only include if in time range
+                if start_date and not self._is_in_time_range(start_date, time_range):
+                    continue
+                
+                # Try to find the URL for this exhibition
+                exhibition_url = base_url
+                for link in exhibition_links:
+                    link_text = link.get_text(strip=True)
+                    if title.lower() in link_text.lower() or link_text.lower() in title.lower():
+                        from urllib.parse import urljoin
+                        exhibition_url = urljoin(base_url, link.get('href', ''))
+                        break
+                
+                events.append({
+                    'title': title,
+                    'description': '',
+                    'start_date': start_date.isoformat() if start_date else None,
+                    'end_date': end_date.isoformat() if end_date else None,
+                    'start_time': None,
+                    'end_time': None,
+                    'start_location': venue_name,
+                    'url': exhibition_url,
+                    'image_url': None,
+                    'event_type': 'exhibition'
+                })
+            
+            logger.info(f"📦 Extracted {len(events)} exhibitions from listing page")
+            
+        except Exception as e:
+            logger.debug(f"Error extracting exhibitions from listing page: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+        
+        return events
 
 
 

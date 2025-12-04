@@ -1,14 +1,112 @@
 {
   "metadata": {
-    "scraped_at": "2025-12-03T13:53:49.358921",
-    "total_events": 0,
+    "scraped_at": "2025-12-03T19:11:48.083811",
+    "total_events": 5,
     "scraper_version": "3.0",
     "venue_ids": [
-      25
+      198
     ],
     "source_ids": [],
-    "city_id": 1,
-    "event_type": ""
+    "city_id": 27,
+    "event_type": "workshop"
   },
-  "events": []
+  "events": [
+    {
+      "title": "Cynthia Daignault: Light Atlas",
+      "description": "",
+      "start_date": "2025-09-20",
+      "end_date": "2026-02-08",
+      "start_time": null,
+      "end_time": null,
+      "start_location": "Orange County Museum of Art (OCMA)",
+      "url": "https://ocma.art/exhibitions/cynthia-daignault-light-atlas/",
+      "image_url": "https://ocma.art/wp-content/uploads/2025/09/001-250922-OCMA-009-web-1000x564.jpg",
+      "event_type": "exhibition",
+      "venue_id": 198,
+      "city_id": 27,
+      "source": "website",
+      "source_url": "https://ocma.art/exhibitions",
+      "organizer": "Orange County Museum of Art (OCMA)"
+    },
+    {
+      "title": "Bring Your Own Baby Tour & Tea",
+      "description": "",
+      "start_date": "2025-12-03",
+      "end_date": null,
+      "start_time": "11:00:00",
+      "end_time": "13:00:00",
+      "start_location": "Orange County Museum of Art (OCMA)",
+      "url": "https://ocma.art/calendar/bring-your-own-baby-tour-tea-december-25/",
+      "image_url": "https://ocma.art/wp-content/uploads/2025/11/25le_ArtAndPlay_BYOB_WebImages_7-1200x824.jpg",
+      "event_type": "workshop",
+      "is_baby_friendly": true,
+      "is_registration_required": false,
+      "registration_info": "",
+      "venue_id": 198,
+      "city_id": 27,
+      "source": "website",
+      "source_url": "https://ocma.art/calendar/",
+      "organizer": "Orange County Museum of Art (OCMA)"
+    },
+    {
+      "title": "Art Happy Hour & Pop-Up Talk",
+      "description": "",
+      "start_date": null,
+      "end_date": null,
+      "start_time": null,
+      "end_time": null,
+      "start_location": "Orange County Museum of Art (OCMA)",
+      "url": "https://ocma.art/calendar/art-happy-hour-pop-up-talk-december-25/",
+      "image_url": "https://ocma.art/wp-content/uploads/2025/10/ArtHappyHour_Biennial_6-1200x824.png",
+      "event_type": "talk",
+      "is_baby_friendly": false,
+      "is_registration_required": false,
+      "registration_info": "",
+      "venue_id": 198,
+      "city_id": 27,
+      "source": "website",
+      "source_url": "https://ocma.art/calendar/",
+      "organizer": "Orange County Museum of Art (OCMA)"
+    },
+    {
+      "title": "Public Tour",
+      "description": "",
+      "start_date": "2025-12-07",
+      "end_date": null,
+      "start_time": "13:00:00",
+      "end_time": null,
+      "start_location": "Orange County Museum of Art (OCMA)",
+      "url": "https://ocma.art/calendar/public-tour-december-25-1/",
+      "image_url": "https://ocma.art/wp-content/uploads/2025/11/009-250620-CalBnl-web-1200x824.jpg",
+      "event_type": "tour",
+      "is_baby_friendly": false,
+      "is_registration_required": false,
+      "registration_info": "",
+      "venue_id": 198,
+      "city_id": 27,
+      "source": "website",
+      "source_url": "https://ocma.art/calendar/",
+      "organizer": "Orange County Museum of Art (OCMA)"
+    },
+    {
+      "title": "Art & Play (Ages 0\u20132)December 10, 2025,",
+      "description": "",
+      "start_date": "2025-12-10",
+      "end_date": null,
+      "start_time": "11:00:00",
+      "end_time": "13:00:00",
+      "start_location": "Orange County Museum of Art (OCMA)",
+      "url": "https://ocma.art/calendar/art-play-ages-0-2-december-25/",
+      "image_url": "https://ocma.art/wp-content/uploads/2025/11/25le_ArtAndPlay_02_WebImages_3-1200x824.jpg",
+      "event_type": "workshop",
+      "is_baby_friendly": true,
+      "is_registration_required": false,
+      "registration_info": "",
+      "venue_id": 198,
+      "city_id": 27,
+      "source": "website",
+      "source_url": "https://ocma.art/calendar/",
+      "organizer": "Orange County Museum of Art (OCMA)"
+    }
+  ]
 }
