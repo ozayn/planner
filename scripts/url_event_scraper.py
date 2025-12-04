@@ -220,6 +220,9 @@ def extract_event_data_from_url(url):
                                 end_date = start_date
                                 
                                 logger.info(f"✅ Successfully extracted OCMA event: '{title}' on {start_date} at {start_time}-{end_time}")
+                                # Detect language for OCMA events
+                                language = _detect_language(soup, title, description, page_text if 'page_text' in locals() else '')
+                                
                                 return {
                                     'title': title,
                                     'description': description,
@@ -231,7 +234,8 @@ def extract_event_data_from_url(url):
                                     'image_url': image_url,
                                     'event_type': 'talk' if 'talk' in title.lower() else 'event',
                                     'schedule_info': None,
-                                    'days_of_week': []
+                                    'days_of_week': [],
+                                    'language': language
                                 }
                             else:
                                 logger.warning(f"⚠️ OCMA event - title extraction failed")
@@ -255,6 +259,19 @@ def extract_event_data_from_url(url):
             event_data = scrape_individual_event(url)
             if event_data:
                 # Convert to the format expected by the URL scraper
+                # Detect language for Finding Awe events
+                language = event_data.get('language', 'English')
+                if not language or language == 'English':
+                    try:
+                        import cloudscraper
+                        scraper = cloudscraper.create_scraper()
+                        response = scraper.get(url, timeout=15)
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        page_text = soup.get_text()
+                        language = _detect_language(soup, event_data.get('title'), event_data.get('description'), page_text)
+                    except:
+                        language = 'English'
+                
                 return {
                     'title': event_data.get('title'),
                     'description': event_data.get('description'),
@@ -271,7 +288,8 @@ def extract_event_data_from_url(url):
                     'registration_url': event_data.get('registration_url'),
                     'registration_info': event_data.get('registration_info'),
                     'schedule_info': None,
-                    'days_of_week': []
+                    'days_of_week': [],
+                    'language': language
                 }
         except Exception as e:
             logger.warning(f"Finding Awe scraper failed, falling back to general scraper: {e}")
@@ -297,6 +315,17 @@ def extract_event_data_from_url(url):
                     )
                     if tour_event:
                         logger.info(f"✅ Successfully extracted using Hirshhorn scraper")
+                        # Detect language for Hirshhorn events
+                        language = tour_event.get('language', 'English')
+                        if not language or language == 'English':
+                            try:
+                                response = scraper.session.get(url, timeout=15)
+                                soup = BeautifulSoup(response.text, 'html.parser')
+                                page_text = soup.get_text()
+                                language = _detect_language(soup, tour_event.get('title'), tour_event.get('description'), page_text)
+                            except:
+                                language = 'English'
+                        
                         return {
                             'title': tour_event.get('title'),
                             'description': tour_event.get('description'),
@@ -310,7 +339,8 @@ def extract_event_data_from_url(url):
                             'registration_url': tour_event.get('registration_url'),
                             'registration_info': tour_event.get('registration_info'),
                             'schedule_info': None,
-                            'days_of_week': []
+                            'days_of_week': [],
+                            'language': language
                         }
         except Exception as e:
             logger.warning(f"Hirshhorn specialized extraction failed: {e}, falling back to general scraper")
@@ -344,6 +374,17 @@ def extract_event_data_from_url(url):
                         else:
                             end_date_str = str(end_date_obj)
                     
+                    # Detect language for NGA exhibitions
+                    language = event_data.get('language', 'English')
+                    if not language or language == 'English':
+                        try:
+                            response = scraper.get(url, timeout=15)
+                            soup = BeautifulSoup(response.text, 'html.parser')
+                            page_text = soup.get_text()
+                            language = _detect_language(soup, event_data.get('title'), event_data.get('description'), page_text)
+                        except:
+                            language = 'English'
+                    
                     return {
                         'title': event_data.get('title'),
                         'description': event_data.get('description'),
@@ -359,7 +400,8 @@ def extract_event_data_from_url(url):
                         'registration_url': event_data.get('registration_url'),
                         'registration_info': event_data.get('registration_info'),
                         'schedule_info': None,
-                        'days_of_week': []
+                        'days_of_week': [],
+                        'language': language
                     }
             # Check if it's a calendar/tour URL
             elif '/calendar/' in url.lower():
@@ -396,6 +438,18 @@ def extract_event_data_from_url(url):
                         else:
                             start_date_str = str(start_date_obj)
                     
+                    # Detect language for NGA tour pages
+                    language = event_data.get('language', 'English')
+                    if not language or language == 'English':
+                        # Re-detect from the page if not already set
+                        try:
+                            response = scraper.get(url, timeout=15)
+                            soup = BeautifulSoup(response.text, 'html.parser')
+                            page_text = soup.get_text()
+                            language = _detect_language(soup, event_data.get('title'), event_data.get('description'), page_text)
+                        except:
+                            language = 'English'  # Fallback to default
+                    
                     return {
                         'title': event_data.get('title'),
                         'description': event_data.get('description'),
@@ -410,7 +464,8 @@ def extract_event_data_from_url(url):
                         'registration_url': event_data.get('registration_url'),
                         'registration_info': event_data.get('registration_info'),
                         'schedule_info': None,
-                        'days_of_week': []
+                        'days_of_week': [],
+                        'language': language
                     }
         except Exception as e:
             logger.warning(f"NGA specialized extraction failed: {e}, falling back to general scraper")
@@ -489,6 +544,7 @@ def extract_event_data_from_url(url):
         schedule_info, days_of_week, start_time, end_time = _extract_schedule(page_text)
         start_date = _extract_date(page_text, url)
         event_type = _determine_event_type(title, description, page_text, url)
+        language = _detect_language(soup, title, description, page_text)
         
         return {
             'title': title,
@@ -500,7 +556,8 @@ def extract_event_data_from_url(url):
             'image_url': image_url,
             'schedule_info': schedule_info,
             'days_of_week': days_of_week,
-            'event_type': event_type
+            'event_type': event_type,
+            'language': language
         }
         
     except Exception as e:
@@ -958,6 +1015,27 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     if end_time and (not existing.end_time or end_time != existing.end_time):
                         existing.end_time = end_time
                         updated = True
+                    # Update language if provided
+                    language = 'English'  # Default
+                    if override_data and override_data.get('language'):
+                        language = override_data.get('language')
+                    elif 'event_data' in locals() and event_data and event_data.get('language'):
+                        language = event_data.get('language')
+                    else:
+                        # Try to detect language if not provided
+                        try:
+                            import cloudscraper
+                            scraper = cloudscraper.create_scraper()
+                            response = scraper.get(url, timeout=15)
+                            soup = BeautifulSoup(response.text, 'html.parser')
+                            page_text = soup.get_text()
+                            language = _detect_language(soup, title, description, page_text)
+                        except:
+                            language = existing.language or 'English'  # Keep existing or default
+                    
+                    if language and (not existing.language or language != existing.language):
+                        existing.language = language
+                        updated = True
                     
                     if updated:
                         db.session.commit()
@@ -1005,6 +1083,26 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 elif event_date:
                     event_end_date = event_date
                 
+                # Get language from event_data or override_data, or detect it
+                language = 'English'  # Default
+                if override_data and override_data.get('language'):
+                    language = override_data.get('language')
+                elif 'event_data' in locals() and event_data and event_data.get('language'):
+                    language = event_data.get('language')
+                elif 'language' in locals():
+                    pass  # Already set from detection
+                else:
+                    # Detect language if not already set
+                    try:
+                        import cloudscraper
+                        scraper = cloudscraper.create_scraper()
+                        response = scraper.get(url, timeout=15)
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        page_text = soup.get_text()
+                        language = _detect_language(soup, title, description, page_text)
+                    except:
+                        language = 'English'  # Fallback to default
+                
                 event = Event(
                     title=title,
                     description=description,
@@ -1020,7 +1118,8 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     image_url=image_url,
                     source='website',
                     source_url=url,
-                    is_selected=False
+                    is_selected=False,
+                    language=language
                 )
                 
                 db.session.add(event)
@@ -1094,6 +1193,131 @@ def _clean_title(title):
     title = title.strip()
     
     return title
+
+
+def _detect_language(soup, title, description, page_text):
+    """
+    Detect event language from multiple sources:
+    1. Language tags in HTML (e.g., "En español", "In Spanish")
+    2. Title analysis (NLP detection of Spanish/French/German/etc.)
+    3. Description analysis
+    4. Common language indicators in page content
+    
+    Returns:
+        str: Language name (e.g., "Spanish", "English", "French") or "English" as default
+    """
+    if not title and not description and not page_text:
+        return 'English'  # Default
+    
+    # Combine all text for analysis
+    combined_text = f"{title} {description} {page_text}".lower()
+    
+    # Method 1: Check for explicit language tags in HTML
+    # Look for common language indicators in tags, buttons, badges, etc.
+    language_indicators = {
+        'spanish': [
+            r'\ben\s+español\b',
+            r'\bin\s+spanish\b',
+            r'\bespañol\b',
+            r'\bspanish\b',
+            r'\bvisita\s+en\s+español\b',
+            r'\btour\s+en\s+español\b',
+        ],
+        'french': [
+            r'\ben\s+français\b',
+            r'\bin\s+french\b',
+            r'\bfrançais\b',
+            r'\bfrench\b',
+        ],
+        'german': [
+            r'\bauf\s+deutsch\b',
+            r'\bin\s+german\b',
+            r'\bdeutsch\b',
+            r'\bgerman\b',
+        ],
+    }
+    
+    # Check page HTML for language tags/badges
+    # Look for common patterns: <span>, <div>, <li> with language text
+    for lang, patterns in language_indicators.items():
+        for pattern in patterns:
+            # Check in text content
+            if re.search(pattern, combined_text, re.IGNORECASE):
+                logger.info(f"🌐 Detected language '{lang}' from tag/indicator: {pattern}")
+                return lang.capitalize()
+            
+            # Check in HTML elements (tags, badges, buttons)
+            for tag in ['span', 'div', 'li', 'p', 'a', 'button', 'label']:
+                elements = soup.find_all(tag, string=re.compile(pattern, re.IGNORECASE))
+                if elements:
+                    logger.info(f"🌐 Detected language '{lang}' from HTML tag: {tag}")
+                    return lang.capitalize()
+    
+    # Method 2: NLP-based detection from title/description
+    # Check for common Spanish words and patterns
+    spanish_indicators = [
+        # Common Spanish words
+        r'\b(que|de|la|el|en|y|a|es|son|para|con|por|del|las|los|una|un|este|esta|estos|estas)\b',
+        # Spanish-specific words in event contexts
+        r'\b(visita|galería|galerías|exposición|exposiciones|arte|artista|artistas|museo|museos)\b',
+        r'\b(conversaci[oó]n|conversaciones|charla|charlas|taller|talleres|recorrido|recorridos)\b',
+        r'\b(desde|hasta|actualidad|contemporáneo|contemporánea|moderno|moderna)\b',
+        # Spanish accented characters in context
+        r'[áéíóúñü]',
+    ]
+    
+    french_indicators = [
+        r'\b(visite|galerie|galeries|exposition|expositions|art|artiste|artistes|musée|musées)\b',
+        r'\b(conversation|conversations|conférence|conférences|atelier|ateliers|parcours|parcours)\b',
+        r'[àâäéèêëïîôùûüÿç]',
+    ]
+    
+    german_indicators = [
+        r'\b(besuch|galerie|galerien|ausstellung|ausstellungen|kunst|künstler|künstlerin|museum|museen)\b',
+        r'\b(gespräch|gespräche|vortrag|vorträge|workshop|workshops|rundgang|rundgänge)\b',
+        r'[äöüß]',
+    ]
+    
+    # Count indicators for each language
+    spanish_count = sum(len(re.findall(pattern, combined_text, re.IGNORECASE)) for pattern in spanish_indicators)
+    french_count = sum(len(re.findall(pattern, combined_text, re.IGNORECASE)) for pattern in french_indicators)
+    german_count = sum(len(re.findall(pattern, combined_text, re.IGNORECASE)) for pattern in german_indicators)
+    
+    # Check title specifically (most reliable indicator)
+    title_lower = title.lower() if title else ''
+    title_spanish = sum(len(re.findall(pattern, title_lower, re.IGNORECASE)) for pattern in spanish_indicators)
+    title_french = sum(len(re.findall(pattern, title_lower, re.IGNORECASE)) for pattern in french_indicators)
+    title_german = sum(len(re.findall(pattern, title_lower, re.IGNORECASE)) for pattern in german_indicators)
+    
+    # Weight title more heavily (title is most reliable)
+    total_spanish = spanish_count + (title_spanish * 3)
+    total_french = french_count + (title_french * 3)
+    total_german = german_count + (title_german * 3)
+    
+    # Determine language based on highest count
+    if total_spanish > 2:  # Threshold to avoid false positives
+        logger.info(f"🌐 Detected language 'Spanish' from NLP analysis (score: {total_spanish})")
+        return 'Spanish'
+    elif total_french > 2:
+        logger.info(f"🌐 Detected language 'French' from NLP analysis (score: {total_french})")
+        return 'French'
+    elif total_german > 2:
+        logger.info(f"🌐 Detected language 'German' from NLP analysis (score: {total_german})")
+        return 'German'
+    
+    # Method 3: Check HTML lang attribute
+    html_tag = soup.find('html')
+    if html_tag and html_tag.get('lang'):
+        lang_attr = html_tag.get('lang').lower()
+        if lang_attr.startswith('es'):
+            return 'Spanish'
+        elif lang_attr.startswith('fr'):
+            return 'French'
+        elif lang_attr.startswith('de'):
+            return 'German'
+    
+    # Default to English
+    return 'English'
 
 
 def _extract_title(soup, url):
