@@ -4326,9 +4326,10 @@
                     // Check if it's a photo reference (long string without http)
                     if (value && !value.startsWith('http') && value.length > 50) {
                         // It's likely a Google Maps photo reference - use the image API endpoint
-                        return `<a href="/api/image/${value}" target="_blank" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, '_blank'); return false;" style="color: #1976d2; text-decoration: none;">View</a>`;
+                        const imageUrl = '/api/image/' + value;
+                        return `<a href="javascript:void(0);" onclick="event.stopPropagation(); event.preventDefault(); event.stopImmediatePropagation(); window.open('${imageUrl}', '_blank'); return false;" style="color: #1976d2; text-decoration: none; pointer-events: auto; cursor: pointer;">View</a>`;
                     }
-                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, '_blank'); return false;" style="color: #1976d2; text-decoration: none;">View</a>`;
+                    return `<a href="javascript:void(0);" onclick="event.stopPropagation(); event.preventDefault(); event.stopImmediatePropagation(); window.open('${value}', '_blank'); return false;" style="color: #1976d2; text-decoration: none; pointer-events: auto; cursor: pointer;">View</a>`;
                 
                 case 'handle':
                     if (value.startsWith('@') && value.includes('instagram')) {
