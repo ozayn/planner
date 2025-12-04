@@ -3416,10 +3416,10 @@
                 activeTab.classList.add('active');
             }
             
-            // Load data asynchronously without blocking UI
-            requestAnimationFrame(() => {
+            // Load data asynchronously without blocking UI - use setTimeout to ensure UI updates first
+            setTimeout(() => {
                 loadSectionData(sectionId);
-            });
+            }, 0);
         }
         
         // Smart matching function for dropdown options
