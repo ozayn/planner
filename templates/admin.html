@@ -3419,6 +3419,16 @@
             // Load data asynchronously without blocking UI - use setTimeout to ensure UI updates first
             setTimeout(() => {
                 loadSectionData(sectionId);
+                // Re-render table if data is already loaded (for sources, cities, venues, events)
+                if (sectionId === 'sources' && window.allSources) {
+                    renderSourcesTable();
+                } else if (sectionId === 'cities' && window.allCities) {
+                    renderCitiesTable();
+                } else if (sectionId === 'venues' && window.allVenues) {
+                    renderVenuesTable();
+                } else if (sectionId === 'events' && window.allEvents) {
+                    renderEventsTable();
+                }
             }, 0);
         }
         
@@ -6764,26 +6774,27 @@
             // Ensure the section is visible before rendering (same as other tables)
             const sourcesSection = document.getElementById('sources');
             if (!sourcesSection) {
+                console.warn('Sources section not found, skipping render');
                 return;
             }
             
             // Check if section is visible - use class check instead of getComputedStyle (faster, no reflow)
             if (!sourcesSection.classList.contains('active')) {
+                console.log('Sources section is not active, skipping render');
                 return;
             }
             
-            // Defer heavy table rendering to next frame to keep UI responsive
-            requestAnimationFrame(() => {
-                // Ensure the table container is visible before rendering
-                const tableContainer = sourcesSection.querySelector('.table-container');
-                if (tableContainer) {
-                    tableContainer.style.display = 'block';
-                    tableContainer.style.visibility = 'visible';
-                    tableContainer.style.minHeight = '400px';
-                    tableContainer.style.height = 'auto';
-                }
-                renderDynamicTable('sourcesTable', data, 'sources');
-            });
+            // Ensure the table container is visible before rendering
+            const tableContainer = sourcesSection.querySelector('.table-container');
+            if (tableContainer) {
+                tableContainer.style.display = 'block';
+                tableContainer.style.visibility = 'visible';
+                tableContainer.style.minHeight = '400px';
+                tableContainer.style.height = 'auto';
+            }
+            
+            // Render immediately if section is active
+            renderDynamicTable('sourcesTable', data, 'sources');
         }
         
         function editSource(id) {
