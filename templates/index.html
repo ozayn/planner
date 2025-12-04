@@ -961,10 +961,11 @@
 
         .scrape-button {
             padding: 6px 14px !important;
-            background: rgba(0,0,0,0.06) !important;
-            color: rgba(0,0,0,0.7) !important;
-            border: 1px solid rgba(0,0,0,0.08) !important;
+            background: rgba(59, 130, 246, 0.08) !important;
+            color: rgba(59, 130, 246, 0.9) !important;
+            border: 1px solid rgba(59, 130, 246, 0.2) !important;
             border-radius: 6px !important;
+            font-weight: 500 !important;
             font-size: 0.8125rem !important;
             font-weight: 400 !important;
             cursor: pointer !important;
@@ -973,15 +974,15 @@
         }
 
         .scrape-button:hover:not(:disabled) {
-            background: rgba(0,0,0,0.08) !important;
-            color: rgba(0,0,0,0.85) !important;
-            border-color: rgba(0,0,0,0.12) !important;
+            background: rgba(59, 130, 246, 0.12) !important;
+            color: rgba(59, 130, 246, 1) !important;
+            border-color: rgba(59, 130, 246, 0.3) !important;
         }
 
         .scrape-button:disabled {
-            background: rgba(0,0,0,0.03) !important;
-            color: rgba(0,0,0,0.3) !important;
-            border-color: rgba(0,0,0,0.05) !important;
+            background: rgba(59, 130, 246, 0.04) !important;
+            color: rgba(59, 130, 246, 0.4) !important;
+            border-color: rgba(59, 130, 246, 0.1) !important;
             cursor: not-allowed !important;
         }
 
@@ -2477,10 +2478,10 @@
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button id="deselectAllVenuesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Select/Deselect All Venues">
-                            Select/Deselect
+                            Select
                         </button>
                         <button id="deselectAllSourcesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Select/Deselect All Sources">
-                            Select/Deselect
+                            Select
                         </button>
                         <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Items">
                             Scrape
@@ -3701,7 +3702,7 @@
             
             const sourceCards = document.querySelectorAll('[data-source-id]');
             if (sourceCards.length === 0) {
-                button.textContent = 'Select/Deselect';
+                button.textContent = 'Select';
                 return;
             }
             
@@ -3714,8 +3715,8 @@
                 }
             });
             
-            // Button text stays as "Select/Deselect" - it's a toggle button
-            // The title can indicate the current action
+            // Update button text based on state
+            button.textContent = allSelected ? 'Deselect' : 'Select';
             button.title = allSelected ? 'Deselect All Sources' : 'Select All Sources';
         }
         
@@ -3726,7 +3727,7 @@
             
             const venueCards = document.querySelectorAll('[data-venue-id]');
             if (venueCards.length === 0) {
-                button.textContent = 'Select/Deselect';
+                button.textContent = 'Select';
                 return;
             }
             
@@ -3739,8 +3740,8 @@
                 }
             });
             
-            // Button text stays as "Select/Deselect" - it's a toggle button
-            // The title can indicate the current action
+            // Update button text based on state
+            button.textContent = allSelected ? 'Deselect' : 'Select';
             button.title = allSelected ? 'Deselect All Venues' : 'Select All Venues';
         }
         
