@@ -5346,7 +5346,7 @@
                         ${event.event_type !== 'exhibition' ? `
                         <div class="event-detail">
                             <span class="event-detail-label">Time:</span>
-                            <span class="event-detail-value">${event.start_time || 'TBD'}</span>
+                            <span class="event-detail-value">${event.start_time ? formatTime(event.start_time) : 'TBD'}</span>
                         </div>
                         ` : ''}
                         `}
@@ -5866,29 +5866,9 @@
         function createDiscoveredEventCard(event) {
             let timeStr = '';
             if (event.start_time) {
-                // Use the city's timezone if available
-                const cityTimezone = event.city_timezone || 'America/New_York'; // Default to EST
-                
-                try {
-                    // Create a date in the city's timezone
-                    const [hours, minutes] = event.start_time.split(':');
-                    const now = new Date();
-                    const eventDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
-                    
-                    // Format time in the city's timezone
-                    timeStr = eventDate.toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true,
-                        timeZone: cityTimezone
-                    });
-                } catch (error) {
-                    // Fallback to simple time formatting
-                    const [hours, minutes] = event.start_time.split(':');
-                    const hour12 = parseInt(hours) > 12 ? parseInt(hours) - 12 : parseInt(hours);
-                    const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
-                    timeStr = `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
-                }
+                // Format time directly - no timezone conversion needed
+                // The time is already in the correct local time for the event's timezone
+                timeStr = formatTime(event.start_time);
             }
             
             const isOnline = event.is_online || false;
