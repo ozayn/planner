@@ -3376,32 +3376,29 @@
         
         // Navigation functions
         function showSection(sectionId) {
-            console.log('showSection called with:', sectionId);
-            // Hide all sections - use both class removal and explicit display:none
+            // Show section immediately (synchronous) for instant UI feedback
             const sections = document.querySelectorAll('.data-section');
             sections.forEach(section => {
                 section.classList.remove('active');
-                section.style.display = 'none'; // Explicitly hide
+                section.style.display = 'none';
             });
             
-            // Show selected section
+            // Show selected section immediately
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
-                targetSection.style.display = 'block'; // Explicitly show
-                console.log('Section', sectionId, 'is now active. Display:', window.getComputedStyle(targetSection).display);
-                console.log('Section ID:', targetSection.id, 'Section heading:', targetSection.querySelector('h2')?.textContent);
+                targetSection.style.display = 'block';
             } else {
                 console.error('Section not found:', sectionId);
+                return;
             }
             
-            // Update navigation buttons (using .nav-btn class)
+            // Update navigation buttons
             const navButtons = document.querySelectorAll('.nav-btn');
             navButtons.forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Also try .nav-tab for backward compatibility
             const navTabs = document.querySelectorAll('.nav-tab');
             navTabs.forEach(tab => {
                 tab.classList.remove('active');
@@ -3419,8 +3416,10 @@
                 activeTab.classList.add('active');
             }
             
-            // Load data for the section
-            loadSectionData(sectionId);
+            // Load data asynchronously without blocking UI
+            requestAnimationFrame(() => {
+                loadSectionData(sectionId);
+            });
         }
         
         // Smart matching function for dropdown options
