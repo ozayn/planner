@@ -7492,13 +7492,25 @@
                 <div style="margin-bottom: 20px;">
                     <h4 style="margin-bottom: 10px; color: #4a5568;">🖼️ Venue Image</h4>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        <a href="${venue.image_url}" target="_blank" style="color: #2196f3; text-decoration: none;">
-                            <img src="${venue.image_url}" alt="Venue Image" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid #e0e0e0;" 
-                                 onerror="this.style.display='none'; const fallbackDiv = this.parentElement.querySelector('.image-fallback'); if (fallbackDiv) { fallbackDiv.style.display='inline-block'; }">
-                            <div class="image-fallback" style="display: none; padding: 10px; background: #f5f5f5; border-radius: 4px; color: #666;">
-                                <a href="${venue.image_url}" target="_blank" style="color: #2196f3;">View Venue Image</a>
-                            </div>
-                        </a>
+                        ${(() => {
+                            // Check if it's a photo reference (long string without http)
+                            let imageSrc = venue.image_url;
+                            let imageHref = venue.image_url;
+                            if (venue.image_url && !venue.image_url.startsWith('http') && venue.image_url.length > 50) {
+                                // It's likely a Google Maps photo reference - use the image API endpoint
+                                imageSrc = '/api/image/' + venue.image_url;
+                                imageHref = '/api/image/' + venue.image_url;
+                            }
+                            return `
+                                <a href="${imageHref}" target="_blank" style="color: #2196f3; text-decoration: none;">
+                                    <img src="${imageSrc}" alt="Venue Image" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid #e0e0e0;" 
+                                         onerror="this.style.display='none'; const fallbackDiv = this.parentElement.querySelector('.image-fallback'); if (fallbackDiv) { fallbackDiv.style.display='inline-block'; }">
+                                    <div class="image-fallback" style="display: none; padding: 10px; background: #f5f5f5; border-radius: 4px; color: #666;">
+                                        <a href="${imageHref}" target="_blank" style="color: #2196f3;">View Venue Image</a>
+                                    </div>
+                                </a>
+                            `;
+                        })()}
                     </div>
                 </div>
                 ` : ''}
