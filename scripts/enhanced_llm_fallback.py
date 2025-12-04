@@ -94,7 +94,7 @@ class EnhancedLLMFallback:
             models.append(ModelConfig(
                 provider=ModelProvider.GOOGLE,
                 api_key=api_keys['GOOGLE_API_KEY'],
-                base_url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+                base_url='https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
                 model_name='gemini-1.5-flash',
                 max_tokens=2500,
                 temperature=0.3,

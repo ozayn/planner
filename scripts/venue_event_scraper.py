@@ -319,11 +319,11 @@ class VenueEventScraper:
                             logger.info(f"✅ Successfully bypassed 403 using cloudscraper for {venue.website_url}")
                             # Continue with scraping using the cloudscraper result - skip the normal soup creation below
                         else:
-                            logger.error(f"❌ Cloudscraper also failed for {venue.website_url} - skipping")
-                            return events
+                            logger.warning(f"⚠️ Cloudscraper also failed for {venue.website_url} - skipping this venue (site may have strong bot protection)")
+                            return events  # Return empty list, don't crash
                     except Exception as cloudscraper_error:
-                        logger.error(f"❌ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping")
-                        return events
+                        logger.warning(f"⚠️ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping this venue")
+                        return events  # Return empty list, don't crash
                 else:
                     logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
                     return events
