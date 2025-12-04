@@ -3650,23 +3650,23 @@
                 return;
             }
             
-            // Check if section is visible
-            const sectionDisplay = window.getComputedStyle(citiesSection).display;
-            if (sectionDisplay === 'none') {
-                console.log('Cities section is hidden, table will render when section becomes visible');
-                // Don't render if section is hidden - it will render when section is shown
+            // Check if section is visible - use class check instead of getComputedStyle (faster, no reflow)
+            if (!citiesSection.classList.contains('active')) {
                 return;
             }
             
-            // Ensure the table container is visible before rendering
-            const tableContainer = citiesSection.querySelector('.table-container');
-            if (tableContainer) {
-                tableContainer.style.display = 'block';
-                tableContainer.style.visibility = 'visible';
-                tableContainer.style.minHeight = '400px';
-                tableContainer.style.height = 'auto';
-            }
-            renderDynamicTable('citiesTable', data, 'cities');
+            // Defer heavy table rendering to next frame to keep UI responsive
+            requestAnimationFrame(() => {
+                // Ensure the table container is visible before rendering
+                const tableContainer = citiesSection.querySelector('.table-container');
+                if (tableContainer) {
+                    tableContainer.style.display = 'block';
+                    tableContainer.style.visibility = 'visible';
+                    tableContainer.style.minHeight = '400px';
+                    tableContainer.style.height = 'auto';
+                }
+                renderDynamicTable('citiesTable', data, 'cities');
+            });
         }
         
         // Populate city filters
@@ -4529,22 +4529,23 @@
                 return;
             }
             
-            // Check if section is visible
-            const sectionDisplay = window.getComputedStyle(venuesSection).display;
-            if (sectionDisplay === 'none') {
-                console.log('Venues section is hidden, table will render when section becomes visible');
+            // Check if section is visible - use class check instead of getComputedStyle (faster, no reflow)
+            if (!venuesSection.classList.contains('active')) {
                 return;
             }
             
-            // Ensure the table container is visible before rendering
-            const tableContainer = venuesSection.querySelector('.table-container');
-            if (tableContainer) {
-                tableContainer.style.display = 'block';
-                tableContainer.style.visibility = 'visible';
-                tableContainer.style.minHeight = '400px';
-                tableContainer.style.height = 'auto';
-            }
-            renderDynamicTable('venuesTable', data, 'venues');
+            // Defer heavy table rendering to next frame to keep UI responsive
+            requestAnimationFrame(() => {
+                // Ensure the table container is visible before rendering
+                const tableContainer = venuesSection.querySelector('.table-container');
+                if (tableContainer) {
+                    tableContainer.style.display = 'block';
+                    tableContainer.style.visibility = 'visible';
+                    tableContainer.style.minHeight = '400px';
+                    tableContainer.style.height = 'auto';
+                }
+                renderDynamicTable('venuesTable', data, 'venues');
+            });
         }
         
         // Populate venue filters
@@ -6766,13 +6767,23 @@
                 return;
             }
             
-            // Check if section is visible
-            const sectionDisplay = window.getComputedStyle(sourcesSection).display;
-            if (sectionDisplay === 'none') {
+            // Check if section is visible - use class check instead of getComputedStyle (faster, no reflow)
+            if (!sourcesSection.classList.contains('active')) {
                 return;
             }
             
-            renderDynamicTable('sourcesTable', data, 'sources');
+            // Defer heavy table rendering to next frame to keep UI responsive
+            requestAnimationFrame(() => {
+                // Ensure the table container is visible before rendering
+                const tableContainer = sourcesSection.querySelector('.table-container');
+                if (tableContainer) {
+                    tableContainer.style.display = 'block';
+                    tableContainer.style.visibility = 'visible';
+                    tableContainer.style.minHeight = '400px';
+                    tableContainer.style.height = 'auto';
+                }
+                renderDynamicTable('sourcesTable', data, 'sources');
+            });
         }
         
         function editSource(id) {
@@ -7068,6 +7079,16 @@
         
         // Image Upload Functions
         function showEventDetails(eventId) {
+            // Prevent if clicking on a link or button
+            if (event && event.target) {
+                const target = event.target;
+                const isLink = target.tagName === 'A' || target.closest('a');
+                const isButton = target.tagName === 'BUTTON' || target.closest('button');
+                if (isLink || isButton) {
+                    return;
+                }
+            }
+            
             // Find the event data
             const event = window.allEvents.find(e => e.id == eventId);
             if (!event) {
