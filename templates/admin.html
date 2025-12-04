@@ -7118,9 +7118,10 @@
         }
         
         function showCityDetails(cityId) {
-            // Find the city data
-            const city = window.allCities.find(c => c.id == cityId);
+            // Find the city data - use strict equality and handle both string and number IDs
+            const city = window.allCities.find(c => c.id == cityId || String(c.id) === String(cityId));
             if (!city) {
+                console.error('City not found for ID:', cityId, 'Available cities:', window.allCities?.length);
                 alert('City not found');
                 return;
             }
@@ -7521,7 +7522,7 @@
                     </div>
                 </div>
                 
-                ${venue.image_url ? `
+                ${venue.image_url && venue.image_url.trim() ? `
                 <div style="margin-bottom: 20px;">
                     <h4 style="margin-bottom: 10px; color: #4a5568;">🖼️ Venue Image</h4>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
