@@ -127,8 +127,11 @@ class GoogleCalendarManager:
                 event_body['start'] = {
                     'date': event_data.start_datetime.date().isoformat(),
                 }
+                # Use end_datetime if available, otherwise use start_datetime
+                # For exhibitions, this ensures the full date range is used
+                end_date = event_data.end_datetime.date() if event_data.end_datetime else event_data.start_datetime.date()
                 event_body['end'] = {
-                    'date': event_data.start_datetime.date().isoformat(),
+                    'date': end_date.isoformat(),
                 }
             
             # Add attendees if provided
@@ -393,16 +396,29 @@ def create_calendar_event_from_extracted_data(extracted_data, venue_data=None, c
             tz = pytz.UTC
         
         if extracted_data.start_date:
-            if extracted_data.start_time:
-                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, extracted_data.start_time))
-            else:
-                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(9, 0)))  # Default to 9 AM
-            
             # Handle end date - if no end date provided, assume same as start date
             end_date = extracted_data.end_date or extracted_data.start_date
             
+            # For exhibitions without times, treat as all-day events spanning the full date range
+            # For other events without times, use default times
+            is_exhibition = extracted_data.event_type and extracted_data.event_type.lower() == 'exhibition'
+            
+            if extracted_data.start_time:
+                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, extracted_data.start_time))
+            elif is_exhibition:
+                # For exhibitions without times, use start of day (will be converted to all-day event)
+                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(0, 0)))
+            else:
+                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(9, 0)))  # Default to 9 AM
+            
             if extracted_data.end_time:
                 end_datetime = tz.localize(datetime.combine(end_date, extracted_data.end_time))
+            elif is_exhibition:
+                # For exhibitions without times, use end of end_date (will be converted to all-day event)
+                # Add 1 day to end_date for all-day events (Google Calendar convention: end date is exclusive)
+                from datetime import timedelta
+                end_date_plus_one = end_date + timedelta(days=1)
+                end_datetime = tz.localize(datetime.combine(end_date_plus_one, time(0, 0)))
             elif extracted_data.end_date:
                 end_datetime = tz.localize(datetime.combine(end_date, time(17, 0)))  # Default to 5 PM
             else:

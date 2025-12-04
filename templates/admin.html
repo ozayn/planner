@@ -1984,6 +1984,7 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
                             <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
                             <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">🖼️ NGA</button>
+                            <button onclick="startSAAMScraping()" class="add-button" style="background: #8b5cf6;">🎨 SAAM</button>
                             <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
                             <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
                             <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
@@ -9281,6 +9282,29 @@
                 console.error('NGA scraping error:', error);
                 updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
                 closeScrapingProgressModal();
+            }
+        }
+        
+        async function startSAAMScraping() {
+            updateScrapingStatus('🎨 Starting SAAM scraping (exhibitions, tours, talks)...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-saam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ SAAM scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ SAAM scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ SAAM scraping error: ${error.message}`, 'error');
             }
         }
         

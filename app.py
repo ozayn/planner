@@ -5970,31 +5970,48 @@ def generate_ical_event(event_data):
     except:
         tz = pytz.UTC  # Fallback to UTC if timezone is invalid
     
+    # Check if this is an all-day event (exhibitions without times)
+    is_all_day = False
+    if not event_data.get('start_time') and not event_data.get('end_time'):
+        # Check if it's an exhibition
+        event_type = event_data.get('event_type', '').lower()
+        if event_type == 'exhibition':
+            is_all_day = True
+    
     # Handle times if provided - use floating time (no timezone conversion)
-    start_datetime_str = start_date.strftime('%Y%m%d')
-    end_datetime_str = end_date.strftime('%Y%m%d')
-    
-    if event_data.get('start_time'):
-        start_time_str = event_data['start_time']
-        # Handle both HH:MM and HH:MM:SS formats
-        if len(start_time_str.split(':')) == 2:
-            start_time = datetime.strptime(start_time_str, '%H:%M').time()
-        else:
-            start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+    # For all-day events, use DATE format (YYYYMMDD) instead of DATETIME format
+    if is_all_day:
+        # For all-day events, use DATE format (end date should be exclusive, so add 1 day)
+        from datetime import timedelta
+        start_datetime_str = start_date.strftime('%Y%m%d')
+        # For all-day events, end date is exclusive in iCal format, so add 1 day
+        end_date_exclusive = end_date + timedelta(days=1)
+        end_datetime_str = end_date_exclusive.strftime('%Y%m%d')
+    else:
+        start_datetime_str = start_date.strftime('%Y%m%d')
+        end_datetime_str = end_date.strftime('%Y%m%d')
         
-        # Use floating time format (no timezone conversion)
-        start_datetime_str = f"{start_date.strftime('%Y%m%d')}T{start_time.strftime('%H%M%S')}"
-    
-    if event_data.get('end_time'):
-        end_time_str = event_data['end_time']
-        # Handle both HH:MM and HH:MM:SS formats
-        if len(end_time_str.split(':')) == 2:
-            end_time = datetime.strptime(end_time_str, '%H:%M').time()
-        else:
-            end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+        if event_data.get('start_time'):
+            start_time_str = event_data['start_time']
+            # Handle both HH:MM and HH:MM:SS formats
+            if len(start_time_str.split(':')) == 2:
+                start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            else:
+                start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+            
+            # Use floating time format (no timezone conversion)
+            start_datetime_str = f"{start_date.strftime('%Y%m%d')}T{start_time.strftime('%H%M%S')}"
         
-        # Use floating time format (no timezone conversion)
-        end_datetime_str = f"{end_date.strftime('%Y%m%d')}T{end_time.strftime('%H%M%S')}"
+        if event_data.get('end_time'):
+            end_time_str = event_data['end_time']
+            # Handle both HH:MM and HH:MM:SS formats
+            if len(end_time_str.split(':')) == 2:
+                end_time = datetime.strptime(end_time_str, '%H:%M').time()
+            else:
+                end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+            
+            # Use floating time format (no timezone conversion)
+            end_datetime_str = f"{end_date.strftime('%Y%m%d')}T{end_time.strftime('%H%M%S')}"
     
     # Generate unique ID
     import uuid
@@ -6112,14 +6129,22 @@ def generate_ical_event(event_data):
     timezone_info = generate_timezone_info(timezone_str)
     
     # Create iCal content with timezone information
+    # For all-day events, use DATE format (no TZID), for timed events use DATETIME format with TZID
+    if is_all_day:
+        dtstart_line = f"DTSTART;VALUE=DATE:{start_datetime_str}"
+        dtend_line = f"DTEND;VALUE=DATE:{end_datetime_str}"
+    else:
+        dtstart_line = f"DTSTART;TZID={timezone_str}:{start_datetime_str}"
+        dtend_line = f"DTEND;TZID={timezone_str}:{end_datetime_str}"
+    
     ical_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Event Planner//Event Planner//EN
 {timezone_info}
 BEGIN:VEVENT
 UID:{event_id}@eventplanner.com
-DTSTART;TZID={timezone_str}:{start_datetime_str}
-DTEND;TZID={timezone_str}:{end_datetime_str}
+{dtstart_line}
+{dtend_line}
 SUMMARY:{event_data['title']}
 DESCRIPTION:{enhanced_description}
 LOCATION:{calendar_location}
@@ -6530,6 +6555,58 @@ def scrape_nga():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+@app.route('/api/admin/scrape-saam', methods=['POST'])
+def scrape_saam():
+    """Scrape all SAAM events: exhibitions, tours, talks, and other events."""
+    try:
+        app_logger.info("Starting comprehensive SAAM scraping...")
+        
+        # Import the comprehensive SAAM scraper
+        from scripts.saam_scraper import scrape_all_saam_events, create_events_in_database
+        
+        # Scrape all SAAM events
+        events = scrape_all_saam_events()
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 404
+        
+        # Create/update events in database
+        created_count, updated_count = create_events_in_database(events)
+        
+        app_logger.info(f"SAAM scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
+        
+        message = f"Found {len(events)} SAAM events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if updated_count > 0:
+            message += f", updated {updated_count} existing events"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping SAAM events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0
         }), 500
 
 @app.route('/api/admin/scrape-hirshhorn', methods=['POST'])

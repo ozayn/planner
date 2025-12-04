@@ -5427,28 +5427,80 @@
             }
 
             // Debug: Log event data before generating URL
-            console.log('=== Event Data for Calendar ===');
-            console.log('Event object:', {
-                title: event.title,
-                venue_address: event.venue_address,
-                venue_name: event.venue_name,
-                city_name: event.city_name,
-                start_location: event.start_location,
-                description: event.description ? event.description.substring(0, 100) + '...' : 'No description'
-            });
-            console.log('==============================');
+            console.log('🔴🔴🔴 === Event Data for Calendar === 🔴🔴🔴');
+            console.log('Event ID:', event.id);
+            console.log('Event title:', event.title);
+            console.log('Event start_date:', event.start_date);
+            console.log('Event end_date:', event.end_date);
+            console.log('Event end_date type:', typeof event.end_date);
+            console.log('Event end_date === undefined?', event.end_date === undefined);
+            console.log('Event end_date === null?', event.end_date === null);
+            console.log('Event event_type:', event.event_type);
+            console.log('All event keys:', Object.keys(event));
+            console.log('Full event object (JSON):', JSON.stringify(event, null, 2));
+            console.log('🔴🔴🔴 ============================== 🔴🔴🔴');
 
             // Parse date correctly to avoid timezone issues
             const [year, month, day] = event.start_date.split('-').map(Number);
             const startDate = new Date(year, month - 1, day); // month is 0-indexed
+            // Ensure time is set to midnight (00:00:00) to avoid timezone issues
+            startDate.setHours(0, 0, 0, 0);
             
-            // For exhibitions, use date range (all-day events)
-            if (event.event_type === 'exhibition' && event.end_date) {
-                const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
-                const endDate = new Date(endYear, endMonth - 1, endDay);
+            // For exhibitions, always use date range (all-day events)
+            if (event.event_type === 'exhibition') {
+                // CRITICAL DEBUG: Log event data to see what we have
+                console.log('🔴🔴🔴 EXHIBITION CALENDAR EXPORT DEBUG 🔴🔴🔴');
+                console.log('Event title:', event.title);
+                console.log('Event start_date:', event.start_date);
+                console.log('Event end_date:', event.end_date);
+                console.log('Event end_date type:', typeof event.end_date);
+                console.log('Event end_date === start_date?', event.end_date === event.start_date);
+                console.log('Event keys:', Object.keys(event));
+                console.log('Full event object:', JSON.stringify(event, null, 2));
+                console.log('🔴🔴🔴 END DEBUG 🔴🔴🔴');
+                
+                let endDate;
+                if (event.end_date && event.end_date !== event.start_date) {
+                    // Use the actual end_date if it's different from start_date
+                    const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
+                    endDate = new Date(endYear, endMonth - 1, endDay);
+                    // Ensure time is set to midnight (00:00:00) to avoid timezone issues
+                    endDate.setHours(0, 0, 0, 0);
+                    console.log('✅ Using end_date from event:', event.end_date, '→', endDate.toISOString().split('T')[0]);
+                } else {
+                    // If no end_date or end_date equals start_date, use start_date (single-day exhibition)
+                    endDate = new Date(startDate);
+                    endDate.setHours(0, 0, 0, 0);
+                    console.log('❌❌❌ PROBLEM: No end_date or end_date equals start_date!');
+                    console.log('   event.end_date value:', event.end_date);
+                    console.log('   event.start_date value:', event.start_date);
+                    console.log('   Using start_date for both:', startDate.toISOString().split('T')[0]);
+                }
+                
                 // For all-day events, Google Calendar uses exclusive end date (day after)
-                endDate.setDate(endDate.getDate() + 1);
-                const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate, true);
+                // Create a new date object to avoid mutating the original
+                const exclusiveEndDate = new Date(endDate);
+                exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
+                // Ensure time is set to midnight (00:00:00) to avoid timezone issues
+                exclusiveEndDate.setHours(0, 0, 0, 0);
+                
+                console.log('📅 Date range for calendar:', {
+                    start: startDate.toISOString().split('T')[0],
+                    end_original: endDate.toISOString().split('T')[0],
+                    end_exclusive: exclusiveEndDate.toISOString().split('T')[0],
+                    startDate_obj: startDate,
+                    endDate_obj: endDate,
+                    exclusiveEndDate_obj: exclusiveEndDate
+                });
+                
+                console.log('🔵 Calling generateGoogleCalendarUrl with:', {
+                    startDate: startDate.toISOString().split('T')[0],
+                    exclusiveEndDate: exclusiveEndDate.toISOString().split('T')[0],
+                    isAllDay: true
+                });
+                
+                const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, exclusiveEndDate, true);
+                console.log('🔗 Generated Google Calendar URL:', googleCalendarUrl);
                 window.open(googleCalendarUrl, '_blank');
                 showNotification('Opening Google Calendar...', 'info');
                 return;
@@ -5534,10 +5586,28 @@
             const eventTimezone = event.city_timezone || 'America/New_York';
             
             // For exhibitions or explicitly all-day events, use date-only format
+            console.log('🔵 generateGoogleCalendarUrl - Checking all-day condition:', {
+                isAllDay_param: isAllDay,
+                event_type: event.event_type,
+                condition_result: (isAllDay || event.event_type === 'exhibition')
+            });
+            
             if (isAllDay || event.event_type === 'exhibition') {
                 // All-day event: use YYYYMMDD format (no time)
+                // IMPORTANT: For all-day events, Google Calendar expects dates in YYYYMMDD format
+                // and the end date should be EXCLUSIVE (one day after the actual end date)
                 startDateTime = formatDateOnlyForGoogle(startDate);
                 endDateTime = formatDateOnlyForGoogle(endDate);
+                console.log('📅 All-day event date formatting:', {
+                    startDate_obj: startDate,
+                    endDate_obj: endDate,
+                    startDate_iso: startDate.toISOString().split('T')[0],
+                    endDate_iso: endDate.toISOString().split('T')[0],
+                    startDateTime_formatted: startDateTime,
+                    endDateTime_formatted: endDateTime,
+                    isAllDay_param: isAllDay,
+                    event_type: event.event_type
+                });
             } else if (event.start_time && event.end_time) {
                 // Event with specific times - format in the event's timezone
                 // Parse the time and create dates in the event's timezone
@@ -5847,10 +5917,18 @@
             // Debug: Log the generated URL and its components
             console.log('=== Google Calendar Export Debug ===');
             console.log('Event:', event.title);
+            console.log('Event type:', event.event_type);
+            console.log('Is all-day:', isAllDay);
+            console.log('Start date object:', startDate);
+            console.log('End date object:', endDate);
+            console.log('Start date formatted:', startDateTime);
+            console.log('End date formatted:', endDateTime);
+            console.log('Dates parameter:', `${startDateTime}/${endDateTime}`);
             console.log('Location (for map):', calendarLocation);
             console.log('Description preview (first 200 chars):', enhancedDescription.substring(0, 200));
             console.log('Full URL:', calendarUrl);
             console.log('URL Parameters:');
+            console.log('  - dates:', `${startDateTime}/${endDateTime}`);
             console.log('  - location:', calendarLocation);
             console.log('  - details length:', enhancedDescription.length);
             console.log('  - details starts with:', enhancedDescription.substring(0, 50));

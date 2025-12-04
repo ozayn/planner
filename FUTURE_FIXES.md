@@ -34,4 +34,50 @@ OCMA uses the format: "December 5, 2025, 5:00–6:00 PM" where the am/pm is shar
 
 
 
+## Google Calendar Export - Exhibition End Date Not Working
+
+**Date:** 2025-01-24  
+**Status:** Open  
+**Priority:** Medium
+
+### Problem
+When exporting exhibitions to Google Calendar from the main page (index.html), the end date is not being used correctly. The calendar export shows the same date for both start and end (e.g., "Aug 2, 2025 - Aug 2, 2025" instead of "Aug 2, 2025 - Feb 1, 2026").
+
+### Details
+- **Event ID tested:** 23
+- **Database has correct data:** Start Date: 2025-08-02, End Date: 2026-02-01
+- **API returns correct data:** `to_dict()` includes `end_date: "2026-02-01"`
+- **Frontend issue:** When clicking the calendar button, `event.end_date` appears to be missing or null in the JavaScript event object
+- **Location:** `templates/index.html` - `addToCalendar()` function and `generateGoogleCalendarUrl()` function
+
+### Symptoms
+- Console logs show `endDate_obj: Sat Aug 02 2025 02:00:00` (wrong time, should be 00:00:00)
+- Console logs show `endDate_iso: '2025-08-02'` (same as start date)
+- Google Calendar URL shows `dates=20250802/20250802` (both dates are the same)
+- Debug logs added to check `event.end_date` are not appearing (suggests browser cache or code path issue)
+
+### Investigation Needed
+1. Verify that `event.end_date` is present in the event object when `addToCalendar()` is called
+2. Check if events are being modified/filtered after loading from API
+3. Verify the `/api/events` response includes `end_date` for exhibitions
+4. Check if there's any code that removes or modifies `end_date` after events are loaded
+5. Ensure browser cache is cleared when testing fixes
+
+### Code Locations
+- `templates/index.html` line ~5421: `addToCalendar()` function
+- `templates/index.html` line ~5520: `generateGoogleCalendarUrl()` function
+- `app.py` line ~1100: `/api/events` endpoint
+- `app.py` line ~620: `Event.to_dict()` method (confirmed working correctly)
+
+### Fix Strategy
+1. Add comprehensive logging to verify `event.end_date` exists in the event object
+2. If `end_date` is missing, trace back to where events are loaded/stored
+3. Fix the date parsing/formatting logic to correctly use `end_date` when available
+4. Ensure all-day events use the correct date format for Google Calendar
+
+
+
+
+
+
 
