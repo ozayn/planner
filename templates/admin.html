@@ -7122,30 +7122,33 @@
                 }
             }
             
+            // Show the modal immediately for instant feedback
+            const modal = document.getElementById('venueDetailsModal');
+            modal.style.display = 'block';
+            
             // Find the venue data - use strict equality and handle both string and number IDs
             const venue = window.allVenues.find(v => v.id == venueId || String(v.id) === String(venueId));
             if (!venue) {
                 console.error('Venue not found for ID:', venueId, 'Available venues:', window.allVenues?.length);
                 alert('Venue not found');
+                modal.style.display = 'none';
                 return;
             }
             
-            // Populate the venue details modal
-            const content = generateVenueDetailsHTML(venue);
-            document.getElementById('venueDetailsContent').innerHTML = content;
-            
-            // Show the modal
-            const modal = document.getElementById('venueDetailsModal');
-            modal.style.display = 'block';
-            
-            // Lazy load images only after modal is visible
-            setTimeout(() => {
-                const images = modal.querySelectorAll('img[data-src]');
-                images.forEach(img => {
-                    img.src = img.getAttribute('data-src');
-                    img.removeAttribute('data-src');
-                });
-            }, 100);
+            // Populate the venue details modal asynchronously to avoid blocking
+            requestAnimationFrame(() => {
+                const content = generateVenueDetailsHTML(venue);
+                document.getElementById('venueDetailsContent').innerHTML = content;
+                
+                // Lazy load images only after modal is visible
+                setTimeout(() => {
+                    const images = modal.querySelectorAll('img[data-src]');
+                    images.forEach(img => {
+                        img.src = img.getAttribute('data-src');
+                        img.removeAttribute('data-src');
+                    });
+                }, 100);
+            });
         }
         
         function showCityDetails(clickEvent, cityId) {
@@ -7159,20 +7162,24 @@
                 }
             }
             
+            // Show the modal immediately for instant feedback
+            const modal = document.getElementById('cityDetailsModal');
+            modal.style.display = 'block';
+            
             // Find the city data - use strict equality and handle both string and number IDs
             const city = window.allCities.find(c => c.id == cityId || String(c.id) === String(cityId));
             if (!city) {
                 console.error('City not found for ID:', cityId, 'Available cities:', window.allCities?.length);
                 alert('City not found');
+                modal.style.display = 'none';
                 return;
             }
             
-            // Populate the city details modal
-            const content = generateCityDetailsHTML(city);
-            document.getElementById('cityDetailsContent').innerHTML = content;
-            
-            // Show the modal
-            document.getElementById('cityDetailsModal').style.display = 'block';
+            // Populate the city details modal asynchronously to avoid blocking
+            requestAnimationFrame(() => {
+                const content = generateCityDetailsHTML(city);
+                document.getElementById('cityDetailsContent').innerHTML = content;
+            });
         }
         
         function showSourceDetails(clickEvent, sourceId) {
