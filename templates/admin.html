@@ -4064,11 +4064,15 @@
                 if (tableType === 'events') {
                     rowClickable = 'onclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'venues') {
-                    rowClickable = 'onclick="showVenueDetails(' + item.id + ')" style="cursor: pointer;"';
+                    rowClickable = 'onclick="event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + ', event); return false;" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
                     rowClickable = 'onclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
                     rowClickable = 'onclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
+                }
+                // For venues, wrap onclick to prevent default and stop propagation
+                if (tableType === 'venues' && rowClickable) {
+                    rowClickable = rowClickable.replace('onclick="showVenueDetails', 'onclick="event.preventDefault(); event.stopPropagation(); showVenueDetails');
                 }
                 let row = `<tr id="${tableType}-row-${item.id}" ${rowClickable}>`;
                 
