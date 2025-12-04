@@ -73,16 +73,16 @@
 
         .header {
             text-align: center;
-            margin-bottom: 48px;
+            margin-bottom: 24px;
             background: transparent;
-            padding: 32px 0;
+            padding: 16px 0;
             border: none;
             position: relative;
         }
 
         .header h1 {
             font-size: 2rem;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             color: rgba(0,0,0,0.87);
             font-weight: 300;
             letter-spacing: -0.03em;
@@ -99,6 +99,7 @@
         .main-content {
             display: grid;
             grid-template-columns: 400px 1fr;
+            grid-template-rows: auto 1fr;
             gap: 32px;
             margin-bottom: 32px;
             align-items: start;
@@ -125,10 +126,22 @@
             padding: 24px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            overflow: hidden;
         }
 
         .venues-panel:hover {
             box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+        }
+
+        #venuesContainer {
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
         }
 
         .events-panel {
@@ -157,6 +170,42 @@
         .discovered-events:hover {
             box-shadow: 0 12px 48px rgba(0, 0, 0, 0.08);
             border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Mobile view toggle button - hidden on desktop */
+        .mobile-view-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 24px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+
+        .mobile-view-toggle:hover {
+            background: rgba(0,0,0,0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+
+        .mobile-view-toggle:active {
+            transform: translateY(0);
+        }
+
+        .mobile-close-btn {
+            display: none;
         }
 
         .event-type-filter-btn:hover {
@@ -264,7 +313,7 @@
         }
 
         .discovered-event-card.new-event {
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid rgba(0,0,0,0.15);
         }
 
         .discovered-event-card.updated-event {
@@ -272,9 +321,9 @@
         }
 
         .discovered-event-card.selected {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.04);
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+            border-color: rgba(0,0,0,0.15);
+            background: rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .event-image-thumb {
@@ -447,14 +496,18 @@
         }
 
         .filter-section-toggle {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #9ca3af;
-            font-size: 0.75rem;
+            color: rgba(0,0,0,0.25);
+            font-size: 0.65rem;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+        }
+        
+        .filter-section-header:hover .filter-section-toggle {
+            color: rgba(0,0,0,0.4);
         }
 
         .filter-section-content {
@@ -738,13 +791,18 @@
         }
 
         .status-section-toggle {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #6b7280;
+            color: rgba(0,0,0,0.25);
+            font-size: 0.7rem;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+        }
+        
+        .status-section-header:hover .status-section-toggle {
+            color: rgba(0,0,0,0.4);
         }
 
         .status-section.collapsed .status-section-toggle {
@@ -815,7 +873,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .venues-header h2 {
@@ -829,58 +887,56 @@
 
         .panel-tabs {
             display: flex;
-            gap: 8px;
+            gap: 4px;
         }
 
         .panel-tab {
-            padding: 8px 16px;
-            border: 1px solid rgba(0,0,0,0.23);
-            border-radius: 4px;
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
             background: transparent;
-            color: rgba(0,0,0,0.6);
-            font-size: 0.9rem;
+            color: rgba(0,0,0,0.5);
+            font-size: 0.875rem;
             font-weight: 400;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .panel-tab:hover {
-            color: rgba(0,0,0,0.87);
-            border-color: rgba(25, 118, 210, 0.3);
-            background: rgba(25, 118, 210, 0.08);
+            color: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.04);
         }
 
         .panel-tab.active {
-            background: #1976d2;
-            color: white;
-            border-color: #1976d2;
+            background: rgba(0,0,0,0.06);
+            color: rgba(0,0,0,0.8);
+            font-weight: 500;
         }
 
         .scrape-button {
-            padding: 8px 12px !important;
-            background: #ff8c42 !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            font-size: 0.8rem !important;
+            padding: 6px 14px !important;
+            background: rgba(0,0,0,0.06) !important;
+            color: rgba(0,0,0,0.7) !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+            border-radius: 6px !important;
+            font-size: 0.8125rem !important;
             font-weight: 400 !important;
             cursor: pointer !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2) !important;
+            transition: all 0.2s ease !important;
+            box-shadow: none !important;
         }
 
-        .scrape-button:hover {
-            background: #ff6b35 !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3) !important;
+        .scrape-button:hover:not(:disabled) {
+            background: rgba(0,0,0,0.08) !important;
+            color: rgba(0,0,0,0.85) !important;
+            border-color: rgba(0,0,0,0.12) !important;
         }
 
         .scrape-button:disabled {
-            background: #adb5bd !important;
-            color: #6c757d !important;
+            background: rgba(0,0,0,0.03) !important;
+            color: rgba(0,0,0,0.3) !important;
+            border-color: rgba(0,0,0,0.05) !important;
             cursor: not-allowed !important;
-            transform: none !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
         }
 
         .venues-grid {
@@ -890,41 +946,63 @@
         }
 
         .venue-card {
-            border: none;
-            border-radius: 4px;
-            padding: 16px;
-            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 6px;
+            padding: 10px 12px;
+            transition: all 0.2s ease;
             background: #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-            min-height: 80px;
+            box-shadow: none;
+            min-height: auto;
             position: relative;
             overflow: hidden;
         }
 
         .venue-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            border-color: rgba(0,0,0,0.12);
+            background: rgba(0,0,0,0.01);
         }
 
         .venue-card.selected {
-            background: #e3f2fd;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
+            background: rgba(0,0,0,0.02);
+            border-color: rgba(0,0,0,0.15);
         }
 
         .venue-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 6px;
+            align-items: center;
         }
 
         .venue-title {
-            font-size: 0.85rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            color: #2d3748;
-            line-height: 1.2;
+            color: rgba(0,0,0,0.8);
+            line-height: 1.3;
             flex: 1;
-            margin-right: 8px;
+        }
+        
+        .venue-info-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.2);
+            background: transparent;
+            color: rgba(0,0,0,0.5);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .venue-info-btn:hover {
+            background: rgba(0,0,0,0.06);
+            border-color: rgba(0,0,0,0.3);
+            color: rgba(0,0,0,0.7);
         }
 
         .venue-checkbox {
@@ -932,25 +1010,26 @@
             height: 16px;
             cursor: pointer;
             flex-shrink: 0;
+            accent-color: rgba(0,0,0,0.5);
         }
 
         .venue-info {
-            margin: 6px 0;
+            margin: 0;
         }
 
         .venue-type {
             font-size: 0.75rem;
-            color: #1976d2;
-            font-weight: 500;
-            margin-bottom: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: rgba(0,0,0,0.5);
+            font-weight: 400;
+            margin-bottom: 4px;
+            text-transform: none;
+            letter-spacing: 0;
         }
 
         .venue-address {
             font-size: 0.75rem;
-            color: rgba(0,0,0,0.6);
-            line-height: 1.2;
+            color: rgba(0,0,0,0.5);
+            line-height: 1.3;
             font-weight: 400;
         }
 
@@ -958,27 +1037,27 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 4px;
+            margin-top: 8px;
         }
 
         .venue-price {
             font-size: 0.75rem;
-            font-weight: 500;
-            padding: 4px 8px;
-            border-radius: 16px;
+            font-weight: 400;
+            padding: 3px 8px;
+            border-radius: 4px;
             text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            text-transform: none;
+            letter-spacing: 0;
         }
 
         .venue-price.free {
-            background: #e8f5e8;
-            color: #2e7d32;
+            background: rgba(0,0,0,0.04);
+            color: rgba(0,0,0,0.6);
         }
 
         .venue-price.paid {
-            background: #fff3e0;
-            color: #f57c00;
+            background: rgba(0,0,0,0.04);
+            color: rgba(0,0,0,0.6);
         }
 
         .venue-links {
@@ -987,12 +1066,12 @@
         }
 
         .venue-links a {
-            color: rgba(0,0,0,0.6);
+            color: rgba(0,0,0,0.5);
             text-decoration: none;
-            font-size: 1rem;
-            transition: color 0.2s ease;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
             padding: 4px;
-            border-radius: 50%;
+            border-radius: 4px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1001,8 +1080,58 @@
         }
 
         .venue-links a:hover {
-            color: #1976d2;
-            background: rgba(25, 118, 210, 0.08);
+            color: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.06);
+        }
+
+        .venue-type-section {
+            margin-bottom: 16px;
+        }
+
+        .venue-type-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            margin-bottom: 8px;
+            transition: color 0.2s ease;
+        }
+
+        .venue-type-section-header:hover {
+            color: rgba(0,0,0,0.7);
+        }
+
+        .venue-type-section-title {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: rgba(0,0,0,0.7);
+            flex: 1;
+        }
+
+        .venue-type-section-count {
+            font-size: 0.75rem;
+            color: rgba(0,0,0,0.4);
+            margin-right: 8px;
+        }
+
+        .venue-type-section-toggle {
+            font-size: 0.7rem;
+            color: rgba(0,0,0,0.25);
+            transition: all 0.2s ease;
+        }
+
+        .venue-type-section-header:hover .venue-type-section-toggle {
+            color: rgba(0,0,0,0.4);
+        }
+
+        .venue-type-section-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
         }
 
         .sources-container {
@@ -1209,6 +1338,7 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+            accent-color: rgba(0,0,0,0.5);
         }
 
         .event-image {
@@ -1399,6 +1529,48 @@
             .main-content {
                 grid-template-columns: 1fr;
                 gap: 12px;
+                position: relative;
+            }
+
+            /* Mobile: Hide events by default, show with toggle */
+            .discovered-events {
+                display: none !important;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+                padding: 16px;
+                z-index: 999;
+                background: #ffffff;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            #discoveredEventsPanel.discovered-events.mobile-active,
+            .discovered-events.mobile-active {
+                display: block !important;
+            }
+
+            /* Hide venues/sources when viewing events on mobile */
+            .venues-panel.mobile-hidden,
+            .control-panel.mobile-hidden {
+                display: none;
+            }
+
+            /* Show mobile toggle button */
+            .mobile-view-toggle {
+                display: block;
+            }
+
+            .mobile-view-toggle.show-events {
+                background: rgba(255,255,255,0.95);
+                color: rgba(0,0,0,0.8);
+                border: 1px solid rgba(0,0,0,0.1);
             }
             
             .events-grid {
@@ -1476,6 +1648,135 @@
             .events-panel h2 {
                 font-size: 1.125rem;
                 margin-bottom: 12px;
+            }
+
+            /* Venues/Sources Panel Mobile Improvements */
+            .venues-panel {
+                max-height: 70vh; /* Limit height on mobile for better scrolling */
+                display: flex;
+                flex-direction: column;
+            }
+
+            #venuesContainer {
+                overflow-y: auto;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+                flex: 1;
+                min-height: 0;
+                padding-right: 4px; /* Space for scrollbar */
+            }
+
+            #venuesContainer::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            #venuesContainer::-webkit-scrollbar-thumb {
+                background: rgba(0,0,0,0.2);
+                border-radius: 2px;
+            }
+
+            .venues-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                margin-bottom: 16px;
+                flex-shrink: 0; /* Don't shrink header */
+            }
+
+            .panel-tabs {
+                width: 100%;
+                gap: 8px;
+            }
+
+            .panel-tab {
+                flex: 1;
+                padding: 10px 16px;
+                font-size: 0.875rem;
+                min-height: 44px; /* iOS recommended touch target */
+                text-align: center;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            }
+
+            .venues-header > div:last-child {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .source-control-btn,
+            .scrape-button {
+                flex: 1;
+                min-width: 0;
+                padding: 10px 14px !important;
+                font-size: 0.8125rem !important;
+                min-height: 44px !important; /* iOS recommended touch target */
+                white-space: nowrap;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            }
+
+            .venues-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+
+            .venue-type-section-content {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+
+            .venue-card {
+                padding: 14px 16px;
+                min-height: 56px; /* Better touch target */
+                -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+            }
+
+            .venue-header {
+                gap: 12px;
+            }
+
+            .venue-title {
+                font-size: 0.9375rem;
+                line-height: 1.4;
+            }
+
+            .venue-info-btn {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 0.875rem !important;
+                min-width: 32px;
+                min-height: 32px;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            }
+
+            .venue-checkbox {
+                width: 24px !important;
+                height: 24px !important;
+                min-width: 24px;
+                min-height: 24px;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .venue-type-section-header {
+                padding: 12px 0;
+                min-height: 48px; /* Better touch target */
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            }
+
+            .venue-type-section-title {
+                font-size: 0.875rem;
+            }
+
+            .venue-type-section-count {
+                font-size: 0.8125rem;
+            }
+
+            .venue-type-section-toggle {
+                font-size: 0.875rem;
+                min-width: 32px;
+                min-height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .form-group {
@@ -1573,6 +1874,45 @@
             .events-panel h2 {
                 font-size: 1rem;
                 margin-bottom: 10px;
+            }
+
+            /* Even smaller screens - stack buttons vertically */
+            .venues-header > div:last-child {
+                flex-direction: column;
+            }
+
+            .source-control-btn,
+            .scrape-button {
+                width: 100%;
+            }
+
+            .venue-card {
+                padding: 12px 14px;
+            }
+
+            .venue-title {
+                font-size: 0.875rem;
+            }
+
+            /* Mobile close button styling */
+            .mobile-close-btn:hover {
+                background: rgba(0,0,0,0.05);
+                color: rgba(0,0,0,0.8);
+            }
+
+            .mobile-close-btn:active {
+                background: rgba(0,0,0,0.1);
+            }
+
+            /* Ensure events panel header is sticky on mobile */
+            .discovered-events.mobile-active > div:first-child {
+                position: sticky;
+                top: 0;
+                background: #ffffff;
+                z-index: 10;
+                padding-bottom: 16px;
+                margin-bottom: 16px;
+                border-bottom: 1px solid rgba(0,0,0,0.06);
             }
 
             .time-selector {
@@ -1698,7 +2038,7 @@
 
         <div class="main-content">
             <!-- Control Panel -->
-            <div class="control-panel">
+            <div class="control-panel" id="controlPanel">
                 <h2>Discover</h2>
                 
                 <div class="form-group">
@@ -1967,9 +2307,38 @@
                 </div>
             </div>
 
+            <!-- Venues & Sources Panel -->
+            <div class="venues-panel" id="venuesPanel">
+                <div class="venues-header">
+                    <div class="panel-tabs">
+                        <button id="venuesTab" class="panel-tab active" data-panel="venues">Venues</button>
+                        <button id="sourcesTab" class="panel-tab" data-panel="sources">Sources</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="deselectAllVenuesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Select/Deselect All Venues">
+                            Select/Deselect
+                        </button>
+                        <button id="deselectAllSourcesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Select/Deselect All Sources">
+                            Select/Deselect
+                        </button>
+                        <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Items">
+                            Scrape
+                        </button>
+                    </div>
+                </div>
+
+                <div id="venuesContainer">
+                    <div class="empty-state">
+                    </div>
+                </div>
+            </div>
+
             <!-- Unified Events Panel -->
-            <div class="discovered-events">
-                <h2 style="color: rgba(0,0,0,0.6); margin-bottom: 24px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
+            <div class="discovered-events" id="discoveredEventsPanel" style="grid-column: 2; grid-row: 1 / -1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="color: rgba(0,0,0,0.6); margin: 0; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
+                    <button id="mobileCloseEventsBtn" class="mobile-close-btn" style="display: none; background: transparent; border: none; color: rgba(0,0,0,0.6); font-size: 1.5rem; cursor: pointer; padding: 0; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s ease;" title="Close Events" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">×</button>
+                </div>
                 <div class="time-selector">
                     <button class="time-btn" data-period="today">Today</button>
                     <button class="time-btn" data-period="tomorrow">Tomorrow</button>
@@ -2010,32 +2379,6 @@
                 </div>
             </div>
 
-            <!-- Venues & Sources Panel -->
-            <div class="venues-panel">
-                <div class="venues-header">
-                    <div class="panel-tabs">
-                        <button id="venuesTab" class="panel-tab active" data-panel="venues">🏛️ Venues</button>
-                        <button id="sourcesTab" class="panel-tab" data-panel="sources">📱 Sources</button>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="deselectAllVenuesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Deselect All Venues">
-                            Deselect All Venues
-                        </button>
-                        <button id="deselectAllSourcesBtn" class="source-control-btn" style="display: none; font-size: 0.75rem; padding: 6px 12px; border-radius: 16px; background: transparent; border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); cursor: pointer;" title="Deselect All Sources">
-                            Deselect All Sources
-                        </button>
-                        <button id="scrapeButton" class="scrape-button" disabled title="Scrape Selected Items">
-                            🚀
-                        </button>
-                    </div>
-                </div>
-
-                <div id="venuesContainer">
-                    <div class="empty-state">
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
@@ -2051,6 +2394,32 @@
             </div>
             <div id="eventDetailsContent">
                 <!-- Event details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Venue Details Modal -->
+    <div id="venueDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>Venue Details</h3>
+                <span class="close" onclick="closeVenueModal()">&times;</span>
+            </div>
+            <div id="venueDetailsContent">
+                <!-- Venue details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Source Details Modal -->
+    <div id="sourceDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>Source Details</h3>
+                <span class="close" onclick="closeSourceModal()">&times;</span>
+            </div>
+            <div id="sourceDetailsContent">
+                <!-- Source details will be populated here -->
             </div>
         </div>
     </div>
@@ -2192,7 +2561,53 @@
             }
         }
 
-        // Initialize the application
+        // Mobile view toggle function - define globally before DOMContentLoaded
+        window.toggleMobileView = function() {
+            const eventsPanel = document.getElementById('discoveredEventsPanel');
+            const venuesPanel = document.getElementById('venuesPanel');
+            const controlPanel = document.getElementById('controlPanel');
+            const toggleBtn = document.getElementById('mobileViewToggle');
+            const closeBtn = document.getElementById('mobileCloseEventsBtn');
+            
+            if (!eventsPanel || !toggleBtn) {
+                return;
+            }
+            
+            // Check current state
+            const inlineDisplay = eventsPanel.style.getPropertyValue('display');
+            const computedDisplay = window.getComputedStyle(eventsPanel).display;
+            const isShowingEvents = inlineDisplay === 'block' || inlineDisplay.includes('block') || computedDisplay !== 'none';
+            
+            if (isShowingEvents) {
+                // Hide events, show venues/sources
+                eventsPanel.style.setProperty('display', 'none', 'important');
+                eventsPanel.classList.remove('mobile-active');
+                if (venuesPanel) venuesPanel.classList.remove('mobile-hidden');
+                if (controlPanel) controlPanel.classList.remove('mobile-hidden');
+                toggleBtn.textContent = 'View Events';
+                toggleBtn.classList.remove('show-events');
+                if (closeBtn) closeBtn.style.display = 'none';
+            } else {
+                // Show events, hide venues/sources
+                eventsPanel.style.setProperty('display', 'block', 'important');
+                eventsPanel.style.setProperty('position', 'fixed', 'important');
+                eventsPanel.style.setProperty('top', '0', 'important');
+                eventsPanel.style.setProperty('left', '0', 'important');
+                eventsPanel.style.setProperty('right', '0', 'important');
+                eventsPanel.style.setProperty('bottom', '0', 'important');
+                eventsPanel.style.setProperty('width', '100%', 'important');
+                eventsPanel.style.setProperty('height', '100vh', 'important');
+                eventsPanel.style.setProperty('z-index', '999', 'important');
+                eventsPanel.style.setProperty('background', '#ffffff', 'important');
+                eventsPanel.classList.add('mobile-active');
+                if (venuesPanel) venuesPanel.classList.add('mobile-hidden');
+                if (controlPanel) controlPanel.classList.add('mobile-hidden');
+                toggleBtn.textContent = 'View Venues';
+                toggleBtn.classList.add('show-events');
+                if (closeBtn) closeBtn.style.display = 'flex';
+            }
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
             loadCities();
             loadRealTimeStats();
@@ -2213,7 +2628,49 @@
         // Get current location and match to city
         let currentCityId = null;
         
-        async function getCurrentCity() {
+        // Calculate distance between two coordinates using Haversine formula (in miles)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 3959; // Earth's radius in miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+        
+        // Get coordinates for a city using geocoding
+        async function getCityCoordinates(cityName, stateName, countryName) {
+            try {
+                const query = stateName && countryName === 'United States' 
+                    ? `${cityName}, ${stateName}, ${countryName}`
+                    : `${cityName}, ${countryName}`;
+                
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+                    {
+                        headers: {
+                            'User-Agent': 'Planner App'
+                        }
+                    }
+                );
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    return {
+                        lat: parseFloat(data[0].lat),
+                        lon: parseFloat(data[0].lon)
+                    };
+                }
+            } catch (error) {
+                console.error('Error geocoding city:', error);
+            }
+            return null;
+        }
+        
+        async function getCurrentLocation() {
             return new Promise((resolve) => {
                 if (!navigator.geolocation) {
                     console.log('Geolocation not supported');
@@ -2225,36 +2682,13 @@
                     async (position) => {
                         try {
                             const { latitude, longitude } = position.coords;
-                            console.log('Got location:', latitude, longitude);
-                            
-                            // Use OpenStreetMap Nominatim for reverse geocoding
-                            const response = await fetch(
-                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
-                                {
-                                    headers: {
-                                        'User-Agent': 'Planner App'
-                                    }
-                                }
-                            );
-                            const data = await response.json();
-                            
-                            if (data && data.address) {
-                                const cityName = data.address.city || data.address.town || data.address.village || data.address.municipality;
-                                const stateName = data.address.state || data.address.region;
-                                const countryName = data.address.country;
-                                
-                                console.log('Detected location:', { cityName, stateName, countryName });
-                                resolve({ cityName, stateName, countryName });
-                            } else {
-                                resolve(null);
-                            }
+                            resolve({ latitude, longitude });
                         } catch (error) {
-                            console.error('Error in reverse geocoding:', error);
+                            console.error('Error getting location:', error);
                             resolve(null);
                         }
                     },
                     (error) => {
-                        console.log('Geolocation error:', error.message);
                         resolve(null);
                     },
                     { timeout: 5000, enableHighAccuracy: false }
@@ -2265,35 +2699,81 @@
         // Load cities from API
         async function loadCities() {
             try {
-                console.log('Loading cities...');
                 const response = await fetch('/api/cities');
                 const cities = await response.json();
-                console.log('Cities loaded:', cities.length);
                 
-                // Try to get current location
-                const currentLocation = await getCurrentCity();
+                // Try to get current location coordinates
+                const userLocation = await getCurrentLocation();
                 
-                // Find matching city
+                // Find matching city by distance
                 let matchedCity = null;
-                if (currentLocation) {
-                    matchedCity = cities.find(city => {
-                        const nameMatch = city.name.toLowerCase() === currentLocation.cityName?.toLowerCase() ||
-                                         city.name.toLowerCase().includes(currentLocation.cityName?.toLowerCase() || '') ||
-                                         currentLocation.cityName?.toLowerCase().includes(city.name.toLowerCase() || '');
+                if (userLocation) {
+                    // First, try to find exact match by name (faster)
+                    // Get reverse geocoded city name for exact matching
+                    try {
+                        const reverseResponse = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.latitude}&lon=${userLocation.longitude}&addressdetails=1`,
+                            {
+                                headers: {
+                                    'User-Agent': 'Planner App'
+                                }
+                            }
+                        );
+                        const reverseData = await reverseResponse.json();
                         
-                        const stateMatch = !city.state || !currentLocation.stateName || 
-                                         city.state.toLowerCase() === currentLocation.stateName.toLowerCase() ||
-                                         city.state.toLowerCase().includes(currentLocation.stateName.toLowerCase());
+                        if (reverseData && reverseData.address) {
+                            const cityName = reverseData.address.city || reverseData.address.town || reverseData.address.village || reverseData.address.municipality;
+                            const stateName = reverseData.address.state || reverseData.address.region;
+                            const countryName = reverseData.address.country;
+                            
+                            matchedCity = cities.find(city => {
+                                const nameMatch = city.name.toLowerCase() === cityName?.toLowerCase() ||
+                                                 city.name.toLowerCase().includes(cityName?.toLowerCase() || '') ||
+                                                 cityName?.toLowerCase().includes(city.name.toLowerCase() || '');
+                                
+                                const stateMatch = !city.state || !stateName || 
+                                                 city.state.toLowerCase() === stateName.toLowerCase() ||
+                                                 city.state.toLowerCase().includes(stateName.toLowerCase());
+                                
+                                const countryMatch = city.country.toLowerCase() === countryName?.toLowerCase() ||
+                                                   city.country === 'United States' && (countryName === 'United States' || countryName === 'USA');
+                                
+                                return nameMatch && (stateMatch || countryMatch);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error in reverse geocoding:', error);
+                    }
+                    
+                    // If no exact match, find closest city by distance (within 50 miles)
+                    if (!matchedCity) {
+                        let closestDistance = Infinity;
+                        let closestCity = null;
                         
-                        const countryMatch = city.country.toLowerCase() === currentLocation.countryName?.toLowerCase() ||
-                                           city.country === 'United States' && (currentLocation.countryName === 'United States' || currentLocation.countryName === 'USA');
+                        for (const city of cities) {
+                            const cityCoords = await getCityCoordinates(city.name, city.state, city.country);
+                            if (cityCoords) {
+                                const distance = calculateDistance(
+                                    userLocation.latitude,
+                                    userLocation.longitude,
+                                    cityCoords.lat,
+                                    cityCoords.lon
+                                );
+                                
+                                if (distance < closestDistance && distance <= 50) {
+                                    closestDistance = distance;
+                                    closestCity = city;
+                                }
+                            }
+                        }
                         
-                        return nameMatch && (stateMatch || countryMatch);
-                    });
+                        if (closestCity) {
+                            matchedCity = closestCity;
+                        }
+                    }
                     
                     if (matchedCity) {
                         currentCityId = matchedCity.id;
-                        console.log('Matched current city:', matchedCity.display_name);
                     }
                 }
                 
@@ -2330,8 +2810,8 @@
                     const option = document.createElement('option');
                     option.value = city.id;
                     if (city.id === currentCityId) {
-                        option.textContent = `${city.display_name} • Current`;
-                        option.style.fontWeight = '500';
+                        option.textContent = city.display_name;
+                        option.style.fontStyle = 'italic';
                     } else {
                         option.textContent = city.display_name;
                     }
@@ -2343,8 +2823,6 @@
                     citySelect.value = currentCityId;
                     citySelect.dispatchEvent(new Event('change'));
                 }
-                
-                console.log('Cities added to dropdown (current location first, then US cities sorted by state)');
             } catch (error) {
                 console.error('Error loading cities:', error);
                 showNotification('Error loading cities', 'error');
@@ -2354,7 +2832,6 @@
         // Load real-time statistics from API
         async function loadRealTimeStats() {
             try {
-                console.log('Loading real-time statistics...');
                 const response = await fetch('/api/stats');
                 const stats = await response.json();
                 
@@ -2370,8 +2847,6 @@
                         <span><strong>🚀 PostgreSQL Ready</strong></span>
                     `;
                 }
-                
-                console.log('Real-time statistics loaded:', stats);
             } catch (error) {
                 console.error('Error loading statistics:', error);
                 // Keep the static values if API fails
@@ -2466,9 +2941,9 @@
             document.getElementById('toggleAllPlatforms').addEventListener('click', () => toggleAllPlatformTypes());
             document.getElementById('toggleAllContent').addEventListener('click', () => toggleAllContentTypes());
             
-            // Add deselect all buttons
-            document.getElementById('deselectAllVenuesBtn').addEventListener('click', () => deselectAllVenues());
-            document.getElementById('deselectAllSourcesBtn').addEventListener('click', () => deselectAllSources());
+            // Add toggle select/deselect buttons
+            document.getElementById('deselectAllVenuesBtn').addEventListener('click', () => toggleSelectAllVenues());
+            document.getElementById('deselectAllSourcesBtn').addEventListener('click', () => toggleSelectAllSources());
             
             // Add panel tab listeners
             document.getElementById('venuesTab').addEventListener('click', () => switchPanel('venues'));
@@ -2624,16 +3099,42 @@
             });
 
             // Venue type tabs
-            const venueTypeTabs = document.querySelectorAll('.venue-type-tab');
-            venueTypeTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    if (allVenues.length > 0) {
-                        updateVenueCounts();
-                        filterAndDisplayVenues();
-                    }
+            // Set up venue type filter tabs (only in Venue Types section)
+            const venueTypesGroup = document.getElementById('venueTypesGroup');
+            if (venueTypesGroup) {
+                const venueTypeTabs = venueTypesGroup.querySelectorAll('.venue-type-tab');
+                venueTypeTabs.forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        // Filter displayed venues if they're already loaded
+                        if (allVenues.length > 0) {
+                            updateVenueCounts();
+                            filterAndDisplayVenues();
+                        }
+                    });
                 });
-            });
+            }
+            
+            // Set up platform and content type tabs (separate handlers)
+            const platformsGroup = document.getElementById('platformsGroup');
+            if (platformsGroup) {
+                const platformTabs = platformsGroup.querySelectorAll('.venue-type-tab');
+                platformTabs.forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                    });
+                });
+            }
+            
+            const contentGroup = document.getElementById('contentGroup');
+            if (contentGroup) {
+                const contentTabs = contentGroup.querySelectorAll('.venue-type-tab');
+                contentTabs.forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                    });
+                });
+            }
         }
 
         // Get selected price filters (can be multiple)
@@ -2895,52 +3396,67 @@
             updateStatus();
         }
 
-        // Deselect all sources
-        function deselectAllSources() {
-            console.log('Deselecting all sources...');
-            console.log('Current selectedSources before clear:', Array.from(selectedSources));
-            
-            // Clear the selected sources set
-            selectedSources.clear();
-            
-            // Deselect all visible source cards (card format - most common)
-            // Sources are displayed in venuesContainer with data-source-id attribute
+        // Toggle select/deselect all sources
+        function toggleSelectAllSources() {
+            // Get all visible source cards
             const sourceCards = document.querySelectorAll('[data-source-id]');
-            console.log(`Found ${sourceCards.length} source cards to deselect`);
             
-            sourceCards.forEach(sourceCard => {
-                const checkbox = sourceCard.querySelector('.venue-checkbox');
-                if (checkbox) {
-                    checkbox.checked = false;
-                }
-                sourceCard.classList.remove('selected');
-                
-                // Get the source ID from the card
-                const sourceId = parseInt(sourceCard.getAttribute('data-source-id'));
+            if (sourceCards.length === 0) {
+                showNotification('No sources to select', 'info');
+                return;
+            }
+            
+            // Check if all visible sources are already selected
+            let allSelected = true;
+            const visibleSourceIds = [];
+            sourceCards.forEach(card => {
+                const sourceId = parseInt(card.getAttribute('data-source-id'));
                 if (sourceId && !isNaN(sourceId)) {
-                    selectedSources.delete(sourceId); // Ensure it's removed from set
+                    visibleSourceIds.push(sourceId);
+                    if (!selectedSources.has(sourceId)) {
+                        allSelected = false;
+                    }
                 }
             });
             
-            // Also handle list format (for sourcesList - older format)
-            const listCheckboxes = document.querySelectorAll('#sourcesList input[type="checkbox"]');
-            console.log(`Found ${listCheckboxes.length} list format checkboxes`);
-            listCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            
-            // Also deselect sources from allSources array (backup - deselect all sources in memory)
-            allSources.forEach(source => {
-                selectedSources.delete(source.id);
-            });
-            
-            // Ensure set is empty
-            selectedSources.clear();
-            
-            console.log('Selected sources after clear:', selectedSources.size);
-            
-            // Update status
-            updateStatus();
+            if (allSelected) {
+                // Deselect all visible sources
+                visibleSourceIds.forEach(sourceId => {
+                    selectedSources.delete(sourceId);
+                });
+                
+                sourceCards.forEach(sourceCard => {
+                    const checkbox = sourceCard.querySelector('.venue-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = false;
+                    }
+                    sourceCard.classList.remove('selected');
+                });
+                
+                updateStatus();
+                updateSelectDeselectSourcesButton();
+                showNotification(`Deselected ${sourceCards.length} source${sourceCards.length !== 1 ? 's' : ''}`, 'success');
+            } else {
+                // Select all visible sources
+                visibleSourceIds.forEach(sourceId => {
+                    selectedSources.add(sourceId);
+                });
+                
+                sourceCards.forEach(sourceCard => {
+                    const sourceId = parseInt(sourceCard.getAttribute('data-source-id'));
+                    if (sourceId && !isNaN(sourceId) && selectedSources.has(sourceId)) {
+                        sourceCard.classList.add('selected');
+                        const checkbox = sourceCard.querySelector('.venue-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    }
+                });
+                
+                updateStatus();
+                updateSelectDeselectSourcesButton();
+                showNotification(`Selected ${sourceCards.length} source${sourceCards.length !== 1 ? 's' : ''}`, 'success');
+            }
             
             // Update scrape button
             const scrapeButton = document.getElementById('scrapeButton');
@@ -2948,31 +3464,151 @@
             if (scrapeButton) {
                 scrapeButton.disabled = !hasSelectedItems;
             }
-            
-            // Update status display directly
-            const statusSelected = document.getElementById('statusSelected');
-            if (statusSelected) {
-                statusSelected.textContent = '';
-            }
-            
-            console.log('Deselect all sources completed');
         }
         
-        // Deselect all venues
-        function deselectAllVenues() {
-            selectedVenues.clear();
-            allVenues.forEach(venue => {
-                const checkbox = document.querySelector(`[data-venue-id="${venue.id}"] .venue-checkbox`);
-                if (checkbox) checkbox.checked = false;
-                // Also update the venue card UI
-                const venueCard = document.querySelector(`[data-venue-id="${venue.id}"]`);
-                if (venueCard) venueCard.classList.remove('selected');
+        // Toggle select/deselect all venues
+        function toggleSelectAllVenues() {
+            // Get all visible venue cards
+            const venueCards = document.querySelectorAll('[data-venue-id]');
+            
+            if (venueCards.length === 0) {
+                showNotification('No venues to select', 'info');
+                return;
+            }
+            
+            // Check if all visible venues are already selected
+            let allSelected = true;
+            const visibleVenueIds = [];
+            venueCards.forEach(card => {
+                const venueId = parseInt(card.getAttribute('data-venue-id'));
+                if (venueId && !isNaN(venueId)) {
+                    visibleVenueIds.push(venueId);
+                    if (!selectedVenues.has(venueId)) {
+                        allSelected = false;
+                    }
+                }
             });
-            updateStatus();
+            
+            if (allSelected) {
+                // Deselect all visible venues
+                visibleVenueIds.forEach(venueId => {
+                    selectedVenues.delete(venueId);
+                });
+                
+                venueCards.forEach(venueCard => {
+                    const checkbox = venueCard.querySelector('.venue-checkbox');
+                    if (checkbox) checkbox.checked = false;
+                    venueCard.classList.remove('selected');
+                });
+                
+                updateStatus();
+                updateSelectDeselectVenuesButton();
+                showNotification(`Deselected ${venueCards.length} venue${venueCards.length !== 1 ? 's' : ''}`, 'success');
+            } else {
+                // Select all visible venues
+                visibleVenueIds.forEach(venueId => {
+                    selectedVenues.add(venueId);
+                });
+                
+                venueCards.forEach(venueCard => {
+                    const venueId = parseInt(venueCard.getAttribute('data-venue-id'));
+                    if (venueId && !isNaN(venueId) && selectedVenues.has(venueId)) {
+                        venueCard.classList.add('selected');
+                        const checkbox = venueCard.querySelector('.venue-checkbox');
+                        if (checkbox) checkbox.checked = true;
+                    }
+                });
+                
+                updateStatus();
+                updateSelectDeselectVenuesButton();
+                showNotification(`Selected ${venueCards.length} venue${venueCards.length !== 1 ? 's' : ''}`, 'success');
+            }
+            
             // Update scrape button
             const scrapeButton = document.getElementById('scrapeButton');
             const hasSelectedItems = selectedVenues.size > 0 || selectedSources.size > 0;
             if (scrapeButton) scrapeButton.disabled = !hasSelectedItems;
+        }
+        
+        // Update the select/deselect sources button text based on current state
+        function updateSelectDeselectSourcesButton() {
+            const button = document.getElementById('deselectAllSourcesBtn');
+            if (!button) return;
+            
+            const sourceCards = document.querySelectorAll('[data-source-id]');
+            if (sourceCards.length === 0) {
+                button.textContent = 'Select/Deselect';
+                return;
+            }
+            
+            // Check if all visible sources are selected
+            let allSelected = true;
+            sourceCards.forEach(card => {
+                const sourceId = parseInt(card.getAttribute('data-source-id'));
+                if (sourceId && !isNaN(sourceId) && !selectedSources.has(sourceId)) {
+                    allSelected = false;
+                }
+            });
+            
+            // Button text stays as "Select/Deselect" - it's a toggle button
+            // The title can indicate the current action
+            button.title = allSelected ? 'Deselect All Sources' : 'Select All Sources';
+        }
+        
+        // Update the select/deselect venues button text based on current state
+        function updateSelectDeselectVenuesButton() {
+            const button = document.getElementById('deselectAllVenuesBtn');
+            if (!button) return;
+            
+            const venueCards = document.querySelectorAll('[data-venue-id]');
+            if (venueCards.length === 0) {
+                button.textContent = 'Select/Deselect';
+                return;
+            }
+            
+            // Check if all visible venues are selected
+            let allSelected = true;
+            venueCards.forEach(card => {
+                const venueId = parseInt(card.getAttribute('data-venue-id'));
+                if (venueId && !isNaN(venueId) && !selectedVenues.has(venueId)) {
+                    allSelected = false;
+                }
+            });
+            
+            // Button text stays as "Select/Deselect" - it's a toggle button
+            // The title can indicate the current action
+            button.title = allSelected ? 'Deselect All Venues' : 'Select All Venues';
+        }
+        
+        // Legacy functions for backward compatibility (if needed elsewhere)
+        function deselectAllSources() {
+            const sourceCards = document.querySelectorAll('[data-source-id]');
+            sourceCards.forEach(sourceCard => {
+                const sourceId = parseInt(sourceCard.getAttribute('data-source-id'));
+                if (sourceId && !isNaN(sourceId)) {
+                    selectedSources.delete(sourceId);
+                }
+                const checkbox = sourceCard.querySelector('.venue-checkbox');
+                if (checkbox) checkbox.checked = false;
+                sourceCard.classList.remove('selected');
+            });
+            updateStatus();
+            updateSelectDeselectSourcesButton();
+        }
+        
+        function deselectAllVenues() {
+            const venueCards = document.querySelectorAll('[data-venue-id]');
+            venueCards.forEach(venueCard => {
+                const venueId = parseInt(venueCard.getAttribute('data-venue-id'));
+                if (venueId && !isNaN(venueId)) {
+                    selectedVenues.delete(venueId);
+                }
+                const checkbox = venueCard.querySelector('.venue-checkbox');
+                if (checkbox) checkbox.checked = false;
+                venueCard.classList.remove('selected');
+            });
+            updateStatus();
+            updateSelectDeselectVenuesButton();
         }
 
         // Select all venue types
@@ -3423,8 +4059,6 @@
                     displaySources(allSources);
                 }
                 
-                console.log(`Loaded ${allSources.length} sources for city ${cityId}`);
-                
             } catch (error) {
                 console.error('Error loading sources:', error);
                 showNotification('Failed to load sources', 'error');
@@ -3439,15 +4073,49 @@
             if (filteredSources.length === 0) {
                 venuesContainer.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📱</div>
-                        <h3>No Sources Match Filters</h3>
-                        <p>No sources found for ${currentCity} that match your selected platform and content type filters. Try adjusting your filters.</p>
                     </div>
                 `;
+                const deselectAllSourcesBtn = document.getElementById('deselectAllSourcesBtn');
+                if (deselectAllSourcesBtn) deselectAllSourcesBtn.style.display = 'none';
                 return;
             }
 
-            venuesContainer.innerHTML = filteredSources.map(source => createSourceCard(source)).join('');
+            // Group sources by source_type
+            const sourcesByType = filteredSources.reduce((acc, source) => {
+                const type = source.source_type || 'other';
+                if (!acc[type]) {
+                    acc[type] = [];
+                }
+                acc[type].push(source);
+                return acc;
+            }, {});
+
+            // Build HTML with collapsible sections
+            let html = '';
+            Object.keys(sourcesByType).sort().forEach(sourceType => {
+                const typeSources = sourcesByType[sourceType];
+                const typeName = formatSourceTypeName(sourceType);
+                const sectionId = `source-section-${sourceType.replace(/[^a-z0-9]/gi, '-')}`;
+                // Default to collapsed, unless saved state says expanded
+                const isCollapsed = localStorage.getItem(`source-section-${sourceType}`) !== 'expanded';
+                
+                html += `
+                    <div class="venue-type-section">
+                        <div class="venue-type-section-header" onclick="toggleSourceSection('${sourceType}')">
+                            <span class="venue-type-section-title">${typeName}</span>
+                            <span class="venue-type-section-count">${typeSources.length}</span>
+                            <span class="venue-type-section-toggle" id="toggle-${sectionId}">${isCollapsed ? '▼' : '▲'}</span>
+                        </div>
+                        <div class="venue-type-section-content" id="${sectionId}" style="display: ${isCollapsed ? 'none' : 'block'};">
+                            <div class="venues-grid">
+                                ${typeSources.map(source => createSourceCard(source)).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            venuesContainer.innerHTML = html;
             
             // Show deselect all sources button when sources are displayed
             const deselectAllSourcesBtn = document.getElementById('deselectAllSourcesBtn');
@@ -3460,7 +4128,13 @@
             }
             
             // Update status
-            statusItemsFound.textContent = `${filteredSources.length} items`;
+            const statusItemsFound = document.getElementById('statusItemsFound');
+            if (statusItemsFound) {
+                statusItemsFound.textContent = `${filteredSources.length} items`;
+            }
+            
+            // Update button state
+            updateSelectDeselectSourcesButton();
         }
 
         // Filter sources based on platform and content type selections
@@ -3499,59 +4173,47 @@
             });
         }
 
-        // Create source card
+        // Create source card (minimal, similar to venue cards)
         function createSourceCard(source) {
             const isSelected = selectedSources.has(source.id);
-            
-            // Parse event types if it's a JSON string
-            let eventTypes = [];
-            try {
-                if (typeof source.event_types === 'string') {
-                    eventTypes = JSON.parse(source.event_types);
-                } else if (Array.isArray(source.event_types)) {
-                    eventTypes = source.event_types;
-                }
-            } catch (e) {
-                eventTypes = [];
-            }
-            
-            // Format source type for display
-            const sourceTypeFormatted = source.source_type ? source.source_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
-            
-            // Get platform icon
-            const platformIcon = {
-                'instagram': '📸',
-                'facebook': '📘', 
-                'website': '🌐',
-                'meetup': '👥',
-                'eventbrite': '🎫',
-                'twitter': '🐦',
-                'tiktok': '🎵',
-                'youtube': '📺'
-            };
-            const icon = platformIcon[source.source_type] || '📱';
             
             return `
                 <div class="venue-card ${isSelected ? 'selected' : ''}" data-source-id="${source.id}">
                     <div class="venue-header">
                         <div class="venue-title">${source.name}</div>
-                        <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
-                               onchange="toggleSourceSelection(${source.id})">
-                    </div>
-                    <div class="venue-info">
-                        <div class="venue-type">${icon} ${sourceTypeFormatted}</div>
-                        ${source.handle ? `<div class="venue-address">${source.handle}</div>` : ''}
-                        ${eventTypes.length > 0 ? `<div class="venue-address">${eventTypes.slice(0, 3).join(', ')}${eventTypes.length > 3 ? '...' : ''}</div>` : ''}
-                    </div>
-                    <div class="venue-footer">
-                        <div class="venue-price free">Source</div>
-                        <div class="venue-links">
-                            ${source.url ? `<a href="${source.url}" target="_blank" title="Visit Source">🔗</a>` : ''}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="venue-info-btn" onclick="showSourceDetails(${source.id}); event.stopPropagation();" title="View Details">i</button>
+                            <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
+                                   onchange="toggleSourceSelection(${source.id})">
                         </div>
                     </div>
                 </div>
             `;
         }
+
+        // Format source type name for display
+        function formatSourceTypeName(sourceType) {
+            if (!sourceType) return 'Other';
+            return sourceType
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Toggle source section collapse/expand
+        window.toggleSourceSection = function(sourceType) {
+            const sectionId = `source-section-${sourceType.replace(/[^a-z0-9]/gi, '-')}`;
+            const section = document.getElementById(sectionId);
+            const toggle = document.getElementById(`toggle-${sectionId}`);
+            
+            if (!section || !toggle) return;
+            
+            const isCollapsed = section.style.display === 'none';
+            section.style.display = isCollapsed ? 'block' : 'none';
+            toggle.textContent = isCollapsed ? '▲' : '▼';
+            
+            // Save state to localStorage
+            localStorage.setItem(`source-section-${sourceType}`, isCollapsed ? 'expanded' : 'collapsed');
+        };
 
         // Toggle source selection
         function toggleSourceSelection(sourceId) {
@@ -3563,13 +4225,26 @@
             
             // Update UI
             const sourceCard = document.querySelector(`[data-source-id="${sourceId}"]`);
-            sourceCard.classList.toggle('selected');
+            if (sourceCard) {
+                sourceCard.classList.toggle('selected');
+            }
             
             // Update status
-            statusSelected.textContent = selectedSources.size > 0 ? selectedSources.size : '';
+            const statusSelected = document.getElementById('statusSelected');
+            if (statusSelected) {
+                statusSelected.textContent = selectedSources.size > 0 ? selectedSources.size : '';
+            }
+            updateStatus();
             
             // Update scrape button
-            scrapeButton.disabled = selectedSources.size === 0;
+            const scrapeButton = document.getElementById('scrapeButton');
+            const hasSelectedItems = selectedVenues.size > 0 || selectedSources.size > 0;
+            if (scrapeButton) {
+                scrapeButton.disabled = !hasSelectedItems;
+            }
+            
+            // Update button state
+            updateSelectDeselectSourcesButton();
         }
 
         // Handle date range selection
@@ -3594,10 +4269,6 @@
             if (citySelect.value) {
                 const cityId = citySelect.value;
                 const eventType = eventTypeSelectStep2.value || ''; // Allow empty for "All Types"
-                
-                console.log(`Date range changed to: ${dateRange}`);
-                console.log(`Reloading events for city: ${cityId}, type: ${eventType}, dateRange: ${dateRange}`);
-                console.log(`Current allEvents length: ${allEvents ? allEvents.length : 'undefined'}`);
                 
                 // Show loading state
                 updateProgress(50, 'Updating events for new date range...');
@@ -3706,14 +4377,17 @@
             }
         }
 
-        // Display venues
+        // Format venue type for display
+        function formatVenueTypeName(venueType) {
+            if (!venueType) return 'Other';
+            return venueType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        // Display venues grouped by type with collapsible sections
         function displayVenues(venues) {
             if (venues.length === 0) {
                 venuesContainer.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔍</div>
-                        <h3>No Venues Available</h3>
-                        <p>No venues in our database for ${currentCity} that offer ${currentEventType}. Try a different city or event type.</p>
                     </div>
                 `;
                 // Hide deselect button when no venues
@@ -3722,7 +4396,41 @@
                 return;
             }
 
-            venuesContainer.innerHTML = venues.map(venue => createVenueCard(venue)).join('');
+            // Group venues by type
+            const venuesByType = {};
+            venues.forEach(venue => {
+                const type = venue.venue_type || 'other';
+                if (!venuesByType[type]) {
+                    venuesByType[type] = [];
+                }
+                venuesByType[type].push(venue);
+            });
+
+            // Build HTML with collapsible sections
+            let html = '';
+            Object.keys(venuesByType).sort().forEach(venueType => {
+                const typeVenues = venuesByType[venueType];
+                const typeName = formatVenueTypeName(venueType);
+                const sectionId = `venue-section-${venueType.replace(/[^a-z0-9]/gi, '-')}`;
+                // Check localStorage first, but default to collapsed if not set
+                const savedState = localStorage.getItem(`venue-section-${venueType}`);
+                const isCollapsed = savedState === null ? true : savedState === 'collapsed';
+                
+                html += `
+                    <div class="venue-type-section">
+                        <div class="venue-type-section-header" onclick="toggleVenueSection('${venueType}')">
+                            <span class="venue-type-section-title">${typeName}</span>
+                            <span class="venue-type-section-count">${typeVenues.length}</span>
+                            <span class="venue-type-section-toggle" id="toggle-${sectionId}">${isCollapsed ? '▼' : '▲'}</span>
+                        </div>
+                        <div class="venue-type-section-content" id="${sectionId}" style="display: ${isCollapsed ? 'none' : 'block'};">
+                            ${typeVenues.map(venue => createVenueCard(venue)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            venuesContainer.innerHTML = html;
             
             // Show deselect all venues button when venues are displayed
             const deselectAllVenuesBtn = document.getElementById('deselectAllVenuesBtn');
@@ -3733,46 +4441,211 @@
                     deselectAllVenuesBtn.style.display = 'block';
                 }
             }
+            
+            // Update button state
+            updateSelectDeselectVenuesButton();
         }
+        
+        // Toggle venue section visibility (make it globally accessible)
+        window.toggleVenueSection = function(venueType) {
+            const sectionId = `venue-section-${venueType.replace(/[^a-z0-9]/gi, '-')}`;
+            const section = document.getElementById(sectionId);
+            const toggle = document.getElementById(`toggle-${sectionId}`);
+            
+            if (section && toggle) {
+                const isCollapsed = section.style.display === 'none';
+                section.style.display = isCollapsed ? 'block' : 'none';
+                toggle.textContent = isCollapsed ? '▲' : '▼';
+                
+                // Save state to localStorage
+                localStorage.setItem(`venue-section-${venueType}`, isCollapsed ? 'expanded' : 'collapsed');
+            }
+        };
 
         // Create venue card
         function createVenueCard(venue) {
             const isSelected = selectedVenues.has(venue.id);
-            const isFree = isVenueFree(venue);
-            const freeText = isFree ? '🆓 Free' : '💰 Paid';
-            const priceClass = isFree ? 'free' : 'paid';
-            
-            // Format venue type for display
-            const venueTypeFormatted = venue.venue_type ? venue.venue_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
-            
-            // Get first part of address (street)
-            const addressShort = venue.address ? venue.address.split(',')[0] : '';
-            
-            // Social media links
-            const socialLinks = [];
-            if (venue.website_url) socialLinks.push(`<a href="${venue.website_url}" target="_blank" title="Website">🌐</a>`);
-            if (venue.instagram_url) socialLinks.push(`<a href="${venue.instagram_url}" target="_blank" title="Instagram">📸</a>`);
-            if (venue.facebook_url) socialLinks.push(`<a href="${venue.facebook_url}" target="_blank" title="Facebook">📘</a>`);
-            if (venue.maps_link) socialLinks.push(`<a href="${venue.maps_link}" target="_blank" title="Google Maps">🗺️</a>`);
             
             return `
                 <div class="venue-card ${isSelected ? 'selected' : ''}" data-venue-id="${venue.id}">
                     <div class="venue-header">
                         <div class="venue-title">${venue.name}</div>
-                        <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
-                               onchange="toggleVenueSelection(${venue.id})">
-                    </div>
-                    <div class="venue-info">
-                        <div class="venue-type">${venueTypeFormatted}</div>
-                        ${addressShort ? `<div class="venue-address">${addressShort}</div>` : ''}
-                    </div>
-                    <div class="venue-footer">
-                        <div class="venue-price ${priceClass}">${freeText}</div>
-                        ${socialLinks.length > 0 ? `<div class="venue-links">${socialLinks.join(' ')}</div>` : ''}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="venue-info-btn" onclick="showVenueDetails(${venue.id}); event.stopPropagation();" title="View Details">i</button>
+                            <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
+                                   onchange="toggleVenueSelection(${venue.id})">
+                        </div>
                     </div>
                 </div>
             `;
         }
+        
+        // Show venue details in modal
+        window.showVenueDetails = function(venueId) {
+            const venue = allVenues.find(v => v.id === venueId);
+            if (!venue) return;
+            
+            const isFree = isVenueFree(venue);
+            const venueTypeFormatted = venue.venue_type ? venue.venue_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+            
+            // Build details HTML
+            let detailsHTML = `
+                <h3 style="margin-bottom: 16px; color: rgba(0,0,0,0.8); font-size: 1.125rem; font-weight: 500;">${venue.name}</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+            `;
+            
+            if (venueTypeFormatted) {
+                detailsHTML += `<div><strong>Type:</strong> ${venueTypeFormatted}</div>`;
+            }
+            
+            if (venue.address) {
+                detailsHTML += `<div><strong>Address:</strong> ${venue.address}</div>`;
+            }
+            
+            detailsHTML += `<div><strong>Price:</strong> ${isFree ? 'Free' : 'Paid'}</div>`;
+            
+            if (venue.description) {
+                detailsHTML += `<div><strong>Description:</strong> ${venue.description}</div>`;
+            }
+            
+            if (venue.website_url) {
+                detailsHTML += `<div><strong>Website:</strong> <a href="${venue.website_url}" target="_blank" style="color: rgba(0,0,0,0.6);">${venue.website_url}</a></div>`;
+            }
+            
+            if (venue.instagram_url) {
+                detailsHTML += `<div><strong>Instagram:</strong> <a href="${venue.instagram_url}" target="_blank" style="color: rgba(0,0,0,0.6);">${venue.instagram_url}</a></div>`;
+            }
+            
+            if (venue.facebook_url) {
+                detailsHTML += `<div><strong>Facebook:</strong> <a href="${venue.facebook_url}" target="_blank" style="color: rgba(0,0,0,0.6);">${venue.facebook_url}</a></div>`;
+            }
+            
+            if (venue.maps_link) {
+                detailsHTML += `<div><strong>Maps:</strong> <a href="${venue.maps_link}" target="_blank" style="color: rgba(0,0,0,0.6);">View on Google Maps</a></div>`;
+            }
+            
+            if (venue.phone_number) {
+                detailsHTML += `<div><strong>Phone:</strong> ${venue.phone_number}</div>`;
+            }
+            
+            if (venue.email) {
+                detailsHTML += `<div><strong>Email:</strong> <a href="mailto:${venue.email}" style="color: rgba(0,0,0,0.6);">${venue.email}</a></div>`;
+            }
+            
+            detailsHTML += `</div>`;
+            
+            // Show in modal
+            const modal = document.getElementById('venueDetailsModal');
+            const modalContent = document.getElementById('venueDetailsContent');
+            if (modal && modalContent) {
+                modalContent.innerHTML = detailsHTML;
+                modal.style.display = 'block';
+            }
+        };
+        
+        // Close venue details modal
+        window.closeVenueModal = function() {
+            closeModal('venueDetailsModal');
+        };
+
+        // Show source details in modal
+        window.showSourceDetails = function(sourceId) {
+            const source = allSources.find(s => s.id === sourceId);
+            if (!source) return;
+            
+            const sourceTypeFormatted = formatSourceTypeName(source.source_type);
+            
+            // Build details HTML
+            let detailsHTML = `
+                <h3 style="margin-bottom: 16px; color: rgba(0,0,0,0.8); font-size: 1.125rem; font-weight: 500;">${source.name}</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+            `;
+            
+            if (sourceTypeFormatted) {
+                detailsHTML += `<div><strong>Type:</strong> ${sourceTypeFormatted}</div>`;
+            }
+            
+            if (source.handle) {
+                detailsHTML += `<div><strong>Handle:</strong> ${source.handle}</div>`;
+            }
+            
+            if (source.url) {
+                detailsHTML += `<div><strong>URL:</strong> <a href="${source.url}" target="_blank" style="color: rgba(0,0,0,0.6);">${source.url}</a></div>`;
+            }
+            
+            if (source.description) {
+                detailsHTML += `<div><strong>Description:</strong> ${source.description}</div>`;
+            }
+            
+            // Parse and display event types
+            let eventTypes = [];
+            try {
+                if (typeof source.event_types === 'string') {
+                    eventTypes = JSON.parse(source.event_types);
+                } else if (Array.isArray(source.event_types)) {
+                    eventTypes = source.event_types;
+                }
+            } catch (e) {
+                // If parsing fails, try as comma-separated string
+                if (source.event_types) {
+                    eventTypes = source.event_types.split(',').map(t => t.trim());
+                }
+            }
+            
+            if (eventTypes.length > 0) {
+                const eventTypesFormatted = eventTypes.map(et => 
+                    et.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                ).join(', ');
+                detailsHTML += `<div><strong>Event Types:</strong> ${eventTypesFormatted}</div>`;
+            }
+            
+            if (source.posting_frequency) {
+                detailsHTML += `<div><strong>Posting Frequency:</strong> ${source.posting_frequency}</div>`;
+            }
+            
+            if (source.reliability_score) {
+                detailsHTML += `<div><strong>Reliability Score:</strong> ${source.reliability_score}/10</div>`;
+            }
+            
+            if (source.notes) {
+                detailsHTML += `<div><strong>Notes:</strong> ${source.notes}</div>`;
+            }
+            
+            if (source.covers_multiple_cities) {
+                detailsHTML += `<div><strong>Covers Multiple Cities:</strong> Yes</div>`;
+            }
+            
+            detailsHTML += `</div>`;
+            
+            // Show in modal
+            const modal = document.getElementById('sourceDetailsModal');
+            const modalContent = document.getElementById('sourceDetailsContent');
+            if (modal && modalContent) {
+                modalContent.innerHTML = detailsHTML;
+                modal.style.display = 'block';
+            }
+        };
+        
+        // Close source details modal
+        window.closeSourceModal = function() {
+            closeModal('sourceDetailsModal');
+        };
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const venueModal = document.getElementById('venueDetailsModal');
+            const sourceModal = document.getElementById('sourceDetailsModal');
+            const eventModal = document.getElementById('eventDetailsModal');
+            if (event.target === venueModal) {
+                closeVenueModal();
+            }
+            if (event.target === sourceModal) {
+                closeSourceModal();
+            }
+            if (event.target === eventModal) {
+                closeModal('eventDetailsModal');
+            }
+        };
 
         // Check if venue is free
         function isVenueFree(venue, event = null) {
@@ -3818,13 +4691,27 @@
             
             // Update UI
             const venueCard = document.querySelector(`[data-venue-id="${venueId}"]`);
-            venueCard.classList.toggle('selected');
+            if (venueCard) {
+                venueCard.classList.toggle('selected');
+            }
             
             // Update status
-            statusSelected.textContent = selectedVenues.size;
+            updateStatus();
             
             // Update scrape button
-            scrapeButton.disabled = selectedVenues.size === 0;
+            const scrapeButton = document.getElementById('scrapeButton');
+            const hasSelectedItems = selectedVenues.size > 0 || selectedSources.size > 0;
+            if (scrapeButton) {
+                scrapeButton.disabled = !hasSelectedItems;
+            }
+            
+            // Update button state
+            updateSelectDeselectVenuesButton();
+            
+            // Update events display to filter by selected venues
+            if (allEvents.length > 0 || discoveredEvents.length > 0) {
+                displayUnifiedEvents();
+            }
         }
 
 
@@ -3992,24 +4879,8 @@
                 }
 
                 const apiUrl = `/api/events?${params}`;
-                console.log(`Loading events from: ${apiUrl}`);
-                
                 const response = await fetch(apiUrl);
                 const events = await response.json();
-                
-                console.log(`Received ${events.length} events:`, events.map(e => ({title: e.title, start_date: e.start_date})));
-                
-                // Debug: Check if venue_address is in event data
-                if (events.length > 0) {
-                    const sampleEvent = events[0];
-                    console.log('Sample event data structure:', {
-                        has_venue_address: 'venue_address' in sampleEvent,
-                        venue_address: sampleEvent.venue_address,
-                        venue_name: sampleEvent.venue_name,
-                        city_name: sampleEvent.city_name,
-                        start_location: sampleEvent.start_location
-                    });
-                }
                 
                 allEvents = events;
                 selectedEvents.clear();
@@ -4052,8 +4923,6 @@
             const combinedEvents = [];
             const eventIds = new Set();
             
-            console.log(`Displaying unified events: allEvents=${allEvents.length}, discoveredEvents=${discoveredEvents.length}`);
-            
             [...allEvents, ...discoveredEvents].forEach(event => {
                 if (!eventIds.has(event.id)) {
                     eventIds.add(event.id);
@@ -4061,10 +4930,30 @@
                 }
             });
             
-            // Filter by event type if filters are selected
+            // Filter by selected venues - only show events from selected venues
+            // But if no venues have been loaded yet, show all events from the city
             let filteredEvents = combinedEvents;
+            if (allVenues.length > 0) {
+                // Venues have been loaded, so filter by selected venues
+                if (selectedVenues.size > 0) {
+                    filteredEvents = combinedEvents.filter(event => {
+                        // If event has a venue_id, it must be in selectedVenues
+                        if (event.venue_id) {
+                            return selectedVenues.has(event.venue_id);
+                        }
+                        // If event has no venue_id, include it (might be from sources or city-wide events)
+                        return true;
+                    });
+                } else {
+                    // If no venues are selected, only show events without venue_id (from sources)
+                    filteredEvents = combinedEvents.filter(event => !event.venue_id);
+                }
+            }
+            // If allVenues.length === 0, show all events (no venue filtering yet)
+            
+            // Filter by event type if filters are selected
             if (selectedEventTypeFilters.size > 0) {
-                filteredEvents = combinedEvents.filter(event => {
+                filteredEvents = filteredEvents.filter(event => {
                     // If no event_type, exclude it when filtering
                     if (!event.event_type) return false;
                     return selectedEventTypeFilters.has(event.event_type);
@@ -4105,8 +4994,6 @@
                     return startDate >= todayForFilter;
                 }
             });
-            
-            console.log(`Combined events: ${combinedEvents.length} unique events, filtered: ${filteredEvents.length}`);
             
             if (filteredEvents.length === 0) {
                 container.innerHTML = `
@@ -4170,7 +5057,6 @@
             if (currentExhibitions.length > 0) {
                 html += `
                     <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
-                        Current
                     </div>
                 `;
                 html += '<div class="events-list">';
@@ -5396,7 +6282,7 @@
                     <div class="event-actions" onclick="event.stopPropagation();">
                         <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleEventSelection(${event.id}); event.stopPropagation();" 
-                               style="width: 18px; height: 18px; cursor: pointer; accent-color: #3b82f6; margin: 0; flex-shrink: 0;">
+                               style="width: 18px; height: 18px; cursor: pointer; accent-color: rgba(0,0,0,0.5); margin: 0; flex-shrink: 0;">
                         <button class="action-btn calendar-btn" onclick="addDiscoveredEventToCalendar(${event.id}); event.stopPropagation();" title="Add to Calendar">
                             🗓️
                         </button>
@@ -5616,7 +6502,15 @@
                     modal.style.display = 'none';
                 }
             });
+
+            // Mobile view toggle functionality - using onclick attribute, no need for addEventListener
+            // The onclick attribute on the button already calls toggleMobileView
         });
     </script>
+
+    <!-- Mobile View Toggle Button -->
+    <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
+        View Events
+    </button>
 </body>
 </html>
