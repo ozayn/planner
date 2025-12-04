@@ -7089,10 +7089,15 @@
                 }
             }
             
+            // Show the modal immediately for instant feedback
+            const modal = document.getElementById('eventDetailsModal');
+            modal.style.display = 'block';
+            
             // Find the event data
             const event = window.allEvents.find(e => e.id == eventId);
             if (!event) {
                 alert('Event not found');
+                modal.style.display = 'none';
                 return;
             }
             
@@ -7103,12 +7108,11 @@
                 image_url: event.image_url
             });
             
-            // Populate the event details modal
-            const content = generateEventDetailsHTML(event);
-            document.getElementById('eventDetailsContent').innerHTML = content;
-            
-            // Show the modal
-            document.getElementById('eventDetailsModal').style.display = 'block';
+            // Populate the event details modal asynchronously to avoid blocking
+            requestAnimationFrame(() => {
+                const content = generateEventDetailsHTML(event);
+                document.getElementById('eventDetailsContent').innerHTML = content;
+            });
         }
         
         function showVenueDetails(clickEvent, venueId) {
