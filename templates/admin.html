@@ -573,12 +573,15 @@
         /* Table Styles */
         .table-container {
             overflow-x: auto;
-            overflow-y: visible;
+            overflow-y: auto;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             background: white;
             width: 100%;
             max-width: 100%;
+            min-height: 200px;
+            max-height: 80vh;
+            display: block !important;
         }
 
         .scroll-hint {
@@ -595,6 +598,8 @@
             min-width: 1200px;
             border-collapse: collapse;
             font-size: 0.9rem;
+            display: table !important;
+            table-layout: auto;
         }
 
         .data-table th {
@@ -1089,30 +1094,65 @@
         .modal-content {
             background-color: white;
             margin: 2% auto;
-            padding: 20px;
+            padding: 0;
             border-radius: 8px;
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             max-height: 90vh;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            flex-shrink: 0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #374151;
+            font-size: 1.25rem;
         }
 
         .close {
             color: #aaa;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .close:hover {
-            color: black;
+            color: #000;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .close:active {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        #eventDetailsContent,
+        #venueDetailsContent,
+        #cityDetailsContent,
+        #sourceDetailsContent {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
 
         .form-group {
@@ -1385,13 +1425,29 @@
                 width: 95%;
                 margin: 5px auto;
                 max-height: 95vh;
-                overflow-y: auto;
-                padding: 16px;
+                padding: 0;
                 border-radius: 12px;
             }
 
-            .modal-header h2 {
+            .modal-header {
+                padding: 16px;
+            }
+
+            .modal-header h3 {
                 font-size: 1.125rem;
+            }
+
+            .close {
+                font-size: 28px;
+                width: 36px;
+                height: 36px;
+            }
+
+            #eventDetailsContent,
+            #venueDetailsContent,
+            #cityDetailsContent,
+            #sourceDetailsContent {
+                padding: 16px;
             }
 
             .form-row {
@@ -1529,6 +1585,94 @@
                 min-width: 28px;
             }
 
+            #eventDetailsContent {
+                padding: 12px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .event-details-header {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+                margin-bottom: 16px !important;
+            }
+
+            .event-details-header > div:first-child > div:first-child {
+                padding: 16px !important;
+            }
+
+            .event-details-header h2 {
+                font-size: 1.25rem !important;
+            }
+
+            .event-details-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+                margin-bottom: 16px !important;
+            }
+
+            .event-details-grid h4 {
+                font-size: 0.875rem !important;
+                margin-bottom: 8px !important;
+            }
+
+            .event-details-grid > div > div {
+                padding: 10px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .event-details-grid > div > div > div {
+                margin-bottom: 6px !important;
+                font-size: 0.8125rem !important;
+                line-height: 1.4 !important;
+            }
+
+            .event-details-header img {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            .venue-details-header,
+            .city-details-header {
+                padding: 16px !important;
+                margin-bottom: 16px !important;
+            }
+
+            .venue-details-header h2,
+            .city-details-header h2 {
+                font-size: 1.25rem !important;
+            }
+
+            .venue-details-grid,
+            .city-details-grid,
+            .source-details-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+                margin-bottom: 16px !important;
+            }
+
+            .venue-details-grid h4,
+            .city-details-grid h4,
+            .source-details-grid h4 {
+                font-size: 0.875rem !important;
+                margin-bottom: 8px !important;
+            }
+
+            .venue-details-grid > div > div,
+            .city-details-grid > div > div,
+            .source-details-grid > div > div {
+                padding: 10px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .venue-details-grid > div > div > div,
+            .city-details-grid > div > div > div,
+            .source-details-grid > div > div > div {
+                margin-bottom: 6px !important;
+                font-size: 0.8125rem !important;
+                line-height: 1.4 !important;
+            }
+
             .btn {
                 padding: 8px 14px;
                 font-size: 0.8125rem;
@@ -1546,17 +1690,40 @@
                 font-size: 0.75rem;
             }
 
+            .modal {
+                background-color: rgba(0, 0, 0, 0.7);
+            }
+
             .modal-content {
                 width: 100%;
                 max-width: 100%;
                 margin: 0;
                 border-radius: 0;
                 max-height: 100vh;
-                padding: 12px;
+                height: 100vh;
+                padding: 0;
             }
 
-            .modal-header h2 {
+            .modal-header {
+                padding: 12px 16px;
+                border-radius: 0;
+            }
+
+            .modal-header h3 {
                 font-size: 1rem;
+            }
+
+            .close {
+                font-size: 32px;
+                width: 44px;
+                height: 44px;
+                color: #666;
+            }
+
+            #eventDetailsContent {
+                padding: 12px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .form-group {
@@ -2347,7 +2514,7 @@
 
     <!-- Event Details Modal -->
     <div id="eventDetailsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>📋 Event Details</h3>
                 <span class="close" onclick="closeModal('eventDetailsModal')">&times;</span>
@@ -2360,7 +2527,7 @@
 
     <!-- Venue Details Modal -->
     <div id="venueDetailsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>🏢 Venue Details</h3>
                 <span class="close" onclick="closeModal('venueDetailsModal')">&times;</span>
@@ -2373,7 +2540,7 @@
 
     <!-- City Details Modal -->
     <div id="cityDetailsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>🏙️ City Details</h3>
                 <span class="close" onclick="closeModal('cityDetailsModal')">&times;</span>
@@ -2386,7 +2553,7 @@
 
     <!-- Source Details Modal -->
     <div id="sourceDetailsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>📱 Source Details</h3>
                 <span class="close" onclick="closeModal('sourceDetailsModal')">&times;</span>
@@ -3209,24 +3376,44 @@
         
         // Navigation functions
         function showSection(sectionId) {
-            // Hide all sections
+            console.log('showSection called with:', sectionId);
+            // Hide all sections - use both class removal and explicit display:none
             const sections = document.querySelectorAll('.data-section');
             sections.forEach(section => {
                 section.classList.remove('active');
+                section.style.display = 'none'; // Explicitly hide
             });
             
             // Show selected section
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
+                targetSection.style.display = 'block'; // Explicitly show
+                console.log('Section', sectionId, 'is now active. Display:', window.getComputedStyle(targetSection).display);
+                console.log('Section ID:', targetSection.id, 'Section heading:', targetSection.querySelector('h2')?.textContent);
+            } else {
+                console.error('Section not found:', sectionId);
             }
             
-            // Update navigation tabs
-            const tabs = document.querySelectorAll('.nav-tab');
-            tabs.forEach(tab => {
+            // Update navigation buttons (using .nav-btn class)
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Also try .nav-tab for backward compatibility
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => {
                 tab.classList.remove('active');
             });
             
+            // Set active on the clicked button
+            const activeButton = document.getElementById(`nav-${sectionId}`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+            
+            // Fallback: find by onclick attribute
             const activeTab = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
             if (activeTab) {
                 activeTab.classList.add('active');
@@ -3441,6 +3628,29 @@
         // Render cities table dynamically
         function renderCitiesTable() {
             const data = window.filteredCities || window.allCities || [];
+            // Ensure the section is visible before rendering
+            const citiesSection = document.getElementById('cities');
+            if (!citiesSection) {
+                console.warn('Cities section not found, skipping render');
+                return;
+            }
+            
+            // Check if section is visible
+            const sectionDisplay = window.getComputedStyle(citiesSection).display;
+            if (sectionDisplay === 'none') {
+                console.log('Cities section is hidden, table will render when section becomes visible');
+                // Don't render if section is hidden - it will render when section is shown
+                return;
+            }
+            
+            // Ensure the table container is visible before rendering
+            const tableContainer = citiesSection.querySelector('.table-container');
+            if (tableContainer) {
+                tableContainer.style.display = 'block';
+                tableContainer.style.visibility = 'visible';
+                tableContainer.style.minHeight = '400px';
+                tableContainer.style.height = 'auto';
+            }
             renderDynamicTable('citiesTable', data, 'cities');
         }
         
@@ -3775,10 +3985,22 @@
         
         // Dynamic table rendering system
         function renderDynamicTable(tableId, data, tableType = 'default') {
+            console.log('renderDynamicTable called:', { tableId, dataLength: data?.length, tableType });
             const tableBody = document.getElementById(tableId);
-            if (!tableBody) return;
+            if (!tableBody) {
+                console.error('Table body not found:', tableId);
+                return;
+            }
+            
+            // Verify we're rendering to the correct table
+            const expectedSection = tableId.replace('Table', '');
+            const parentSection = tableBody.closest('.data-section');
+            if (parentSection && parentSection.id !== expectedSection) {
+                console.error('WARNING: Rendering', tableType, 'data to table in section', parentSection.id, 'but expected section', expectedSection);
+            }
             
             if (!data || data.length === 0) {
+                console.warn('No data to render for table:', tableId);
                 tableBody.innerHTML = '<tr><td colspan="100" class="no-results">🔍 No data found</td></tr>';
                 return;
             }
@@ -3786,9 +4008,11 @@
             // Get the first item to determine available fields dynamically
             const sampleItem = data[0];
             const availableFields = Object.keys(sampleItem);
+            console.log('Available fields:', availableFields);
             
             // Define field display preferences (order, visibility, formatting)
             const fieldConfig = getFieldConfig(tableType);
+            console.log('Field config for', tableType, ':', fieldConfig);
             
             // Filter and order fields based on configuration
             const orderedFields = fieldConfig.order.filter(field => availableFields.includes(field));
@@ -3798,7 +4022,11 @@
             orderedFields.push(...newFields);
             
             // Generate table headers
-            const tableHead = document.querySelector(`#${tableId}`).closest('table').querySelector('thead tr');
+            const table = document.querySelector(`#${tableId}`).closest('table');
+            if (!table) {
+                return;
+            }
+            const tableHead = table.querySelector('thead tr');
             if (tableHead) {
                 let headerRow = '';
                 
@@ -3828,7 +4056,9 @@
             }
             
             // Generate data rows
-            tableBody.innerHTML = data.map(item => {
+            let rowsHTML = '';
+            try {
+                rowsHTML = data.map(item => {
                 // Make all table rows clickable
                 let rowClickable = '';
                 if (tableType === 'events') {
@@ -3864,7 +4094,9 @@
                         const value = formatFieldValue(field, item[field], config);
                         // Add class for description and additional_info columns to apply narrow styling
                         const cellClass = (field === 'description' || field === 'additional_info') ? ` class="${field}"` : '';
-                        row += `<td${cellClass}>${value}</td>`;
+                        // Ensure cells have content - use &nbsp; if empty to prevent collapse
+                        const cellContent = value || '&nbsp;';
+                        row += `<td${cellClass} style="padding: 10px 8px; min-height: 30px;">${cellContent}</td>`;
                     }
                 });
                 
@@ -3873,7 +4105,26 @@
                 
                 row += '</tr>';
                 return row;
-            }).join('');
+                }).join('');
+            } catch (error) {
+                console.error('Error generating table rows:', error);
+                rowsHTML = '<tr><td colspan="100" class="no-results">❌ Error rendering table: ' + error.message + '</td></tr>';
+            }
+            
+            if (rowsHTML.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="100" class="no-results">🔍 Error rendering table</td></tr>';
+            } else {
+                tableBody.innerHTML = rowsHTML;
+                // Verify rows were inserted
+                const insertedRows = tableBody.querySelectorAll('tr');
+                if (insertedRows.length === 0) {
+                    console.error('ERROR: Rows HTML generated but no rows found in DOM after insertion!');
+                    console.error('rowsHTML length:', rowsHTML.length);
+                    console.error('First 500 chars of rowsHTML:', rowsHTML.substring(0, 500));
+                } else {
+                    console.log('Table rendered: ' + insertedRows.length + ' rows inserted into DOM');
+                }
+            }
         }
         
         // Field configuration for different table types
@@ -4254,6 +4505,28 @@
         // Render venues table using dynamic system
         function renderVenuesTable() {
             const data = window.filteredVenues || window.allVenues || [];
+            // Ensure the section is visible before rendering
+            const venuesSection = document.getElementById('venues');
+            if (!venuesSection) {
+                console.warn('Venues section not found, skipping render');
+                return;
+            }
+            
+            // Check if section is visible
+            const sectionDisplay = window.getComputedStyle(venuesSection).display;
+            if (sectionDisplay === 'none') {
+                console.log('Venues section is hidden, table will render when section becomes visible');
+                return;
+            }
+            
+            // Ensure the table container is visible before rendering
+            const tableContainer = venuesSection.querySelector('.table-container');
+            if (tableContainer) {
+                tableContainer.style.display = 'block';
+                tableContainer.style.visibility = 'visible';
+                tableContainer.style.minHeight = '400px';
+                tableContainer.style.height = 'auto';
+            }
             renderDynamicTable('venuesTable', data, 'venues');
         }
         
@@ -5053,6 +5326,28 @@
         
         function renderEventsTable() {
             const data = window.filteredEvents || window.allEvents || [];
+            // Ensure the section is visible before rendering
+            const eventsSection = document.getElementById('events');
+            if (!eventsSection) {
+                console.warn('Events section not found, skipping render');
+                return;
+            }
+            
+            // Check if section is visible
+            const sectionDisplay = window.getComputedStyle(eventsSection).display;
+            if (sectionDisplay === 'none') {
+                console.log('Events section is hidden, table will render when section becomes visible');
+                return;
+            }
+            
+            // Ensure the table container is visible before rendering
+            const tableContainer = eventsSection.querySelector('.table-container');
+            if (tableContainer) {
+                tableContainer.style.display = 'block';
+                tableContainer.style.visibility = 'visible';
+                tableContainer.style.minHeight = '400px';
+                tableContainer.style.height = 'auto';
+            }
             renderDynamicTable('eventsTable', data, 'events');
             // Update bulk export button state after rendering
             updateBulkExportButton();
@@ -6399,27 +6694,59 @@
                 const response = await fetch('/api/admin/sources');
                 
                 if (!response.ok) {
-                    throw new Error('Failed to load sources');
+                    const errorText = await response.text();
+                    throw new Error(`Failed to load sources: ${response.status} ${errorText}`);
                 }
                 
-                window.allSources = await response.json();
+                const data = await response.json();
+                
+                // Check if response has error property
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Handle both array and object with sources property
+                window.allSources = Array.isArray(data) ? data : (data.sources || []);
+                window.filteredSources = null; // Reset filters
+                
                 console.log('Sources loaded:', window.allSources.length);
-                console.log('window.allSources is now:', window.allSources);
+                
+                if (window.allSources.length === 0) {
+                    console.warn('No sources found in database');
+                }
                 
                 renderSourcesTable();
                 populateSourceFilters();
+                
+                // Update filter summary
+                const summary = document.getElementById('sourceFilterSummary');
+                if (summary) {
+                    summary.textContent = `Showing all ${window.allSources.length} sources`;
+                }
                 
             } catch (error) {
                 console.error('Error loading sources:', error);
                 const tableBody = document.getElementById('sourcesTable');
                 if (tableBody) {
-                    tableBody.innerHTML = '<tr><td colspan="12" class="loading">Error loading sources</td></tr>';
+                    tableBody.innerHTML = `<tr><td colspan="12" class="loading" style="color: #dc3545;">❌ Error loading sources: ${error.message}</td></tr>`;
                 }
             }
         }
         
         function renderSourcesTable() {
             const data = window.filteredSources || window.allSources || [];
+            // Ensure the section is visible before rendering (same as other tables)
+            const sourcesSection = document.getElementById('sources');
+            if (!sourcesSection) {
+                return;
+            }
+            
+            // Check if section is visible
+            const sectionDisplay = window.getComputedStyle(sourcesSection).display;
+            if (sectionDisplay === 'none') {
+                return;
+            }
+            
             renderDynamicTable('sourcesTable', data, 'sources');
         }
         
@@ -6870,7 +7197,7 @@
             
             let html = `
                 <!-- Event Header with Image -->
-                <div style="display: grid; grid-template-columns: ${event.image_url ? '1fr 300px' : '1fr'}; gap: 20px; margin-bottom: 25px;">
+                <div class="event-details-header" style="display: grid; grid-template-columns: ${event.image_url ? '1fr 300px' : '1fr'}; gap: 20px; margin-bottom: 25px;">
                     <div>
                         <div style="background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; padding: 25px; border-radius: 12px; text-align: center;">
                             <h2 style="margin: 0; font-size: 26px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${event.title || 'Untitled Event'}</h2>
@@ -6903,11 +7230,11 @@
                     ` : ''}
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="event-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📋 Basic Information</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${event.id}</div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📋 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${event.id}</div>
                             ${addField('Type', event.event_type)}
                             ${addField('Price', event.price ? `$${event.price}` : (event.admission_price ? `$${event.admission_price}` : null))}
                             ${addField('Language', event.language)}
@@ -6918,8 +7245,8 @@
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📅 Date & Time</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📅 Date & Time</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Start Date', event.start_date)}
                             ${addField('End Date', event.end_date)}
                             ${addField('Start Time', event.start_time)}
@@ -6933,10 +7260,10 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="event-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📍 Location</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📍 Location</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Start Location', event.start_location)}
                             ${addField('End Location', event.end_location)}
                             ${addField('City', event.city_name)}
@@ -6948,8 +7275,8 @@
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🔗 Sources & Links</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🔗 Sources & Links</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Source', event.source)}
                             ${addField('Source URL', event.source_url, true)}
                             ${addField('Event URL', event.url, true)}
@@ -7095,14 +7422,14 @@
                 if (isTimestamp) {
                     displayValue = formatTimestamp(value);
                 } else if (isLink) {
-                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                    displayValue = `<a href="${value}" target="_blank" style="color: #1976d2; word-break: break-all;">${value}</a>`;
                 }
-                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+                return `<div style="margin-bottom: 6px; font-size: 0.875rem; line-height: 1.4;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
             let html = `
                 <!-- Venue Header -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                <div class="venue-details-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
                     <h2 style="margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${venue.name}</h2>
                     <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
                         ${venue.venue_type ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">${venue.venue_type}</span>` : ''}
@@ -7110,11 +7437,11 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="venue-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🏢 Basic Information</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${venue.id}</div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🏢 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${venue.id}</div>
                             ${addField('Type', venue.venue_type)}
                             ${addField('Description', venue.description)}
                             ${addField('City', venue.city_name)}
@@ -7122,8 +7449,8 @@
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📍 Location & Contact</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📍 Location & Contact</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Address', venue.address)}
                             ${addField('Phone', venue.phone)}
                             ${addField('Email', venue.email)}
@@ -7137,18 +7464,18 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="venue-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🕒 Hours & Pricing</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🕒 Hours & Pricing</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Opening Hours', venue.opening_hours)}
                             ${addField('Admission Fee', venue.admission_fee)}
                         </div>
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📱 Social Media</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📱 Social Media</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Instagram', venue.instagram, true)}
                             ${addField('Twitter', venue.twitter, true)}
                             ${addField('Facebook', venue.facebook, true)}
@@ -7163,7 +7490,7 @@
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
                         <a href="${venue.image_url}" target="_blank" style="color: #2196f3; text-decoration: none;">
                             <img src="${venue.image_url}" alt="Venue Image" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid #e0e0e0;" 
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                 onerror="this.style.display='none'; const fallback = this.parentElement.querySelector('div[style*=\"display: none\"]'); if(fallback) { fallback.style.display='inline-block'; }">
                             <div style="display: none; padding: 10px; background: #f5f5f5; border-radius: 4px; color: #666;">
                                 <a href="${venue.image_url}" target="_blank" style="color: #2196f3;">View Venue Image</a>
                             </div>
@@ -7213,14 +7540,14 @@
                 if (isTimestamp) {
                     displayValue = formatTimestamp(value);
                 } else if (isLink) {
-                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                    displayValue = `<a href="${value}" target="_blank" style="color: #1976d2; word-break: break-all;">${value}</a>`;
                 }
-                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+                return `<div style="margin-bottom: 6px; font-size: 0.875rem; line-height: 1.4;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
             let html = `
                 <!-- City Header -->
-                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                <div class="city-details-header" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
                     <h2 style="margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${city.display_name || city.name}</h2>
                     <div style="margin-top: 8px; font-size: 16px; opacity: 0.9;">
                         ${city.timezone ? `<span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">🌍 ${city.timezone}</span>` : ''}
@@ -7228,11 +7555,11 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="city-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🏙️ Basic Information</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${city.id}</div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🏙️ Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${city.id}</div>
                             ${addField('Name', city.name)}
                             ${addField('Display Name', city.display_name)}
                             ${addField('State/Province', city.state)}
@@ -7241,8 +7568,8 @@
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🌍 Location & Timezone</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🌍 Location & Timezone</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             <div style="margin-bottom: 8px; padding: 8px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196f3;">
                                 <strong>🌍 Timezone:</strong> ${city.timezone || 'Not specified'}
                                 ${city.timezone ? `<br><small style="color: #666;">All events in this city use this timezone</small>` : ''}
@@ -7294,17 +7621,17 @@
                 if (isTimestamp) {
                     displayValue = formatTimestamp(value);
                 } else if (isLink) {
-                    displayValue = `<a href="${value}" target="_blank">${value}</a>`;
+                    displayValue = `<a href="${value}" target="_blank" style="color: #1976d2; word-break: break-all;">${value}</a>`;
                 }
-                return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
+                return `<div style="margin-bottom: 6px; font-size: 0.875rem; line-height: 1.4;"><strong>${label}:</strong> ${displayValue}</div>`;
             };
             
             let html = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="source-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📱 Basic Information</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${source.id}</div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📱 Basic Information</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${source.id}</div>
                             ${addField('Name', source.name)}
                             ${addField('Handle', source.handle)}
                             ${addField('Type', source.source_type)}
@@ -7313,8 +7640,8 @@
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🔗 Links & Contact</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🔗 Links & Contact</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('URL', source.url, true)}
                             ${addField('Email', source.email)}
                             ${addField('Phone', source.phone)}
@@ -7323,10 +7650,10 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="source-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">🎯 Event Information</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🎯 Event Information</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Event Types', source.event_types)}
                             ${addField('Frequency', source.frequency)}
                             ${addField('Language', source.language)}
@@ -7334,9 +7661,9 @@
                     </div>
                     
                     <div>
-                        <h4 style="margin-bottom: 10px; color: #4a5568;">📊 Status & Stats</h4>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 8px;"><strong>Active:</strong> ${source.is_active ? 'Yes' : 'No'}</div>
+                        <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📊 Status & Stats</h4>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>Active:</strong> ${source.is_active ? 'Yes' : 'No'}</div>
                             ${addField('Last Scraped', source.last_scraped_at)}
                             ${addField('Events Count', source.events_count)}
                         </div>
@@ -9172,3 +9499,4 @@
     </script>
 </body>
 </html>
+
