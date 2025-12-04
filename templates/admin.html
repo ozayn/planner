@@ -7116,84 +7116,58 @@
         }
         
         function showVenueDetails(clickEvent, venueId) {
-            // Show the modal immediately - before any processing
+            // Show the modal immediately - first thing, no checks
             const modal = document.getElementById('venueDetailsModal');
+            const contentDiv = document.getElementById('venueDetailsContent');
             modal.style.display = 'block';
+            contentDiv.innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
             
-            // Show loading state
-            document.getElementById('venueDetailsContent').innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
-            
-            // Process everything asynchronously
-            setTimeout(() => {
-                // Prevent if clicking on a link or button
-                if (clickEvent && clickEvent.target) {
-                    const target = clickEvent.target;
-                    const isLink = target.tagName === 'A' || target.closest('a');
-                    const isButton = target.tagName === 'BUTTON' || target.closest('button');
-                    if (isLink || isButton) {
-                        modal.style.display = 'none';
-                        return;
-                    }
-                }
-                
-                // Find the venue data - use strict equality and handle both string and number IDs
-                const venue = window.allVenues.find(v => v.id == venueId || String(v.id) === String(venueId));
+            // Defer all processing - use requestAnimationFrame for smoother experience
+            requestAnimationFrame(() => {
+                // Find the venue data
+                const venue = window.allVenues && window.allVenues.find(v => v.id == venueId || String(v.id) === String(venueId));
                 if (!venue) {
-                    console.error('Venue not found for ID:', venueId, 'Available venues:', window.allVenues?.length);
-                    alert('Venue not found');
+                    console.error('Venue not found for ID:', venueId);
                     modal.style.display = 'none';
                     return;
                 }
                 
-                // Populate the venue details modal
+                // Generate and populate content
                 const content = generateVenueDetailsHTML(venue);
-                document.getElementById('venueDetailsContent').innerHTML = content;
+                contentDiv.innerHTML = content;
                 
-                // Lazy load images only after modal is visible
-                setTimeout(() => {
+                // Lazy load images
+                requestAnimationFrame(() => {
                     const images = modal.querySelectorAll('img[data-src]');
                     images.forEach(img => {
                         img.src = img.getAttribute('data-src');
                         img.removeAttribute('data-src');
                     });
-                }, 100);
-            }, 0);
+                });
+            });
         }
         
         function showCityDetails(clickEvent, cityId) {
-            // Show the modal immediately - before any processing
+            // Show the modal immediately - first thing, no checks
             const modal = document.getElementById('cityDetailsModal');
+            const contentDiv = document.getElementById('cityDetailsContent');
             modal.style.display = 'block';
+            contentDiv.innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
             
-            // Show loading state
-            document.getElementById('cityDetailsContent').innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
-            
-            // Process everything asynchronously
-            setTimeout(() => {
-                // Prevent if clicking on a link or button
-                if (clickEvent && clickEvent.target) {
-                    const target = clickEvent.target;
-                    const isLink = target.tagName === 'A' || target.closest('a');
-                    const isButton = target.tagName === 'BUTTON' || target.closest('button');
-                    if (isLink || isButton) {
-                        modal.style.display = 'none';
-                        return;
-                    }
-                }
-                
-                // Find the city data - use strict equality and handle both string and number IDs
-                const city = window.allCities.find(c => c.id == cityId || String(c.id) === String(cityId));
+            // Defer all processing - use requestAnimationFrame for smoother experience
+            requestAnimationFrame(() => {
+                // Find the city data
+                const city = window.allCities && window.allCities.find(c => c.id == cityId || String(c.id) === String(cityId));
                 if (!city) {
-                    console.error('City not found for ID:', cityId, 'Available cities:', window.allCities?.length);
-                    alert('City not found');
+                    console.error('City not found for ID:', cityId);
                     modal.style.display = 'none';
                     return;
                 }
                 
-                // Populate the city details modal
+                // Generate and populate content
                 const content = generateCityDetailsHTML(city);
-                document.getElementById('cityDetailsContent').innerHTML = content;
-            }, 0);
+                contentDiv.innerHTML = content;
+            });
         }
         
         function showSourceDetails(clickEvent, sourceId) {
