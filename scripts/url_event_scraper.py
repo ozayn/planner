@@ -36,6 +36,218 @@ def extract_event_data_from_url(url):
     Returns:
         dict with extracted event data
     """
+    # Check if this is an OCMA event page - use venue scraper's OCMA extraction logic
+    if 'ocma.art' in url.lower() and '/calendar/' in url.lower():
+        try:
+            logger.info(f"🎯 Detected OCMA event page - using venue scraper extraction")
+            from scripts.venue_event_scraper import VenueEventScraper
+            from app import Venue, City, app
+            
+            # Find OCMA venue
+            with app.app_context():
+                from sqlalchemy import or_
+                ocma = Venue.query.filter(
+                    or_(
+                        db.func.lower(Venue.name).like('%orange county museum%'),
+                        db.func.lower(Venue.name).like('%ocma%')
+                    )
+                ).first()
+                
+                if not ocma:
+                    logger.warning(f"⚠️ OCMA venue not found in database")
+                else:
+                    logger.info(f"✅ Found OCMA venue: {ocma.name} (ID: {ocma.id})")
+                    scraper = VenueEventScraper()
+                    
+                    # Fetch the page using venue scraper's session
+                    logger.info(f"📡 Fetching OCMA event page: {url}")
+                    try:
+                        response = scraper.session.get(url, timeout=10)
+                        logger.info(f"📡 Response status: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            from bs4 import BeautifulSoup
+                            soup = BeautifulSoup(response.content, 'html.parser')
+                            
+                            # Extract using the same logic as _extract_ocma_calendar_events
+                            # but for a single event page
+                            # OCMA uses a specific div structure: #newclandarsinglecontent
+                            main_content = soup.find('div', id='newclandarsinglecontent')
+                            if not main_content:
+                                main_content = soup.find('article') or soup.find('main') or soup
+                            
+                            logger.info(f"🔍 Looking for title and date/time in page content")
+                            
+                            # Extract title - look for h1 in the main content area
+                            title_elem = main_content.find('h1') if main_content else None
+                            if not title_elem:
+                                # Fallback: search entire soup
+                                title_elem = soup.find('h1')
+                            title = title_elem.get_text(strip=True) if title_elem else None
+                            if title:
+                                title = _clean_title(title)
+                            logger.info(f"📝 Found title: {title}")
+                            
+                            # Extract date/time from h2 (OCMA format: "December 5, 2025, 5:00–6:00 PM")
+                            # Look for h2 elements that contain date/time patterns
+                            # First check in main_content, then check all h2s if needed
+                            h2_elements = main_content.find_all('h2') if main_content else []
+                            if not h2_elements:
+                                h2_elements = soup.find_all('h2')
+                            logger.info(f"🔍 Found {len(h2_elements)} h2 elements")
+                            
+                            start_date = None
+                            start_time = None
+                            end_time = None
+                            
+                            for h2 in h2_elements:
+                                h2_text = h2.get_text(strip=True)
+                                logger.info(f"📝 Checking h2: {h2_text[:100]}")
+                                
+                                from datetime import datetime, time as dt_time
+                                
+                                # Pattern 1: "December 5, 2025, 5:00–6:00 PM" (same AM/PM for both times)
+                                date_time_pattern1 = re.compile(
+                                    r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+                                    re.IGNORECASE
+                                )
+                                
+                                # Pattern 2: "December 10, 2025, 11:00 AM–1:00 PM" (different AM/PM for each time)
+                                date_time_pattern2 = re.compile(
+                                    r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+                                    re.IGNORECASE
+                                )
+                                
+                                match = date_time_pattern2.search(h2_text) or date_time_pattern1.search(h2_text)
+                                if match:
+                                    logger.info(f"✅ Found date/time pattern match!")
+                                    date_str = match.group(1).strip()
+                                    logger.info(f"📅 Date string: {date_str}")
+                                    
+                                    try:
+                                        start_date = datetime.strptime(date_str, "%B %d, %Y").date()
+                                        logger.info(f"✅ Parsed date: {start_date}")
+                                    except ValueError as e1:
+                                        try:
+                                            start_date = datetime.strptime(date_str, "%B %d %Y").date()
+                                            logger.info(f"✅ Parsed date (no comma): {start_date}")
+                                        except ValueError as e2:
+                                            logger.warning(f"⚠️ Failed to parse date '{date_str}': {e1}, {e2}")
+                                            continue
+                                    
+                                    # Parse times - check which pattern matched
+                                    try:
+                                        if date_time_pattern2.search(h2_text):
+                                            # Pattern 2: different AM/PM for each time
+                                            start_hour = int(match.group(2))
+                                            start_min = int(match.group(3))
+                                            start_am_pm = match.group(4).lower()
+                                            end_hour = int(match.group(5))
+                                            end_min = int(match.group(6))
+                                            end_am_pm = match.group(7).lower()
+                                            
+                                            logger.info(f"⏰ Raw times: {start_hour}:{start_min} {start_am_pm} - {end_hour}:{end_min} {end_am_pm}")
+                                            
+                                            # Convert start time to 24-hour
+                                            if start_am_pm == 'p' and start_hour != 12:
+                                                start_hour += 12
+                                            elif start_am_pm == 'a' and start_hour == 12:
+                                                start_hour = 0
+                                            
+                                            # Convert end time to 24-hour
+                                            if end_am_pm == 'p' and end_hour != 12:
+                                                end_hour += 12
+                                            elif end_am_pm == 'a' and end_hour == 12:
+                                                end_hour = 0
+                                        else:
+                                            # Pattern 1: same AM/PM for both times
+                                            start_hour = int(match.group(2))
+                                            start_min = int(match.group(3))
+                                            end_hour = int(match.group(4))
+                                            end_min = int(match.group(5))
+                                            am_pm = match.group(6).lower()
+                                            
+                                            logger.info(f"⏰ Raw times: {start_hour}:{start_min} - {end_hour}:{end_min} {am_pm}")
+                                            
+                                            # Convert to 24-hour
+                                            if am_pm == 'p' and start_hour != 12:
+                                                start_hour += 12
+                                            elif am_pm == 'a' and start_hour == 12:
+                                                start_hour = 0
+                                            
+                                            if am_pm == 'p' and end_hour != 12:
+                                                end_hour += 12
+                                            elif am_pm == 'a' and end_hour == 12:
+                                                end_hour = 0
+                                        
+                                        start_time = dt_time(start_hour, start_min)
+                                        end_time = dt_time(end_hour, end_min)
+                                        logger.info(f"✅ Parsed times: {start_time} - {end_time}")
+                                    except (ValueError, IndexError) as e:
+                                        logger.warning(f"⚠️ Failed to parse times: {e}")
+                                    
+                                    break
+                                else:
+                                    logger.debug(f"⚠️ No date/time pattern match in h2: {h2_text[:100]}")
+                            
+                            # Extract description
+                            desc_elem = main_content.find('p') if main_content else None
+                            description = ''
+                            if desc_elem:
+                                all_paragraphs = main_content.find_all('p')
+                                if len(all_paragraphs) > 1:
+                                    description = ' '.join([p.get_text(strip=True) for p in all_paragraphs if p.get_text(strip=True)])
+                                else:
+                                    description = desc_elem.get_text(strip=True)
+                            
+                            logger.info(f"📝 Description length: {len(description)} chars")
+                            
+                            # Extract image
+                            img_elem = main_content.find('img') if main_content else None
+                            image_url = None
+                            if img_elem:
+                                img_src = img_elem.get('src') or img_elem.get('data-src')
+                                if img_src:
+                                    from urllib.parse import urljoin
+                                    image_url = urljoin(url, img_src)
+                            
+                            if title:
+                                if not start_date:
+                                    logger.warning(f"⚠️ OCMA event '{title}' - date extraction failed, cannot create event without date")
+                                    return None
+                                
+                                # For single-day events, end_date should be the same as start_date
+                                end_date = start_date
+                                
+                                logger.info(f"✅ Successfully extracted OCMA event: '{title}' on {start_date} at {start_time}-{end_time}")
+                                return {
+                                    'title': title,
+                                    'description': description,
+                                    'start_date': start_date.isoformat() if start_date else None,
+                                    'end_date': end_date.isoformat() if end_date else None,
+                                    'start_time': start_time.isoformat() if start_time else None,
+                                    'end_time': end_time.isoformat() if end_time else None,
+                                    'location': ocma.name,
+                                    'image_url': image_url,
+                                    'event_type': 'talk' if 'talk' in title.lower() else 'event',
+                                    'schedule_info': None,
+                                    'days_of_week': []
+                                }
+                            else:
+                                logger.warning(f"⚠️ OCMA event - title extraction failed")
+                                return None
+                        else:
+                            logger.warning(f"⚠️ Failed to fetch page: HTTP {response.status_code}")
+                    except Exception as fetch_error:
+                        logger.error(f"❌ Error fetching OCMA page: {fetch_error}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+        except Exception as e:
+            logger.error(f"❌ OCMA specialized extraction failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Fall through to general scraper
+    
     # Check if this is a Finding Awe event - use dedicated scraper
     if 'finding-awe' in url.lower():
         try:
@@ -435,6 +647,93 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
             days_of_week = []
             event_type = event_data.get('event_type', 'exhibition')
         
+        # Check if this is an OCMA event - use extract_event_data_from_url which has OCMA-specific logic
+        if not event_data and 'ocma.art' in url.lower() and '/calendar/' in url.lower():
+            try:
+                logger.info(f"🎯 Detected OCMA event in scrape_event_from_url - using extract_event_data_from_url")
+                event_data = extract_event_data_from_url(url)
+                if event_data and event_data.get('title'):
+                    logger.info(f"✅ Successfully extracted OCMA event data")
+                    # Process OCMA event_data to extract dates and times
+                    title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
+                    description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+                    image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
+                    meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
+                    
+                    # Parse dates from event_data
+                    start_date = None
+                    end_date = None
+                    if override_data and override_data.get('start_date'):
+                        try:
+                            start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    if not start_date and event_data.get('start_date'):
+                        try:
+                            if isinstance(event_data['start_date'], str):
+                                start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                            else:
+                                start_date = event_data['start_date']
+                        except:
+                            pass
+                    
+                    if override_data and override_data.get('end_date'):
+                        try:
+                            end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    if not end_date and event_data.get('end_date'):
+                        try:
+                            if isinstance(event_data['end_date'], str):
+                                end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+                            else:
+                                end_date = event_data['end_date']
+                        except:
+                            pass
+                    
+                    # Parse times from event_data
+                    from datetime import time as dt_time
+                    start_time = None
+                    end_time = None
+                    if override_data and override_data.get('start_time'):
+                        try:
+                            parts = override_data['start_time'].split(':')
+                            start_time = dt_time(int(parts[0]), int(parts[1]))
+                        except:
+                            pass
+                    if not start_time and event_data.get('start_time'):
+                        try:
+                            if isinstance(event_data['start_time'], str):
+                                parts = event_data['start_time'].split(':')
+                                start_time = dt_time(int(parts[0]), int(parts[1]))
+                            else:
+                                start_time = event_data['start_time']
+                        except:
+                            pass
+                    
+                    if override_data and override_data.get('end_time'):
+                        try:
+                            parts = override_data['end_time'].split(':')
+                            end_time = dt_time(int(parts[0]), int(parts[1]))
+                        except:
+                            pass
+                    if not end_time and event_data.get('end_time'):
+                        try:
+                            if isinstance(event_data['end_time'], str):
+                                parts = event_data['end_time'].split(':')
+                                end_time = dt_time(int(parts[0]), int(parts[1]))
+                            else:
+                                end_time = event_data['end_time']
+                        except:
+                            pass
+                    
+                    schedule_info = None
+                    days_of_week = []
+                    event_type = event_data.get('event_type', 'event')
+            except Exception as e:
+                logger.warning(f"OCMA extraction failed in scrape_event_from_url: {e}")
+                event_data = None
+        
         # Use override data if provided, otherwise scrape
         if override_data and any(override_data.values()) and not event_data:
             title = override_data.get('title')
@@ -528,6 +827,9 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         # For exhibitions, use the scraped start_date if available, otherwise use period_start
         if event_data and '/exhibitions/' in url.lower() and 'start_date' in locals() and start_date:
             event_dates = [start_date]  # Use the actual exhibition start date
+        # For OCMA events or when start_date is provided in override_data, use the scraped start_date
+        elif ('ocma.art' in url.lower() and '/calendar/' in url.lower() and 'start_date' in locals() and start_date) or ('start_date' in locals() and start_date):
+            event_dates = [start_date]  # Use the actual event start date
         elif days_of_week:
             # Recurring event - create events for matching days in the period
             current_date = period_start
@@ -556,25 +858,51 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 # Check event_type safely (it might not be set yet)
                 event_type_lower = (event_type or '').lower()
                 if url and ('exhibition' in event_type_lower or 'tour' in event_type_lower or '/exhibitions/' in url.lower() or '/calendar/' in url.lower()):
-                    # Normalize URL for comparison (remove trailing slash)
+                    # Normalize URL for comparison (remove trailing slash, normalize protocol)
                     normalized_url = url.rstrip('/')
-                    # Try exact URL match or URL with trailing slash
+                    # Also try without protocol for more flexible matching
+                    url_without_protocol = normalized_url.replace('http://', '').replace('https://', '')
+                    
+                    # For URL-based events (exhibitions, calendar events), match by URL first
+                    # Try exact URL match or URL with trailing slash, with or without protocol
                     existing = Event.query.filter(
-                        (Event.url == url) | (Event.url == normalized_url) | 
-                        (Event.url.like(f"{normalized_url}%")) | (Event.url.like(f"{url}%"))
+                        (Event.url == url) | 
+                        (Event.url == normalized_url) | 
+                        (Event.url == url.rstrip('/')) |
+                        (Event.url.like(f"{normalized_url}%")) | 
+                        (Event.url.like(f"{url}%")) |
+                        (Event.url.like(f"%{url_without_protocol}%"))
                     ).filter_by(city_id=city.id).first()
                     
-                    # If not found by URL, try by title + date + venue
+                    # If not found by URL in same city, try without city filter (in case city was wrong)
+                    if not existing:
+                        existing = Event.query.filter(
+                            (Event.url == url) | 
+                            (Event.url == normalized_url) | 
+                            (Event.url == url.rstrip('/')) |
+                            (Event.url.like(f"{normalized_url}%")) | 
+                            (Event.url.like(f"{url}%")) |
+                            (Event.url.like(f"%{url_without_protocol}%"))
+                        ).first()
+                    
+                    # If still not found by URL, try by title + venue (without date requirement for URL-based events)
                     if not existing and title:
                         filter_dict = {
-                            'start_date': event_date,
                             'city_id': city.id
                         }
                         if venue:
                             filter_dict['venue_id'] = venue.id
+                        # Match by title and venue, regardless of date (since URL-based events are unique by URL)
                         existing = Event.query.filter_by(**filter_dict).filter(
                             db.func.lower(Event.title) == db.func.lower(title)
                         ).first()
+                        
+                        # If still not found, try by title + date + venue as fallback
+                        if not existing:
+                            filter_dict['start_date'] = event_date
+                            existing = Event.query.filter_by(**filter_dict).filter(
+                                db.func.lower(Event.title) == db.func.lower(title)
+                            ).first()
                 else:
                     # For other events, use standard matching
                     filter_dict = {
@@ -614,11 +942,15 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     if event_date and (not existing.start_date or event_date != existing.start_date):
                         existing.start_date = event_date
                         updated = True
-                    # For exhibitions, update end_date if available
+                    # Update end_date: use extracted end_date if available, otherwise use start_date for single-day events
+                    event_end_date = None
                     if 'end_date' in locals() and end_date:
-                        if not existing.end_date or end_date != existing.end_date:
-                            existing.end_date = end_date
-                            updated = True
+                        event_end_date = end_date
+                    elif event_date:
+                        event_end_date = event_date  # For single-day events, end_date = start_date
+                    if event_end_date and (not existing.end_date or event_end_date != existing.end_date):
+                        existing.end_date = event_end_date
+                        updated = True
                     # Update times if provided (for tours)
                     if start_time and (not existing.start_time or start_time != existing.start_time):
                         existing.start_time = start_time
@@ -666,7 +998,8 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 
                 # Create new event
                 # For exhibitions, use the scraped end_date if available
-                event_end_date = event_date
+                # For single-day events, end_date should be the same as start_date
+                event_end_date = event_date  # Default to same as start_date for single-day events
                 if 'end_date' in locals() and end_date:
                     event_end_date = end_date
                 elif event_date:
@@ -719,6 +1052,50 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         raise
 
 
+def _clean_title(title):
+    """Clean and normalize title text to fix common issues"""
+    if not title:
+        return title
+    
+    import re
+    
+    # Remove trailing commas and whitespace
+    title = re.sub(r',\s*$', '', title)
+    title = title.strip()
+    
+    # Remove dates from title (e.g., "December 10, 2025," or "Dec 10, 2025")
+    # Pattern: Month Day, Year or Month Day Year
+    date_patterns = [
+        r'\s*[A-Z][a-z]+\s+\d{1,2},?\s+\d{4},?\s*$',  # "December 10, 2025," or "December 10, 2025"
+        r'\s*[A-Z][a-z]{2,3}\.?\s+\d{1,2},?\s+\d{4},?\s*$',  # "Dec. 10, 2025," or "Dec 10, 2025"
+        r'\s*\d{1,2}/\d{1,2}/\d{4},?\s*$',  # "12/10/2025,"
+        r'\s*\d{1,2}-\d{1,2}-\d{4},?\s*$',  # "12-10-2025,"
+    ]
+    for pattern in date_patterns:
+        title = re.sub(pattern, '', title, flags=re.IGNORECASE)
+    
+    # Fix missing spaces after apostrophes (e.g., "Bellows'sLove" -> "Bellows's Love")
+    title = re.sub(r"([a-z]'s)([A-Z])", r"\1 \2", title)
+    
+    # Fix missing spaces after colons (e.g., "Title:Subtitle" -> "Title: Subtitle")
+    title = re.sub(r"([^:]):([A-Za-z])", r"\1: \2", title)
+    
+    # Fix missing spaces after periods (e.g., "Mr.John" -> "Mr. John")
+    title = re.sub(r"([a-z])\.([A-Z])", r"\1. \2", title)
+    
+    # Fix missing spaces before capital letters after lowercase (e.g., "wordWord" -> "word Word")
+    # But be careful not to break acronyms or proper nouns
+    title = re.sub(r"([a-z])([A-Z][a-z])", r"\1 \2", title)
+    
+    # Normalize multiple spaces to single space
+    title = re.sub(r'\s+', ' ', title)
+    
+    # Strip leading/trailing whitespace
+    title = title.strip()
+    
+    return title
+
+
 def _extract_title(soup, url):
     """Extract event title from page"""
     # Try page title
@@ -728,13 +1105,15 @@ def _extract_title(soup, url):
         # Clean up title
         if '|' in title:
             title = title.split('|')[0].strip()
+        title = _clean_title(title)
         if title and title != 'Untitled':
             return title
     
     # Try h1
     h1 = soup.find('h1')
     if h1:
-        return h1.get_text(strip=True)
+        title = h1.get_text(strip=True)
+        return _clean_title(title)
     
     # Try URL
     url_parts = url.split('/')
@@ -744,7 +1123,7 @@ def _extract_title(soup, url):
             if part and part not in ['', 'events', 'tours']:
                 # Convert URL slug to title
                 title = part.replace('-', ' ').replace('_', ' ').title()
-                return title
+                return _clean_title(title)
     
     return 'Untitled Event'
 

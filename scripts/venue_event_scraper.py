@@ -1108,6 +1108,21 @@ class VenueEventScraper:
         
         import re
         
+        # Remove trailing commas and whitespace
+        title = re.sub(r',\s*$', '', title)
+        title = title.strip()
+        
+        # Remove dates from title (e.g., "December 10, 2025," or "Dec 10, 2025")
+        # Pattern: Month Day, Year or Month Day Year
+        date_patterns = [
+            r'\s*[A-Z][a-z]+\s+\d{1,2},?\s+\d{4},?\s*$',  # "December 10, 2025," or "December 10, 2025"
+            r'\s*[A-Z][a-z]{2,3}\.?\s+\d{1,2},?\s+\d{4},?\s*$',  # "Dec. 10, 2025," or "Dec 10, 2025"
+            r'\s*\d{1,2}/\d{1,2}/\d{4},?\s*$',  # "12/10/2025,"
+            r'\s*\d{1,2}-\d{1,2}-\d{4},?\s*$',  # "12-10-2025,"
+        ]
+        for pattern in date_patterns:
+            title = re.sub(pattern, '', title, flags=re.IGNORECASE)
+        
         # Fix missing spaces after apostrophes (e.g., "Bellows'sLove" -> "Bellows's Love")
         title = re.sub(r"([a-z]'s)([A-Z])", r"\1 \2", title)
         
@@ -2744,12 +2759,14 @@ class VenueEventScraper:
                     try:
                         # Try format: "December 3, 2025"
                         start_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                    except:
+                        logger.debug(f"   📅 Parsed date from calendar listing: {start_date}")
+                    except ValueError as e1:
                         try:
                             # Try format: "December 3 2025" (no comma)
                             start_date = datetime.strptime(date_str, "%B %d %Y").date()
-                        except:
-                            pass
+                            logger.debug(f"   📅 Parsed date from calendar listing (no comma): {start_date}")
+                        except ValueError as e2:
+                            logger.warning(f"   ⚠️ Failed to parse date_str '{date_str}' from calendar listing: {e1}, {e2}")
                 
                 # Only include if in time range
                 if start_date:
@@ -2784,8 +2801,9 @@ class VenueEventScraper:
                                 hour = 0
                             from datetime import time as dt_time
                             start_time = dt_time(hour, minute)
-                    except:
-                        pass
+                            logger.debug(f"   ⏰ Parsed start_time from calendar listing: {start_time}")
+                    except (ValueError, IndexError, AttributeError) as e:
+                        logger.warning(f"   ⚠️ Failed to parse start_time_str '{start_time_str}' from calendar listing: {e}")
                 
                 if end_time_str:
                     try:
@@ -2800,8 +2818,9 @@ class VenueEventScraper:
                                 hour = 0
                             from datetime import time as dt_time
                             end_time = dt_time(hour, minute)
-                    except:
-                        pass
+                            logger.debug(f"   ⏰ Parsed end_time from calendar listing: {end_time}")
+                    except (ValueError, IndexError, AttributeError) as e:
+                        logger.warning(f"   ⚠️ Failed to parse end_time_str '{end_time_str}' from calendar listing: {e}")
                 
                 # Determine event type from event_type_str and title
                 determined_type = 'event'
@@ -2948,43 +2967,73 @@ class VenueEventScraper:
                             
                             if match:
                                     # Re-parse dates and times - CRITICAL: Update the actual date/time objects, not just strings
+                                    # Store original values to preserve them if parsing fails
+                                    original_start_date = start_date
+                                    original_start_time = start_time
+                                    original_end_time = end_time
+                                    
                                     from datetime import datetime, time as dt_time
+                                    
+                                    # Parse date - preserve original if parsing fails
+                                    new_start_date = None
                                     try:
-                                        start_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                                        logger.debug(f"   📅 Updated start_date from event page: {start_date}")
-                                    except:
+                                        new_start_date = datetime.strptime(date_str, "%B %d, %Y").date()
+                                        logger.debug(f"   📅 Parsed start_date from event page: {new_start_date}")
+                                    except ValueError as e1:
                                         try:
-                                            start_date = datetime.strptime(date_str, "%B %d %Y").date()
-                                            logger.debug(f"   📅 Updated start_date from event page: {start_date}")
-                                        except:
-                                            logger.warning(f"   ⚠️ Failed to parse date_str: {date_str}")
-                                            pass
-                                    # Parse start time
+                                            new_start_date = datetime.strptime(date_str, "%B %d %Y").date()
+                                            logger.debug(f"   📅 Parsed start_date from event page (no comma): {new_start_date}")
+                                        except ValueError as e2:
+                                            logger.warning(f"   ⚠️ Failed to parse date_str '{date_str}': {e1}, {e2}")
+                                            # Keep original date if parsing fails
+                                            new_start_date = original_start_date
+                                    
+                                    # Only update if we successfully parsed a new date
+                                    if new_start_date:
+                                        start_date = new_start_date
+                                    
+                                    # Parse start time - preserve original if parsing fails
                                     if start_time_str:
                                         time_match = re.match(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', start_time_str.lower())
                                         if time_match:
-                                            hour = int(time_match.group(1))
-                                            minute = int(time_match.group(2))
-                                            am_pm = time_match.group(3)
-                                            if am_pm == 'p' and hour != 12:
-                                                hour += 12
-                                            elif am_pm == 'a' and hour == 12:
-                                                hour = 0
-                                            start_time = dt_time(hour, minute)
-                                            logger.info(f"   ⏰ Updated start_time from event page: {start_time}")
-                                    # Parse end time
+                                            try:
+                                                hour = int(time_match.group(1))
+                                                minute = int(time_match.group(2))
+                                                am_pm = time_match.group(3)
+                                                if am_pm == 'p' and hour != 12:
+                                                    hour += 12
+                                                elif am_pm == 'a' and hour == 12:
+                                                    hour = 0
+                                                new_start_time = dt_time(hour, minute)
+                                                start_time = new_start_time
+                                                logger.info(f"   ⏰ Updated start_time from event page: {start_time}")
+                                            except (ValueError, IndexError) as e:
+                                                logger.warning(f"   ⚠️ Failed to parse start_time_str '{start_time_str}': {e}")
+                                                # Keep original time if parsing fails
+                                                if not start_time:
+                                                    start_time = original_start_time
+                                    
+                                    # Parse end time - preserve original if parsing fails
                                     if end_time_str:
                                         time_match = re.match(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', end_time_str.lower())
                                         if time_match:
-                                            hour = int(time_match.group(1))
-                                            minute = int(time_match.group(2))
-                                            am_pm = time_match.group(3)
-                                            if am_pm == 'p' and hour != 12:
-                                                hour += 12
-                                            elif am_pm == 'a' and hour == 12:
-                                                hour = 0
-                                            end_time = dt_time(hour, minute)
-                                            logger.info(f"   ⏰ Updated end_time from event page: {end_time}")
+                                            try:
+                                                hour = int(time_match.group(1))
+                                                minute = int(time_match.group(2))
+                                                am_pm = time_match.group(3)
+                                                if am_pm == 'p' and hour != 12:
+                                                    hour += 12
+                                                elif am_pm == 'a' and hour == 12:
+                                                    hour = 0
+                                                new_end_time = dt_time(hour, minute)
+                                                end_time = new_end_time
+                                                logger.info(f"   ⏰ Updated end_time from event page: {end_time}")
+                                            except (ValueError, IndexError) as e:
+                                                logger.warning(f"   ⚠️ Failed to parse end_time_str '{end_time_str}': {e}")
+                                                # Keep original time if parsing fails
+                                                if not end_time:
+                                                    end_time = original_end_time
+                                    
                                     if start_time or end_time:
                                         logger.info(f"   ✅ Updated times from event page - Start: {start_time}, End: {end_time}")
                                     break
@@ -2999,46 +3048,62 @@ class VenueEventScraper:
                                     r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
                                     re.IGNORECASE
                                 )
+                                
+                                # Store original values to preserve them if parsing fails
+                                original_start_date = start_date
+                                original_start_time = start_time
+                                
                                 for elem in date_time_elements:
                                     elem_text = elem.get_text(strip=True)
                                     match = single_time_pattern.search(elem_text)
-                                if match:
-                                    # Extract date and time
-                                    date_str_check = match.group(1).strip()
-                                    time_str = f"{match.group(2)}:{match.group(3)} {match.group(4)}.m."
-                                    
-                                    # Update date if not set or different - CRITICAL: Update the actual date object
-                                    if not date_str or date_str_check != date_str:
-                                        date_str = date_str_check
-                                        from datetime import datetime
-                                        try:
-                                            start_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                                            logger.debug(f"   📅 Updated start_date from event page (single time): {start_date}")
-                                        except:
+                                    if match:
+                                        # Extract date and time
+                                        date_str_check = match.group(1).strip()
+                                        time_str = f"{match.group(2)}:{match.group(3)} {match.group(4)}.m."
+                                        
+                                        # Update date if not set or different - CRITICAL: Update the actual date object
+                                        if not date_str or date_str_check != date_str:
+                                            date_str = date_str_check
+                                            from datetime import datetime
+                                            new_start_date = None
                                             try:
-                                                start_date = datetime.strptime(date_str, "%B %d %Y").date()
-                                                logger.debug(f"   📅 Updated start_date from event page (single time): {start_date}")
-                                            except:
-                                                logger.warning(f"   ⚠️ Failed to parse date_str: {date_str}")
-                                                pass
-                                    
-                                    # Always update start time from event page (more accurate than calendar listing)
-                                    # CRITICAL: Update the actual time object
-                                    time_match = re.match(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', time_str.lower())
-                                    if time_match:
-                                        hour = int(time_match.group(1))
-                                        minute = int(time_match.group(2))
-                                        am_pm = time_match.group(3)
-                                        if am_pm == 'p' and hour != 12:
-                                            hour += 12
-                                        elif am_pm == 'a' and hour == 12:
-                                            hour = 0
-                                        from datetime import time as dt_time
-                                        new_start_time = dt_time(hour, minute)
-                                        if not start_time or start_time != new_start_time:
-                                            start_time = new_start_time
-                                            logger.info(f"   ⏰ Updated start_time from event page (single time): {start_time}")
-                                    break
+                                                new_start_date = datetime.strptime(date_str, "%B %d, %Y").date()
+                                                logger.debug(f"   📅 Updated start_date from event page (single time): {new_start_date}")
+                                            except ValueError as e1:
+                                                try:
+                                                    new_start_date = datetime.strptime(date_str, "%B %d %Y").date()
+                                                    logger.debug(f"   📅 Updated start_date from event page (single time, no comma): {new_start_date}")
+                                                except ValueError as e2:
+                                                    logger.warning(f"   ⚠️ Failed to parse date_str '{date_str}': {e1}, {e2}")
+                                                    # Keep original date if parsing fails
+                                                    new_start_date = original_start_date
+                                            
+                                            if new_start_date:
+                                                start_date = new_start_date
+                                        
+                                        # Always update start time from event page (more accurate than calendar listing)
+                                        # CRITICAL: Update the actual time object
+                                        time_match = re.match(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', time_str.lower())
+                                        if time_match:
+                                            try:
+                                                hour = int(time_match.group(1))
+                                                minute = int(time_match.group(2))
+                                                am_pm = time_match.group(3)
+                                                if am_pm == 'p' and hour != 12:
+                                                    hour += 12
+                                                elif am_pm == 'a' and hour == 12:
+                                                    hour = 0
+                                                from datetime import time as dt_time
+                                                new_start_time = dt_time(hour, minute)
+                                                if not start_time or start_time != new_start_time:
+                                                    start_time = new_start_time
+                                                    logger.info(f"   ⏰ Updated start_time from event page (single time): {start_time}")
+                                            except (ValueError, IndexError) as e:
+                                                logger.warning(f"   ⚠️ Failed to parse time_str '{time_str}': {e}")
+                                                # Keep original time if parsing fails
+                                                if not start_time:
+                                                    start_time = original_start_time
+                                        break  # Found a match, exit loop
                             
                             # Extract description - get all text content from main area
                             # Always fetch from event page (more complete than calendar listing)
@@ -3183,8 +3248,14 @@ class VenueEventScraper:
                 if meeting_location:
                     start_location = f"{venue.name} - {meeting_location}"
                 
+                # Validate required fields before adding to events list
+                if not start_date:
+                    logger.warning(f"   ⚠️ Skipping event '{title}' - missing start_date")
+                    continue
+                
                 # Log what we're about to save
                 logger.info(f"   📦 Saving event: '{title}'")
+                logger.info(f"      - Start date: {start_date.isoformat() if start_date else 'None'}")
                 logger.info(f"      - Description: {len(description)} chars" + (f" ({description[:50]}...)" if description else " (empty)"))
                 logger.info(f"      - Start time: {start_time.isoformat() if start_time else 'None'}")
                 logger.info(f"      - End time: {end_time.isoformat() if end_time else 'None'}")
