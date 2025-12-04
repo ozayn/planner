@@ -4064,15 +4064,11 @@
                 if (tableType === 'events') {
                     rowClickable = 'onclick="showEventDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'venues') {
-                    rowClickable = 'onclick="event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + ', event); return false;" style="cursor: pointer;"';
+                    rowClickable = 'onclick="if(event.target.tagName !== \'A\' && event.target.tagName !== \'BUTTON\') { event.preventDefault(); event.stopPropagation(); showVenueDetails(' + item.id + '); return false; }" style="cursor: pointer;"';
                 } else if (tableType === 'cities') {
                     rowClickable = 'onclick="showCityDetails(' + item.id + ')" style="cursor: pointer;"';
                 } else if (tableType === 'sources') {
                     rowClickable = 'onclick="showSourceDetails(' + item.id + ')" style="cursor: pointer;"';
-                }
-                // For venues, wrap onclick to prevent default and stop propagation
-                if (tableType === 'venues' && rowClickable) {
-                    rowClickable = rowClickable.replace('onclick="showVenueDetails', 'onclick="event.preventDefault(); event.stopPropagation(); showVenueDetails');
                 }
                 let row = `<tr id="${tableType}-row-${item.id}" ${rowClickable}>`;
                 
@@ -4330,9 +4326,9 @@
                     // Check if it's a photo reference (long string without http)
                     if (value && !value.startsWith('http') && value.length > 50) {
                         // It's likely a Google Maps photo reference - use the image API endpoint
-                        return `<a href="/api/image/${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">View</a>`;
+                        return `<a href="/api/image/${value}" target="_blank" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, '_blank'); return false;" style="color: #1976d2; text-decoration: none;">View</a>`;
                     }
-                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">View</a>`;
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, '_blank'); return false;" style="color: #1976d2; text-decoration: none;">View</a>`;
                 
                 case 'handle':
                     if (value.startsWith('@') && value.includes('instagram')) {
