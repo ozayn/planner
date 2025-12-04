@@ -7079,39 +7079,24 @@
         
         // Image Upload Functions
         function showEventDetails(clickEvent, eventId) {
-            // Prevent if clicking on a link or button
-            if (clickEvent && clickEvent.target) {
-                const target = clickEvent.target;
-                const isLink = target.tagName === 'A' || target.closest('a');
-                const isButton = target.tagName === 'BUTTON' || target.closest('button');
-                if (isLink || isButton) {
+            // Show the modal immediately - first thing, no checks
+            const modal = document.getElementById('eventDetailsModal');
+            const contentDiv = document.getElementById('eventDetailsContent');
+            modal.style.display = 'block';
+            contentDiv.innerHTML = '<div style="padding: 20px; text-align: center;">Loading...</div>';
+            
+            // Defer all processing - use requestAnimationFrame for smoother experience
+            requestAnimationFrame(() => {
+                // Find the event data
+                const event = window.allEvents && window.allEvents.find(e => e.id == eventId);
+                if (!event) {
+                    modal.style.display = 'none';
                     return;
                 }
-            }
-            
-            // Show the modal immediately for instant feedback
-            const modal = document.getElementById('eventDetailsModal');
-            modal.style.display = 'block';
-            
-            // Find the event data
-            const event = window.allEvents.find(e => e.id == eventId);
-            if (!event) {
-                alert('Event not found');
-                modal.style.display = 'none';
-                return;
-            }
-            
-            // Debug: Log event image_url
-            console.log('Event details:', {
-                title: event.title,
-                has_image_url: !!event.image_url,
-                image_url: event.image_url
-            });
-            
-            // Populate the event details modal asynchronously to avoid blocking
-            requestAnimationFrame(() => {
+                
+                // Generate and populate content
                 const content = generateEventDetailsHTML(event);
-                document.getElementById('eventDetailsContent').innerHTML = content;
+                contentDiv.innerHTML = content;
             });
         }
         
