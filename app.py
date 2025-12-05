@@ -6053,16 +6053,30 @@ def get_calendar_location(event_data):
         return VENUE_ADDRESSES['WEBSTERS']
     
     # General venue handling - use XML tags for iCal format
+    # If no venue address, use start/end location instead
+    end_location = event_data.get('end_location')
+    has_end_location = end_location and isinstance(end_location, str) and end_location.strip()
+    has_start_location = start_location and isinstance(start_location, str) and start_location.strip()
+    
     if has_venue_name and has_venue_address:
         return f"<location>{venue_name.strip()}</location><address>{venue_address.strip()}</address>"
     elif has_venue_address:
         return f"<address>{venue_address.strip()}</address>"
     elif has_venue_name:
+        # No venue address - use start/end location if available
         location = f"<location>{venue_name.strip()}</location>"
-        if city_name and isinstance(city_name, str) and city_name.strip():
+        if has_start_location:
+            if has_end_location and end_location.strip() != start_location.strip():
+                location += f"<address>{start_location.strip()} to {end_location.strip()}</address>"
+            else:
+                location += f"<address>{start_location.strip()}</address>"
+        elif city_name and isinstance(city_name, str) and city_name.strip():
             location += f"<address>{city_name.strip()}</address>"
         return location
-    elif start_location and isinstance(start_location, str) and start_location.strip():
+    elif has_start_location:
+        # No venue at all - use start/end location
+        if has_end_location and end_location.strip() != start_location.strip():
+            return f"{start_location.strip()} to {end_location.strip()}"
         return start_location.strip()
     
     return ''
@@ -6128,13 +6142,10 @@ def generate_ical_event(event_data):
     except:
         tz = pytz.UTC  # Fallback to UTC if timezone is invalid
     
-    # Check if this is an all-day event (exhibitions without times)
+    # Determine if event is all-day: no times specified (regardless of event type)
     is_all_day = False
     if not event_data.get('start_time') and not event_data.get('end_time'):
-        # Check if it's an exhibition
-        event_type = event_data.get('event_type', '').lower()
-        if event_type == 'exhibition':
-            is_all_day = True
+        is_all_day = True
     
     # Handle times if provided - use floating time (no timezone conversion)
     # For all-day events, use DATE format (YYYYMMDD) instead of DATETIME format

@@ -88,17 +88,32 @@
         }
         
         // General venue handling
+        // If no venue address, use start/end location instead
+        const hasStartLocation = event.start_location && typeof event.start_location === 'string' && event.start_location.trim();
+        const hasEndLocation = event.end_location && typeof event.end_location === 'string' && event.end_location.trim();
+        
         if (hasVenueName && hasVenueAddress) {
             return `${event.venue_name.trim()}, ${event.venue_address.trim()}`;
         } else if (hasVenueAddress) {
             return event.venue_address.trim();
         } else if (hasVenueName) {
+            // No venue address - use start/end location if available
             const location = event.venue_name.trim();
-            if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
+            if (hasStartLocation) {
+                if (hasEndLocation && event.end_location.trim() !== event.start_location.trim()) {
+                    return `${location}, ${event.start_location.trim()} to ${event.end_location.trim()}`;
+                } else {
+                    return `${location}, ${event.start_location.trim()}`;
+                }
+            } else if (event.city_name && typeof event.city_name === 'string' && event.city_name.trim()) {
                 return `${location}, ${event.city_name.trim()}`;
             }
             return location;
-        } else if (event.start_location && typeof event.start_location === 'string' && event.start_location.trim()) {
+        } else if (hasStartLocation) {
+            // No venue at all - use start/end location
+            if (hasEndLocation && event.end_location.trim() !== event.start_location.trim()) {
+                return `${event.start_location.trim()} to ${event.end_location.trim()}`;
+            }
             return event.start_location.trim();
         }
         
@@ -208,7 +223,9 @@
     }
 
     /**
-     * Parse event dates and determine if it's all-day (exhibition)
+     * Parse event dates and determine if it's all-day
+     * An event is all-day if it has no start_time or end_time
+     * Multi-day events can be either all-day (no times) or timed (with times)
      */
     function parseEventDates(event) {
         // Parse start date
@@ -216,13 +233,13 @@
         const startDate = new Date(year, month - 1, day);
         startDate.setHours(0, 0, 0, 0);
         
-        // Check if it's an exhibition (all-day event)
-        const isAllDay = event.event_type === 'exhibition' && !event.start_time;
+        // Check if it's all-day: no times specified
+        const isAllDay = !event.start_time && !event.end_time;
         
         let endDate;
         
         if (isAllDay) {
-            // For exhibitions, use end_date if available (multi-day), otherwise use start_date (single-day)
+            // For all-day events, use end_date if available (multi-day), otherwise use start_date (single-day)
             if (event.end_date && event.end_date !== event.start_date) {
                 const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
                 endDate = new Date(endYear, endMonth - 1, endDay);
@@ -239,18 +256,35 @@
             
             return { startDate, endDate: exclusiveEndDate, isAllDay: true };
         } else {
-            // For timed events
+            // For timed events - use start_time on start_date
             if (event.start_time) {
                 const [hours, minutes] = event.start_time.split(':');
                 startDate.setHours(parseInt(hours), parseInt(minutes || 0));
             }
             
-            endDate = new Date(startDate);
-            if (event.end_time) {
-                const [hours, minutes] = event.end_time.split(':');
-                endDate.setHours(parseInt(hours), parseInt(minutes || 0));
+            // For timed events that span multiple days, use end_date with end_time
+            // Otherwise, use start_date with end_time
+            if (event.end_date && event.end_date !== event.start_date) {
+                // Multi-day timed event: use end_date
+                const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
+                endDate = new Date(endYear, endMonth - 1, endDay);
+                if (event.end_time) {
+                    const [hours, minutes] = event.end_time.split(':');
+                    endDate.setHours(parseInt(hours), parseInt(minutes || 0));
+                } else {
+                    // If no end_time but has end_date, use start of end_date day
+                    endDate.setHours(0, 0, 0, 0);
+                }
             } else {
-                endDate.setHours(endDate.getHours() + 2); // Default 2-hour duration
+                // Single-day timed event: use start_date with end_time
+                endDate = new Date(startDate);
+                if (event.end_time) {
+                    const [hours, minutes] = event.end_time.split(':');
+                    endDate.setHours(parseInt(hours), parseInt(minutes || 0));
+                } else {
+                    // Default 2-hour duration if no end_time
+                    endDate.setHours(endDate.getHours() + 2);
+                }
             }
             
             return { startDate, endDate, isAllDay: false };
@@ -299,15 +333,17 @@
         const startDateStr = event.start_date;
         const endDateStr = event.end_date || event.start_date;
         
-        if (isAllDay || event.event_type === 'exhibition') {
+        if (isAllDay) {
             // All-day events: use date only format (YYYYMMDD)
+            // For multi-day all-day events, end_date is already handled in parseEventDates
             startDateTime = formatDateOnlyForGoogle(startDateStr);
             endDateTime = formatDateOnlyForGoogle(endDateStr);
-        } else if (event.start_time && event.end_time) {
+        } else if (event.start_time || event.end_time) {
             // Timed events: use date/time strings directly from event data
+            // For multi-day timed events, use end_date with end_time
             // NO Date object manipulation - just format the strings as-is
-            startDateTime = formatDateTimeForGoogle(startDateStr, event.start_time);
-            endDateTime = formatDateTimeForGoogle(endDateStr, event.end_time);
+            startDateTime = formatDateTimeForGoogle(startDateStr, event.start_time || '00:00:00');
+            endDateTime = formatDateTimeForGoogle(endDateStr, event.end_time || '23:59:59');
         } else {
             // No time specified: treat as all-day
             startDateTime = formatDateOnlyForGoogle(startDateStr);

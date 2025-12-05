@@ -3,7 +3,7 @@
     "version": "1.0",
     "created": "2025-12-04",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 200,
+    "total_venues": 201,
     "last_updated": "2025-12-04 23:04:19"
   },
   "venues": {
@@ -1592,7 +1592,7 @@
       "updated_at": "2025-12-04T16:52:13.727717"
     },
     "68": {
-      "name": "Sankofa Video Books & Café",
+      "name": "Sankofa Video Books & Caf\u00e9",
       "venue_type": "cafe",
       "address": "2714 Georgia Ave NW, Washington, DC 20001",
       "city_id": 1,
@@ -2480,7 +2480,7 @@
       "updated_at": "2025-12-04T16:52:13.735118"
     },
     "105": {
-      "name": "Pérez Art Museum Miami (PAMM)",
+      "name": "P\u00e9rez Art Museum Miami (PAMM)",
       "venue_type": "museum",
       "address": "1103 Biscayne Blvd, Miami, FL 33132",
       "city_id": 8,
@@ -2840,9 +2840,9 @@
       "updated_at": "2025-12-04T16:52:13.738251"
     },
     "120": {
-      "name": "Champs-Élysées",
+      "name": "Champs-\u00c9lys\u00e9es",
       "venue_type": "landmark",
-      "address": "Champs-Élysées, 75008 Paris, France",
+      "address": "Champs-\u00c9lys\u00e9es, 75008 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A avenue in Paris offering cultural experiences and entertainment.",
@@ -2850,7 +2850,7 @@
       "holiday_hours": "",
       "phone_number": "+33 1 42 89 46 00",
       "email": "info@champselysees-paris.com",
-      "website_url": "https://www.champs-élysées.com",
+      "website_url": "https://www.champs-\u00e9lys\u00e9es.com",
       "instagram_url": "https://www.instagram.com/champselysees",
       "facebook_url": "https://www.facebook.com/ChampsElyseesParis",
       "twitter_url": "https://twitter.com/ChampsElysees",
@@ -2936,9 +2936,9 @@
       "updated_at": "2025-12-04T16:52:13.739155"
     },
     "124": {
-      "name": "Musée d'Orsay",
+      "name": "Mus\u00e9e d'Orsay",
       "venue_type": "museum",
-      "address": "1 Rue de la Légion d'Honneur, 75007 Paris, France",
+      "address": "1 Rue de la L\u00e9gion d'Honneur, 75007 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A museum in Paris offering cultural experiences and entertainment.",
@@ -2946,7 +2946,7 @@
       "holiday_hours": "",
       "phone_number": "+33 1 40 49 48 14",
       "email": "info@musee-orsay.fr",
-      "website_url": "https://www.muséed'orsay.com",
+      "website_url": "https://www.mus\u00e9ed'orsay.com",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -2960,9 +2960,9 @@
       "updated_at": "2025-12-04T16:52:13.739601"
     },
     "125": {
-      "name": "Musée d'Orsay",
+      "name": "Mus\u00e9e d'Orsay",
       "venue_type": "museum",
-      "address": "1 Rue de la Légion d'Honneur, 75007 Paris, France",
+      "address": "1 Rue de la L\u00e9gion d'Honneur, 75007 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A museum in Paris offering cultural experiences and entertainment.",
@@ -2970,7 +2970,7 @@
       "holiday_hours": "",
       "phone_number": "+33 1 40 49 48 14",
       "email": "info@musee-orsay.fr",
-      "website_url": "https://www.muséed'orsay.com",
+      "website_url": "https://www.mus\u00e9ed'orsay.com",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -2984,7 +2984,7 @@
       "updated_at": "2025-10-08T20:42:31.674125"
     },
     "126": {
-      "name": "Musée du Louvre",
+      "name": "Mus\u00e9e du Louvre",
       "venue_type": "museum",
       "address": "Rue de Rivoli, 75001 Paris, France",
       "city_id": 10,
@@ -2994,7 +2994,7 @@
       "holiday_hours": "",
       "phone_number": "+33 1 40 20 50 50",
       "email": "info@louvre.fr",
-      "website_url": "https://www.muséedulouvre.com",
+      "website_url": "https://www.mus\u00e9edulouvre.com",
       "instagram_url": "https://www.instagram.com/museedulouvre",
       "facebook_url": "https://www.facebook.com/museedulouvre",
       "twitter_url": "https://twitter.com/MuseeDuLouvre",
@@ -4806,6 +4806,30 @@
       "longitude": -77.0253,
       "created_at": "2025-12-05T03:56:53.540814",
       "updated_at": "2025-12-05T03:58:26.791634"
+    },
+    "202": {
+      "name": "Photoworks at Glen Echo Park",
+      "venue_type": "gallery",
+      "address": "7300 Macarthur Blvd, Glen Echo, MD 20812",
+      "city_id": 1,
+      "city_name": "Washington",
+      "description": "Photoworks at Glen Echo Park is a photography gallery and educational center offering exhibitions, workshops, and classes for photographers of all levels.",
+      "opening_hours": "",
+      "holiday_hours": "",
+      "phone_number": "",
+      "email": "",
+      "website_url": "",
+      "instagram_url": "https://www.instagram.com/glenechophotoworks",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "",
+      "image_url": "",
+      "latitude": null,
+      "longitude": null,
+      "created_at": "2025-12-05T04:00:00.000000",
+      "updated_at": "2025-12-05T04:00:00.000000"
     }
   }
 }

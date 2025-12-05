@@ -131,12 +131,11 @@ class GoogleCalendarManager:
                     'timeZone': timezone,
                 }
             elif event_data.start_datetime:
-                # All-day event
+                # All-day event (no end_datetime means all-day)
                 event_body['start'] = {
                     'date': event_data.start_datetime.date().isoformat(),
                 }
-                # Use end_datetime if available, otherwise use start_datetime
-                # For exhibitions, this ensures the full date range is used
+                # Use end_datetime if available (for multi-day all-day events), otherwise use start_datetime
                 end_date = event_data.end_datetime.date() if event_data.end_datetime else event_data.start_datetime.date()
                 event_body['end'] = {
                     'date': end_date.isoformat(),
@@ -336,15 +335,29 @@ def get_calendar_location_for_integration(extracted_data, venue_data=None):
         return VENUE_ADDRESSES['WEBSTERS']
     
     # General venue handling - use comma-separated format for Google Calendar API
+    # If no venue address, use start/end location instead
+    end_location = getattr(extracted_data, 'end_location', None)
+    has_end_location = end_location and isinstance(end_location, str) and end_location.strip()
+    has_start_location = start_location and isinstance(start_location, str) and start_location.strip()
+    
     if has_venue_name and has_venue_address:
         return f"{venue_name.strip()}, {venue_address.strip()}"
     elif has_venue_address:
         return venue_address.strip()
     elif has_venue_name:
+        # No venue address - use start/end location if available
+        if has_start_location:
+            if has_end_location and end_location.strip() != start_location.strip():
+                return f"{venue_name.strip()}, {start_location.strip()} to {end_location.strip()}"
+            else:
+                return f"{venue_name.strip()}, {start_location.strip()}"
         return venue_name.strip()
     elif hasattr(extracted_data, 'location') and extracted_data.location:
         return extracted_data.location
-    elif start_location:
+    elif has_start_location:
+        # No venue at all - use start/end location
+        if has_end_location and end_location.strip() != start_location.strip():
+            return f"{start_location.strip()} to {end_location.strip()}"
         return start_location
     
     return ''
@@ -432,35 +445,32 @@ def create_calendar_event_from_extracted_data(extracted_data, venue_data=None, c
             # Handle end date - if no end date provided, assume same as start date
             end_date = extracted_data.end_date or extracted_data.start_date
             
-            # For exhibitions without times, treat as all-day events spanning the full date range
-            # For other events without times, use default times
-            is_exhibition = extracted_data.event_type and extracted_data.event_type.lower() == 'exhibition'
+            # Determine if event is all-day: no times specified (regardless of event type)
+            has_times = extracted_data.start_time or extracted_data.end_time
             
-            if extracted_data.start_time:
-                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, extracted_data.start_time))
-            elif is_exhibition:
-                # For exhibitions without times, use start of day (will be converted to all-day event)
-                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(0, 0)))
+            if has_times:
+                # Timed event: use the specified times
+                if extracted_data.start_time:
+                    start_datetime = tz.localize(datetime.combine(extracted_data.start_date, extracted_data.start_time))
+                else:
+                    # If only end_time is provided, default start to 9 AM
+                    start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(9, 0)))
+                
+                if extracted_data.end_time:
+                    # For multi-day timed events, use end_date with end_time
+                    # For single-day events, end_date will be same as start_date
+                    end_datetime = tz.localize(datetime.combine(end_date, extracted_data.end_time))
+                else:
+                    # If only start_time is provided, default to 1 hour duration
+                    end_datetime = start_datetime.replace(hour=start_datetime.hour + 1)
             else:
-                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(9, 0)))  # Default to 9 AM
-            
-            if extracted_data.end_time:
-                end_datetime = tz.localize(datetime.combine(end_date, extracted_data.end_time))
-            elif is_exhibition:
-                # For exhibitions without times, use end of end_date (will be converted to all-day event)
+                # All-day event: no times specified
+                # Use start of start_date and end of end_date (will be converted to all-day event)
+                start_datetime = tz.localize(datetime.combine(extracted_data.start_date, time(0, 0)))
                 # Add 1 day to end_date for all-day events (Google Calendar convention: end date is exclusive)
                 from datetime import timedelta
                 end_date_plus_one = end_date + timedelta(days=1)
                 end_datetime = tz.localize(datetime.combine(end_date_plus_one, time(0, 0)))
-            elif extracted_data.end_date:
-                end_datetime = tz.localize(datetime.combine(end_date, time(17, 0)))  # Default to 5 PM
-            else:
-                # Default duration: 1 hour if start time provided, otherwise based on event type
-                if extracted_data.start_time:
-                    duration_hours = 1
-                else:
-                    duration_hours = 2 if extracted_data.event_type == 'tour' else 3
-                end_datetime = start_datetime.replace(hour=start_datetime.hour + duration_hours)
         
         return CalendarEvent(
             summary=summary,

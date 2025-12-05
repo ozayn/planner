@@ -1,9 +1,9 @@
 {
-    "metadata": {
+  "metadata": {
     "version": "1.0",
     "created": "2025-10-04",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 51,
+    "total_sources": 52,
     "last_updated": "2025-01-18 12:00:00"
   },
   "sources": {
@@ -12,7 +12,7 @@
       "handle": "@afwashington_dc",
       "source_type": "instagram",
       "url": "https://www.instagram.com/afwashington_dc/",
-      "description": "Alliance Française Washington DC promotes French cultural events, language classes, art exhibitions, and Franco-American cultural activities.",
+      "description": "Alliance Fran\u00e7aise Washington DC promotes French cultural events, language classes, art exhibitions, and Franco-American cultural activities.",
       "city_id": 1,
       "covers_multiple_cities": false,
       "covered_cities": "",
@@ -975,6 +975,25 @@
       "last_checked": null,
       "created_at": "2025-01-18T12:00:00.000000",
       "updated_at": "2025-01-18T12:00:00.000000"
+    },
+    "52": {
+      "name": "Photoworks at Glen Echo Park",
+      "handle": "@glenechophotoworks",
+      "source_type": "instagram",
+      "url": "https://www.instagram.com/glenechophotoworks/",
+      "description": "Photoworks at Glen Echo Park is a photography gallery and educational center offering exhibitions, workshops, and classes for photographers of all levels. Located in Glen Echo Park, Maryland.",
+      "city_id": 1,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"photography\", \"exhibitions\", \"workshops\", \"classes\", \"art_shows\", \"cultural_events\", \"educational_events\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2025-12-05T04:00:00.000000",
+      "updated_at": "2025-12-05T04:00:00.000000"
     }
   }
 }
