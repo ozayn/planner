@@ -32,6 +32,7 @@ ASIAN_ART_BASE_URL = 'https://asia.si.edu'
 ASIAN_ART_EXHIBITIONS_URL = 'https://asia.si.edu/whats-on/exhibitions/'
 ASIAN_ART_EVENTS_URL = 'https://asia.si.edu/whats-on/events/'
 ASIAN_ART_TOURS_URL = 'https://asia.si.edu/whats-on/tours/'
+ASIAN_ART_FILMS_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Films'
 
 
 def create_scraper():
@@ -630,38 +631,138 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
                     if 0 <= end_hour < 24 and 0 <= end_minute < 60:
                         end_time = time(end_hour, end_minute)
         
-        # Extract location
-        location_keywords = ['location', 'meeting point', 'venue', 'where']
-        for keyword in location_keywords:
-            location_match = re.search(rf'{keyword}:\s*([^\n]+)', page_text, re.I)
-            if location_match:
-                location = location_match.group(1).strip()
+        # Extract location - look for specific venues and general location patterns
+        location = None
+        
+        # First, look for specific Asian Art Museum venues
+        specific_venues = [
+            r'Meyer\s+Auditorium',
+            r'Freer\s+Gallery',
+            r'Sackler\s+Gallery',
+            r'West\s+Building',
+            r'East\s+Building',
+            r'Arthur\s+M\.\s+Sackler\s+Gallery',
+            r'Charles\s+Lang\s+Freer\s+Gallery'
+        ]
+        
+        for venue_pattern in specific_venues:
+            venue_match = re.search(venue_pattern, page_text, re.I)
+            if venue_match:
+                location = venue_match.group(0).strip()
                 break
         
-        # Extract registration info
-        if re.search(r'registration\s+required|rsvp|register', page_text, re.I):
-            registration_required = True
-            registration_info = 'Registration may be required. Please check the event page for details.'
+        # If no specific venue found, look for location patterns
+        if not location:
+            location_keywords = ['location', 'meeting point', 'venue', 'where', 'held at', 'taking place']
+            for keyword in location_keywords:
+                # Pattern 1: "Location: Meyer Auditorium"
+                location_match = re.search(rf'{keyword}:\s*([^\n\.]+)', page_text, re.I)
+                if location_match:
+                    location = location_match.group(1).strip()
+                    # Clean up location (remove extra words)
+                    location = re.sub(r'^(at|in|the)\s+', '', location, flags=re.I).strip()
+                    if location and len(location) > 3:
+                        break
+        
+        # Also check for location in structured data or specific HTML elements
+        if not location:
+            # Look for location in meta tags or structured data
+            location_elem = soup.find('meta', property=re.compile(r'location|venue', re.I))
+            if location_elem:
+                location = location_elem.get('content', '').strip()
             
-            # Look for registration URL
-            reg_link = soup.find('a', href=re.compile(r'register|rsvp|ticket|eventbrite', re.I))
+            # Look for location in headings or specific divs
+            if not location:
+                for tag in soup.find_all(['h2', 'h3', 'div'], class_=re.compile(r'location|venue|place', re.I)):
+                    tag_text = tag.get_text(strip=True)
+                    if tag_text and len(tag_text) < 100:
+                        location = tag_text
+                        break
+        
+        # Extract registration info and ticket links
+        registration_required = False
+        registration_info = None
+        
+        # First check for explicit "no registration" or "walk-up only" - these should NOT require registration
+        no_registration_patterns = [
+            r'no\s+registration',
+            r'walk-up\s+only',
+            r'no\s+tickets?\s+(?:required|needed)',
+            r'drop-in',
+            r'no\s+rsvp'
+        ]
+        
+        has_no_registration = any(re.search(pattern, page_text, re.I) for pattern in no_registration_patterns)
+        
+        # Only set registration_required if registration is mentioned AND it's not explicitly "no registration"
+        if not has_no_registration:
+            # Check if registration is mentioned
+            if re.search(r'registration\s+(?:required|recommended|suggested)|register\s+(?:in\s+)?advance|rsvp|register\s+(?:for|to)', page_text, re.I):
+                registration_required = True
+                registration_info = 'Registration may be required. Please check the event page for details.'
+                
+                # Look for specific registration text to extract more detail
+                reg_info_match = re.search(r'(register\s+(?:in\s+)?advance\s*(?:\(recommended\))?)|(registration\s+(?:is\s+)?(?:required|recommended|suggested))', page_text, re.I)
+                if reg_info_match:
+                    registration_info = reg_info_match.group(0).strip()
+        
+        # Look for registration/ticket URLs - check multiple patterns
+        # BUT: Only set registration_required if we haven't already determined it's "no registration"
+        # Pattern 1: Links with register/rsvp/ticket in href or text
+        if not has_no_registration:
+            reg_link = soup.find('a', href=re.compile(r'register|rsvp|ticket|eventbrite|eventive|tix|ticketmaster', re.I))
             if reg_link:
                 registration_url = urljoin(ASIAN_ART_BASE_URL, reg_link.get('href', ''))
+                registration_required = True
+            
+            # Pattern 2: Check link text for ticket/register keywords
+            if not registration_url:
+                for link in soup.find_all('a', href=True):
+                    link_text = link.get_text(strip=True).lower()
+                    href = link.get('href', '').lower()
+                    if any(keyword in link_text for keyword in ['ticket', 'register', 'rsvp', 'reserve', 'book']) or \
+                       any(keyword in href for keyword in ['ticket', 'register', 'rsvp', 'eventive', 'eventbrite', 'tix']):
+                        registration_url = link.get('href', '')
+                        # Make absolute URL if relative
+                        if registration_url and not registration_url.startswith('http'):
+                            registration_url = urljoin(ASIAN_ART_BASE_URL, registration_url)
+                        registration_required = True
+                        break
+            
+            # Pattern 3: Look for eventive.org or other ticket platform links specifically
+            if not registration_url:
+                for link in soup.find_all('a', href=True):
+                    href = link.get('href', '')
+                    if 'eventive.org' in href or 'eventbrite.com' in href or 'ticketmaster.com' in href or 'tix' in href.lower():
+                        registration_url = href
+                        if not registration_url.startswith('http'):
+                            registration_url = urljoin(ASIAN_ART_BASE_URL, registration_url)
+                        registration_required = True
+                        break
         
-        # Extract price/cost
-        cost_match = re.search(r'(?:cost|price|admission|ticket)[:\s]+([^\n]+)', page_text, re.I)
-        if cost_match:
-            cost_text = cost_match.group(1).strip()
-            if 'free' in cost_text.lower():
-                price = 0.0
-            else:
-                # Try to extract numeric price
-                price_match = re.search(r'\$?(\d+(?:\.\d{2})?)', cost_text)
-                if price_match:
-                    try:
-                        price = float(price_match.group(1))
-                    except ValueError:
-                        pass
+        # Extract price/cost - look for "Free" or pricing information
+        price = None
+        
+        # Pattern 1: "Free. Register in advance" or "Free, Register" etc.
+        free_match = re.search(r'\b(free)\b[.,;]?\s*(?:register|admission)?', page_text, re.I)
+        if free_match:
+            price = 0.0
+        
+        # Pattern 2: Standard price patterns
+        if price is None:
+            cost_match = re.search(r'(?:cost|price|admission|ticket)[:\s]+([^\n]+)', page_text, re.I)
+            if cost_match:
+                cost_text = cost_match.group(1).strip()
+                if 'free' in cost_text.lower():
+                    price = 0.0
+                else:
+                    # Try to extract numeric price
+                    price_match = re.search(r'\$?(\d+(?:\.\d{2})?)', cost_text)
+                    if price_match:
+                        try:
+                            price = float(price_match.group(1))
+                        except ValueError:
+                            pass
         
         # Detect language from title and description
         language = 'English'  # Default
@@ -894,6 +995,175 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     return events
 
 
+def scrape_asian_art_films(scraper=None) -> List[Dict]:
+    """
+    Scrape film events from Asian Art Museum films page
+    Returns list of event dictionaries
+    """
+    if scraper is None:
+        scraper = create_scraper()
+    
+    events = []
+    
+    try:
+        logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
+        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=15)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find event links - they're in h3 headings with links to /whats-on/events/search/event:ID
+        event_links = soup.find_all('a', href=re.compile(r'/whats-on/events/search/event:', re.I))
+        
+        processed_urls = set()
+        
+        for link in event_links:
+            href = link.get('href', '')
+            if not href:
+                continue
+            
+            # Build full URL
+            full_url = urljoin(ASIAN_ART_BASE_URL, href)
+            
+            # Skip if we've already processed this URL
+            if full_url in processed_urls:
+                continue
+            processed_urls.add(full_url)
+            
+            # Extract basic info from listing page first
+            listing_data = {}
+            h3 = link.find_parent('h3') or (link.parent if link.parent and link.parent.name == 'h3' else None)
+            
+            if h3:
+                title = link.get_text(strip=True) or h3.get_text(strip=True)
+                listing_data['title'] = title
+                
+                # Get container around this event to find date/time
+                container = h3.parent
+                date_found = False
+                time_found = False
+                image_found = False
+                
+                for level in range(8):
+                    if not container:
+                        break
+                    
+                    container_text = container.get_text()
+                    
+                    # Normalize text: add space between year and time
+                    container_text = re.sub(r'(20\d{2})([1-9]|1[0-2]:)', r'\1 \2', container_text)
+                    
+                    # Extract date from listing (only once)
+                    if not date_found:
+                        date_patterns = [
+                            r'([A-Za-z]+day,?\s+[A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # Friday, December 5, 2025
+                            r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # December 5, 2025
+                        ]
+                        for pattern in date_patterns:
+                            date_match = re.search(pattern, container_text, re.I)
+                            if date_match:
+                                event_date = parse_single_date(date_match.group(1))
+                                if event_date:
+                                    listing_data['start_date'] = event_date
+                                    listing_data['end_date'] = event_date
+                                    date_found = True
+                                    break
+                    
+                    # Extract time range from listing (only once)
+                    if not time_found:
+                        time_range_pattern = r'\b([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\s*[–\-]\s*([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\b'
+                        time_range_match = re.search(time_range_pattern, container_text, re.I)
+                        
+                        if time_range_match:
+                            # Found time range - extract both times
+                            start_hour = int(time_range_match.group(1))
+                            start_minute = int(time_range_match.group(2))
+                            start_am_pm = time_range_match.group(3)
+                            end_hour = int(time_range_match.group(4))
+                            end_minute = int(time_range_match.group(5))
+                            end_am_pm = time_range_match.group(6)
+                            
+                            # Convert start time to 24-hour format
+                            start_hour_24 = start_hour
+                            if 'pm' in start_am_pm.lower() and start_hour != 12:
+                                start_hour_24 = start_hour + 12
+                            elif 'am' in start_am_pm.lower() and start_hour == 12:
+                                start_hour_24 = 0
+                            
+                            # Convert end time to 24-hour format
+                            end_hour_24 = end_hour
+                            if 'pm' in end_am_pm.lower() and end_hour != 12:
+                                end_hour_24 = end_hour + 12
+                            elif 'am' in end_am_pm.lower() and end_hour == 12:
+                                end_hour_24 = 0
+                            
+                            if 0 <= start_hour_24 < 24 and 0 <= start_minute < 60:
+                                listing_data['start_time'] = time(start_hour_24, start_minute)
+                            if 0 <= end_hour_24 < 24 and 0 <= end_minute < 60:
+                                listing_data['end_time'] = time(end_hour_24, end_minute)
+                            time_found = True
+                    
+                    # Extract image from listing page (only once)
+                    if not image_found:
+                        imgs = container.find_all('img')
+                        for img in imgs:
+                            img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                            if img_src:
+                                # Skip small icons/logos
+                                skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg', 'site-header', 'nav-background']
+                                if any(pattern in img_src.lower() for pattern in skip_patterns):
+                                    continue
+                                
+                                # Check if it's a real image file
+                                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or 'trumba.com' in img_src.lower():
+                                    # Build full URL
+                                    image_url = urljoin(ASIAN_ART_BASE_URL, img_src)
+                                    listing_data['image_url'] = image_url
+                                    image_found = True
+                                    break
+                    
+                    # Continue searching even if we found date/time, but break if we found everything
+                    if date_found and time_found and image_found:
+                        break
+                    
+                    container = container.parent if container else None
+            
+            # Scrape individual event page for full details
+            try:
+                event_data = scrape_event_detail(scraper, full_url)
+                if event_data:
+                    # Set event type to 'film'
+                    event_data['event_type'] = 'film'
+                    
+                    # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
+                    if listing_data.get('start_date'):
+                        event_data['start_date'] = listing_data['start_date']
+                        event_data['end_date'] = listing_data['end_date']
+                    if listing_data.get('start_time'):
+                        event_data['start_time'] = listing_data['start_time']
+                    if listing_data.get('end_time'):
+                        event_data['end_time'] = listing_data['end_time']
+                    if listing_data.get('title'):
+                        event_data['title'] = listing_data['title']  # Use listing title if available
+                    
+                    # Use listing page image if available, otherwise use detail page image
+                    if listing_data.get('image_url'):
+                        event_data['image_url'] = listing_data['image_url']
+                    
+                    events.append(event_data)
+            except Exception as e:
+                logger.warning(f"   ⚠️ Error scraping film event {full_url}: {e}")
+        
+        logger.info(f"   ✅ Found {len(events)} film events")
+        
+    except Exception as e:
+        logger.error(f"❌ Error scraping Asian Art Museum films: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return events
+
+
 def scrape_all_asian_art_events() -> List[Dict]:
     """
     Scrape all events from Asian Art Museum
@@ -909,6 +1179,10 @@ def scrape_all_asian_art_events() -> List[Dict]:
     # Scrape events (talks, tours, programs)
     events = scrape_asian_art_events(scraper)
     all_events.extend(events)
+    
+    # Scrape films
+    films = scrape_asian_art_films(scraper)
+    all_events.extend(films)
     
     logger.info(f"✅ Total Asian Art Museum events scraped: {len(all_events)}")
     
