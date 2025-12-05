@@ -12,7 +12,8 @@ from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import requests
-from requests.exceptions import Timeout, RequestException, ConnectionError
+from requests.exceptions import Timeout, RequestException, ConnectionError, ReadTimeout, ConnectTimeout
+from socket import timeout as SocketTimeout
 import urllib3
 
 # Add project root to path
@@ -114,7 +115,8 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
     """Scrape details from an individual exhibition page"""
     try:
         logger.debug(f"   📄 Scraping exhibition page: {url}")
-        response = scraper.get(url, timeout=10)
+        # Use shorter timeout: (connect timeout, read timeout)
+        response = scraper.get(url, timeout=(3, 5))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -249,8 +251,14 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         
         return event
         
+    except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
+        logger.warning(f"   ⚠️ Timeout scraping exhibition detail {url}: {type(e).__name__}")
+        return None
+    except (ConnectionError, RequestException) as e:
+        logger.warning(f"   ⚠️ Connection error scraping exhibition detail {url}: {type(e).__name__}")
+        return None
     except Exception as e:
-        logger.warning(f"   ⚠️ Error scraping exhibition detail {url}: {e}")
+        logger.warning(f"   ⚠️ Error scraping exhibition detail {url}: {type(e).__name__} - {str(e)[:100]}")
         return None
 
 
@@ -266,7 +274,7 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping Asian Art Museum exhibitions from: {ASIAN_ART_EXHIBITIONS_URL}")
-        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=10)
+        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(3, 8))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -503,7 +511,8 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
     """Scrape details from an individual event page"""
     try:
         logger.debug(f"   📄 Scraping event page: {url}")
-        response = scraper.get(url, timeout=10)
+        # Use shorter timeout: (connect timeout, read timeout)
+        response = scraper.get(url, timeout=(3, 5))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -822,14 +831,14 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
         
         return event
         
-    except Timeout as e:
-        logger.warning(f"   ⚠️ Timeout scraping event detail {url}: {e}")
+    except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
+        logger.warning(f"   ⚠️ Timeout scraping event detail {url}: {type(e).__name__}")
         return None
     except (ConnectionError, RequestException) as e:
-        logger.warning(f"   ⚠️ Connection error scraping event detail {url}: {e}")
+        logger.warning(f"   ⚠️ Connection error scraping event detail {url}: {type(e).__name__}")
         return None
     except Exception as e:
-        logger.warning(f"   ⚠️ Error scraping event detail {url}: {e}")
+        logger.warning(f"   ⚠️ Error scraping event detail {url}: {type(e).__name__} - {str(e)[:100]}")
         return None
 
 
@@ -846,7 +855,7 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     try:
         events_search_url = 'https://asia.si.edu/whats-on/events/search/'
         logger.info(f"🔍 Scraping Asian Art Museum events from: {events_search_url}")
-        response = scraper.get(events_search_url, timeout=10)
+        response = scraper.get(events_search_url, timeout=(3, 8))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1021,7 +1030,7 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
-        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=10)
+        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(3, 8))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
