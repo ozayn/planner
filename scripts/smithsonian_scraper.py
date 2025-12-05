@@ -318,12 +318,7 @@ class SmithsonianEventScraper:
                 'type': 'museum'
             },
             {
-                'name': 'Freer Gallery of Art',
-                'url': 'https://asia.si.edu/',
-                'type': 'museum'
-            },
-            {
-                'name': 'Arthur M. Sackler Gallery',
+                'name': 'Smithsonian National Museum of Asian Art',
                 'url': 'https://asia.si.edu/',
                 'type': 'museum'
             }
