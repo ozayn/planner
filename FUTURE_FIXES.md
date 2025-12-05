@@ -107,6 +107,85 @@ The African Art Museum scraper is not correctly extracting date ranges and image
 - URL validation: lines ~294-316
 - API endpoint: `app.py` lines ~6827-6877
 
+## Scraper Timeout Handling Pattern (WORKING SOLUTION)
+
+### Issue
+Scrapers were causing gunicorn worker timeouts in production, especially when scraping multiple detail pages. The default 10-15 second timeouts were too long, and exceptions weren't being caught properly, causing entire workers to hang and crash.
+
+### Solution Applied (Asian Art Scraper - December 2025)
+
+#### 1. **Reduced Timeout Values**
+- **Detail page requests**: Use `timeout=(3, 5)` - 3 seconds connect, 5 seconds read
+- **Listing page requests**: Use `timeout=(3, 8)` - 3 seconds connect, 8 seconds read
+- This prevents any single request from taking too long
+
+#### 2. **Comprehensive Exception Handling**
+Import all timeout-related exceptions:
+```python
+from requests.exceptions import Timeout, RequestException, ConnectionError, ReadTimeout, ConnectTimeout
+from socket import timeout as SocketTimeout
+```
+
+Catch all timeout exceptions explicitly:
+```python
+except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
+    logger.warning(f"   ⚠️ Timeout scraping event detail {url}: {type(e).__name__}")
+    return None
+except (ConnectionError, RequestException) as e:
+    logger.warning(f"   ⚠️ Connection error scraping event detail {url}: {type(e).__name__}")
+    return None
+except Exception as e:
+    logger.warning(f"   ⚠️ Error scraping event detail {url}: {type(e).__name__} - {str(e)[:100]}")
+    return None
+```
+
+#### 3. **Fallback to Listing Data**
+When detail page scraping fails (timeout or error), fall back to listing page data instead of failing completely:
+```python
+event_data = scrape_event_detail(scraper, full_url)
+
+if event_data:
+    # Merge detail page data with listing data
+    ...
+elif listing_data.get('title'):
+    # If detail page failed, use listing data as fallback
+    listing_data['source_url'] = full_url
+    listing_data['event_type'] = 'event'
+    listing_data['organizer'] = VENUE_NAME
+    # ... populate required fields
+    events.append(listing_data)
+```
+
+#### 4. **Key Principles**
+- **Fail fast**: Shorter timeouts prevent workers from hanging
+- **Graceful degradation**: Use listing data when detail pages fail
+- **Comprehensive exception catching**: Catch socket-level, connection-level, and request-level timeouts
+- **Continue processing**: Don't let one failed request stop the entire scraping process
+- **Better logging**: Log exception type names, not full error messages to avoid log spam
+
+### Files Modified
+- `scripts/asian_art_scraper.py` - Applied timeout handling pattern to:
+  - `scrape_event_detail()` function
+  - `scrape_exhibition_detail()` function
+  - All HTTP requests (listing pages and detail pages)
+
+### Results
+- ✅ No more gunicorn worker timeouts
+- ✅ Scraping completes successfully even when some detail pages fail
+- ✅ More events captured using listing data fallback
+- ✅ Faster overall scraping due to shorter timeouts
+
+### Apply to Other Scrapers
+This pattern should be applied to:
+- `scripts/saam_scraper.py` - Similar detail page scraping
+- `scripts/african_art_scraper.py` - When reactivated
+- `scripts/venue_event_scraper.py` - Already has some timeout handling, but could be improved
+- Any other scraper that makes multiple HTTP requests for detail pages
+
+### Related Commits
+- `aad081e` - "Improve timeout handling: reduce timeouts and add socket-level exception catching"
+- `3e15a51` - "Fix timeout issues in Asian Art scraper - add exception handling and fallback to listing data"
+
 
 
 
