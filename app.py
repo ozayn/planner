@@ -1197,7 +1197,8 @@ def get_events():
         tour_events = Event.query.filter(
             tour_filter,
             Event.start_date >= start_date,
-            Event.start_date <= end_date
+            Event.start_date <= end_date,
+            Event.is_selected == True
         ).options(db.joinedload(Event.city)).all()
         events.extend([event.to_dict() for event in tour_events])
     
@@ -1213,14 +1214,16 @@ def get_events():
             exhibition_events = Event.query.filter(
                 exhibition_filter,
                 Event.start_date <= start_date,
-                Event.end_date >= start_date
+                Event.end_date >= start_date,
+                Event.is_selected == True
             ).all()
         else:
             # For other time ranges, show exhibitions that overlap with the range
             exhibition_events = Event.query.filter(
                 exhibition_filter,
                 Event.start_date <= end_date,
-                Event.end_date >= start_date
+                Event.end_date >= start_date,
+                Event.is_selected == True
             ).all()
         events.extend([event.to_dict() for event in exhibition_events])
     
@@ -1229,7 +1232,8 @@ def get_events():
             Event.event_type == 'festival',
             Event.city_id == city_id,
             Event.start_date <= end_date,
-            Event.end_date >= start_date
+            Event.end_date >= start_date,
+            Event.is_selected == True
         ).all()
         events.extend([event.to_dict() for event in festival_events])
     
@@ -1238,7 +1242,8 @@ def get_events():
             Event.event_type == 'photowalk',
             Event.city_id == city_id,
             Event.start_date >= start_date,
-            Event.start_date <= end_date
+            Event.start_date <= end_date,
+            Event.is_selected == True
         ).all()
         events.extend([event.to_dict() for event in photowalk_events])
     
@@ -1253,7 +1258,8 @@ def get_events():
         other_events = Event.query.filter(
             other_filter,
             Event.start_date >= start_date,
-            Event.start_date <= end_date
+            Event.start_date <= end_date,
+            Event.is_selected == True
         )
         
         # If a specific event_type was provided, filter by it
@@ -6753,6 +6759,58 @@ def scrape_npg():
         
     except Exception as e:
         app_logger.error(f"Error scraping NPG events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0
+        }), 500
+
+@app.route('/api/admin/scrape-asian-art', methods=['POST'])
+def scrape_asian_art():
+    """Scrape all Asian Art Museum events: exhibitions, tours, talks, and other events."""
+    try:
+        app_logger.info("Starting comprehensive Asian Art Museum scraping...")
+        
+        # Import the comprehensive Asian Art scraper
+        from scripts.asian_art_scraper import scrape_all_asian_art_events, create_events_in_database
+        
+        # Scrape all Asian Art Museum events
+        events = scrape_all_asian_art_events()
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 404
+        
+        # Create/update events in database
+        created_count, updated_count = create_events_in_database(events)
+        
+        app_logger.info(f"Asian Art Museum scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
+        
+        message = f"Found {len(events)} Asian Art Museum events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if updated_count > 0:
+            message += f", updated {updated_count} existing events"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping Asian Art Museum events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
         return jsonify({

@@ -5092,16 +5092,24 @@
             const todayForFilter = new Date();
             todayForFilter.setHours(0, 0, 0, 0); // Reset to start of day for date comparison
             
+            // Get today's date string in YYYY-MM-DD format for reliable comparison
+            const todayDateStr = todayForFilter.toISOString().split('T')[0];
+            
             filteredEvents = filteredEvents.filter(event => {
                 if (!event.start_date) return false; // Exclude events without dates
                 
-                const startDate = new Date(event.start_date);
+                // Parse date string (YYYY-MM-DD) directly to avoid timezone issues
+                const eventDateStr = event.start_date;
+                if (!eventDateStr) return false;
+                
+                // Compare date strings directly - more reliable than Date objects
+                const startDate = new Date(eventDateStr + 'T00:00:00');
                 startDate.setHours(0, 0, 0, 0);
                 
                 // For exhibitions: keep if currently running (started but not ended)
                 if (event.event_type === 'exhibition') {
                     if (event.end_date) {
-                        const endDate = new Date(event.end_date);
+                        const endDate = new Date(event.end_date + 'T23:59:59');
                         endDate.setHours(23, 59, 59, 999); // End of day
                         // Keep if it hasn't ended yet
                         return endDate >= todayForFilter;
@@ -5111,14 +5119,19 @@
                     }
                 } else {
                     // For other events: only show if start date is today or in the future
-                    // For events with time, check if the event time has passed today
-                    if (event.start_time && startDate.getTime() === todayForFilter.getTime()) {
-                        const [hours, minutes] = event.start_time.split(':').map(Number);
-                        const eventDateTime = new Date(todayForFilter);
-                        eventDateTime.setHours(hours, minutes, 0, 0);
-                        return eventDateTime >= new Date();
+                    // Compare date strings to avoid timezone issues
+                    if (eventDateStr >= todayDateStr) {
+                        // If it's today, check if the event time has passed
+                        if (eventDateStr === todayDateStr && event.start_time) {
+                            const [hours, minutes] = event.start_time.split(':').map(Number);
+                            const eventDateTime = new Date(todayForFilter);
+                            eventDateTime.setHours(hours, minutes, 0, 0);
+                            return eventDateTime >= new Date();
+                        }
+                        // For future dates or today without time, show it
+                        return true;
                     }
-                    return startDate >= todayForFilter;
+                    return false;
                 }
             });
             
