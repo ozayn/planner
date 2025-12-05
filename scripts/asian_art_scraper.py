@@ -12,6 +12,7 @@ from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import requests
+from requests.exceptions import Timeout, RequestException, ConnectionError
 import urllib3
 
 # Add project root to path
@@ -113,7 +114,7 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
     """Scrape details from an individual exhibition page"""
     try:
         logger.debug(f"   📄 Scraping exhibition page: {url}")
-        response = scraper.get(url, timeout=15)
+        response = scraper.get(url, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -265,7 +266,7 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping Asian Art Museum exhibitions from: {ASIAN_ART_EXHIBITIONS_URL}")
-        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=15)
+        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -502,7 +503,7 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
     """Scrape details from an individual event page"""
     try:
         logger.debug(f"   📄 Scraping event page: {url}")
-        response = scraper.get(url, timeout=15)
+        response = scraper.get(url, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -821,6 +822,12 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
         
         return event
         
+    except Timeout as e:
+        logger.warning(f"   ⚠️ Timeout scraping event detail {url}: {e}")
+        return None
+    except (ConnectionError, RequestException) as e:
+        logger.warning(f"   ⚠️ Connection error scraping event detail {url}: {e}")
+        return None
     except Exception as e:
         logger.warning(f"   ⚠️ Error scraping event detail {url}: {e}")
         return None
@@ -839,7 +846,7 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     try:
         events_search_url = 'https://asia.si.edu/whats-on/events/search/'
         logger.info(f"🔍 Scraping Asian Art Museum events from: {events_search_url}")
-        response = scraper.get(events_search_url, timeout=15)
+        response = scraper.get(events_search_url, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -961,8 +968,9 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
                     container = container.parent if container else None
             
                 # Scrape individual event page for full details
-            try:
+                # Use listing data as fallback if detail page scraping fails
                 event_data = scrape_event_detail(scraper, full_url)
+                
                 if event_data:
                     # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
                     if listing_data.get('start_date'):
@@ -978,12 +986,18 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
                     # Use listing page image if available, otherwise use detail page image
                     if listing_data.get('image_url'):
                         event_data['image_url'] = listing_data['image_url']
-                    # If no listing image but detail page has image, keep detail page image
-                    # (this is already in event_data, so no action needed)
                     
                     events.append(event_data)
-            except Exception as e:
-                logger.warning(f"   ⚠️ Error scraping event {full_url}: {e}")
+                elif listing_data.get('title'):
+                    # If detail page scraping failed but we have listing data, use that
+                    listing_data['source_url'] = full_url
+                    listing_data['event_type'] = 'event'
+                    listing_data['organizer'] = VENUE_NAME
+                    listing_data['social_media_platform'] = 'website'
+                    listing_data['social_media_url'] = full_url
+                    listing_data['description'] = f"Event at {VENUE_NAME}"
+                    listing_data['language'] = 'English'
+                    events.append(listing_data)
         
         logger.info(f"   ✅ Found {len(events)} events")
         
@@ -1007,7 +1021,7 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
-        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=15)
+        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1129,30 +1143,39 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
                     container = container.parent if container else None
             
             # Scrape individual event page for full details
-            try:
-                event_data = scrape_event_detail(scraper, full_url)
-                if event_data:
-                    # Set event type to 'film'
-                    event_data['event_type'] = 'film'
-                    
-                    # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
-                    if listing_data.get('start_date'):
-                        event_data['start_date'] = listing_data['start_date']
-                        event_data['end_date'] = listing_data['end_date']
-                    if listing_data.get('start_time'):
-                        event_data['start_time'] = listing_data['start_time']
-                    if listing_data.get('end_time'):
-                        event_data['end_time'] = listing_data['end_time']
-                    if listing_data.get('title'):
-                        event_data['title'] = listing_data['title']  # Use listing title if available
-                    
-                    # Use listing page image if available, otherwise use detail page image
-                    if listing_data.get('image_url'):
-                        event_data['image_url'] = listing_data['image_url']
-                    
-                    events.append(event_data)
-            except Exception as e:
-                logger.warning(f"   ⚠️ Error scraping film event {full_url}: {e}")
+            # Use listing data as fallback if detail page scraping fails
+            event_data = scrape_event_detail(scraper, full_url)
+            
+            if event_data:
+                # Set event type to 'film'
+                event_data['event_type'] = 'film'
+                
+                # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
+                if listing_data.get('start_date'):
+                    event_data['start_date'] = listing_data['start_date']
+                    event_data['end_date'] = listing_data['end_date']
+                if listing_data.get('start_time'):
+                    event_data['start_time'] = listing_data['start_time']
+                if listing_data.get('end_time'):
+                    event_data['end_time'] = listing_data['end_time']
+                if listing_data.get('title'):
+                    event_data['title'] = listing_data['title']  # Use listing title if available
+                
+                # Use listing page image if available, otherwise use detail page image
+                if listing_data.get('image_url'):
+                    event_data['image_url'] = listing_data['image_url']
+                
+                events.append(event_data)
+            elif listing_data.get('title'):
+                # If detail page scraping failed but we have listing data, use that
+                listing_data['source_url'] = full_url
+                listing_data['event_type'] = 'film'
+                listing_data['organizer'] = VENUE_NAME
+                listing_data['social_media_platform'] = 'website'
+                listing_data['social_media_url'] = full_url
+                listing_data['description'] = f"Film event at {VENUE_NAME}"
+                listing_data['language'] = 'English'
+                events.append(listing_data)
         
         logger.info(f"   ✅ Found {len(events)} film events")
         
