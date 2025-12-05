@@ -150,11 +150,13 @@
         }
 
         .data-section {
-            display: none;
+            display: none !important;
         }
 
         .data-section.active {
-            display: block;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .data-section h2 {
@@ -1472,9 +1474,48 @@
             .form-group input,
             .form-group select,
             .form-group textarea {
-                padding: 10px;
-                font-size: 0.9375rem;
-                min-height: 40px;
+                padding: 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                min-height: 44px; /* Better touch target */
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            /* Image upload modal specific mobile improvements */
+            #imageUploadModal .modal-content {
+                max-height: 100vh;
+                height: 100vh;
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            #imageUploadModal .modal-content > div:first-of-type {
+                padding: 12px;
+                -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
+            }
+            
+            #imageUploadModal .form-group {
+                margin-bottom: 16px;
+            }
+            
+            #imageUploadModal input[type="file"] {
+                font-size: 14px;
+                padding: 8px;
+            }
+            
+            #imageUploadModal .modal-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 12px;
+                background: white;
+            }
+            
+            #imageUploadModal .modal-actions .btn {
+                width: 100%;
+                min-height: 44px;
+                font-size: 16px;
             }
 
             .modal-footer {
@@ -1504,6 +1545,64 @@
 
             .header h1 {
                 font-size: 1.125rem;
+            }
+            
+            /* Image upload modal - extra small screens */
+            #imageUploadModal .modal-content {
+                width: 100%;
+                height: 100vh;
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            #imageUploadModal .modal-header {
+                padding: 12px;
+            }
+            
+            #imageUploadModal .modal-header h3 {
+                font-size: 1rem;
+            }
+            
+            #imageUploadModal .form-group {
+                margin-bottom: 14px;
+            }
+            
+            #imageUploadModal .form-group label {
+                font-size: 0.875rem;
+            }
+            
+            #imageUploadModal .form-group input,
+            #imageUploadModal .form-group select,
+            #imageUploadModal .form-group textarea {
+                padding: 12px;
+                font-size: 16px;
+                min-height: 44px;
+                -webkit-appearance: none;
+                appearance: none;
+            }
+            
+            #imageUploadModal select {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 12px center;
+                padding-right: 36px;
+            }
+            
+            #imageUploadModal small {
+                font-size: 0.75rem;
+                display: block;
+                margin-top: 4px;
+                line-height: 1.4;
+            }
+            
+            #imageUploadModal .extracted-data-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            #imageUploadModal h4,
+            #imageUploadModal h5 {
+                font-size: 1rem;
+                margin-bottom: 12px;
             }
 
             .header p {
@@ -2074,7 +2173,7 @@
                             </tr>
                         </thead>
                         <tbody id="sourcesTable">
-                            <tr><td colspan="12" class="loading">Loading sources...</td></tr>
+                            <tr><td colspan="8" class="loading">Loading sources...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2571,11 +2670,12 @@
 
     <!-- Image Upload Modal -->
     <div id="imageUploadModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="modal-header">
                 <h3>📷 Upload Event Image</h3>
                 <span class="close" onclick="closeModal('imageUploadModal')">&times;</span>
             </div>
+            <div style="overflow-y: auto; overflow-x: hidden; flex: 1; padding: 20px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;">
             <form id="imageUploadForm" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="eventImage">Select Image:</label>
@@ -2593,19 +2693,20 @@
                     <small>Choose OCR engine for text extraction. Auto uses environment defaults.</small>
                 </div>
                 
-                <div class="modal-actions">
+                <div class="modal-actions" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">📷 Process Image</button>
                 </div>
             </form>
+            </div>
             
             <!-- Extracted Data Display -->
-            <div id="extractedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div id="extractedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; max-width: 100%; overflow-x: auto;">
                 <h4>📋 Extracted Event Data</h4>
                 <div id="extractedDataContent"></div>
                 
                 <!-- Manual Input Fields -->
-                <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb; max-width: 100%; box-sizing: border-box;">
                     <h5>✏️ Manual Input (Edit or Add Missing Information)</h5>
                     
                     <div class="form-group">
@@ -2903,10 +3004,11 @@
                     </div>
                 </div>
                 
-                <div class="modal-actions" style="margin-top: 15px;">
+                <div class="modal-actions" style="position: sticky; bottom: 0; background: white; padding-top: 15px; margin-top: 15px; border-top: 1px solid #e5e7eb;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
                     <button type="button" class="btn btn-success" onclick="createEventFromExtractedData()">✅ Create Event</button>
                 </div>
+            </div>
             </div>
         </div>
     </div>
@@ -3389,6 +3491,7 @@
             sections.forEach(section => {
                 section.classList.remove('active');
                 section.style.display = 'none';
+                section.style.visibility = 'hidden';
             });
             
             // Show selected section immediately
@@ -3396,6 +3499,26 @@
             if (targetSection) {
                 targetSection.classList.add('active');
                 targetSection.style.display = 'block';
+                targetSection.style.visibility = 'visible';
+                targetSection.style.opacity = '1';
+                targetSection.style.position = 'relative';
+                targetSection.style.zIndex = '1';
+                targetSection.style.minHeight = '500px';
+                
+                // Log section dimensions for debugging
+                setTimeout(() => {
+                    const rect = targetSection.getBoundingClientRect();
+                    console.log('Section dimensions:', {
+                        width: rect.width,
+                        height: rect.height,
+                        top: rect.top,
+                        left: rect.left,
+                        display: window.getComputedStyle(targetSection).display,
+                        visibility: window.getComputedStyle(targetSection).visibility
+                    });
+                }, 100);
+                
+                console.log('Showing section:', sectionId, 'Display:', targetSection.style.display, 'Active class:', targetSection.classList.contains('active'));
             } else {
                 console.error('Section not found:', sectionId);
                 return;
@@ -4057,8 +4180,15 @@
             // Generate table headers
             const table = document.querySelector(`#${tableId}`).closest('table');
             if (!table) {
+                console.error('Table not found for tableId:', tableId);
                 return;
             }
+            
+            // Ensure table is visible
+            table.style.display = 'table';
+            table.style.visibility = 'visible';
+            table.style.width = '100%';
+            
             const tableHead = table.querySelector('thead tr');
             if (tableHead) {
                 let headerRow = '';
@@ -4086,6 +4216,9 @@
                 headerRow += '<th>Actions</th>';
                 
                 tableHead.innerHTML = headerRow;
+                console.log('Table headers generated:', orderedFields.length, 'fields, headerRow length:', headerRow.length);
+            } else {
+                console.error('Table head row not found for tableId:', tableId);
             }
             
             // Generate data rows
@@ -4156,6 +4289,17 @@
                     console.error('First 500 chars of rowsHTML:', rowsHTML.substring(0, 500));
                 } else {
                     console.log('Table rendered: ' + insertedRows.length + ' rows inserted into DOM');
+                    // Ensure table body is visible
+                    tableBody.style.display = 'table-row-group';
+                    tableBody.style.visibility = 'visible';
+                    
+                    // Verify table structure
+                    const parentTable = tableBody.closest('table');
+                    if (parentTable) {
+                        console.log('Table element found, display:', window.getComputedStyle(parentTable).display);
+                        console.log('Table visibility:', window.getComputedStyle(parentTable).visibility);
+                        console.log('Table height:', window.getComputedStyle(parentTable).height);
+                    }
                 }
             }
         }
@@ -4193,21 +4337,21 @@
                     }
                 },
                 sources: {
-                    order: ['id', 'name', 'handle', 'source_type', 'city_name', 'event_types', 'reliability_score', 'posting_frequency', 'is_active', 'events_found_count', 'last_checked', 'created_at', 'updated_at'],
+                    order: ['id', 'name', 'handle', 'source_type', 'city_name', 'is_active', 'events_found_count'],
                     fields: {
                         id: { label: 'ID', visible: true, sortable: true },
                         name: { label: 'Name', visible: true, sortable: true },
                         handle: { label: 'Handle', visible: true, sortable: true },
                         source_type: { label: 'Type', visible: true, sortable: true },
                         city_name: { label: 'City', visible: true, sortable: true },
-                        event_types: { label: 'Event Types', visible: true, sortable: false },
-                        reliability_score: { label: 'Reliability', visible: true, sortable: true },
-                        posting_frequency: { label: 'Frequency', visible: true, sortable: true },
+                        event_types: { label: 'Event Types', visible: false, sortable: false },
+                        reliability_score: { label: 'Reliability', visible: false, sortable: true },
+                        posting_frequency: { label: 'Frequency', visible: false, sortable: true },
                         is_active: { label: 'Active', visible: true, sortable: true },
-                        events_found_count: { label: 'Events Found', visible: true, sortable: true },
-                        last_checked: { label: 'Last Checked', visible: true, sortable: true },
-                        created_at: { label: 'Created', visible: true, sortable: true },
-                        updated_at: { label: 'Updated', visible: true, sortable: true }
+                        events_found_count: { label: 'Events', visible: true, sortable: true },
+                        last_checked: { label: 'Last Checked', visible: false, sortable: true },
+                        created_at: { label: 'Created', visible: false, sortable: true },
+                        updated_at: { label: 'Updated', visible: false, sortable: true }
                     }
                 },
                 events: {
@@ -6316,7 +6460,6 @@
                     console.warn('No sources found in database');
                 }
                 
-                renderSourcesTable();
                 populateSourceFilters();
                 
                 // Update filter summary
@@ -6325,18 +6468,24 @@
                     summary.textContent = `Showing all ${window.allSources.length} sources`;
                 }
                 
+                // Only render if section is active (will be rendered by showSection if needed)
+                const sourcesSection = document.getElementById('sources');
+                if (sourcesSection && sourcesSection.classList.contains('active')) {
+                    renderSourcesTable();
+                }
+                
             } catch (error) {
                 console.error('Error loading sources:', error);
                 const tableBody = document.getElementById('sourcesTable');
                 if (tableBody) {
-                    tableBody.innerHTML = `<tr><td colspan="12" class="loading" style="color: #dc3545;">❌ Error loading sources: ${error.message}</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="8" class="loading" style="color: #dc3545;">❌ Error loading sources: ${error.message}</td></tr>`;
                 }
             }
         }
         
         function renderSourcesTable() {
             const data = window.filteredSources || window.allSources || [];
-            // Ensure the section is visible before rendering (same as other tables)
+            // Ensure the section is visible before rendering
             const sourcesSection = document.getElementById('sources');
             if (!sourcesSection) {
                 console.warn('Sources section not found, skipping render');
@@ -6345,21 +6494,21 @@
             
             // Check if section is visible - use class check instead of getComputedStyle (faster, no reflow)
             if (!sourcesSection.classList.contains('active')) {
-                console.log('Sources section is not active, skipping render');
                 return;
             }
             
-            // Ensure the table container is visible before rendering
-            const tableContainer = sourcesSection.querySelector('.table-container');
-            if (tableContainer) {
-                tableContainer.style.display = 'block';
-                tableContainer.style.visibility = 'visible';
-                tableContainer.style.minHeight = '400px';
-                tableContainer.style.height = 'auto';
-            }
-            
-            // Render immediately if section is active
-            renderDynamicTable('sourcesTable', data, 'sources');
+            // Defer heavy table rendering to next frame to keep UI responsive
+            requestAnimationFrame(() => {
+                // Ensure the table container is visible before rendering
+                const tableContainer = sourcesSection.querySelector('.table-container');
+                if (tableContainer) {
+                    tableContainer.style.display = 'block';
+                    tableContainer.style.visibility = 'visible';
+                    tableContainer.style.minHeight = '400px';
+                    tableContainer.style.height = 'auto';
+                }
+                renderDynamicTable('sourcesTable', data, 'sources');
+            });
         }
         
         function editSource(id) {
