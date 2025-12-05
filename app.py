@@ -5728,12 +5728,38 @@ def extract_event_from_url():
         # Extract data
         extracted_data = extract_event_data_from_url(url)
         
-        # Try to match venue and city from extracted location
+        # Try to match venue and city from extracted location or venue field
         venue_id = None
         city_id = None
+        
+        # Check venue field first (more reliable for SAAM events)
+        venue_text = extracted_data.get('venue', '')
         location_text = extracted_data.get('location', '')
         
-        if location_text:
+        # Try to match venue from venue field first
+        if venue_text:
+            venue = Venue.query.filter(
+                db.func.lower(Venue.name).like(f'%{venue_text.lower()}%')
+            ).first()
+            
+            if venue:
+                venue_id = venue.id
+                city_id = venue.city_id
+                app_logger.info(f"Matched venue from venue field: {venue.name} (ID: {venue_id}, City: {city_id})")
+            else:
+                # Try to match common variations
+                cleaned_venue = venue_text.replace('The ', '').replace('the ', '')
+                venue = Venue.query.filter(
+                    db.func.lower(Venue.name).like(f'%{cleaned_venue.lower()}%')
+                ).first()
+                
+                if venue:
+                    venue_id = venue.id
+                    city_id = venue.city_id
+                    app_logger.info(f"Matched venue (cleaned) from venue field: {venue.name} (ID: {venue_id}, City: {city_id})")
+        
+        # Fallback to location field if venue field didn't match
+        if not venue_id and location_text:
             # Try to find matching venue (Venue model is defined in this file)
             # Try exact match first
             venue = Venue.query.filter(
@@ -5743,7 +5769,7 @@ def extract_event_from_url():
             if venue:
                 venue_id = venue.id
                 city_id = venue.city_id
-                app_logger.info(f"Matched venue: {venue.name} (ID: {venue_id}, City: {city_id})")
+                app_logger.info(f"Matched venue from location field: {venue.name} (ID: {venue_id}, City: {city_id})")
             else:
                 # Try to match common variations
                 # "The Metropolitan Museum of Art" -> "Metropolitan Museum of Art"
@@ -5755,7 +5781,7 @@ def extract_event_from_url():
                 if venue:
                     venue_id = venue.id
                     city_id = venue.city_id
-                    app_logger.info(f"Matched venue (cleaned): {venue.name} (ID: {venue_id}, City: {city_id})")
+                    app_logger.info(f"Matched venue (cleaned) from location field: {venue.name} (ID: {venue_id}, City: {city_id})")
         
         # Add IDs to response
         extracted_data['venue_id'] = venue_id
@@ -5783,6 +5809,17 @@ def scrape_event_from_url():
         end_date = data.get('end_date')
         
         # Get edited extracted data if provided
+        # Convert price from string to float if needed
+        price_val = data.get('price')
+        if isinstance(price_val, str):
+            if price_val.lower() in ['free', '0', '0.0']:
+                price_val = 0.0
+            else:
+                try:
+                    price_val = float(price_val)
+                except (ValueError, TypeError):
+                    price_val = None
+        
         override_data = {
             'title': data.get('title'),
             'description': data.get('description'),
@@ -5793,7 +5830,12 @@ def scrape_event_from_url():
             'location': data.get('location'),
             'image_url': data.get('image_url'),
             'schedule_info': data.get('schedule_info'),
-            'days_of_week': data.get('days_of_week')
+            'days_of_week': data.get('days_of_week'),
+            'is_registration_required': data.get('is_registration_required'),
+            'registration_url': data.get('registration_url'),
+            'registration_info': data.get('registration_info'),
+            'price': price_val,
+            'admission_price': data.get('admission_price')
         }
         
         if not url:
@@ -6659,6 +6701,58 @@ def scrape_saam():
         
     except Exception as e:
         app_logger.error(f"Error scraping SAAM events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0
+        }), 500
+
+@app.route('/api/admin/scrape-npg', methods=['POST'])
+def scrape_npg():
+    """Scrape all NPG events: exhibitions, tours, talks, and other events."""
+    try:
+        app_logger.info("Starting comprehensive NPG scraping...")
+        
+        # Import the comprehensive NPG scraper
+        from scripts.npg_scraper import scrape_all_npg_events, create_events_in_database
+        
+        # Scrape all NPG events
+        events = scrape_all_npg_events()
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 404
+        
+        # Create/update events in database
+        created_count, updated_count = create_events_in_database(events)
+        
+        app_logger.info(f"NPG scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
+        
+        message = f"Found {len(events)} NPG events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if updated_count > 0:
+            message += f", updated {updated_count} existing events"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping NPG events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
         return jsonify({

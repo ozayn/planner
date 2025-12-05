@@ -1985,6 +1985,7 @@
                             <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
                             <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">🖼️ NGA</button>
                             <button onclick="startSAAMScraping()" class="add-button" style="background: #8b5cf6;">🎨 SAAM</button>
+                            <button onclick="startNPGScraping()" class="add-button" style="background: #ffc1d9;">🖼️ NPG</button>
                             <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
                             <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
                             <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
@@ -7404,6 +7405,10 @@
                     <strong>Venue:</strong> <span>${data.venue_id ? '✅ Auto-matched' : '❌ Not matched'}</span>
                     <strong>City:</strong> <span>${data.city_id ? '✅ Auto-matched' : '❌ Not matched'}</span>
                     <strong>Image:</strong> <span>${data.image_url ? '✅ Found' : '❌ Not found'}</span>
+                    ${data.is_registration_required !== undefined ? `<strong>Registration Required:</strong> <span>${data.is_registration_required ? 'Yes' : 'No'}</span>` : ''}
+                    ${data.registration_info ? `<strong>Registration Info:</strong> <span>${data.registration_info}</span>` : ''}
+                    ${data.registration_url ? `<strong>Registration URL:</strong> <span><a href="${data.registration_url}" target="_blank">${data.registration_url.substring(0, 50)}...</a></span>` : ''}
+                    ${data.price !== undefined ? `<strong>Price:</strong> <span>${data.price === 0 || data.price === '0' || data.price === 'Free' ? 'Free' : '$' + data.price}</span>` : ''}
                     ${data.llm_extracted ? `<strong>Extraction:</strong> ${extractionBadge}` : ''}
                 </div>
             `;
@@ -8006,7 +8011,18 @@
                     end_time: endTime || extractedData.end_time || null,
                     location: meetingLocation, // This becomes start_location in the event
                     image_url: extractedData.image_url || null,
-                    schedule_info: extractedData.schedule_info || null
+                    schedule_info: extractedData.schedule_info || null,
+                    // Include registration and price fields from extracted data
+                    // Convert price to number if it's "Free" or 0
+                    price: (extractedData.price !== undefined && extractedData.price !== null) 
+                        ? (extractedData.price === 'Free' || extractedData.price === 0 || extractedData.price === '0' ? 0.0 : extractedData.price)
+                        : null,
+                    admission_price: (extractedData.admission_price !== undefined && extractedData.admission_price !== null)
+                        ? (extractedData.admission_price === 'Free' || extractedData.admission_price === 0 || extractedData.admission_price === '0' ? 0.0 : extractedData.admission_price)
+                        : null,
+                    is_registration_required: extractedData.is_registration_required || false,
+                    registration_url: extractedData.registration_url || null,
+                    registration_info: extractedData.registration_info || null
                 };
                 
                 const createResponse = await fetch('/api/admin/scrape-event-from-url', {
@@ -8136,6 +8152,7 @@
             if (data.url) html += `<div><strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>`;
             if (data.is_online !== undefined) html += `<div><strong>Online/Virtual:</strong> ${data.is_online ? 'Yes' : 'No'}</div>`;
             if (data.is_registration_required !== undefined) html += `<div><strong>Registration Required:</strong> ${data.is_registration_required ? 'Yes' : 'No'}</div>`;
+            if (data.registration_info) html += `<div><strong>Registration Info:</strong> ${data.registration_info}</div>`;
             if (data.registration_url) html += `<div><strong>Registration URL:</strong> <a href="${data.registration_url}" target="_blank">${data.registration_url}</a></div>`;
             if (data.city) html += `<div><strong>City:</strong> ${data.city}</div>`;
             if (data.state) html += `<div><strong>State:</strong> ${data.state}</div>`;
@@ -8865,6 +8882,29 @@
                 }
             } catch (error) {
                 updateScrapingStatus(`❌ SAAM scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startNPGScraping() {
+            updateScrapingStatus('🖼️ Starting NPG scraping (exhibitions, tours, talks, programs)...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-npg', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ NPG scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ NPG scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ NPG scraping error: ${error.message}`, 'error');
             }
         }
         
