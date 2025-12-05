@@ -30,7 +30,7 @@ CITY_NAME = "Washington"
 
 # NPG URLs
 NPG_BASE_URL = 'https://npg.si.edu'
-NPG_EXHIBITIONS_URL = 'https://npg.si.edu/whats-on'
+NPG_EXHIBITIONS_URL = 'https://npg.si.edu/whats-on/current-exhibitions'
 NPG_EVENTS_URL = 'https://npg.si.edu/events'
 NPG_TOURS_URL = 'https://npg.si.edu/docent-tours'
 NPG_ADULT_PROGRAMS_URL = 'https://npg.si.edu/adult-programs'
@@ -249,8 +249,25 @@ def scrape_npg_exhibitions(scraper=None) -> List[Dict]:
             processed_titles.add(title)
             
             # Find the container that holds this exhibition
+            # Look higher up in the DOM tree to find the exhibition card/block
             container = h3.parent
-            # Look for date information after the h3
+            # Traverse up to find a container with date information AND images
+            # We need to go higher to find containers that include both the h3 and associated images
+            for level in range(8):  # Increased range to find broader containers
+                if container:
+                    container_text = container.get_text()
+                    # Check if this container has a date range pattern
+                    date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
+                    if date_range_match:
+                        # Found a container with the date - check if it also has images
+                        imgs_in_container = container.find_all('img')
+                        if imgs_in_container:
+                            # This container has both date and images, use it
+                            break
+                        # Otherwise continue searching for a container that has both
+                container = container.parent if container else None
+            
+            # Look for date information in the container
             date_text = None
             description = None
             image_url = None
@@ -263,60 +280,104 @@ def scrape_npg_exhibitions(scraper=None) -> List[Dict]:
                 if href:
                     exhibition_url = urljoin(NPG_BASE_URL, href)
             
-            # Look for date in the next sibling or parent
-            # Dates typically appear after the h3 heading
-            next_elem = h3.find_next_sibling()
-            while next_elem and (not date_text or not description):
-                text = next_elem.get_text(strip=True)
-                
-                # Check if this contains a date pattern
-                if re.search(r'\d{4}', text) and not date_text:
-                    # Extract date range
-                    date_range = parse_date_range(text)
-                    if date_range:
-                        date_text = text
-                
-                # Get description from paragraphs
-                if next_elem.name == 'p' and not description:
-                    description = text
-                
-                # Get image if available
-                if not image_url and next_elem.name == 'img':
-                    img_src = next_elem.get('src') or next_elem.get('data-src')
-                    if img_src:
-                        image_url = urljoin(NPG_BASE_URL, img_src)
-                
-                next_elem = next_elem.find_next_sibling()
-            
-            # Also check parent container
+            # Extract date from container text
             if container:
                 container_text = container.get_text()
-                # Extract date range from container
-                if not date_text:
-                    date_range = parse_date_range(container_text)
-                    if date_range:
-                        # Find the actual date string in container
-                        for elem in container.find_all(['p', 'div', 'span']):
-                            text = elem.get_text(strip=True)
-                            if re.search(r'\d{4}', text):
-                                date_range_check = parse_date_range(text)
-                                if date_range_check:
-                                    date_text = text
-                                    break
                 
-                # Get description from container
+                # Look for date range pattern: "September 26, 2025 – March 1, 2026"
+                date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
+                if date_range_match:
+                    date_text = date_range_match.group(0)
+                else:
+                    # Try simpler pattern
+                    date_simple_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
+                    if date_simple_match:
+                        date_text = date_simple_match.group(0)
+                
+                # Extract date range from container text
+                if date_text:
+                    date_range = parse_date_range(date_text)
+                
+                # Get description - look for paragraphs after the h3
+                next_elem = h3.find_next_sibling()
+                while next_elem and not description:
+                    if next_elem.name == 'p':
+                        text = next_elem.get_text(strip=True)
+                        if len(text) > 50:  # Only use substantial paragraphs
+                            description = text
+                            break
+                    next_elem = next_elem.find_next_sibling()
+                
+                # If no description from siblings, look in container
                 if not description:
                     desc_para = container.find('p')
                     if desc_para:
-                        description = desc_para.get_text(strip=True)
+                        desc_text = desc_para.get_text(strip=True)
+                        if len(desc_text) > 50:
+                            description = desc_text
                 
-                # Get image from container
-                if not image_url:
-                    img = container.find('img')
-                    if img:
-                        img_src = img.get('src') or img.get('data-src')
-                        if img_src:
-                            image_url = urljoin(NPG_BASE_URL, img_src)
+                # Get image from container - find the image closest/associated with this h3
+                # Look in progressively broader containers to find the most relevant image
+                img = None
+                
+                # Strategy 1: Look for images near the h3 (in same immediate container or siblings)
+                current = h3
+                for level in range(3):
+                    parent = current.parent if current else None
+                    if parent:
+                        # Check for images in this immediate parent or its siblings
+                        imgs_near = parent.find_all('img', recursive=False)  # Direct children only
+                        for candidate_img in imgs_near:
+                            img_src = candidate_img.get('src') or candidate_img.get('data-src') or candidate_img.get('data-lazy-src')
+                            if img_src and 'grid_default' in img_src.lower():
+                                img = candidate_img
+                                break
+                        if img:
+                            break
+                    current = parent
+                
+                # Strategy 2: If no image found nearby, look in the broader container
+                # but try to find the one closest to the h3 in DOM order
+                if not img and container:
+                    all_imgs_in_container = container.find_all('img')
+                    # Find images that come after this h3 in the DOM (more likely to be associated)
+                    h3_position = None
+                    for i, elem in enumerate(container.descendants):
+                        if elem == h3:
+                            h3_position = i
+                            break
+                    
+                    grid_default_imgs = []
+                    for candidate_img in all_imgs_in_container:
+                        img_src = candidate_img.get('src') or candidate_img.get('data-src') or candidate_img.get('data-lazy-src')
+                        if img_src and 'grid_default' in img_src.lower():
+                            grid_default_imgs.append(candidate_img)
+                    
+                    if grid_default_imgs and h3_position is not None:
+                        # Find the image closest to the h3 position
+                        closest_img = None
+                        closest_distance = float('inf')
+                        for candidate_img in grid_default_imgs:
+                            img_position = None
+                            for i, elem in enumerate(container.descendants):
+                                if elem == candidate_img:
+                                    img_position = i
+                                    break
+                            if img_position is not None:
+                                distance = abs(img_position - h3_position)
+                                if distance < closest_distance:
+                                    closest_distance = distance
+                                    closest_img = candidate_img
+                        if closest_img:
+                            img = closest_img
+                    elif grid_default_imgs:
+                        # Fallback: just use first grid_default image
+                        img = grid_default_imgs[0]
+                
+                if img:
+                    img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                    if img_src:
+                        image_url = urljoin(NPG_BASE_URL, img_src)
             
             # If we found an exhibition URL, try to scrape more details
             if exhibition_url and exhibition_url not in [NPG_EXHIBITIONS_URL, NPG_EXHIBITIONS_URL + '/']:
@@ -326,8 +387,26 @@ def scrape_npg_exhibitions(scraper=None) -> List[Dict]:
                         # Merge detail data with what we found
                         if detail_data.get('description') and not description:
                             description = detail_data['description']
-                        if detail_data.get('image_url') and not image_url:
-                            image_url = detail_data['image_url']
+                        
+                        # For images: prefer listing page (grid_default) unless detail page has larger/better image
+                        # Check if detail page image is generic/default (like npg-00106.jpg which appears on many pages)
+                        detail_image = detail_data.get('image_url')
+                        if detail_image:
+                            # Generic/default image patterns that appear on multiple exhibitions
+                            generic_patterns = ['npg-00106.jpg', 'dayofdead.jpg']  # Add more generic patterns as needed
+                            is_generic_detail_image = any(pattern in detail_image.lower() for pattern in generic_patterns)
+                            
+                            if not image_url:
+                                # No listing page image, use detail page image (even if generic)
+                                image_url = detail_image
+                            elif not is_generic_detail_image and 'slides_wide' in detail_image.lower() and 'grid_default' in (image_url or '').lower():
+                                # Detail page has slides_wide (larger) AND it's not generic, listing page only has grid_default, prefer larger
+                                image_url = detail_image
+                            elif is_generic_detail_image and image_url:
+                                # Detail page image is generic, keep listing page image even if it's grid_default
+                                pass  # Keep existing image_url
+                            # Otherwise keep the listing page image
+                        
                         if detail_data.get('start_date') and not date_text:
                             date_text = f"{detail_data.get('start_date')} - {detail_data.get('end_date', '')}"
                 except Exception as e:
@@ -424,13 +503,76 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
                 if date_range:
                     break
         
-        # Extract image
+        # Extract image - try multiple strategies
         image_url = None
-        img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|exhibition', re.I))
+        
+        # Strategy 1: Look for hero/feature/main images by class
+        img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|exhibition|header', re.I))
         if img_elem:
-            img_src = img_elem.get('src') or img_elem.get('data-src')
+            img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src')
             if img_src:
                 image_url = urljoin(NPG_BASE_URL, img_src)
+        
+        # Strategy 2: Look for images with keywords in URL (page-header, hero, etc.)
+        # Prefer larger image sizes (slides_wide, large) over smaller ones (medium, thumbnail)
+        if not image_url:
+            all_imgs = soup.find_all('img')
+            candidate_images = []
+            
+            for img in all_imgs:
+                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                if img_src:
+                    src_lower = img_src.lower()
+                    # Skip small icons/logos/decoration
+                    skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'twitter', 'facebook', 'instagram', 'svg']
+                    if any(pattern in src_lower for pattern in skip_patterns):
+                        continue
+                    
+                    # Collect images with certain keywords in path
+                    if any(keyword in src_lower for keyword in ['page-header', 'hero', 'feature', 'exhibition', 'header']):
+                        # Assign priority: slides_wide > large > medium > thumbnail
+                        priority = 0
+                        if 'slides_wide' in src_lower or 'wide' in src_lower:
+                            priority = 4
+                        elif 'large' in src_lower:
+                            priority = 3
+                        elif 'medium' in src_lower:
+                            priority = 2
+                        elif 'thumbnail' in src_lower:
+                            priority = 1
+                        else:
+                            priority = 2  # Default priority for page-header images
+                        
+                        candidate_images.append((priority, img_src))
+            
+            # Sort by priority (highest first) and use the best one
+            if candidate_images:
+                candidate_images.sort(key=lambda x: x[0], reverse=True)
+                image_url = urljoin(NPG_BASE_URL, candidate_images[0][1])
+        
+        # Strategy 3: Find first substantial image (jpg/png/webp) not in nav/footer
+        if not image_url:
+            all_imgs = soup.find_all('img')
+            for img in all_imgs:
+                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                if img_src:
+                    src_lower = img_src.lower()
+                    # Skip icons/logos
+                    skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']
+                    if any(pattern in src_lower for pattern in skip_patterns):
+                        continue
+                    
+                    # Check if it's a real image file
+                    if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                        # Check if it's not in navigation/footer
+                        parent = img.parent
+                        skip_containers = ['nav', 'header', 'footer', 'menu']
+                        parent_tag = parent.name if parent else ''
+                        parent_classes = ' '.join(parent.get('class', [])) if parent and hasattr(parent, 'get') else ''
+                        
+                        if parent_tag not in skip_containers and not any(skip in parent_classes.lower() for skip in skip_containers):
+                            image_url = urljoin(NPG_BASE_URL, img_src)
+                            break
         
         # Build event dictionary
         event = {
