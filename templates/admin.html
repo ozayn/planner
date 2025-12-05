@@ -1987,6 +1987,8 @@
                             <button onclick="startSAAMScraping()" class="add-button" style="background: #8b5cf6;">🎨 SAAM</button>
                             <button onclick="startNPGScraping()" class="add-button" style="background: #ffc1d9;">🖼️ NPG</button>
                             <button onclick="startAsianArtScraping()" class="add-button" style="background: #d4a5f7;">🖼️ Asian Art</button>
+                            <!-- DISABLED: African Art Museum scraper not working - see FUTURE_FIXES.md -->
+                            <button onclick="startAfricanArtScraping()" class="add-button" style="background: #ff9f43; opacity: 0.5; cursor: not-allowed;" disabled title="Temporarily disabled - see FUTURE_FIXES.md">🎨 African Art (Disabled)</button>
                             <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
                             <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
                             <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
@@ -8929,6 +8931,29 @@
                 }
             } catch (error) {
                 updateScrapingStatus(`❌ Asian Art Museum scraping error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startAfricanArtScraping() {
+            updateScrapingStatus('🎨 Starting African Art Museum scraping (exhibitions, events, tours)...', 'info');
+            
+            try {
+                const response = await fetch('/api/admin/scrape-african-art', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateScrapingStatus(`✅ African Art Museum scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
+                    // Reload events table
+                    await loadEvents();
+                } else {
+                    updateScrapingStatus(`❌ African Art Museum scraping failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateScrapingStatus(`❌ African Art Museum scraping error: ${error.message}`, 'error');
             }
         }
         

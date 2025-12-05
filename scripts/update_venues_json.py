@@ -50,6 +50,7 @@ def update_venues_json():
                     "city_name": venue.city.name if venue.city else "",
                     "description": venue.description or "",
                     "opening_hours": venue.opening_hours or "",
+                    "holiday_hours": venue.holiday_hours or "",
                     "phone_number": venue.phone_number or "",
                     "email": venue.email or "",
                     "website_url": venue.website_url or "",

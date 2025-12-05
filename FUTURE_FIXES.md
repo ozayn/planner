@@ -32,6 +32,81 @@ OCMA uses the format: "December 5, 2025, 5:00–6:00 PM" where the am/pm is shar
 - Date/time parsing: lines ~2740-2803
 - Event dictionary creation: lines ~3212-3229
 
+## Date/Time Extraction for SAAM Events
+
+### Issue
+Date and time extraction is not working correctly for SAAM (Smithsonian American Art Museum) events. Events are being scraped but times are not being extracted properly.
+
+### Expected Format
+SAAM uses various formats for dates and times:
+- "Friday, January 23, 2026, 12:15 – 1:15pm EST"
+- "January 23, 2026, 1 – 2pm" (single digit hours without colons)
+- "Wednesday, December 17, 2025, 10:30am EST"
+
+### What We've Tried
+1. Multiple regex patterns for different time formats (with/without colons, single digit hours)
+2. Pattern matching for date/time ranges in page text
+3. Fallback to schema.org structured data extraction
+4. Time range extraction with shared am/pm format
+5. Duration calculation when end_time is missing (assumes 1 hour)
+6. Extensive pattern matching in `scrape_event_detail` function
+
+### Files Modified
+- `scripts/saam_scraper.py` - `scrape_event_detail` function (lines ~1155-1354)
+- `scripts/url_event_scraper.py` - SAAM event page detection and extraction (lines ~41-82)
+
+### Next Steps to Debug
+1. Test with actual SAAM event page HTML to see exact format used on current pages
+2. Check if event pages are being fetched successfully (check logs)
+3. Verify regex patterns match the actual HTML text on SAAM pages
+4. Check if time variables are being overwritten or reset after extraction
+5. Test with specific SAAM event URLs to identify the exact format
+6. Check if time extraction logic is being bypassed or returning None
+7. Verify that extracted times are properly saved to the event dictionary
+8. Check database to see if times are None or missing for SAAM events
+
+### Related Code Sections
+- Date/time extraction in `scrape_event_detail`: lines ~1155-1354
+- Pattern matching for time ranges: lines ~1163-1254
+- Schema.org fallback extraction: lines ~1383-1449
+- Time validation and formatting: lines ~1353-1409
+- Event dictionary creation with times: lines ~1829-1833
+- URL event scraper SAAM detection: `scripts/url_event_scraper.py` lines ~41-82
+
+## African Art Museum Scraper - Date Range and Image Extraction
+
+### Issue
+The African Art Museum scraper is not correctly extracting date ranges and images from the listing page. The scraper needs to:
+1. Extract date ranges like "June 3, 2024 – December 31, 2026" from the main listing page
+2. Extract images from the listing page exhibition cards
+3. Handle "ongoing", "permanent", and "indefinitely" exhibitions by setting end date to 3 years from now
+4. Only create valid exhibitions (filter out navigation items like Calendar, Marketplace, etc.)
+
+### Current Status
+- Scraper exists but is not working correctly
+- Button is disabled in admin interface
+- Should not be called automatically
+
+### Files Modified
+- `scripts/african_art_scraper.py` - Main scraper implementation
+- `app.py` - API endpoint `/api/admin/scrape-african-art` (lines ~6827-6877)
+- `templates/admin.html` - Button and JavaScript function (lines ~1990, ~8936-8957)
+
+### Next Steps to Fix
+1. Debug why date ranges aren't being extracted from listing page HTML
+2. Verify container detection logic for finding exhibition cards
+3. Test date range parsing with actual HTML from listing page
+4. Ensure image extraction is finding images in the correct containers
+5. Verify filtering logic is working to exclude non-exhibition items
+6. Test with actual page HTML to understand the structure better
+
+### Related Code Sections
+- Exhibition scraping: `scripts/african_art_scraper.py` - `scrape_african_art_exhibitions` function
+- Date extraction: lines ~406-480
+- Image extraction: lines ~448-481
+- URL validation: lines ~294-316
+- API endpoint: `app.py` lines ~6827-6877
+
 
 
 

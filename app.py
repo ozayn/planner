@@ -1327,7 +1327,8 @@ def get_venues():
                 )
             query = query.filter(db.or_(*filters))
     
-    venues = query.all()
+    # Sort by most recently updated first
+    venues = query.order_by(Venue.updated_at.desc()).all()
     return jsonify([venue.to_dict() for venue in venues])
 
 @app.route('/api/image/<photo_reference>')
@@ -2823,7 +2824,8 @@ def admin_cities():
 def admin_venues():
     """Get all venues for admin"""
     try:
-        venues = Venue.query.all()
+        # Sort by most recently updated first
+        venues = Venue.query.order_by(Venue.updated_at.desc()).all()
         venues_data = []
         
         for venue in venues:
@@ -6811,6 +6813,59 @@ def scrape_asian_art():
         
     except Exception as e:
         app_logger.error(f"Error scraping Asian Art Museum events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0
+        }), 500
+
+
+@app.route('/api/admin/scrape-african-art', methods=['POST'])
+def scrape_african_art():
+    """Scrape all African Art Museum events: exhibitions, tours, talks, and other events."""
+    try:
+        app_logger.info("🎨 Starting comprehensive African Art Museum scraping...")
+        
+        # Import the comprehensive African Art scraper
+        from scripts.african_art_scraper import scrape_all_african_art_events, create_events_in_database
+        
+        # Scrape all African Art Museum events
+        events = scrape_all_african_art_events()
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 200  # Return 200 so frontend can handle the error message
+        
+        # Create/update events in database
+        created_count, updated_count = create_events_in_database(events)
+        
+        app_logger.info(f"African Art Museum scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
+        
+        message = f"Found {len(events)} African Art Museum events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if updated_count > 0:
+            message += f", updated {updated_count} existing events"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping African Art Museum: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
         return jsonify({

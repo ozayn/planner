@@ -521,8 +521,15 @@ def parse_exhibitions_from_page(soup: BeautifulSoup) -> List[Dict]:
                 continue
             processed_titles.add(title)
             
-            # Skip section headings
-            if title.lower() in ['current', 'upcoming', 'past', 'traveling', 'exhibitions', 'exhibition']:
+            # Skip section headings and category pages
+            skip_titles = ['current', 'upcoming', 'past', 'traveling', 'exhibitions', 'exhibition', 
+                          'upcoming exhibitions', 'traveling exhibitions', 'past exhibitions']
+            if title.lower() in skip_titles or any(skip in title.lower() for skip in ['upcoming exhibitions', 'traveling exhibitions', 'past exhibitions']):
+                continue
+            
+            # Skip if URL indicates it's a category page, not a specific exhibition
+            if href in ['/exhibitions/upcoming', '/exhibitions/traveling', '/exhibitions/past', 
+                       '/exhibitions/current', '/exhibitions']:
                 continue
             
             # Extract date range from container
@@ -1078,6 +1085,22 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
             logger.debug(f"   ⚠️ Could not find valid title for {url}")
             return None
         
+        # Re-determine event type from title and description (more accurate than URL-based detection)
+        title_lower = title.lower()
+        if 'gallery talk' in title_lower or ('talk' in title_lower and 'walk-in' not in title_lower):
+            event_type = 'talk'
+        elif 'workshop' in title_lower:
+            event_type = 'workshop'
+        elif 'tour' in title_lower and 'walk-in' not in title_lower:
+            event_type = 'tour'
+        elif 'lecture' in title_lower:
+            event_type = 'talk'
+        elif 'art in the a.m.' in title_lower or 'art am' in title_lower:
+            event_type = 'talk'
+        elif 'virtual' in title_lower and 'workshop' in title_lower:
+            event_type = 'workshop'
+        # Keep the passed event_type if we couldn't determine a better one
+        
         # Extract description - first try schema.org JSON
         description = None
         schema_script = None  # Will be reused for time extraction
@@ -1138,10 +1161,9 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
         page_text = soup.get_text()
         
         # Try to find date/time patterns like "Friday, January 23, 2026, 12:15 – 1:15pm EST"
-        # Pattern 1: Full date with time range "January 23, 2026, 12:15 – 1:15pm"
-        # Use DOTALL to allow newlines between date and time
-        date_time_range_pattern = r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*([ap]m)'
-        match = re.search(date_time_range_pattern, page_text, re.I | re.DOTALL)
+        # Pattern 1a: Full date with time range "January 23, 2026, 1 – 2pm" (single digit hours without colons)
+        date_time_range_pattern_simple = r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap]m)'
+        match = re.search(date_time_range_pattern_simple, page_text, re.I | re.DOTALL)
         if match:
             # Extract date
             date_str = match.group(2) if match.group(2) else match.group(1)
@@ -1149,15 +1171,49 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
             if parsed_date:
                 start_date = parsed_date
             
-            # Extract times - ensure we have all required groups
+            # Extract times - single digit hours without colons
             if match.group(3) and match.group(4) and match.group(5):
-                start_time_str = match.group(3)
-                end_time_str = match.group(4)
+                start_hour = int(match.group(3))
+                end_hour = int(match.group(4))
                 am_pm = match.group(5).upper()
-                start_time = f"{start_time_str} {am_pm}"
-                end_time = f"{end_time_str} {am_pm}"
+                start_time = f"{start_hour}:00 {am_pm}"
+                end_time = f"{end_hour}:00 {am_pm}"
         
-        # Pattern 2: Date with single time "January 23, 2026, 12:15pm"
+        # Pattern 1b: Full date with time range "January 23, 2026, 12:15 – 1:15pm" (with colons)
+        # Only use this if we didn't already find a time
+        if not start_time:
+            date_time_range_pattern = r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*([ap]m)'
+            match = re.search(date_time_range_pattern, page_text, re.I | re.DOTALL)
+            if match:
+                # Extract date
+                date_str = match.group(2) if match.group(2) else match.group(1)
+                parsed_date = parse_single_date(date_str)
+                if parsed_date:
+                    start_date = parsed_date
+                
+                # Extract times - ensure we have all required groups
+                if match.group(3) and match.group(4) and match.group(5):
+                    start_time_str = match.group(3)
+                    end_time_str = match.group(4)
+                    am_pm = match.group(5).upper()
+                    start_time = f"{start_time_str} {am_pm}"
+                    end_time = f"{end_time_str} {am_pm}"
+        
+        # Pattern 2a: Date with single time "January 23, 2026, 1pm" (single digit hour without colon)
+        # Only use this if we didn't already find a time range (don't overwrite end_time)
+        if not start_time:
+            date_time_single_pattern_simple = r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2})\s*([ap]m)'
+            match = re.search(date_time_single_pattern_simple, page_text, re.I)
+            if match:
+                date_str = match.group(2) if match.group(2) else match.group(1)
+                parsed_date = parse_single_date(date_str)
+                if parsed_date:
+                    start_date = parsed_date
+                start_hour = int(match.group(3))
+                am_pm = match.group(4).upper()
+                start_time = f"{start_hour}:00 {am_pm}"
+        
+        # Pattern 2b: Date with single time "January 23, 2026, 12:15pm" (with colon)
         # Only use this if we didn't already find a time range (don't overwrite end_time)
         if not start_time:
             date_time_single_pattern = r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})\s*([ap]m)'
@@ -1180,27 +1236,153 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
                 if parsed_date:
                     start_date = parsed_date
         
-        # Fallback: Look for time range separately (handle "12:15 – 1:15pm" format)
+        # Fallback: Look for time range separately
         if not start_time:
-            # Try pattern with en-dash or hyphen
+            # Try pattern with colons first "12:15 – 1:15pm"
             time_range_match = re.search(r'(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*([ap]m)', page_text, re.I | re.DOTALL)
             if time_range_match:
                 start_time = f"{time_range_match.group(1)} {time_range_match.group(3).upper()}"
                 end_time = f"{time_range_match.group(2)} {time_range_match.group(3).upper()}"
             else:
-                # Single time
-                time_match = re.search(r'(\d{1,2}:\d{2})\s*([ap]m)', page_text, re.I)
-                if time_match:
-                    start_time = f"{time_match.group(1)} {time_match.group(2).upper()}"
+                # Try pattern without colons "1 – 2pm"
+                time_range_match_simple = re.search(r'(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap]m)', page_text, re.I | re.DOTALL)
+                if time_range_match_simple:
+                    start_hour = int(time_range_match_simple.group(1))
+                    end_hour = int(time_range_match_simple.group(2))
+                    am_pm = time_range_match_simple.group(3).upper()
+                    start_time = f"{start_hour}:00 {am_pm}"
+                    end_time = f"{end_hour}:00 {am_pm}"
+                else:
+                    # Single time with colon
+                    time_match = re.search(r'(\d{1,2}:\d{2})\s*([ap]m)', page_text, re.I)
+                    if time_match:
+                        start_time = f"{time_match.group(1)} {time_match.group(2).upper()}"
+                    else:
+                        # Single time without colon "1pm"
+                        time_match_simple = re.search(r'(\d{1,2})\s*([ap]m)', page_text, re.I)
+                        if time_match_simple:
+                            start_hour = int(time_match_simple.group(1))
+                            am_pm = time_match_simple.group(2).upper()
+                            start_time = f"{start_hour}:00 {am_pm}"
         
         # If we have start_time but no end_time, try to find the time range
         if start_time and not end_time:
+            # Try to find time range near the start time
             time_range_match = re.search(r'(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*([ap]m)', page_text, re.I | re.DOTALL)
             if time_range_match:
                 found_start = f"{time_range_match.group(1)} {time_range_match.group(3).upper()}"
                 # Check if this matches our start time (allowing for slight variations)
                 if found_start == start_time or found_start.replace(' ', '') == start_time.replace(' ', ''):
                     end_time = f"{time_range_match.group(2)} {time_range_match.group(3).upper()}"
+            
+            # If still no end_time, try to calculate from duration or assume 1 hour
+            if not end_time:
+                # Look for duration mentions in description
+                if description:
+                    duration_match = re.search(r'(\d+)\s*(hour|hr|minute|min)', description.lower())
+                    if duration_match:
+                        duration = int(duration_match.group(1))
+                        unit = duration_match.group(2) if len(duration_match.groups()) > 1 else ''
+                        # Parse start_time to add duration
+                        try:
+                            time_parts = start_time.replace('AM', '').replace('PM', '').strip().split(':')
+                            hour = int(time_parts[0])
+                            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                            is_pm = 'PM' in start_time.upper()
+                            
+                            if 'hour' in unit or 'hr' in unit:
+                                hour += duration
+                            elif 'minute' in unit or 'min' in unit:
+                                minute += duration
+                                if minute >= 60:
+                                    hour += minute // 60
+                                    minute = minute % 60
+                            
+                            # Convert to 12-hour format
+                            if hour >= 12:
+                                is_pm = True
+                                if hour > 12:
+                                    hour -= 12
+                            elif hour == 0:
+                                hour = 12
+                            
+                            end_time = f"{hour}:{minute:02d} {'PM' if is_pm else 'AM'}"
+                        except (ValueError, IndexError):
+                            pass
+                
+                # Default: assume 1 hour duration if no duration found
+                if not end_time:
+                    try:
+                        time_parts = start_time.replace('AM', '').replace('PM', '').strip().split(':')
+                        hour_12 = int(time_parts[0])
+                        minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                        is_pm = 'PM' in start_time.upper()
+                        
+                        # Convert to 24-hour format first
+                        hour_24 = hour_12
+                        if is_pm and hour_12 != 12:
+                            hour_24 = hour_12 + 12
+                        elif not is_pm and hour_12 == 12:
+                            hour_24 = 0
+                        
+                        # Add 1 hour
+                        hour_24 += 1
+                        
+                        # Handle hour overflow
+                        if hour_24 >= 24:
+                            hour_24 = hour_24 % 24
+                        
+                        # Convert back to 12-hour format
+                        if hour_24 == 0:
+                            hour_12 = 12
+                            is_pm = False
+                        elif hour_24 == 12:
+                            hour_12 = 12
+                            is_pm = True
+                        elif hour_24 > 12:
+                            hour_12 = hour_24 - 12
+                            is_pm = True
+                        else:
+                            hour_12 = hour_24
+                            is_pm = False
+                        
+                        end_time = f"{hour_12}:{minute:02d} {'PM' if is_pm else 'AM'}"
+                    except (ValueError, IndexError):
+                        pass
+        
+        # Validate and fix end_time format if needed (ensure hour is 1-12)
+        if end_time:
+            try:
+                # Check if end_time has invalid hour (e.g., "23:30 PM")
+                time_match = re.match(r'(\d{1,2}):(\d{2})\s*([AP]M)', end_time, re.I)
+                if time_match:
+                    hour = int(time_match.group(1))
+                    if hour > 12 or hour == 0:
+                        # Re-parse and fix
+                        minute = int(time_match.group(2))
+                        am_pm = time_match.group(3).upper()
+                        # Convert to 24-hour, then back to 12-hour
+                        hour_24 = hour
+                        if am_pm == 'PM' and hour != 12:
+                            hour_24 = hour + 12
+                        elif am_pm == 'AM' and hour == 12:
+                            hour_24 = 0
+                        # Convert back to 12-hour
+                        if hour_24 == 0:
+                            hour = 12
+                            am_pm = 'AM'
+                        elif hour_24 == 12:
+                            hour = 12
+                            am_pm = 'PM'
+                        elif hour_24 > 12:
+                            hour = hour_24 - 12
+                            am_pm = 'PM'
+                        else:
+                            hour = hour_24
+                            am_pm = 'AM'
+                        end_time = f"{hour}:{minute:02d} {am_pm}"
+            except (ValueError, AttributeError):
+                pass
         
         # Also check schema.org for time (always check for end time even if start time was found)
         if schema_script:
@@ -1361,21 +1543,35 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
                                 meeting_point = part_clean
                             break
         
-        # Determine venue location - check Event Location field first
+        # Determine venue location - check Building field first (most reliable)
         location = None
-        event_location_elem = soup.find('dt', string=re.compile(r'Event Location|Location', re.I))
-        if event_location_elem:
-            event_location_dd = event_location_elem.find_next_sibling('dd')
-            if event_location_dd:
-                location_text = event_location_dd.get_text(strip=True)
-                # Extract venue name (e.g., "In-person | Smithsonian American Art Museum")
-                if '|' in location_text:
-                    venue_part = location_text.split('|')[1].strip()
-                    location = venue_part
-                elif 'smithsonian american art museum' in location_text.lower():
-                    location = VENUE_NAME
-                elif 'renwick' in location_text.lower():
-                    location = RENWICK_VENUE_NAME
+        # Find Building field by checking all dt elements
+        for dt in soup.find_all('dt'):
+            if dt.get_text(strip=True).lower() == 'building':
+                building_dd = dt.find_next_sibling('dd')
+                if building_dd:
+                    building_text = building_dd.get_text(strip=True)
+                    if 'renwick' in building_text.lower():
+                        location = RENWICK_VENUE_NAME
+                    elif 'smithsonian american art museum' in building_text.lower() or 'saam' in building_text.lower():
+                        location = VENUE_NAME
+                    break
+        
+        # Check Event Location field if Building field not found
+        if not location:
+            event_location_elem = soup.find('dt', string=re.compile(r'Event Location|Location', re.I))
+            if event_location_elem:
+                event_location_dd = event_location_elem.find_next_sibling('dd')
+                if event_location_dd:
+                    location_text = event_location_dd.get_text(strip=True)
+                    # Extract venue name (e.g., "In-person | Smithsonian American Art Museum")
+                    if '|' in location_text:
+                        venue_part = location_text.split('|')[1].strip()
+                        location = venue_part
+                    elif 'smithsonian american art museum' in location_text.lower():
+                        location = VENUE_NAME
+                    elif 'renwick' in location_text.lower():
+                        location = RENWICK_VENUE_NAME
         
         # Fallback to determine_venue_from_soup if not found
         if not location:
@@ -1386,13 +1582,55 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
             location = "Online"
             meeting_point = None
         
-        # Extract image
+        # Extract image - try multiple methods
         image_url = None
-        img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|event', re.I))
-        if img_elem:
-            img_src = img_elem.get('src') or img_elem.get('data-src')
-            if img_src:
-                image_url = urljoin(SAAM_BASE_URL, img_src)
+        
+        # Method 1: Try Open Graph image (most reliable)
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            image_url = og_image.get('content')
+            if not image_url.startswith('http'):
+                image_url = urljoin(SAAM_BASE_URL, image_url)
+        
+        # Method 2: Try hero/feature/main image
+        if not image_url:
+            img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|event|exhibition', re.I))
+            if img_elem:
+                img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src')
+                if img_src:
+                    if not img_src.startswith('http'):
+                        image_url = urljoin(SAAM_BASE_URL, img_src)
+                    else:
+                        image_url = img_src
+        
+        # Method 3: Try first substantial image (not logo/icon)
+        if not image_url:
+            images = soup.find_all('img')
+            for img in images:
+                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                if img_src and not any(skip in img_src.lower() for skip in ['logo', 'icon', 'avatar', 'placeholder', 'spacer']):
+                    # Check if image is reasonably sized (likely a content image)
+                    img_width = img.get('width')
+                    img_height = img.get('height')
+                    if img_width and img_height:
+                        try:
+                            width = int(img_width)
+                            height = int(img_height)
+                            if width > 200 and height > 200:  # Substantial image
+                                if not img_src.startswith('http'):
+                                    image_url = urljoin(SAAM_BASE_URL, img_src)
+                                else:
+                                    image_url = img_src
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                    else:
+                        # No size info, but it's not a logo/icon, so use it
+                        if not img_src.startswith('http'):
+                            image_url = urljoin(SAAM_BASE_URL, img_src)
+                        else:
+                            image_url = img_src
+                        break
         
         # Extract pricing information
         price = None
@@ -1520,6 +1758,56 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
             if re.search(r'no\s+registration|free\s+and\s+open|no\s+tickets?\s+needed|walk[-\s]?in', desc_lower, re.I):
                 is_registration_required = False
         
+        # Final validation: ensure end_time is in correct format (1-12 hour)
+        # If end_time is invalid, recalculate from start_time
+        if end_time and start_time:
+            # Check if end_time has invalid hour
+            end_time_match = re.match(r'(\d{1,2}):(\d{2})\s*([AP]M)', end_time, re.I)
+            if end_time_match:
+                hour = int(end_time_match.group(1))
+                if hour > 12 or hour == 0:
+                    # Invalid hour - recalculate from start_time
+                    try:
+                        start_parts = start_time.replace('AM', '').replace('PM', '').strip().split(':')
+                        hour_12 = int(start_parts[0])
+                        minute = int(start_parts[1]) if len(start_parts) > 1 else 0
+                        is_pm = 'PM' in start_time.upper()
+                        
+                        # Convert to 24-hour, add 1 hour, convert back
+                        hour_24 = hour_12
+                        if is_pm and hour_12 != 12:
+                            hour_24 = hour_12 + 12
+                        elif not is_pm and hour_12 == 12:
+                            hour_24 = 0
+                        
+                        hour_24 += 1
+                        if hour_24 >= 24:
+                            hour_24 = hour_24 % 24
+                        
+                        # Convert back to 12-hour
+                        if hour_24 == 0:
+                            hour_12 = 12
+                            is_pm = False
+                        elif hour_24 == 12:
+                            hour_12 = 12
+                            is_pm = True
+                        elif hour_24 > 12:
+                            hour_12 = hour_24 - 12
+                            is_pm = True
+                        else:
+                            hour_12 = hour_24
+                            is_pm = False
+                        
+                        end_time = f"{hour_12}:{minute:02d} {'PM' if is_pm else 'AM'}"
+                    except (ValueError, IndexError):
+                        # If recalculation fails, just fix the hour format
+                        minute = int(end_time_match.group(2))
+                        am_pm = end_time_match.group(3).upper()
+                        if hour > 12:
+                            hour = hour - 12
+                            am_pm = 'PM'
+                        end_time = f"{hour}:{minute:02d} {am_pm}"
+        
         # Build event dictionary
         event = {
             'title': title,
@@ -1606,27 +1894,31 @@ def create_events_in_database(events: List[Dict]) -> tuple:
         
         for event_data in events:
             try:
-                # Determine which venue this event belongs to (skip if online)
+                # Determine which venue this event belongs to
+                # Even online events are hosted by SAAM, so we should still assign a venue
                 is_online_event = event_data.get('is_online', False)
                 venue = None
                 venue_name = None
                 
-                if not is_online_event:
-                    organizer = event_data.get('organizer', VENUE_NAME)
-                    if 'Renwick' in organizer:
-                        venue_name = RENWICK_VENUE_NAME
-                    elif 'Online' not in organizer:
-                        venue_name = VENUE_NAME
+                # For online events, still try to determine the venue from organizer
+                organizer = event_data.get('organizer', VENUE_NAME)
+                if 'Renwick' in organizer:
+                    venue_name = RENWICK_VENUE_NAME
+                elif 'Online' not in organizer or is_online_event:
+                    # For online events, default to SAAM since they're hosted by SAAM
+                    venue_name = VENUE_NAME
+                
+                if venue_name:
+                    # Find venue
+                    venue = Venue.query.filter(
+                        db.func.lower(Venue.name).like(f'%{venue_name.lower()}%')
+                    ).first()
                     
-                    if venue_name:
-                        # Find venue
-                        venue = Venue.query.filter(
-                            db.func.lower(Venue.name).like(f'%{venue_name.lower()}%')
-                        ).first()
-                        
-                        if not venue:
-                            logger.warning(f"   ⚠️  Venue '{venue_name}' not found, skipping event: {event_data.get('title')}")
-                            continue
+                    # Only skip if it's not an online event and venue not found
+                    # For online events, we'll continue without venue but still assign city
+                    if not venue and not is_online_event:
+                        logger.warning(f"   ⚠️  Venue '{venue_name}' not found, skipping event: {event_data.get('title')}")
+                        continue
                 
                 # Find city
                 city = City.query.filter(
@@ -1685,22 +1977,31 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         pass
                 
                 # Check if event already exists
+                # For recurring events (like walk-in tours), prioritize date-based matching
+                # For unique events, use URL-based matching
                 existing = None
                 source_url = event_data.get('source_url') or event_data.get('url')
                 
-                if source_url:
-                    existing = Event.query.filter_by(
-                        url=source_url,
-                        city_id=city.id
-                    ).first()
+                # First, try to match by title + venue + date (for recurring events)
+                existing = Event.query.filter_by(
+                    title=event_data.get('title'),
+                    venue_id=venue.id if venue else None,
+                    start_date=event_date,
+                    city_id=city.id
+                ).first()
                 
-                if not existing:
-                    existing = Event.query.filter_by(
-                        title=event_data.get('title'),
-                        venue_id=venue.id if venue else None,
-                        start_date=event_date,
-                        city_id=city.id
-                    ).first()
+                # If not found and we have a unique URL, try URL-based matching
+                # But only if the URL is specific (not a generic page like /visit/tours)
+                if not existing and source_url:
+                    # Skip URL matching for generic/recurring event URLs
+                    generic_urls = ['/visit/tours', '/tours', '/events', '/calendar']
+                    is_generic_url = any(generic in source_url.lower() for generic in generic_urls)
+                    
+                    if not is_generic_url:
+                        existing = Event.query.filter_by(
+                            url=source_url,
+                            city_id=city.id
+                        ).first()
                 
                 # Parse end_date
                 end_date = event_date
@@ -1737,8 +2038,8 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         existing.image_url = event_data.get('image_url')
                         updated = True
                     
-                    if event_data.get('meeting_point') and existing.meeting_point != event_data.get('meeting_point'):
-                        existing.meeting_point = event_data.get('meeting_point')
+                    if event_data.get('meeting_point') and existing.start_location != event_data.get('meeting_point'):
+                        existing.start_location = event_data.get('meeting_point')
                         updated = True
                     
                     if start_time_obj and (not existing.start_time or existing.start_time != start_time_obj):
@@ -1783,6 +2084,16 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                             existing.is_online = event_data.get('is_online')
                             updated = True
                     
+                    # Update city_id if not set (especially for online events)
+                    if city and (not existing.city_id or existing.city_id != city.id):
+                        existing.city_id = city.id
+                        updated = True
+                    
+                    # Update venue_id if not set (for online events that should have venue)
+                    if venue and (not existing.venue_id or existing.venue_id != venue.id):
+                        existing.venue_id = venue.id
+                        updated = True
+                    
                     if updated:
                         db.session.commit()
                         updated_count += 1
@@ -1791,7 +2102,13 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     # Create new event
                     # Set location for online events
                     location_text = "Online" if is_online_event else (event_data.get('meeting_point') or event_data.get('location') or (venue.name if venue else None))
-                    organizer_text = event_data.get('organizer', 'Online' if is_online_event else (venue.name if venue else None))
+                    # For online events, use venue name as organizer (they're still hosted by SAAM)
+                    organizer_text = event_data.get('organizer', (venue.name if venue else VENUE_NAME) if is_online_event else (venue.name if venue else None))
+                    # If organizer is "Online", replace with venue name
+                    if organizer_text == "Online" and venue:
+                        organizer_text = venue.name
+                    elif organizer_text == "Online":
+                        organizer_text = VENUE_NAME
                     
                     event = Event(
                         title=event_data['title'],
@@ -1802,7 +2119,7 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         end_time=end_time_obj,
                         start_location=location_text,
                         venue_id=venue.id if venue else None,
-                        city_id=city.id if not is_online_event else None,  # Online events might not have a city
+                        city_id=city.id,  # Always set city - even online events are hosted by SAAM in Washington, DC
                         event_type=event_data.get('event_type', 'event'),
                         url=source_url,
                         image_url=event_data.get('image_url'),
