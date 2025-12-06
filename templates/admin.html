@@ -4909,8 +4909,8 @@
                     }
                 });
                 
-                // Add actions column - prevent row click when clicking action buttons
-                row += `<td onclick="event.stopPropagation(); event.stopImmediatePropagation();">${generateActionButtons(item.id, tableType)}</td>`;
+                // Add actions column - use data attributes for event delegation
+                row += `<td class="actions-cell">${generateActionButtons(item.id, tableType)}</td>`;
                 
                 row += '</tr>';
                 return row;
@@ -4935,6 +4935,9 @@
                     // Ensure table body is visible
                     tableBody.style.setProperty('display', 'table-row-group', 'important');
                     tableBody.style.setProperty('visibility', 'visible', 'important');
+                    
+                    // Attach event listeners using event delegation for better reliability
+                    attachTableEventListeners(tableBody, tableType);
                     
                     // Verify table structure
                     const parentTable = tableBody.closest('table');
@@ -5590,35 +5593,193 @@
         // Generate action buttons based on table type
         function generateActionButtons(id, tableType) {
             const isMobile = window.innerWidth <= 768;
+            // Keep onclick for backward compatibility, but event delegation will also work
+            const getEditFunc = (type) => {
+                switch(type) {
+                    case 'venues': return 'editVenue';
+                    case 'sources': return 'editSource';
+                    case 'events': return 'editEvent';
+                    case 'cities': return 'editCity';
+                    default: return 'editItem';
+                }
+            };
+            const getDeleteFunc = (type) => {
+                switch(type) {
+                    case 'venues': return 'deleteVenue';
+                    case 'sources': return 'deleteSource';
+                    case 'events': return 'deleteEvent';
+                    case 'cities': return 'deleteCity';
+                    default: return 'deleteItem';
+                }
+            };
+            
+            const editFunc = getEditFunc(tableType);
+            const deleteFunc = getDeleteFunc(tableType);
+            
             // On mobile, show text labels with icons for better usability
             if (isMobile) {
-                switch (tableType) {
-                    case 'venues':
-                        return `<button onclick="event.stopPropagation(); editVenue(${id})" class="icon-btn edit-icon-btn mobile-action-btn" title="Edit"><span class="btn-icon">✏️</span><span class="btn-text">Edit</span></button> <button onclick="event.stopPropagation(); deleteVenue(${id})" class="icon-btn delete-icon-btn mobile-action-btn" title="Delete"><span class="btn-icon">🗑️</span><span class="btn-text">Delete</span></button>`;
-                    case 'sources':
-                        return `<button onclick="event.stopPropagation(); editSource(${id})" class="icon-btn edit-icon-btn mobile-action-btn" title="Edit"><span class="btn-icon">✏️</span><span class="btn-text">Edit</span></button> <button onclick="event.stopPropagation(); deleteSource(${id})" class="icon-btn delete-icon-btn mobile-action-btn" title="Delete"><span class="btn-icon">🗑️</span><span class="btn-text">Delete</span></button>`;
-                    case 'events':
-                        return `<button onclick="event.stopPropagation(); editEvent(${id})" class="icon-btn edit-icon-btn mobile-action-btn" title="Edit"><span class="btn-icon">✏️</span><span class="btn-text">Edit</span></button> <button onclick="event.stopPropagation(); deleteEvent(${id})" class="icon-btn delete-icon-btn mobile-action-btn" title="Delete"><span class="btn-icon">🗑️</span><span class="btn-text">Delete</span></button>`;
-                    case 'cities':
-                        return `<button onclick="event.stopPropagation(); editCity(${id})" class="icon-btn edit-icon-btn mobile-action-btn" title="Edit"><span class="btn-icon">✏️</span><span class="btn-text">Edit</span></button> <button onclick="event.stopPropagation(); deleteCity(${id})" class="icon-btn delete-icon-btn mobile-action-btn" title="Delete"><span class="btn-icon">🗑️</span><span class="btn-text">Delete</span></button>`;
-                    default:
-                        return `<button onclick="event.stopPropagation(); editItem(${id})" class="icon-btn edit-icon-btn mobile-action-btn" title="Edit"><span class="btn-icon">✏️</span><span class="btn-text">Edit</span></button>`;
-                }
+                return `<button onclick="event.stopPropagation(); ${editFunc}(${id})" class="icon-btn edit-icon-btn mobile-action-btn" data-edit-id="${id}" data-edit-type="${tableType}" title="Edit"><span class="btn-icon">✏️</span><span class="btn-text">Edit</span></button> <button onclick="event.stopPropagation(); ${deleteFunc}(${id})" class="icon-btn delete-icon-btn mobile-action-btn" data-delete-id="${id}" data-delete-type="${tableType}" title="Delete"><span class="btn-icon">🗑️</span><span class="btn-text">Delete</span></button>`;
             } else {
                 // Desktop: show icons only
-                switch (tableType) {
-                    case 'venues':
-                        return `<button onclick="event.stopPropagation(); editVenue(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteVenue(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
-                    case 'sources':
-                        return `<button onclick="event.stopPropagation(); editSource(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteSource(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
-                    case 'events':
-                        return `<button onclick="event.stopPropagation(); editEvent(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteEvent(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
-                    case 'cities':
-                        return `<button onclick="event.stopPropagation(); editCity(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button> <button onclick="event.stopPropagation(); deleteCity(${id})" class="icon-btn delete-icon-btn" title="Delete">🗑️</button>`;
-                    default:
-                        return `<button onclick="event.stopPropagation(); editItem(${id})" class="icon-btn edit-icon-btn" title="Edit">✏️</button>`;
-                }
+                return `<button onclick="event.stopPropagation(); ${editFunc}(${id})" class="icon-btn edit-icon-btn" data-edit-id="${id}" data-edit-type="${tableType}" title="Edit">✏️</button> <button onclick="event.stopPropagation(); ${deleteFunc}(${id})" class="icon-btn delete-icon-btn" data-delete-id="${id}" data-delete-type="${tableType}" title="Delete">🗑️</button>`;
             }
+        }
+        
+        // Attach event listeners to table rows and buttons using event delegation
+        function attachTableEventListeners(tableBody, tableType) {
+            // Handle row double-click
+            tableBody.addEventListener('dblclick', function(e) {
+                const row = e.target.closest('tr');
+                if (!row || row.classList.contains('no-results')) return;
+                
+                const rowId = row.id;
+                const match = rowId.match(new RegExp(`${tableType}-row-(\\d+)`));
+                if (!match) return;
+                
+                const id = parseInt(match[1]);
+                e.stopPropagation();
+                
+                switch(tableType) {
+                    case 'events':
+                        if (typeof showEventDetails === 'function') showEventDetails(e, id);
+                        break;
+                    case 'venues':
+                        if (typeof showVenueDetails === 'function') showVenueDetails(e, id);
+                        break;
+                    case 'cities':
+                        if (typeof showCityDetails === 'function') showCityDetails(e, id);
+                        break;
+                    case 'sources':
+                        if (typeof showSourceDetails === 'function') showSourceDetails(e, id);
+                        break;
+                }
+            });
+            
+            // Handle edit button clicks - use data attributes for reliability
+            tableBody.addEventListener('click', function(e) {
+                const editBtn = e.target.closest('.edit-icon-btn');
+                if (!editBtn) return;
+                
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // Try data attributes first (more reliable)
+                const id = editBtn.getAttribute('data-edit-id');
+                const btnType = editBtn.getAttribute('data-edit-type') || tableType;
+                
+                if (id) {
+                    const itemId = parseInt(id);
+                    switch(btnType) {
+                        case 'events':
+                            if (typeof editEvent === 'function') {
+                                editEvent(itemId);
+                            } else {
+                                console.error('editEvent function not found');
+                            }
+                            break;
+                        case 'venues':
+                            if (typeof editVenue === 'function') {
+                                editVenue(itemId);
+                            } else {
+                                console.error('editVenue function not found');
+                            }
+                            break;
+                        case 'cities':
+                            if (typeof editCity === 'function') {
+                                editCity(itemId);
+                            } else {
+                                console.error('editCity function not found');
+                            }
+                            break;
+                        case 'sources':
+                            if (typeof editSource === 'function') {
+                                editSource(itemId);
+                            } else {
+                                console.error('editSource function not found');
+                            }
+                            break;
+                    }
+                    return;
+                }
+                
+                // Fallback to onclick attribute parsing
+                const onclickAttr = editBtn.getAttribute('onclick');
+                if (onclickAttr) {
+                    const match = onclickAttr.match(/edit\w+\((\d+)\)/);
+                    if (match) {
+                        const itemId = parseInt(match[1]);
+                        switch(tableType) {
+                            case 'events':
+                                if (typeof editEvent === 'function') editEvent(itemId);
+                                break;
+                            case 'venues':
+                                if (typeof editVenue === 'function') editVenue(itemId);
+                                break;
+                            case 'cities':
+                                if (typeof editCity === 'function') editCity(itemId);
+                                break;
+                            case 'sources':
+                                if (typeof editSource === 'function') editSource(itemId);
+                                break;
+                        }
+                    }
+                }
+            });
+            
+            // Handle delete button clicks - use data attributes for reliability
+            tableBody.addEventListener('click', function(e) {
+                const deleteBtn = e.target.closest('.delete-icon-btn');
+                if (!deleteBtn) return;
+                
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // Try data attributes first (more reliable)
+                const id = deleteBtn.getAttribute('data-delete-id');
+                const btnType = deleteBtn.getAttribute('data-delete-type') || tableType;
+                
+                if (id) {
+                    const itemId = parseInt(id);
+                    switch(btnType) {
+                        case 'events':
+                            if (typeof deleteEvent === 'function') deleteEvent(itemId);
+                            break;
+                        case 'venues':
+                            if (typeof deleteVenue === 'function') deleteVenue(itemId);
+                            break;
+                        case 'cities':
+                            if (typeof deleteCity === 'function') deleteCity(itemId);
+                            break;
+                        case 'sources':
+                            if (typeof deleteSource === 'function') deleteSource(itemId);
+                            break;
+                    }
+                    return;
+                }
+                
+                // Fallback to onclick attribute parsing
+                const onclickAttr = deleteBtn.getAttribute('onclick');
+                if (onclickAttr) {
+                    const match = onclickAttr.match(/delete\w+\((\d+)\)/);
+                    if (match) {
+                        const itemId = parseInt(match[1]);
+                        switch(tableType) {
+                            case 'events':
+                                if (typeof deleteEvent === 'function') deleteEvent(itemId);
+                                break;
+                            case 'venues':
+                                if (typeof deleteVenue === 'function') deleteVenue(itemId);
+                                break;
+                            case 'cities':
+                                if (typeof deleteCity === 'function') deleteCity(itemId);
+                                break;
+                            case 'sources':
+                                if (typeof deleteSource === 'function') deleteSource(itemId);
+                                break;
+                        }
+                    }
+                }
+            });
         }
         
         // Render venues table using dynamic system
