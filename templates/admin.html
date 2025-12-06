@@ -4007,7 +4007,6 @@
                         '<p>Events</p>' +
                     '</div>';
                 
-                console.log('Statistics loaded successfully');
             } catch (error) {
                 console.error('Error loading statistics:', error);
                 if (statsGrid) {
@@ -4878,7 +4877,6 @@
             } else if (tableType === 'venues' && tableId === 'venuesTable') {
                 renderVenuesMobileCards(data);
             } else if (tableType === 'sources' && tableId === 'sourcesTable') {
-                console.log('Rendering sources mobile cards with', data.length, 'items');
                 renderSourcesMobileCards(data);
             }
             
@@ -5076,7 +5074,6 @@
                 }).join('');
                 
                 mobileContainer.innerHTML = cardsHTML;
-                console.log('Sources mobile cards rendered:', cardsHTML.length, 'characters,', data.length, 'cards');
             } catch (error) {
                 console.error('Error rendering sources mobile cards:', error);
                 mobileContainer.innerHTML = '<div class="no-results" style="color: #dc3545;">❌ Error rendering sources: ' + error.message + '</div>';
@@ -5086,15 +5083,12 @@
         // Update all tables view mode (table vs cards) based on screen size
         function updateAllTablesViewMode() {
             const isMobile = window.innerWidth <= 768;
-            console.log('updateAllTablesViewMode called, isMobile:', isMobile, 'window width:', window.innerWidth);
-            
             // Events
             const eventsDesktop = document.getElementById('eventsTableDesktop');
             const eventsMobile = document.getElementById('eventsTableMobile');
             if (eventsDesktop && eventsMobile) {
                 eventsDesktop.style.setProperty('display', isMobile ? 'none' : 'table', 'important');
                 eventsMobile.style.setProperty('display', isMobile ? 'block' : 'none', 'important');
-                console.log('Events - Desktop:', eventsDesktop.style.display, 'Mobile:', eventsMobile.style.display);
             }
             
             // Cities
@@ -5112,7 +5106,6 @@
             if (venuesDesktop && venuesMobile) {
                 venuesDesktop.style.setProperty('display', isMobile ? 'none' : 'table', 'important');
                 venuesMobile.style.setProperty('display', isMobile ? 'block' : 'none', 'important');
-                console.log('Venues - Desktop:', venuesDesktop.style.display, 'Mobile:', venuesMobile.style.display);
             }
             
             // Sources
@@ -6086,7 +6079,6 @@
             
             // If cities aren't loaded yet, try to load them first
             if (!window.allCities) {
-                console.log('Cities not loaded yet, loading cities...');
                 loadCities().then(() => {
                     populateVenueCityDropdown(); // Try again after loading
                 }).catch(error => {
@@ -6115,7 +6107,6 @@
             if (!typeSelect) return;
             
             try {
-                console.log('Loading venue types...');
                 const response = await fetch('/api/venue-types');
                 const data = await response.json();
                 
@@ -6662,7 +6653,6 @@
                     venueSelect.appendChild(option);
                 });
                 
-                console.log(`Populated ${venues.length} venues for city ID ${cityId}`);
             } catch (error) {
                 console.error('Error loading venues:', error);
             }
@@ -7147,7 +7137,6 @@
             updateAllTablesViewMode();
             
             // Also load cities so they're available for venue dropdown and event filters
-            console.log('Loading cities for venue dropdown and event filters...');
             loadCities().then(() => {
                 // Repopulate event filters after cities are loaded
                 if (window.allEvents) {
@@ -8843,7 +8832,6 @@
                     venueSelect.appendChild(option);
                 });
                 
-                console.log(`✅ Populated ${venues.length} venues for city ${cityId}`);
             } catch (error) {
                 console.error('Error loading venues:', error);
                 venueSelect.innerHTML = '<option value="">Error loading venues</option>';
@@ -10520,7 +10508,6 @@
             }
         }
 
-        console.log('Minimal script test - loaded');
     </script>
 </body>
 </html>
