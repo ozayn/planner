@@ -4152,7 +4152,6 @@
                 for (const candidate of candidates) {
                     for (let i = 0; i < options.length; i++) {
                         if (options[i].text.toLowerCase() === candidate) {
-                            console.log(`✅ Semantic match: "${searchTerm}" → ${options[i].text}`);
                             return i;
                         }
                     }
@@ -4455,7 +4454,6 @@
         // Handle delete city API call
         async function handleDeleteCity(cityId) {
             try {
-                console.log('Deleting city:', cityId);
                 
                 const response = await fetch('/api/admin/cities/' + cityId, {
                     method: 'DELETE',
@@ -4756,11 +4754,6 @@
             table.style.setProperty('visibility', 'visible', 'important');
             table.style.setProperty('width', '100%', 'important');
             
-            if (tableType === 'sources') {
-                console.log('Sources table element found and made visible:', table);
-                console.log('Table ID:', table.id);
-                console.log('Table computed display:', window.getComputedStyle(table).display);
-            }
             
             const tableHead = table.querySelector('thead tr');
             if (tableHead) {
@@ -5035,11 +5028,8 @@
                 return;
             }
             
-            console.log('renderSourcesMobileCards called with', data?.length || 0, 'sources');
-            
             if (!data || data.length === 0) {
                 mobileContainer.innerHTML = '<div class="no-results">🔍 No sources found</div>';
-                console.log('No sources data to render');
                 return;
             }
             
@@ -5097,7 +5087,6 @@
             if (citiesDesktop && citiesMobile) {
                 citiesDesktop.style.setProperty('display', isMobile ? 'none' : 'table', 'important');
                 citiesMobile.style.setProperty('display', isMobile ? 'block' : 'none', 'important');
-                console.log('Cities - Desktop:', citiesDesktop.style.display, 'Mobile:', citiesMobile.style.display);
             }
             
             // Venues
@@ -5114,9 +5103,6 @@
             if (sourcesDesktop && sourcesMobile) {
                 sourcesDesktop.style.setProperty('display', isMobile ? 'none' : 'table', 'important');
                 sourcesMobile.style.setProperty('display', isMobile ? 'block' : 'none', 'important');
-                console.log('Sources - Desktop:', sourcesDesktop.style.display, 'Mobile:', sourcesMobile.style.display);
-                console.log('Sources Desktop element:', sourcesDesktop);
-                console.log('Sources Mobile element:', sourcesMobile);
             } else {
                 console.error('Sources elements not found! Desktop:', sourcesDesktop, 'Mobile:', sourcesMobile);
             }
@@ -6099,7 +6085,6 @@
                 citySelect.innerHTML += `<option value="${city.id}">${displayName}</option>`;
             });
             
-            console.log(`Populated city dropdown with ${window.allCities.length} cities`);
         }
         
         async function populateVenueTypeDropdown() {
@@ -6115,7 +6100,6 @@
                     data.venue_types.forEach(type => {
                         typeSelect.innerHTML += `<option value="${type.value}">${type.text}</option>`;
                     });
-                    console.log(`Populated venue type dropdown with ${data.venue_types.length} types`);
                 } else {
                     console.error('No venue types returned from API');
                 }
@@ -6162,7 +6146,6 @@
             smartSearchBtn.disabled = true;
             
             try {
-                console.log('Starting smart search for:', venueName, 'in', selectedCity.name);
                 
                 const response = await fetch('/api/admin/smart-search-venue', {
                     method: 'POST',
@@ -6334,7 +6317,6 @@
             if (!confirmed) return;
             
             try {
-                console.log('Starting cities export...');
                 
                 const response = await fetch('/api/admin/export-cities', {
                     method: 'POST',
@@ -7130,7 +7112,6 @@
         
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, calling loadOverview...');
             loadOverviewWithTimeout();
             
             // Initialize all tables view mode on page load
@@ -7146,7 +7127,6 @@
             });
             
             // Setup forms
-            console.log('Setting up forms...');
             setupImageUploadForm();
             setupUrlScraperForm();
             
@@ -7269,7 +7249,6 @@
             }
             
             try {
-                console.log('Adding city:', formData);
                 
                 const response = await fetch('/api/admin/add-city', {
                     method: 'POST',
@@ -7282,7 +7261,6 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    console.log('City added successfully:', result);
                     alert('City added successfully!');
                     
                     // Close modal
@@ -7352,7 +7330,6 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    console.log('Venue added successfully:', result);
                     alert('Venue added successfully!');
                     
                     // Close modal
@@ -8077,7 +8054,6 @@
                                 <img src="${event.image_url}" alt="${event.title || 'Event'} Image" 
                                      style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.2s; background: #f5f5f5;"
                                      onerror="console.error('Failed to load image:', '${event.image_url}'); this.style.background='#f5f5f5'; this.alt='Image unavailable - click to view URL';"
-                                     onload="console.log('Image loaded:', '${event.image_url}');"
                                      onmouseover="this.style.transform='scale(1.02)'"
                                      onmouseout="this.style.transform='scale(1)'">
                             </a>
@@ -8566,7 +8542,6 @@
             autoFillBtn.disabled = true;
             
             try {
-                console.log('Fetching data from:', url);
                 
                 const response = await fetch('/api/admin/extract-event-from-url', {
                     method: 'POST',
@@ -8596,7 +8571,6 @@
         }
         
         function displayExtractedData(data) {
-            console.log('🔍 displayExtractedData called with:', data);
             
             // Show the preview section
             document.getElementById('urlExtractedPreview').style.display = 'block';
@@ -8664,7 +8638,6 @@
                 const venueSelect = document.getElementById('urlVenueSelect');
                 if (venueSelect) {
                     venueSelect.value = data.venue_id;
-                    console.log('✅ Applied venue ID:', data.venue_id);
                 }
             }
             
@@ -8724,7 +8697,6 @@
                     // Try auto-selection if we have extracted data
                     if (window.extractedEventData && window.extractedEventData.venue_id) {
                         select.value = window.extractedEventData.venue_id;
-                        console.log('✅ AUTO-SELECTED VENUE:', window.extractedEventData.venue_id);
                     }
                 })
                 .catch(error => console.error('Error loading venues:', error));
@@ -8766,7 +8738,6 @@
             const fileInput = document.getElementById('eventImage');
             if (fileInput) {
                 fileInput.value = '';
-                console.log('File input cleared');
             }
             
             // Reset manual input fields
@@ -9010,7 +8981,6 @@
                     citySelect.appendChild(option);
                 });
                 
-                console.log(`✅ Populated quick URL city selector with ${cities.length} cities`);
             } catch (error) {
                 console.error('Error populating quick URL city selector:', error);
             }
@@ -9303,32 +9273,22 @@
                         return;
                     }
                     
-                    console.log('Image file selected:', imageFile.name);
-                    console.log('Image file size:', imageFile.size);
-                    console.log('Image file type:', imageFile.type);
-                    console.log('Image file lastModified:', new Date(imageFile.lastModified));
                     formData.append('image', imageFile);
                     
                     // Add OCR engine selection
                     const ocrEngine = document.getElementById('ocrEngine').value;
-                    console.log('OCR Engine selected:', ocrEngine);
                     formData.append('ocr_engine', ocrEngine);
                     
                     try {
-                        console.log('Sending request to API...');
                         const response = await fetch('/api/admin/upload-event-image', {
                             method: 'POST',
                             body: formData
                         });
                         
-                        console.log('Response received:', response.status);
                         const result = await response.json();
-                        console.log('Result parsed:', result);
                         
                         if (response.ok) {
-                            console.log('Upload successful, result:', result);
                             if (result.extracted_data) {
-                                console.log('Calling displayExtractedData...');
                                 displayExtractedData(result.extracted_data);
                             } else {
                                 console.error('No extracted_data in result:', result);
@@ -9443,23 +9403,18 @@
         }
         
         async function populateCitySelect(selectId, targetCity = null, targetState = null) {
-            console.log(`populateCitySelect called for: ${selectId}`);
             const select = document.getElementById(selectId);
             if (!select) {
                 console.error(`Element with id '${selectId}' not found`);
                 return;
             }
             
-            console.log(`Found select element:`, select);
-            
             try {
-                console.log('Fetching cities from /api/admin/cities...');
                 const response = await fetch('/api/admin/cities');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const cities = await response.json();
-                console.log(`Received ${cities.length} cities:`, cities);
                 
                 // Clear existing options
                 select.innerHTML = '<option value="">Select City</option>';
@@ -9480,7 +9435,6 @@
                     }
                 });
                 
-                console.log(`Successfully populated city dropdown with ${cities.length} cities`);
             } catch (error) {
                 console.error('Error loading cities:', error);
                 select.innerHTML = '<option value="">Error loading cities</option>';
@@ -9510,14 +9464,12 @@
                 const element = document.getElementById(fieldId);
                 if (element) {
                     element.value = value || '';
-                    console.log(`Set ${fieldId} = "${value}"`);
                 } else {
                     console.warn(`Field not found: ${fieldId}`);
                 }
             }
             
             // Populate all fields safely
-            console.log(`Setting title: "${data.title}"`);
             setFieldValue('manualEventTitle', data.title);
             setFieldValue('manualEventDescription', data.description);
             setFieldValue('manualStartDate', data.start_date);
@@ -9526,22 +9478,17 @@
             setFieldValue('manualEndTime', data.end_time);
             
             // Smart event type mapping to available dropdown options
-            console.log(`🔍 Event type from backend: "${data.event_type}"`);
             if (data.event_type) {
                 const eventTypeField = document.getElementById('manualEventType');
                 if (eventTypeField) {
                     const smartMatch = findBestMatch(data.event_type, eventTypeField, 'event type');
-                    console.log(`🔍 Smart match result: ${smartMatch}`);
                     if (smartMatch !== -1) {
                         eventTypeField.selectedIndex = smartMatch;
-                        console.log(`✅ Event type selected: ${eventTypeField.options[smartMatch].text} (value: ${eventTypeField.options[smartMatch].value})`);
                     } else {
-                        console.log(`❌ No suitable event type match found for: ${data.event_type}`);
                         setFieldValue('manualEventType', 'tour'); // Default fallback
                     }
                 }
             } else {
-                console.log(`⚠️ No event_type in data, defaulting to 'tour'`);
                 setFieldValue('manualEventType', 'tour'); // Default
             }
             
@@ -9598,7 +9545,6 @@
                 const ensureDropdownPopulated = async () => {
                     const options = citySelect.options;
                     if (options.length <= 1) {
-                        console.log('City dropdown not populated yet, populating now...');
                         await populateCitySelect('manualCityId');
                         // Wait a bit for DOM to update
                         await new Promise(resolve => setTimeout(resolve, 100));
@@ -9630,30 +9576,24 @@
                     if (optionValue == cityId || optionValue == cityIdStr || optionValue == cityIdNum) {
                         citySelect.selectedIndex = i;
                         citySelect.dispatchEvent(new Event('change'));
-                        console.log(`✅ City selected by ID: ${options[i].text} (ID: ${cityId}, matched option value: ${optionValue})`);
                         found = true;
                         break;
                     }
                 }
                 
                 if (!found) {
-                    console.log(`❌ City ID ${cityId} not found in dropdown options. Available IDs: ${availableIds.join(', ')}`);
                     // Fall back to city name matching if available
                     if (cityName) {
-                        console.log(`🔄 Attempting city name fallback for: ${cityName}`);
                         const smartMatch = findBestMatch(cityName, citySelect, 'city');
                         if (smartMatch !== -1) {
                             citySelect.selectedIndex = smartMatch;
                             citySelect.dispatchEvent(new Event('change'));
-                            console.log(`✅ City selected by name fallback: ${options[smartMatch].text} (ID: ${options[smartMatch].value})`);
                         } else {
-                            console.log(`❌ Could not match city name: ${cityName}`);
                             // Try direct text match
                             for (let i = 0; i < options.length; i++) {
                                 if (options[i].text.toLowerCase().includes(cityName.toLowerCase())) {
                                     citySelect.selectedIndex = i;
                                     citySelect.dispatchEvent(new Event('change'));
-                                    console.log(`✅ City selected by direct text match: ${options[i].text}`);
                                     break;
                                 }
                             }
@@ -9661,9 +9601,6 @@
                     }
                 }
             };
-            
-            console.log(`🏙️ City data received - city_id: ${data.city_id} (type: ${typeof data.city_id}), city: ${data.city}`);
-            console.log(`🏛️ Venue data received - venue_id: ${data.venue_id} (type: ${typeof data.venue_id})`);
             
             // Helper function to select venue after city is ready
             const selectVenueAfterCity = async (venueId, cityId) => {
@@ -9673,12 +9610,9 @@
                     return;
                 }
                 
-                console.log(`🏛️ Attempting to select venue ID: ${venueId} for city ID: ${cityId}`);
-                
                 // Wait for city to be selected and venues to be populated
                 const waitForVenues = async (retryCount = 0) => {
                     if (retryCount > 15) {
-                        console.log('⚠️ Venue dropdown not populated after 15 attempts');
                         return;
                     }
                     
@@ -9690,13 +9624,11 @@
                     const targetCityId = cityId || currentCityId;
                     
                     if (targetCityId) {
-                        console.log(`🔄 Populating venues for city ID: ${targetCityId} (attempt ${retryCount + 1})`);
                         await populateVenuesForCity(targetCityId, 'manualVenueId');
                         await new Promise(resolve => setTimeout(resolve, 150));
                     }
                     
                     const options = venueSelect.options;
-                    console.log(`🔍 Venue dropdown has ${options.length} options`);
                     
                     if (options.length <= 1) {
                         setTimeout(() => waitForVenues(retryCount + 1), 200);
@@ -9710,11 +9642,9 @@
                         if (options[i].value == venueId || options[i].value == venueIdStr || options[i].value == venueIdNum) {
                             venueSelect.selectedIndex = i;
                             venueSelect.dispatchEvent(new Event('change'));
-                            console.log(`✅ Venue selected: ${options[i].text} (ID: ${venueId})`);
                             return;
                         }
                     }
-                    console.log(`❌ Venue ID ${venueId} not found in dropdown. Available IDs: ${Array.from(options).map(o => o.value).join(', ')}`);
                 };
                 
                 await waitForVenues();
@@ -9722,49 +9652,38 @@
             
             // Auto-select city first (required for venue selection)
             if (data.city_id) {
-                console.log(`🔄 Auto-selecting city ID: ${data.city_id}, city: ${data.city}`);
                 selectCityAfterPopulation(data.city_id, data.city).then(() => {
-                    console.log(`✅ City selection completed, now selecting venue...`);
                     // After city is selected, select venue if provided
                     if (data.venue_id) {
                         selectVenueAfterCity(data.venue_id, data.city_id);
                     }
                 }).catch(err => {
-                    console.error('❌ Error selecting city:', err);
+                    console.error('Error selecting city:', err);
                     // Even if city selection fails, try to select venue with the city_id we have
                     if (data.venue_id && data.city_id) {
-                        console.log(`🔄 Attempting venue selection despite city selection error...`);
                         selectVenueAfterCity(data.venue_id, data.city_id);
                     }
                 });
             } else if (data.city) {
                 // Smart city matching with retry logic
-                console.log(`Looking for city: ${data.city}`);
                 const citySelect = document.getElementById('manualCityId');
                 if (citySelect) {
                     // Function to attempt city selection
                     const attemptCitySelection = (retryCount = 0) => {
                         const options = citySelect.options;
-                        console.log(`City dropdown has ${options.length} options (attempt ${retryCount + 1})`);
                         
                         if (options.length <= 1) { // Only has "Select City" option
                             if (retryCount < 5) {
-                                console.log(`City dropdown not populated yet, retrying in 200ms...`);
                                 setTimeout(() => attemptCitySelection(retryCount + 1), 200);
                                 return;
-                            } else {
-                                console.log(`City dropdown still not populated after 5 attempts`);
-                                return;
                             }
+                            return;
                         }
                         
                         // Try smart matching
                         const smartMatch = findBestMatch(data.city, citySelect, 'city');
                         if (smartMatch !== -1) {
                             citySelect.selectedIndex = smartMatch;
-                            console.log(`✅ City selected: ${options[smartMatch].text}`);
-                        } else {
-                            console.log(`❌ No city match found for: ${data.city}`);
                         }
                     };
                     
@@ -9775,7 +9694,6 @@
             
             // Additional city selection logic
             if (data.city && data.state) {
-                console.log(`Attempting to auto-select city: ${data.city}, ${data.state}`);
                 populateCitySelect('manualCityId', data.city, data.state);
             }
         }
