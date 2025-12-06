@@ -29,11 +29,8 @@ async function loadSources() {
             summary.textContent = `Showing all ${window.allSources.length} sources`;
         }
         
-        // Only render if section is active (will be rendered by showSection if needed)
-        const sourcesSection = document.getElementById('sources');
-        if (sourcesSection && sourcesSection.classList.contains('active')) {
-            renderSourcesTable();
-        }
+        // Always try to render - renderSourcesTable will handle visibility checks
+        renderSourcesTable();
         
     } catch (error) {
         console.error('Error loading sources:', error);
@@ -46,31 +43,41 @@ async function loadSources() {
 
 function renderSourcesTable() {
     const data = window.filteredSources || window.allSources || [];
+    
     // Ensure the section exists
     const sourcesSection = document.getElementById('sources');
     if (!sourcesSection) {
-        console.warn('Sources section not found, skipping render');
+        console.error('Sources section not found, skipping render');
         return;
     }
+    
+    // Ensure the section is visible
+    sourcesSection.style.setProperty('display', 'block', 'important');
+    sourcesSection.style.setProperty('visibility', 'visible', 'important');
+    sourcesSection.style.setProperty('opacity', '1', 'important');
+    sourcesSection.style.setProperty('position', 'relative', 'important');
+    sourcesSection.style.setProperty('width', '100%', 'important');
+    sourcesSection.style.setProperty('min-height', '500px', 'important');
     
     // Ensure the table container is visible before rendering
     const tableContainer = sourcesSection.querySelector('.table-container');
     if (tableContainer) {
-        tableContainer.style.display = 'block';
-        tableContainer.style.visibility = 'visible';
-        tableContainer.style.minHeight = '400px';
-        tableContainer.style.height = 'auto';
+        tableContainer.style.setProperty('display', 'block', 'important');
+        tableContainer.style.setProperty('visibility', 'visible', 'important');
+        tableContainer.style.setProperty('opacity', '1', 'important');
+        tableContainer.style.setProperty('min-height', '400px', 'important');
+        tableContainer.style.setProperty('height', 'auto', 'important');
+        tableContainer.style.setProperty('position', 'relative', 'important');
+        tableContainer.style.setProperty('z-index', '1', 'important');
+    } else {
+        console.error('Table container not found in sources section');
     }
     
-    // Render immediately if section is active, otherwise defer
-    if (sourcesSection.classList.contains('active')) {
+    // Always render - renderDynamicTable will handle the table visibility
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
         renderDynamicTable('sourcesTable', data, 'sources');
-    } else {
-        // Defer rendering to next frame if section is not yet active
-        requestAnimationFrame(() => {
-            renderDynamicTable('sourcesTable', data, 'sources');
-        });
-    }
+    });
 }
 
 function editSource(id) {

@@ -82,8 +82,12 @@ function renderDynamicTable(tableId, data, tableType = 'default') {
     // Ensure table is visible
     table.style.setProperty('display', 'table', 'important');
     table.style.setProperty('visibility', 'visible', 'important');
+    table.style.setProperty('opacity', '1', 'important');
     table.style.setProperty('width', '100%', 'important');
-    
+    table.style.setProperty('position', 'relative', 'important');
+    table.style.setProperty('z-index', '1', 'important');
+    table.style.setProperty('background-color', '#ffffff', 'important');
+    table.style.setProperty('border-collapse', 'collapse', 'important');
     
     const tableHead = table.querySelector('thead tr');
     if (tableHead) {
@@ -180,12 +184,11 @@ function renderDynamicTable(tableId, data, tableType = 'default') {
         const insertedRows = tableBody.querySelectorAll('tr');
         if (insertedRows.length === 0) {
             console.error('ERROR: Rows HTML generated but no rows found in DOM after insertion!');
-            console.error('rowsHTML length:', rowsHTML.length);
-            console.error('First 500 chars of rowsHTML:', rowsHTML.substring(0, 500));
         } else {
             // Ensure table body is visible
             tableBody.style.setProperty('display', 'table-row-group', 'important');
             tableBody.style.setProperty('visibility', 'visible', 'important');
+            tableBody.style.setProperty('opacity', '1', 'important');
             
             // Attach event listeners using event delegation for better reliability
             // Note: WeakMap prevents duplicate listeners, but event delegation means
@@ -206,8 +209,37 @@ function renderDynamicTable(tableId, data, tableType = 'default') {
     }
     
     // Always update view mode after rendering to ensure correct display
+    // Use a small delay to ensure DOM is ready
     setTimeout(() => {
         updateAllTablesViewMode();
+        // For sources, ensure at least one view is visible
+        // If mobile view doesn't have content, show desktop even on mobile
+        if (tableType === 'sources' && tableId === 'sourcesTable') {
+            const sourcesDesktop = document.getElementById('sourcesTableDesktop');
+            const sourcesMobile = document.getElementById('sourcesTableMobile');
+            
+            if (sourcesDesktop && sourcesMobile) {
+                const mobileDisplay = window.getComputedStyle(sourcesMobile).display;
+                const desktopDisplay = window.getComputedStyle(sourcesDesktop).display;
+                const mobileHasContent = sourcesMobile.innerHTML.trim().length > 0 && 
+                                         !sourcesMobile.innerHTML.includes('Loading sources...') &&
+                                         !sourcesMobile.innerHTML.includes('no-results');
+                
+                // Ensure mobile container is visible if it should be shown
+                if (mobileDisplay === 'block') {
+                    sourcesMobile.style.setProperty('display', 'block', 'important');
+                    sourcesMobile.style.setProperty('visibility', 'visible', 'important');
+                    sourcesMobile.style.setProperty('opacity', '1', 'important');
+                }
+                
+                // If both are hidden or mobile is shown but has no content, show desktop
+                if ((desktopDisplay === 'none' && mobileDisplay === 'none') || 
+                    (mobileDisplay === 'block' && !mobileHasContent)) {
+                    sourcesDesktop.style.setProperty('display', 'table', 'important');
+                    sourcesMobile.style.setProperty('display', 'none', 'important');
+                }
+            }
+        }
     }, 0);
 }
 
@@ -396,6 +428,11 @@ function renderSourcesMobileCards(data) {
         }).join('');
         
         mobileContainer.innerHTML = cardsHTML;
+        
+        // Ensure mobile container is visible after rendering
+        mobileContainer.style.setProperty('display', 'block', 'important');
+        mobileContainer.style.setProperty('visibility', 'visible', 'important');
+        mobileContainer.style.setProperty('opacity', '1', 'important');
     } catch (error) {
         console.error('Error rendering sources mobile cards:', error);
         mobileContainer.innerHTML = '<div class="no-results" style="color: #dc3545;">❌ Error rendering sources: ' + error.message + '</div>';
@@ -405,6 +442,7 @@ function renderSourcesMobileCards(data) {
 // Update all tables view mode (table vs cards) based on screen size
 function updateAllTablesViewMode() {
     const isMobile = window.innerWidth <= 768;
+    
     // Events
     const eventsDesktop = document.getElementById('eventsTableDesktop');
     const eventsMobile = document.getElementById('eventsTableMobile');
@@ -429,14 +467,32 @@ function updateAllTablesViewMode() {
         venuesMobile.style.setProperty('display', isMobile ? 'block' : 'none', 'important');
     }
     
-    // Sources
+    // Sources - be more careful here
     const sourcesDesktop = document.getElementById('sourcesTableDesktop');
     const sourcesMobile = document.getElementById('sourcesTableMobile');
-    if (sourcesDesktop && sourcesMobile) {
-        sourcesDesktop.style.setProperty('display', isMobile ? 'none' : 'table', 'important');
-        sourcesMobile.style.setProperty('display', isMobile ? 'block' : 'none', 'important');
+    
+    if (sourcesDesktop) {
+        if (sourcesMobile) {
+            // Check if mobile has content - if not, show desktop even on mobile
+            const mobileHasContent = sourcesMobile.innerHTML.trim().length > 0 && 
+                                     !sourcesMobile.innerHTML.includes('Loading sources...') &&
+                                     !sourcesMobile.innerHTML.includes('no-results');
+            
+            if (isMobile && mobileHasContent) {
+                // Mobile view has content, use it
+                sourcesDesktop.style.setProperty('display', 'none', 'important');
+                sourcesMobile.style.setProperty('display', 'block', 'important');
+            } else {
+                // Desktop view or mobile has no content - show desktop
+                sourcesDesktop.style.setProperty('display', 'table', 'important');
+                sourcesMobile.style.setProperty('display', 'none', 'important');
+            }
+        } else {
+            // If mobile doesn't exist, always show desktop
+            sourcesDesktop.style.setProperty('display', 'table', 'important');
+        }
     } else {
-        console.error('Sources elements not found! Desktop:', sourcesDesktop, 'Mobile:', sourcesMobile);
+        console.error('Sources desktop table not found!');
     }
 }
 

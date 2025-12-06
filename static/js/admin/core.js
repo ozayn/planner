@@ -79,25 +79,25 @@ function showSection(sectionId) {
     const sections = document.querySelectorAll('.data-section');
     sections.forEach(section => {
         section.classList.remove('active');
-        section.style.display = 'none';
-        section.style.visibility = 'hidden';
+        section.style.setProperty('display', 'none', 'important');
+        section.style.setProperty('visibility', 'hidden', 'important');
     });
     
     // Show selected section immediately
     const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-        targetSection.classList.add('active');
-        targetSection.style.display = 'block';
-        targetSection.style.visibility = 'visible';
-        targetSection.style.opacity = '1';
-        targetSection.style.position = 'relative';
-        targetSection.style.zIndex = '1';
-        targetSection.style.minHeight = '500px';
-        
-    } else {
+    if (!targetSection) {
         console.error('Section not found:', sectionId);
         return;
     }
+    
+    targetSection.classList.add('active');
+    // Force visibility with !important via setProperty
+    targetSection.style.setProperty('display', 'block', 'important');
+    targetSection.style.setProperty('visibility', 'visible', 'important');
+    targetSection.style.setProperty('opacity', '1', 'important');
+    targetSection.style.setProperty('position', 'relative', 'important');
+    targetSection.style.setProperty('z-index', '1', 'important');
+    targetSection.style.setProperty('min-height', '500px', 'important');
     
     // Update navigation buttons
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -128,16 +128,16 @@ function showSection(sectionId) {
         // Re-render table if data is already loaded (for sources, cities, venues, events)
         // Use a small delay to ensure section is fully visible
         setTimeout(() => {
-            if (sectionId === 'sources' && window.allSources) {
+            if (sectionId === 'sources' && window.allSources && window.allSources.length > 0) {
                 renderSourcesTable();
-            } else if (sectionId === 'cities' && window.allCities) {
+            } else if (sectionId === 'cities' && window.allCities && window.allCities.length > 0) {
                 renderCitiesTable();
-            } else if (sectionId === 'venues' && window.allVenues) {
+            } else if (sectionId === 'venues' && window.allVenues && window.allVenues.length > 0) {
                 renderVenuesTable();
-            } else if (sectionId === 'events' && window.allEvents) {
+            } else if (sectionId === 'events' && window.allEvents && window.allEvents.length > 0) {
                 renderEventsTable();
             }
-        }, 50);
+        }, 100);
     }, 0);
 }
 
