@@ -3965,12 +3965,9 @@
     <script src="/static/js/calendar-export.js"></script>
 
     <script>
-        console.log('Minimal script test - starting...');
-        
         // Simple test function
         async function loadOverview() {
             try {
-                console.log('Loading overview statistics...');
                 const statsGrid = document.getElementById('statsGrid');
                 
                 if (!statsGrid) {
@@ -3985,7 +3982,6 @@
                 }
                 
                 const stats = await response.json();
-                console.log('Stats received:', stats);
                 
                 // Ensure all values are numbers, default to 0 if undefined
                 const citiesCount = stats.cities !== undefined ? stats.cities : 0;
@@ -4066,20 +4062,6 @@
                 targetSection.style.zIndex = '1';
                 targetSection.style.minHeight = '500px';
                 
-                // Log section dimensions for debugging
-                setTimeout(() => {
-                    const rect = targetSection.getBoundingClientRect();
-                    console.log('Section dimensions:', {
-                        width: rect.width,
-                        height: rect.height,
-                        top: rect.top,
-                        left: rect.left,
-                        display: window.getComputedStyle(targetSection).display,
-                        visibility: window.getComputedStyle(targetSection).visibility
-                    });
-                }, 100);
-                
-                console.log('Showing section:', sectionId, 'Display:', targetSection.style.display, 'Active class:', targetSection.classList.contains('active'));
             } else {
                 console.error('Section not found:', sectionId);
                 return;
@@ -4131,7 +4113,6 @@
             const options = dropdownElement.options;
             const searchTerm = extractedValue.toLowerCase().trim();
             
-            console.log(`Smart matching ${fieldType}: "${extractedValue}"`);
             
             // Define semantic mappings for common variations
             const semanticMappings = {
@@ -4162,7 +4143,6 @@
             // 1. Exact match (compare against option text, not value)
             for (let i = 0; i < options.length; i++) {
                 if (options[i].text.toLowerCase() === searchTerm) {
-                    console.log(`✅ Exact match: ${options[i].text}`);
                     return i;
                 }
             }
@@ -4184,7 +4164,6 @@
             for (let i = 0; i < options.length; i++) {
                 if (options[i].text.toLowerCase().includes(searchTerm) || 
                     searchTerm.includes(options[i].text.toLowerCase())) {
-                    console.log(`✅ Partial match: ${options[i].text}`);
                     return i;
                 }
             }
@@ -4197,7 +4176,6 @@
                 }
             }
             
-            console.log(`❌ No match found for: "${extractedValue}"`);
             return -1;
         }
         
@@ -4278,13 +4256,10 @@
         // Load cities data
         async function loadCities() {
             try {
-                console.log('Loading cities...');
                 const response = await fetch('/api/admin/cities');
                 const cities = await response.json();
                 
                 if (cities.error) throw new Error(cities.error);
-                
-                console.log('Cities loaded:', cities.length);
                 
                 // Store cities globally for filtering
                 window.allCities = cities;
@@ -4338,7 +4313,6 @@
             // Try auto-selection if we have extracted data
             if (window.extractedEventData && window.extractedEventData.city_id) {
                 select.value = window.extractedEventData.city_id;
-                console.log('✅ AUTO-SELECTED CITY:', window.extractedEventData.city_id);
             }
         }
         
@@ -4494,7 +4468,6 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    console.log('City deleted successfully:', result);
                     alert('City deleted successfully!');
                     
                     // Reload cities data
@@ -4516,26 +4489,21 @@
             try {
                 // Load cities first if not already loaded (needed for city filter)
                 if (!window.allCities || window.allCities.length === 0) {
-                    console.log('Loading cities first for venue filter...');
                     try {
                         const citiesResponse = await fetch('/api/admin/cities');
                         const cities = await citiesResponse.json();
                         if (!cities.error) {
                             window.allCities = cities;
-                            console.log('Cities loaded for filter:', cities.length);
                         }
                     } catch (citiesError) {
                         console.warn('Could not load cities for filter:', citiesError);
                     }
                 }
                 
-                console.log('Loading venues...');
                 const response = await fetch('/api/admin/venues');
                 const venues = await response.json();
                 
                 if (venues.error) throw new Error(venues.error);
-                
-                console.log('Venues loaded:', venues.length);
                 
                 // Store venues globally for filtering
                 window.allVenues = venues;
@@ -4556,8 +4524,6 @@
         
         // Sorting functionality for dynamic tables
         function sortTable(tableId, field) {
-            console.log('sortTable called:', tableId, field);
-            
             // Determine which data array to sort based on table ID
             let dataArray;
             let filteredArray;
@@ -4584,17 +4550,9 @@
                     return;
             }
             
-            console.log('Data arrays:', {
-                dataArrayLength: dataArray?.length,
-                filteredArrayLength: filteredArray?.length,
-                dataArray: dataArray,
-                filteredArray: filteredArray
-            });
-            
             // Use allData if filtered is not available
             if (!filteredArray) {
                 filteredArray = dataArray;
-                console.log('Using dataArray as filteredArray');
             }
             
             if (!dataArray || !filteredArray) {
@@ -4656,16 +4614,11 @@
                     break;
                 case 'sourcesTable':
                     window.filteredSources = sortedArray;
-                    console.log('Updated window.filteredSources:', sortedArray.length, 'items');
                     break;
             }
             
-            console.log('Sorted array length:', sortedArray.length);
-            console.log('First 3 items:', sortedArray.slice(0, 3));
-            
             // Re-render the table
             const tableType = tableId.replace('Table', '');
-            console.log('Calling renderDynamicTable with:', tableId, sortedArray.length, tableType);
             renderDynamicTable(tableId, sortedArray, tableType);
             
             // Update header arrows to show sort direction
@@ -4719,7 +4672,6 @@
         
         // Dynamic table rendering system
         function renderDynamicTable(tableId, data, tableType = 'default') {
-            console.log('renderDynamicTable called:', { tableId, dataLength: data?.length, tableType });
             const tableBody = document.getElementById(tableId);
             if (!tableBody) {
                 console.error('Table body not found:', tableId);
@@ -4734,7 +4686,6 @@
             }
             
             if (!data || data.length === 0) {
-                console.warn('No data to render for table:', tableId);
                 tableBody.innerHTML = '<tr><td colspan="100" class="no-results">🔍 No data found</td></tr>';
                 return;
             }
@@ -4742,11 +4693,9 @@
             // Get the first item to determine available fields dynamically
             const sampleItem = data[0];
             const availableFields = Object.keys(sampleItem);
-            console.log('Available fields:', availableFields);
             
             // Define field display preferences (order, visibility, formatting)
             const fieldConfig = getFieldConfig(tableType);
-            console.log('Field config for', tableType, ':', fieldConfig);
             
             // Filter and order fields based on configuration
             const orderedFields = fieldConfig.order.filter(field => availableFields.includes(field));
@@ -4754,13 +4703,6 @@
             // Add any new fields not in the config (for future-proofing)
             const newFields = availableFields.filter(field => !fieldConfig.order.includes(field));
             orderedFields.push(...newFields);
-            
-            // Debug logging for sources
-            if (tableType === 'sources') {
-                console.log('Sources table rendering - orderedFields:', orderedFields);
-                console.log('Sources table rendering - fieldConfig.order:', fieldConfig.order);
-                console.log('Sources table rendering - availableFields:', availableFields);
-            }
             
             // Generate table headers - find the desktop table
             let table = null;
@@ -4777,14 +4719,12 @@
                     const tbody = document.getElementById('sourcesTable');
                     if (tbody) {
                         table = tbody.closest('table');
-                        console.log('Found sources table via tbody.closest:', table);
                     }
                     // Another fallback: find in sources section
                     if (!table) {
                         const sourcesSection = document.getElementById('sources');
                         if (sourcesSection) {
                             table = sourcesSection.querySelector('table.data-table');
-                            console.log('Found sources table via section querySelector:', table);
                         }
                     }
                 }
@@ -4850,18 +4790,8 @@
                 headerRow += '<th>Actions</th>';
                 
                 tableHead.innerHTML = headerRow;
-                console.log('Table headers generated:', orderedFields.length, 'fields, headerRow length:', headerRow.length);
-                if (tableType === 'sources') {
-                    console.log('Sources table headers HTML:', headerRow.substring(0, 200));
-                }
             } else {
                 console.error('Table head row not found for tableId:', tableId, 'table:', table);
-                if (tableType === 'sources') {
-                    const thead = table.querySelector('thead');
-                    console.log('Sources table thead:', thead);
-                    const theadTr = table.querySelector('thead tr');
-                    console.log('Sources table thead tr:', theadTr);
-                }
             }
             
             // Generate data rows
@@ -4931,34 +4861,12 @@
                     console.error('rowsHTML length:', rowsHTML.length);
                     console.error('First 500 chars of rowsHTML:', rowsHTML.substring(0, 500));
                 } else {
-                    console.log('Table rendered: ' + insertedRows.length + ' rows inserted into DOM');
                     // Ensure table body is visible
                     tableBody.style.setProperty('display', 'table-row-group', 'important');
                     tableBody.style.setProperty('visibility', 'visible', 'important');
                     
                     // Attach event listeners using event delegation for better reliability
                     attachTableEventListeners(tableBody, tableType);
-                    
-                    // Verify table structure
-                    const parentTable = tableBody.closest('table');
-                    if (parentTable) {
-                        console.log('Table element found, display:', window.getComputedStyle(parentTable).display);
-                        console.log('Table visibility:', window.getComputedStyle(parentTable).visibility);
-                        console.log('Table height:', window.getComputedStyle(parentTable).height);
-                        
-                        if (tableType === 'sources') {
-                            console.log('Sources table verification:');
-                            console.log('  - Parent table ID:', parentTable.id);
-                            console.log('  - Parent table display:', window.getComputedStyle(parentTable).display);
-                            console.log('  - Table body rows:', insertedRows.length);
-                            console.log('  - First row content:', insertedRows[0]?.textContent?.substring(0, 100));
-                        }
-                    } else {
-                        console.error('Parent table not found for tableBody!');
-                        if (tableType === 'sources') {
-                            console.error('Sources tableBody parent:', tableBody.parentElement);
-                        }
-                    }
                 }
             }
             
@@ -6568,26 +6476,21 @@
             try {
                 // Load cities first if not already loaded (needed for city filter)
                 if (!window.allCities || window.allCities.length === 0) {
-                    console.log('Loading cities first for event filter...');
                     try {
                         const citiesResponse = await fetch('/api/admin/cities');
                         const cities = await citiesResponse.json();
                         if (!cities.error) {
                             window.allCities = cities;
-                            console.log('Cities loaded for filter:', cities.length);
                         }
                     } catch (citiesError) {
                         console.warn('Could not load cities for filter:', citiesError);
                     }
                 }
                 
-                console.log('Loading events...');
                 const response = await fetch('/api/admin/events');
                 const events = await response.json();
                 
                 if (events.error) throw new Error(events.error);
-                
-                console.log('Events loaded:', events.length);
                 
                 // Store events globally for filtering
                 window.allEvents = events;
@@ -7617,7 +7520,6 @@
         
         async function loadSources() {
             try {
-                console.log('Loading sources...');
                 const response = await fetch('/api/admin/sources');
                 
                 if (!response.ok) {
@@ -7635,12 +7537,6 @@
                 // Handle both array and object with sources property
                 window.allSources = Array.isArray(data) ? data : (data.sources || []);
                 window.filteredSources = null; // Reset filters
-                
-                console.log('Sources loaded:', window.allSources.length);
-                
-                if (window.allSources.length === 0) {
-                    console.warn('No sources found in database');
-                }
                 
                 populateSourceFilters();
                 
@@ -9464,24 +9360,18 @@
         }
         
         function displayExtractedData(data) {
-            console.log('displayExtractedData called with:', data);
             const displayDiv = document.getElementById('extractedDataDisplay');
             const contentDiv = document.getElementById('extractedDataContent');
-            
-            console.log('DOM elements found:', { displayDiv, contentDiv });
             
             if (!displayDiv || !contentDiv) {
                 console.error('Required elements not found:', { displayDiv, contentDiv });
                 return;
             }
             
-            console.log('About to populate manual fields...');
             // Store extracted data for later use (including venue_id)
             window.extractedEventData = data;
-            console.log('💾 Stored extracted data:', data);
             // First, populate the form fields with extracted data
             populateManualFields(data);
-            console.log('Manual fields populated');
             
             let html = '<div class="extracted-data-grid">';
             
@@ -9520,15 +9410,12 @@
             html += '</div>';
             
             contentDiv.innerHTML = html;
-            console.log('Content HTML set, about to show display div');
             displayDiv.style.display = 'block';
-            console.log('Display div shown');
             
             // Show the sticky footer with Create Event button
             const stickyFooter = document.getElementById('imageUploadStickyFooter');
             if (stickyFooter) {
                 stickyFooter.style.display = 'block';
-                console.log('Sticky footer shown');
                 
                 // On mobile, ensure footer is fixed at bottom
                 const isMobile = window.innerWidth <= 768;
@@ -9561,13 +9448,10 @@
             }, 100);
             
             // Populate manual input fields with extracted data (second time for safety)
-            console.log('Populating manual fields again...');
             populateManualFields(data);
-            console.log('Manual fields populated again');
             
             // Store extracted data for event creation
             window.extractedEventData = data;
-            console.log('Extracted data stored in window.extractedEventData');
         }
         
         async function populateCitySelect(selectId, targetCity = null, targetState = null) {
