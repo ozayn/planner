@@ -3897,7 +3897,7 @@ def load_all_data_to_database():
 
 @app.route('/api/admin/reload-sources', methods=['POST'])
 def reload_sources_from_json():
-    """Reload sources from sources.json into database"""
+    """Reload sources from sources.json into database (handles city_id mismatch between local and production)"""
     try:
         import json
         from pathlib import Path
@@ -3916,6 +3916,23 @@ def reload_sources_from_json():
         
         app_logger.info(f"📊 Found {total_sources} sources in JSON")
         
+        # Create city_id mapping from cities.json (handles city_id mismatch between local and production)
+        cities_file = Path("data/cities.json")
+        city_id_mapping = {}
+        if cities_file.exists():
+            with open(cities_file, 'r') as f:
+                cities_data = json.load(f)
+            cities_json = cities_data.get('cities', {})
+            for json_city_id, city_info in cities_json.items():
+                city_name = city_info.get('name')
+                if city_name:
+                    # Find city in production database by name
+                    city = City.query.filter_by(name=city_name).first()
+                    if city:
+                        city_id_mapping[int(json_city_id)] = city.id
+        
+        app_logger.info(f"📍 City ID mapping created: {len(city_id_mapping)} cities mapped")
+        
         # Clear existing sources
         app_logger.info("🧹 Clearing existing sources...")
         Source.query.delete()
@@ -3923,15 +3940,25 @@ def reload_sources_from_json():
         
         # Load new sources
         sources_loaded = 0
+        sources_skipped = 0
         for source_id, source_info in sources_data.items():
             try:
+                # Map JSON city_id to production city_id
+                json_city_id = source_info.get('city_id')
+                actual_city_id = city_id_mapping.get(json_city_id)
+                
+                if not actual_city_id:
+                    app_logger.warning(f"⚠️ Skipping source {source_info.get('name')} - city_id {json_city_id} not found in mapping")
+                    sources_skipped += 1
+                    continue
+                
                 source = Source(
                     name=source_info.get('name'),
                     handle=source_info.get('handle'),
                     source_type=source_info.get('source_type'),
                     url=source_info.get('url'),
                     description=source_info.get('description'),
-                    city_id=source_info.get('city_id'),
+                    city_id=actual_city_id,  # Use production city_id
                     covers_multiple_cities=source_info.get('covers_multiple_cities', False),
                     covered_cities=source_info.get('covered_cities', ''),
                     event_types=source_info.get('event_types', '[]'),
@@ -3945,14 +3972,16 @@ def reload_sources_from_json():
                 sources_loaded += 1
             except Exception as e:
                 app_logger.error(f"Error loading source {source_info.get('name')}: {e}")
+                sources_skipped += 1
                 continue
         
         db.session.commit()
-        app_logger.info(f"✅ Successfully loaded {sources_loaded} sources")
+        app_logger.info(f"✅ Successfully loaded {sources_loaded} sources (skipped {sources_skipped})")
         
         return jsonify({
             'message': f'Successfully reloaded {sources_loaded} sources',
-            'total_sources': sources_loaded
+            'total_sources': sources_loaded,
+            'sources_skipped': sources_skipped
         })
         
     except Exception as e:
