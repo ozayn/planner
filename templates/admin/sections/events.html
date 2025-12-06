@@ -1,0 +1,94 @@
+<!-- Events Section -->
+<div id="events" class="data-section">
+    <h2 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em;">🎭 Events Management</h2>
+    <!-- Search and Filter Controls -->
+    <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); margin-bottom: 16px;">
+        <div class="search-controls">
+            <input type="text" id="eventSearch" class="search-input" placeholder="🔍 Search events...">
+            <select id="eventTypeFilter" class="filter-select">
+                <option value="">All Types</option>
+            </select>
+            <select id="eventCityFilter" class="filter-select">
+                <option value="">All Cities</option>
+            </select>
+            <select id="eventVenueFilter" class="filter-select">
+                <option value="">All Venues</option>
+            </select>
+            <button onclick="applyEventFilters()" class="filter-button">🔍 Filter</button>
+            <button onclick="clearEventFilters()" class="clear-filters">🗑️ Clear</button>
+        </div>
+        <!-- Action Buttons - Organized into sections -->
+    <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+        <!-- Create Events Section -->
+        <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.1);">
+            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">➕ Create Events</h4>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button onclick="openAddEventModal()" class="add-button">➕ Add Event</button>
+                <button onclick="openUrlScraperModal()" class="add-button" style="background: #8b5cf6;">🔗 From URL</button>
+                <button onclick="openCreateFromVenueModal()" class="add-button" style="background: #f59e0b;">🏛️ From Venue</button>
+                <button onclick="openImageUploadModal()" class="add-button" style="background: #10b981;">📷 Upload Image</button>
+            </div>
+        </div>
+        <!-- Bulk Actions Section -->
+        <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(220, 53, 69, 0.1);">
+            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">⚡ Bulk Actions</h4>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button onclick="exportSelectedEventsToCalendar()" class="add-button" style="background: #ff8c42;" id="bulkExportBtn" disabled>📅 Export Selected</button>
+                <button onclick="deleteSelectedEvents()" class="add-button" style="background: #dc3545;" id="bulkDeleteBtn" disabled>🗑️ Delete Selected</button>
+            </div>
+        </div>
+        <!-- Event Scraping Section -->
+        <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 123, 255, 0.1);">
+            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">🕷️ Event Scraping</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
+                <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">🖼️ NGA</button>
+                <button onclick="startSAAMScraping()" class="add-button" style="background: #8b5cf6;">🎨 SAAM</button>
+                <button onclick="startNPGScraping()" class="add-button" style="background: #ffc1d9;">🖼️ NPG</button>
+                <button onclick="startAsianArtScraping()" class="add-button" style="background: #d4a5f7;">🖼️ Asian Art</button>
+                <!-- DISABLED: African Art Museum scraper not working - see FUTURE_FIXES.md -->
+                <button onclick="startAfricanArtScraping()" class="add-button" style="background: #ff9f43; opacity: 0.5; cursor: not-allowed;" disabled title="Temporarily disabled - see FUTURE_FIXES.md">🎨 African Art (Disabled)</button>
+                <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
+                <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
+                <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
+                <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Webster's</button>
+                <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
+            </div>
+            <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
+        </div>
+        <!-- Quick URL Event Creator -->
+        <div style="margin-top: 0; padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.1);">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <label style="font-weight: 600; color: #374151; white-space: nowrap; font-size: 13px; letter-spacing: 0.3px;">🔗 Quick Add from URL:</label>
+                <input type="url" id="quickEventUrl" placeholder="Paste event URL (e.g., nga.gov/calendar/...)" 
+                       style="flex: 1; min-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;"
+                       onkeypress="if(event.key === 'Enter') quickCreateEventFromUrl();">
+                <select id="quickUrlCitySelect" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; min-width: 150px;">
+                    <option value="">Select City...</option>
+                </select>
+                <button onclick="quickCreateEventFromUrl()" class="add-button" style="background: #3b82f6; white-space: nowrap;">
+                    ⚡ Quick Create
+                </button>
+            </div>
+            <div id="quickUrlStatus" style="margin-top: 8px; font-size: 13px; color: #64748b;"></div>
+        </div>
+    </div>
+    <div id="eventFilterSummary" class="filter-summary"></div>
+    <div class="table-container">
+        <div class="scroll-hint">← Scroll horizontally and vertically to see all data →</div>
+        <table class="data-table" id="eventsTableDesktop">
+            <thead>
+                <tr>
+                    <!-- Headers will be dynamically generated -->
+                </tr>
+            </thead>
+            <tbody id="eventsTable">
+                <tr><td colspan="12" class="loading">Loading events...</td></tr>
+            </tbody>
+        </table>
+        <!-- Mobile Card View -->
+        <div id="eventsTableMobile" class="events-mobile-cards" style="display: none;">
+            <div class="loading">Loading events...</div>
+        </div>
+    </div>
+</div>

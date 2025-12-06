@@ -1,0 +1,72 @@
+<!-- Add Source Modal -->
+<div id="addSourceModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3>Add New Source</h3>
+            <span class="close" onclick="closeModal('addSourceModal')">&times;</span>
+        </div>
+        <form id="addSourceForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sourceInput">Instagram Handle or Website URL *</label>
+                    <input type="text" id="sourceInput" required placeholder="e.g., @princetonphotoclub or https://example.com">
+                    <small style="color: #666; font-size: 0.8em; display: block; margin-top: 5px;">Just paste the Instagram handle (@username) or website URL - we'll detect the type and fill in the rest!</small>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sourceCity">City *</label>
+                    <select id="sourceCity" required>
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Hidden fields that will be auto-filled -->
+            <input type="hidden" id="sourceName" value="">
+            <input type="hidden" id="sourceHandle" value="">
+            <input type="hidden" id="sourceType" value="">
+            <input type="hidden" id="sourceUrl" value="">
+            <div class="form-group">
+                <label for="sourceDescription">Description</label>
+                <textarea id="sourceDescription" rows="3" placeholder="Brief description of what this source posts..."></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sourceReliability">Reliability Score (1-10)</label>
+                    <input type="number" id="sourceReliability" min="1" max="10" step="0.1" value="5" placeholder="5.0">
+                </div>
+                <div class="form-group">
+                    <label for="sourceFrequency">Posting Frequency</label>
+                    <select id="sourceFrequency">
+                        <option value="">Select Frequency</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="irregular">Irregular</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="sourceEventTypes">Event Types (comma-separated)</label>
+                <input type="text" id="sourceEventTypes" placeholder="photowalk, tour, exhibition, festival">
+            </div>
+            <div class="form-group">
+                <label for="sourceNotes">Notes</label>
+                <textarea id="sourceNotes" rows="2" placeholder="Special instructions, patterns, or additional info..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="sourceScrapingPattern">Scraping Pattern</label>
+                <textarea id="sourceScrapingPattern" rows="2" placeholder="How to check this source for events..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sourceActive" checked> Active Source
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addSourceModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Source</button>
+            </div>
+        </form>
+    </div>
+</div>

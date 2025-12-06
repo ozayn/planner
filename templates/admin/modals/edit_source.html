@@ -1,0 +1,92 @@
+<!-- Edit Source Modal -->
+<div id="editSourceModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h3>Edit Source</h3>
+            <span class="close" onclick="closeModal('editSourceModal')">&times;</span>
+        </div>
+        <div style="overflow-y: auto; overflow-x: hidden; flex: 1; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;">
+        <form id="editSourceForm" style="padding: 20px;">
+            <input type="hidden" id="editSourceId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editSourceName">Source Name *</label>
+                    <input type="text" id="editSourceName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editSourceHandle">Handle *</label>
+                    <input type="text" id="editSourceHandle" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editSourceType">Source Type *</label>
+                    <select id="editSourceType" required>
+                        <option value="">Select Type</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="website">Website</option>
+                        <option value="eventbrite">Eventbrite</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="meetup">Meetup</option>
+                        <option value="twitter">Twitter</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editSourceCity">City *</label>
+                    <select id="editSourceCity" required>
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="editSourceUrl">URL</label>
+                <input type="url" id="editSourceUrl">
+            </div>
+            <div class="form-group">
+                <label for="editSourceDescription">Description</label>
+                <textarea id="editSourceDescription" rows="3"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editSourceReliability">Reliability Score (1-10)</label>
+                    <input type="number" id="editSourceReliability" min="1" max="10" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="editSourceFrequency">Posting Frequency</label>
+                    <select id="editSourceFrequency">
+                        <option value="">Select Frequency</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="irregular">Irregular</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="editSourceEventTypes">Event Types (comma-separated)</label>
+                <input type="text" id="editSourceEventTypes">
+            </div>
+            <div class="form-group">
+                <label for="editSourceNotes">Notes</label>
+                <textarea id="editSourceNotes" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="editSourceScrapingPattern">Scraping Pattern</label>
+                <textarea id="editSourceScrapingPattern" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="editSourceActive"> Active Source
+                </label>
+            </div>
+        </form>
+        </div>
+        <div class="modal-actions" style="flex-shrink: 0; padding: 15px 20px; border-top: 1px solid #e5e7eb; background: white;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('editSourceModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('editSourceForm').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))">Update Source</button>
+        </div>
+    </div>
+</div>

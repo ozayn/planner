@@ -1,0 +1,247 @@
+<!-- Create Event from Venue Modal -->
+<div id="createFromVenueModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🏛️ Create Event from Venue</h3>
+            <span class="close" onclick="closeModal('createFromVenueModal')">&times;</span>
+        </div>
+        <form id="createFromVenueForm">
+            <div class="form-group">
+                <label for="venueSelect">Select Venue:</label>
+                <select id="venueSelect" required>
+                    <option value="">Choose a venue...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="eventTitleFromVenue">Event Title:</label>
+                <input type="text" id="eventTitleFromVenue" required placeholder="Enter event title">
+            </div>
+            <div class="form-group">
+                <label for="eventDescriptionFromVenue">Description:</label>
+                <textarea id="eventDescriptionFromVenue" rows="3" placeholder="Enter event description"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDateFromVenue">Start Date:</label>
+                    <input type="date" id="startDateFromVenue" required>
+                </div>
+                <div class="form-group">
+                    <label for="endDateFromVenue">End Date:</label>
+                    <input type="date" id="endDateFromVenue">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startTimeFromVenue">Start Time:</label>
+                    <input type="time" id="startTimeFromVenue">
+                </div>
+                <div class="form-group">
+                    <label for="endTimeFromVenue">End Time:</label>
+                    <input type="time" id="endTimeFromVenue">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="eventTypeFromVenue">Event Type:</label>
+                <select id="eventTypeFromVenue" required>
+                    <option value="tour">Tour</option>
+                    <option value="exhibition">Exhibition</option>
+                    <option value="festival">Festival</option>
+                    <option value="photowalk">Photowalk</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="seminar">Seminar</option>
+                    <option value="conference">Conference</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="lecture">Lecture</option>
+                    <option value="presentation">Presentation</option>
+                    <option value="performance">Performance</option>
+                    <option value="concert">Concert</option>
+                    <option value="show">Show</option>
+                    <option value="party">Party</option>
+                    <option value="reception">Reception</option>
+                    <option value="networking">Networking</option>
+                    <option value="social">Social Event</option>
+                    <option value="fundraiser">Fundraiser</option>
+                    <option value="charity">Charity Event</option>
+                    <option value="sports">Sports Event</option>
+                    <option value="competition">Competition</option>
+                    <option value="contest">Contest</option>
+                    <option value="awards">Awards Ceremony</option>
+                    <option value="gala">Gala</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="brunch">Brunch</option>
+                    <option value="tasting">Tasting</option>
+                    <option value="market">Market</option>
+                    <option value="fair">Fair</option>
+                    <option value="carnival">Carnival</option>
+                    <option value="parade">Parade</option>
+                    <option value="march">March</option>
+                    <option value="protest">Protest</option>
+                    <option value="rally">Rally</option>
+                    <option value="demonstration">Demonstration</option>
+                    <option value="ceremony">Ceremony</option>
+                    <option value="celebration">Celebration</option>
+                    <option value="anniversary">Anniversary</option>
+                    <option value="birthday">Birthday</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="graduation">Graduation</option>
+                    <option value="launch">Launch Event</option>
+                    <option value="opening">Opening</option>
+                    <option value="closing">Closing</option>
+                    <option value="preview">Preview</option>
+                    <option value="screening">Screening</option>
+                    <option value="premiere">Premiere</option>
+                    <option value="book_signing">Book Signing</option>
+                    <option value="signing">Signing</option>
+                    <option value="autograph">Autograph Session</option>
+                    <option value="meet_greet">Meet & Greet</option>
+                    <option value="q_a">Q&A Session</option>
+                    <option value="panel">Panel Discussion</option>
+                    <option value="debate">Debate</option>
+                    <option value="forum">Forum</option>
+                    <option value="summit">Summit</option>
+                    <option value="retreat">Retreat</option>
+                    <option value="training">Training</option>
+                    <option value="class">Class</option>
+                    <option value="course">Course</option>
+                    <option value="lesson">Lesson</option>
+                    <option value="tutorial">Tutorial</option>
+                    <option value="demo">Demo</option>
+                    <option value="trial">Trial</option>
+                    <option value="test">Test</option>
+                    <option value="exam">Exam</option>
+                    <option value="audition">Audition</option>
+                    <option value="interview">Interview</option>
+                    <option value="appointment">Appointment</option>
+                    <option value="consultation">Consultation</option>
+                    <option value="session">Session</option>
+                    <option value="therapy">Therapy</option>
+                    <option value="treatment">Treatment</option>
+                    <option value="checkup">Checkup</option>
+                    <option value="inspection">Inspection</option>
+                    <option value="tournament">Tournament</option>
+                    <option value="championship">Championship</option>
+                    <option value="playoff">Playoff</option>
+                    <option value="game">Game</option>
+                    <option value="match">Match</option>
+                    <option value="race">Race</option>
+                    <option value="marathon">Marathon</option>
+                    <option value="walk">Walk</option>
+                    <option value="run">Run</option>
+                    <option value="ride">Ride</option>
+                    <option value="hike">Hike</option>
+                    <option value="climb">Climb</option>
+                    <option value="swim">Swim</option>
+                    <option value="dive">Dive</option>
+                    <option value="sail">Sail</option>
+                    <option value="cruise">Cruise</option>
+                    <option value="trip">Trip</option>
+                    <option value="excursion">Excursion</option>
+                    <option value="adventure">Adventure</option>
+                    <option value="expedition">Expedition</option>
+                    <option value="journey">Journey</option>
+                    <option value="pilgrimage">Pilgrimage</option>
+                    <option value="retreat">Retreat</option>
+                    <option value="camp">Camp</option>
+                    <option value="camping">Camping</option>
+                    <option value="picnic">Picnic</option>
+                    <option value="barbecue">Barbecue</option>
+                    <option value="cookout">Cookout</option>
+                    <option value="potluck">Potluck</option>
+                    <option value="banquet">Banquet</option>
+                    <option value="feast">Feast</option>
+                    <option value="buffet">Buffet</option>
+                    <option value="catered">Catered Event</option>
+                    <option value="catering">Catering</option>
+                    <option value="delivery">Delivery</option>
+                    <option value="pickup">Pickup</option>
+                    <option value="dropoff">Drop-off</option>
+                    <option value="collection">Collection</option>
+                    <option value="distribution">Distribution</option>
+                    <option value="donation">Donation</option>
+                    <option value="volunteer">Volunteer</option>
+                    <option value="service">Service</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="repair">Repair</option>
+                    <option value="installation">Installation</option>
+                    <option value="setup">Setup</option>
+                    <option value="breakdown">Breakdown</option>
+                    <option value="cleanup">Cleanup</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="inspection">Inspection</option>
+                    <option value="audit">Audit</option>
+                    <option value="review">Review</option>
+                    <option value="evaluation">Evaluation</option>
+                    <option value="assessment">Assessment</option>
+                    <option value="analysis">Analysis</option>
+                    <option value="research">Research</option>
+                    <option value="study">Study</option>
+                    <option value="survey">Survey</option>
+                    <option value="poll">Poll</option>
+                    <option value="vote">Vote</option>
+                    <option value="election">Election</option>
+                    <option value="referendum">Referendum</option>
+                    <option value="petition">Petition</option>
+                    <option value="campaign">Campaign</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="eventUrlFromVenue">Event URL:</label>
+                <input type="url" id="eventUrlFromVenue" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label for="eventSourceFromVenue">Event Source:</label>
+                <select id="eventSourceFromVenue">
+                    <option value="">Select Source</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="twitter">Twitter</option>
+                    <option value="website">Website</option>
+                    <option value="email">Email</option>
+                    <option value="flyer">Flyer/Poster</option>
+                    <option value="word_of_mouth">Word of Mouth</option>
+                    <option value="venue_website">Venue Website</option>
+                    <option value="eventbrite">Eventbrite</option>
+                    <option value="meetup">Meetup</option>
+                    <option value="ticketmaster">Ticketmaster</option>
+                    <option value="stubhub">StubHub</option>
+                    <option value="newspaper">Newspaper</option>
+                    <option value="magazine">Magazine</option>
+                    <option value="radio">Radio</option>
+                    <option value="tv">TV</option>
+                    <option value="billboard">Billboard</option>
+                    <option value="direct_mail">Direct Mail</option>
+                    <option value="newsletter">Newsletter</option>
+                    <option value="blog">Blog</option>
+                    <option value="podcast">Podcast</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="reddit">Reddit</option>
+                    <option value="discord">Discord</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="phone_call">Phone Call</option>
+                    <option value="text_message">Text Message</option>
+                    <option value="in_person">In Person</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="sourceUrlFromVenue">Source URL:</label>
+                <input type="url" id="sourceUrlFromVenue" placeholder="https://instagram.com/...">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="createCalendarEventFromVenue" checked>
+                    Create Google Calendar Event
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('createFromVenueModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">🏛️ Create Event</button>
+            </div>
+        </form>
+    </div>
+</div>

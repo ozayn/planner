@@ -1,0 +1,123 @@
+<!-- Edit Event Modal -->
+<div id="editEventModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h3>Edit Event</h3>
+            <span class="close" onclick="closeModal('editEventModal')">&times;</span>
+        </div>
+        <div style="overflow-y: auto; overflow-x: hidden; flex: 1; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;">
+        <form id="editEventForm" style="padding: 20px;">
+            <input type="hidden" id="editEventId">
+            <div class="form-group">
+                <label for="editEventTitle">Event Title *</label>
+                <input type="text" id="editEventTitle" required>
+            </div>
+            <div class="form-group">
+                <label for="editEventDescription">Description</label>
+                <textarea id="editEventDescription" rows="3"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editEventStartDate">Start Date *</label>
+                    <input type="date" id="editEventStartDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventEndDate">End Date</label>
+                    <input type="date" id="editEventEndDate">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editEventStartTime">Start Time</label>
+                    <input type="time" id="editEventStartTime">
+                </div>
+                <div class="form-group">
+                    <label for="editEventEndTime">End Time</label>
+                    <input type="time" id="editEventEndTime">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="editEventType">Event Type</label>
+                <input type="text" id="editEventType" onchange="toggleExhibitionFields()">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editEventCityId">City *</label>
+                    <select id="editEventCityId" required onchange="populateEditEventVenues()">
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editEventVenueId">Venue</label>
+                    <select id="editEventVenueId">
+                        <option value="">Select Venue (optional)</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Exhibition-specific fields (shown when event_type is 'exhibition') -->
+            <div id="editExhibitionFields" style="display: none;">
+                <h4 style="margin: 20px 0 10px 0; color: #4a5568;">🎨 Exhibition Details</h4>
+                <div class="form-group">
+                    <label for="editExhibitionLocation">Exhibition Location (Gallery/Room)</label>
+                    <input type="text" id="editExhibitionLocation" placeholder="e.g., Gallery 61, West Building">
+                </div>
+                <div class="form-group">
+                    <label for="editCurator">Curator</label>
+                    <input type="text" id="editCurator" placeholder="e.g., John Smith">
+                </div>
+                <div class="form-group">
+                    <label for="editAdmissionPrice">Admission Price</label>
+                    <input type="number" id="editAdmissionPrice" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="editArtists">Artists (comma-separated)</label>
+                    <input type="text" id="editArtists" placeholder="e.g., Kehinde Wiley, Amy Sherald">
+                </div>
+                <div class="form-group">
+                    <label for="editExhibitionType">Exhibition Type</label>
+                    <select id="editExhibitionType">
+                        <option value="">Select Type</option>
+                        <option value="solo">Solo</option>
+                        <option value="group">Group</option>
+                        <option value="retrospective">Retrospective</option>
+                        <option value="permanent collection">Permanent Collection</option>
+                        <option value="traveling">Traveling</option>
+                        <option value="special">Special</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editCollectionPeriod">Collection Period</label>
+                    <input type="text" id="editCollectionPeriod" placeholder="e.g., Modern Art, Contemporary, Renaissance">
+                </div>
+                <div class="form-group">
+                    <label for="editNumberOfArtworks">Number of Artworks</label>
+                    <input type="number" id="editNumberOfArtworks" min="0" placeholder="e.g., 50">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editOpeningReceptionDate">Opening Reception Date</label>
+                        <input type="date" id="editOpeningReceptionDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="editOpeningReceptionTime">Opening Reception Time</label>
+                        <input type="time" id="editOpeningReceptionTime">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="editIsPermanent"> Permanent Collection
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="editRelatedExhibitions">Related Exhibitions (comma-separated titles or IDs)</label>
+                    <input type="text" id="editRelatedExhibitions" placeholder="e.g., Black American Portraits, Family Album">
+                </div>
+            </div>
+        </form>
+        </div>
+        <div class="modal-actions" style="flex-shrink: 0; padding: 15px 20px; border-top: 1px solid #e5e7eb; background: white;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('editEventModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('editEventForm').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))">Update Event</button>
+        </div>
+    </div>
+</div>

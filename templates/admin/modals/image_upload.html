@@ -1,0 +1,330 @@
+<!-- Image Upload Modal -->
+<div id="imageUploadModal" class="modal">
+    <div class="modal-content" style="overflow: hidden; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h3>📷 Upload Event Image</h3>
+            <span class="close" onclick="closeModal('imageUploadModal')">&times;</span>
+        </div>
+        <div id="imageUploadScrollableContent" style="overflow-y: auto; overflow-x: hidden; flex: 1; padding: 20px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;">
+        <form id="imageUploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="eventImage">Select Image:</label>
+                <input type="file" id="eventImage" name="image" accept="image/*" required onchange="console.log('File selected:', this.files[0]?.name)">
+                <small>Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF</small>
+            </div>
+            <div class="form-group">
+                <label for="ocrEngine">OCR Engine:</label>
+                <select id="ocrEngine" name="ocr_engine">
+                    <option value="auto">🤖 Auto (Environment Default)</option>
+                    <option value="tesseract">🔍 Tesseract (Free, Local)</option>
+                    <option value="google_vision">👁️ Google Vision (Premium, Cloud)</option>
+                </select>
+                <small>Choose OCR engine for text extraction. Auto uses environment defaults.</small>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">📷 Process Image</button>
+            </div>
+        </form>
+        </div>
+        <!-- Extracted Data Display -->
+        <div id="extractedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; max-width: 100%; overflow-x: auto;">
+            <h4>📋 Extracted Event Data</h4>
+            <div id="extractedDataContent"></div>
+            <!-- Manual Input Fields -->
+            <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb; max-width: 100%; box-sizing: border-box;">
+                <h5>✏️ Manual Input (Edit or Add Missing Information)</h5>
+                <div class="form-group">
+                    <label for="manualEventTitle">Event Title *:</label>
+                    <input type="text" id="manualEventTitle" placeholder="Enter event title" required>
+                </div>
+                <div class="form-group">
+                    <label for="manualEventDescription">Description:</label>
+                    <textarea id="manualEventDescription" rows="3" placeholder="Enter event description"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manualStartDate">Start Date *:</label>
+                        <input type="date" id="manualStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="manualEndDate">End Date:</label>
+                        <input type="date" id="manualEndDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manualStartTime">Start Time:</label>
+                        <input type="time" id="manualStartTime">
+                    </div>
+                    <div class="form-group">
+                        <label for="manualEndTime">End Time:</label>
+                        <input type="time" id="manualEndTime">
+                    </div>
+                </div>
+                   <div class="form-group">
+                       <label for="manualEventType">Event Type:</label>
+                       <select id="manualEventType">
+                           <option value="tour">Tour</option>
+                           <option value="exhibition">Exhibition</option>
+                           <option value="festival">Festival</option>
+                           <option value="photowalk">Photowalk</option>
+                           <option value="workshop">Workshop</option>
+                           <option value="seminar">Seminar</option>
+                           <option value="conference">Conference</option>
+                           <option value="meeting">Meeting</option>
+                           <option value="talk">Talk</option>
+                           <option value="lecture">Lecture</option>
+                           <option value="presentation">Presentation</option>
+                           <option value="performance">Performance</option>
+                           <option value="concert">Concert</option>
+                           <option value="show">Show</option>
+                           <option value="party">Party</option>
+                           <option value="reception">Reception</option>
+                           <option value="networking">Networking</option>
+                           <option value="social">Social Event</option>
+                           <option value="fundraiser">Fundraiser</option>
+                           <option value="charity">Charity Event</option>
+                           <option value="sports">Sports Event</option>
+                           <option value="competition">Competition</option>
+                           <option value="contest">Contest</option>
+                           <option value="awards">Awards Ceremony</option>
+                           <option value="gala">Gala</option>
+                           <option value="dinner">Dinner</option>
+                           <option value="lunch">Lunch</option>
+                           <option value="brunch">Brunch</option>
+                           <option value="tasting">Tasting</option>
+                           <option value="market">Market</option>
+                           <option value="fair">Fair</option>
+                           <option value="carnival">Carnival</option>
+                           <option value="parade">Parade</option>
+                           <option value="march">March</option>
+                           <option value="protest">Protest</option>
+                           <option value="rally">Rally</option>
+                           <option value="demonstration">Demonstration</option>
+                           <option value="ceremony">Ceremony</option>
+                           <option value="celebration">Celebration</option>
+                           <option value="anniversary">Anniversary</option>
+                           <option value="birthday">Birthday</option>
+                           <option value="wedding">Wedding</option>
+                           <option value="graduation">Graduation</option>
+                           <option value="launch">Launch Event</option>
+                           <option value="opening">Opening</option>
+                           <option value="closing">Closing</option>
+                           <option value="preview">Preview</option>
+                           <option value="screening">Screening</option>
+                           <option value="premiere">Premiere</option>
+                           <option value="book_signing">Book Signing</option>
+                           <option value="signing">Signing</option>
+                           <option value="autograph">Autograph Session</option>
+                           <option value="meet_greet">Meet & Greet</option>
+                           <option value="q_a">Q&A Session</option>
+                           <option value="panel">Panel Discussion</option>
+                           <option value="debate">Debate</option>
+                           <option value="forum">Forum</option>
+                           <option value="summit">Summit</option>
+                           <option value="retreat">Retreat</option>
+                           <option value="training">Training</option>
+                           <option value="class">Class</option>
+                           <option value="course">Course</option>
+                           <option value="lesson">Lesson</option>
+                           <option value="tutorial">Tutorial</option>
+                           <option value="demo">Demo</option>
+                           <option value="trial">Trial</option>
+                           <option value="test">Test</option>
+                           <option value="exam">Exam</option>
+                           <option value="audition">Audition</option>
+                           <option value="interview">Interview</option>
+                           <option value="appointment">Appointment</option>
+                           <option value="consultation">Consultation</option>
+                           <option value="session">Session</option>
+                           <option value="therapy">Therapy</option>
+                           <option value="treatment">Treatment</option>
+                           <option value="checkup">Checkup</option>
+                           <option value="inspection">Inspection</option>
+                           <option value="tournament">Tournament</option>
+                           <option value="championship">Championship</option>
+                           <option value="playoff">Playoff</option>
+                           <option value="game">Game</option>
+                           <option value="match">Match</option>
+                           <option value="race">Race</option>
+                           <option value="marathon">Marathon</option>
+                           <option value="walk">Walk</option>
+                           <option value="run">Run</option>
+                           <option value="ride">Ride</option>
+                           <option value="hike">Hike</option>
+                           <option value="climb">Climb</option>
+                           <option value="swim">Swim</option>
+                           <option value="dive">Dive</option>
+                           <option value="sail">Sail</option>
+                           <option value="cruise">Cruise</option>
+                           <option value="trip">Trip</option>
+                           <option value="excursion">Excursion</option>
+                           <option value="adventure">Adventure</option>
+                           <option value="expedition">Expedition</option>
+                           <option value="journey">Journey</option>
+                           <option value="pilgrimage">Pilgrimage</option>
+                           <option value="retreat">Retreat</option>
+                           <option value="camp">Camp</option>
+                           <option value="camping">Camping</option>
+                           <option value="picnic">Picnic</option>
+                           <option value="barbecue">Barbecue</option>
+                           <option value="cookout">Cookout</option>
+                           <option value="potluck">Potluck</option>
+                           <option value="banquet">Banquet</option>
+                           <option value="feast">Feast</option>
+                           <option value="buffet">Buffet</option>
+                           <option value="catered">Catered Event</option>
+                           <option value="catering">Catering</option>
+                           <option value="delivery">Delivery</option>
+                           <option value="pickup">Pickup</option>
+                           <option value="dropoff">Drop-off</option>
+                           <option value="collection">Collection</option>
+                           <option value="distribution">Distribution</option>
+                           <option value="donation">Donation</option>
+                           <option value="volunteer">Volunteer</option>
+                           <option value="service">Service</option>
+                           <option value="maintenance">Maintenance</option>
+                           <option value="repair">Repair</option>
+                           <option value="installation">Installation</option>
+                           <option value="setup">Setup</option>
+                           <option value="breakdown">Breakdown</option>
+                           <option value="cleanup">Cleanup</option>
+                           <option value="maintenance">Maintenance</option>
+                           <option value="inspection">Inspection</option>
+                           <option value="audit">Audit</option>
+                           <option value="review">Review</option>
+                           <option value="evaluation">Evaluation</option>
+                           <option value="assessment">Assessment</option>
+                           <option value="analysis">Analysis</option>
+                           <option value="research">Research</option>
+                           <option value="study">Study</option>
+                           <option value="survey">Survey</option>
+                           <option value="poll">Poll</option>
+                           <option value="vote">Vote</option>
+                           <option value="election">Election</option>
+                           <option value="referendum">Referendum</option>
+                           <option value="petition">Petition</option>
+                           <option value="campaign">Campaign</option>
+                           <option value="other">Other</option>
+                       </select>
+                   </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manualStartLocation">Start Location:</label>
+                        <input type="text" id="manualStartLocation" placeholder="Enter start location">
+                    </div>
+                    <div class="form-group">
+                        <label for="manualEndLocation">End Location:</label>
+                        <input type="text" id="manualEndLocation" placeholder="Enter end location (optional)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="manualPrice">Price:</label>
+                    <input type="number" id="manualPrice" step="0.01" placeholder="0.00">
+                </div>
+                   <div class="form-group">
+                       <label for="manualUrl">Event URL:</label>
+                       <input type="url" id="manualUrl" placeholder="https://...">
+                   </div>
+                   <div class="form-group">
+                       <label for="manualCityId">City:</label>
+                       <select id="manualCityId">
+                           <option value="">Select City</option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label for="manualVenueId">Venue:</label>
+                       <select id="manualVenueId">
+                           <option value="">Select Venue (optional)</option>
+                       </select>
+                       <small>Venue will be auto-selected for NGA events</small>
+                   </div>
+                   <div class="form-group">
+                       <label for="manualEventSource">Event Source:</label>
+                       <select id="manualEventSource">
+                           <option value="">Select Source</option>
+                           <option value="instagram">Instagram</option>
+                           <option value="facebook">Facebook</option>
+                           <option value="twitter">Twitter</option>
+                           <option value="website">Website</option>
+                           <option value="email">Email</option>
+                           <option value="flyer">Flyer/Poster</option>
+                           <option value="word_of_mouth">Word of Mouth</option>
+                           <option value="venue_website">Venue Website</option>
+                           <option value="eventbrite">Eventbrite</option>
+                           <option value="meetup">Meetup</option>
+                           <option value="ticketmaster">Ticketmaster</option>
+                           <option value="stubhub">StubHub</option>
+                           <option value="newspaper">Newspaper</option>
+                           <option value="magazine">Magazine</option>
+                           <option value="radio">Radio</option>
+                           <option value="tv">TV</option>
+                           <option value="billboard">Billboard</option>
+                           <option value="direct_mail">Direct Mail</option>
+                           <option value="newsletter">Newsletter</option>
+                           <option value="blog">Blog</option>
+                           <option value="podcast">Podcast</option>
+                           <option value="youtube">YouTube</option>
+                           <option value="tiktok">TikTok</option>
+                           <option value="linkedin">LinkedIn</option>
+                           <option value="reddit">Reddit</option>
+                           <option value="discord">Discord</option>
+                           <option value="telegram">Telegram</option>
+                           <option value="whatsapp">WhatsApp</option>
+                           <option value="phone_call">Phone Call</option>
+                           <option value="text_message">Text Message</option>
+                           <option value="in_person">In Person</option>
+                           <option value="other">Other</option>
+                       </select>
+                   </div>
+                <div class="form-group">
+                    <label for="manualSourceUrl">Source URL:</label>
+                    <input type="url" id="manualSourceUrl" placeholder="https://instagram.com/...">
+                </div>
+                <!-- Social Media Fields -->
+                <div class="form-group">
+                    <label for="manualSocialMediaPlatform">Social Media Platform:</label>
+                    <select id="manualSocialMediaPlatform">
+                        <option value="">Select Platform</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="meetup">Meetup</option>
+                        <option value="eventbrite">Eventbrite</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="twitter">Twitter</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="manualSocialMediaHandle">Social Media Handle:</label>
+                    <input type="text" id="manualSocialMediaHandle" placeholder="username (without @)">
+                </div>
+                <div class="form-group">
+                    <label for="manualSocialMediaPageName">Page/Group Name:</label>
+                    <input type="text" id="manualSocialMediaPageName" placeholder="DC Street Meet">
+                </div>
+                <div class="form-group">
+                    <label for="manualSocialMediaPostedBy">Posted By:</label>
+                    <input type="text" id="manualSocialMediaPostedBy" placeholder="Who posted this content">
+                </div>
+                <div class="form-group">
+                    <label for="manualSocialMediaUrl">Social Media URL:</label>
+                    <input type="url" id="manualSocialMediaUrl" placeholder="https://instagram.com/p/...">
+                </div>
+            </div>
+            <div class="modal-actions" style="position: sticky; bottom: 0; background: white; padding: 15px; margin-top: 15px; border-top: 1px solid #e5e7eb; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="createEventFromExtractedData()">✅ Create Event</button>
+            </div>
+        </div>
+        </div>
+        <!-- Sticky footer for Create Event button when extracted data is shown -->
+        <!-- This footer is fixed at bottom on mobile, sticky on desktop -->
+        <div id="imageUploadStickyFooter" style="display: none; background: white; padding: 15px; border-top: 1px solid #e5e7eb; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); flex-shrink: 0;">
+            <div class="modal-actions" style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('imageUploadModal')" style="flex: 1; min-height: 44px; font-size: 16px;">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="createEventFromExtractedData()" style="flex: 1; min-height: 44px; font-size: 16px;">✅ Create Event</button>
+            </div>
+        </div>
+    </div>
+</div>

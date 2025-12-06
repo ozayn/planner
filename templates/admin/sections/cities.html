@@ -1,0 +1,54 @@
+<!-- Cities Section -->
+<div id="cities" class="data-section">
+    <h2 style="font-size: 1.75rem; font-weight: 600; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em;">🏙️ Cities Management</h2>
+    <!-- Search and Filter Controls -->
+    <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.08); margin-bottom: 16px;">
+        <div class="search-controls">
+            <input type="text" id="citySearch" class="search-input" placeholder="🔍 Search cities...">
+            <select id="cityCountryFilter" class="filter-select">
+                <option value="">All Countries</option>
+            </select>
+            <select id="cityVenueFilter" class="filter-select">
+                <option value="">All Venue Counts</option>
+                <option value="0">None (0)</option>
+                <option value="1-4">Few (1-4)</option>
+                <option value="5+">Many (5+)</option>
+            </select>
+            <button onclick="applyCityFilters()" class="filter-button">🔍 Filter</button>
+            <button onclick="clearCityFilters()" class="clear-filters">🗑️ Clear</button>
+        </div>
+        <!-- Action Buttons -->
+        <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button onclick="openAddCityModal()" class="add-button">➕ Add City</button>
+            <button onclick="exportCitiesFromDatabase()" class="add-button" style="background: #8b5cf6;">📤 Export from DB</button>
+        </div>
+    </div>
+    <div id="cityFilterSummary" class="filter-summary"></div>
+    <div class="table-container">
+        <div class="scroll-hint">← Scroll horizontally and vertically to see all data →</div>
+        <table class="data-table" id="citiesTableDesktop">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>State</th>
+                    <th>Country</th>
+                    <th>Timezone</th>
+                    <th>Display Name</th>
+                    <th>Venues</th>
+                    <th>Events</th>
+                    <th>Created</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="citiesTable">
+                <tr><td colspan="11" class="loading">Loading cities...</td></tr>
+            </tbody>
+        </table>
+        <!-- Mobile Card View -->
+        <div id="citiesTableMobile" class="cities-mobile-cards" style="display: none;">
+            <div class="loading">Loading cities...</div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+<!-- Add Venue Modal -->
+<div id="addVenueModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3>Add New Venue</h3>
+            <span class="close" onclick="closeModal('addVenueModal')">&times;</span>
+        </div>
+        <form id="addVenueForm">
+            <!-- Dynamic form fields will be generated here -->
+            <div id="dynamicVenueFormFields"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addVenueModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Venue</button>
+            </div>
+        </form>
+    </div>
+</div>

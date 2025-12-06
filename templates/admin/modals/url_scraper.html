@@ -1,0 +1,113 @@
+<!-- URL Scraper Modal -->
+<div id="urlScraperModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🔗 Create Events from URL</h3>
+            <span class="close" onclick="closeModal('urlScraperModal')">&times;</span>
+        </div>
+        <form id="urlScraperForm">
+            <div class="form-group">
+                <label for="eventUrl">Event Page URL *:</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="url" id="eventUrl" placeholder="https://example.com/events/tour" required style="flex: 1;">
+                    <button type="button" id="autoFillBtn" class="btn btn-secondary" style="white-space: nowrap;">🔍 Auto-Fill</button>
+                </div>
+                <small>Enter URL and click Auto-Fill to extract event details, then review and edit</small>
+            </div>
+            <div class="form-group">
+                <label for="urlVenueSelect">Venue (Optional):</label>
+                <select id="urlVenueSelect">
+                    <option value="">No specific venue (city-wide event)</option>
+                </select>
+                <small>Select a venue if this event is venue-specific</small>
+            </div>
+            <div class="form-group">
+                <label for="urlCitySelect">City *:</label>
+                <select id="urlCitySelect" required>
+                    <option value="">Choose a city...</option>
+                </select>
+                <small>Select the city where this event takes place</small>
+            </div>
+            <div class="form-group">
+                <label for="timePeriod">Time Period for Recurring Events:</label>
+                <select id="timePeriod">
+                    <option value="today">📅 Today Only</option>
+                    <option value="tomorrow">📅 Tomorrow Only</option>
+                    <option value="this_week" selected>📅 This Week</option>
+                    <option value="this_month">📅 This Month</option>
+                    <option value="custom">📅 Custom Period</option>
+                </select>
+                <small>If event has recurring schedule (e.g., "Fridays", "Weekdays"), create multiple events for this period</small>
+            </div>
+            <div id="customPeriodFields" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customStartDate">Period Start Date:</label>
+                        <input type="date" id="customStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="customEndDate">Period End Date:</label>
+                        <input type="date" id="customEndDate">
+                    </div>
+                </div>
+            </div>
+            <!-- Extracted Data Preview (hidden by default) -->
+            <div id="urlExtractedPreview" style="display: none; margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                <h4 style="margin-bottom: 10px; color: #1976d2;">📋 Extracted Event Details</h4>
+                <div id="urlExtractedContent" style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 14px;"></div>
+                <div id="applyToFormSection" style="display: none; margin: 15px 0; text-align: center;">
+                    <button type="button" onclick="applyExtractedToForm()" class="btn btn-primary" style="background: #10b981; font-size: 16px; padding: 12px 24px;">
+                        ✅ Apply Venue & City to Form
+                    </button>
+                    <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Click to auto-select the matched venue and city in the dropdowns above</p>
+                </div>
+                <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                    <strong>✏️ Review & Edit:</strong>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; color: #856404;">Please review the extracted information below and make any necessary corrections before creating events.</p>
+                </div>
+                <!-- Editable fields -->
+                <div style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label for="extractedTitle">Event Title:</label>
+                        <input type="text" id="extractedTitle" placeholder="Edit title if needed">
+                    </div>
+                    <div class="form-group">
+                        <label for="extractedDescription">Description:</label>
+                        <textarea id="extractedDescription" rows="3" placeholder="Edit description if needed"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="extractedStartTime">Start Time:</label>
+                            <input type="time" id="extractedStartTime">
+                        </div>
+                        <div class="form-group">
+                            <label for="extractedEndTime">End Time:</label>
+                            <input type="time" id="extractedEndTime">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="extractedLocation">Location/Meeting Point:</label>
+                        <input type="text" id="extractedLocation" placeholder="Edit location if needed">
+                    </div>
+                    <div class="form-group">
+                        <label for="extractedSchedule">Schedule Info:</label>
+                        <input type="text" id="extractedSchedule" placeholder="e.g., Fridays 6:30pm - 7:30pm" readonly style="background: #f5f5f5;">
+                        <small>Detected recurring schedule (read-only)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('urlScraperModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">🔗 Create Events</button>
+            </div>
+        </form>
+        <!-- Scraped Data Display (after creation) -->
+        <div id="scrapedDataDisplay" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <h4>📋 Scraped Event Data</h4>
+            <div id="scrapedDataContent"></div>
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('urlScraperModal')">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
