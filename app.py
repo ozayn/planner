@@ -2799,9 +2799,9 @@ def admin_stats():
 
 @app.route('/api/admin/cities')
 def admin_cities():
-    """Get all cities for admin"""
+    """Get all cities for admin, sorted by most recently updated (most recent first)"""
     try:
-        cities = City.query.all()
+        cities = City.query.order_by(City.updated_at.desc()).all()
         cities_data = []
         
         for city in cities:
@@ -4496,10 +4496,16 @@ def clear_venues():
 # Source Management Endpoints
 @app.route('/api/admin/sources')
 def admin_sources():
-    """Get all sources for admin"""
+    """Get all sources for admin, sorted by most recently updated (most recent first)"""
     try:
-        sources = Source.query.join(City).order_by(City.name, Source.name).all()
-        return jsonify([source.to_dict() for source in sources])
+        sources = Source.query.order_by(Source.updated_at.desc()).all()
+        sources_data = []
+        for source in sources:
+            source_dict = source.to_dict()
+            if source.city:
+                source_dict['city_name'] = source.city.name
+            sources_data.append(source_dict)
+        return jsonify(sources_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
