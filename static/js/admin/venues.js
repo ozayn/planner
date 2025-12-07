@@ -19,11 +19,15 @@ async function loadVenues() {
         
         if (venues.error) throw new Error(venues.error);
         
-        // Sort by most recently updated first (descending)
+        // Backend already sorts by updated_at.desc(), but ensure frontend sorting is consistent
+        // Sort by most recently updated first (descending), with ID as tiebreaker
         venues.sort((a, b) => {
             const aDate = new Date(a.updated_at || a.created_at || 0);
             const bDate = new Date(b.updated_at || b.created_at || 0);
-            return bDate - aDate; // Descending order (most recent first)
+            const dateDiff = bDate - aDate; // Descending order (most recent first)
+            if (dateDiff !== 0) return dateDiff;
+            // Tiebreaker: use ID descending for venues updated at the same time
+            return (b.id || 0) - (a.id || 0);
         });
         
         // Store venues globally for filtering
@@ -346,16 +350,20 @@ function applyVenueFilters() {
                 case 'city_name':
                     return (a.city_name || '').localeCompare(b.city_name || '');
                 default:
-                    // Default to most recently updated first
+                    // Default to most recently updated first, with ID as tiebreaker
                     const aDate = new Date(a.updated_at || a.created_at || 0);
                     const bDate = new Date(b.updated_at || b.created_at || 0);
-                    return bDate - aDate;
+                    const dateDiff = bDate - aDate;
+                    if (dateDiff !== 0) return dateDiff;
+                    return (b.id || 0) - (a.id || 0);
             }
         } else {
-            // Default to most recently updated first
+            // Default to most recently updated first, with ID as tiebreaker
             const aDate = new Date(a.updated_at || a.created_at || 0);
             const bDate = new Date(b.updated_at || b.created_at || 0);
-            return bDate - aDate;
+            const dateDiff = bDate - aDate;
+            if (dateDiff !== 0) return dateDiff;
+            return (b.id || 0) - (a.id || 0);
         }
     });
     

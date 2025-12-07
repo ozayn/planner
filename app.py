@@ -2824,8 +2824,8 @@ def admin_cities():
 def admin_venues():
     """Get all venues for admin"""
     try:
-        # Sort by most recently updated first
-        venues = Venue.query.order_by(Venue.updated_at.desc()).all()
+        # Sort by most recently updated first, then by ID descending as tiebreaker
+        venues = Venue.query.order_by(Venue.updated_at.desc(), Venue.id.desc()).all()
         venues_data = []
         
         for venue in venues:
