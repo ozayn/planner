@@ -2910,9 +2910,9 @@ def admin_venues():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/migrate-venues-schema', methods=['POST'])
+@app.route('/api/admin/migrate-venues-schema', methods=['GET', 'POST'])
 def migrate_venues_schema_endpoint():
-    """Public endpoint to migrate venues schema (for emergency fixes)"""
+    """Public endpoint to migrate venues schema (for emergency fixes) - accepts GET or POST"""
     try:
         success, message, added_columns = migrate_venues_schema()
         if success:
@@ -2927,6 +2927,8 @@ def migrate_venues_schema_endpoint():
                 'error': message
             }), 500
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/migrate-schema', methods=['POST'])
