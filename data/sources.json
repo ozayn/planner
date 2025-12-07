@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-12-07",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 51,
-    "last_updated": "2025-12-07 17:15:48"
+    "total_sources": 52,
+    "last_updated": "2025-12-07 17:17:58"
   },
   "sources": {
     "1": {
@@ -975,6 +975,25 @@
       "last_checked": null,
       "created_at": "2025-12-07T22:15:43.850587",
       "updated_at": "2025-12-07T22:15:43.850600"
+    },
+    "52": {
+      "name": "Princeton University Events",
+      "handle": "princeton.edu/events",
+      "source_type": "website",
+      "url": "https://www.princeton.edu/events",
+      "description": "Princeton University events calendar featuring academic lectures, concerts, exhibitions, film screenings, performances, conferences, workshops, and cultural events open to the public.",
+      "city_id": 22,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"academic_events\", \"lectures\", \"concerts\", \"exhibitions\", \"film_screenings\", \"performances\", \"conferences\", \"workshops\", \"cultural_events\", \"arts\", \"athletics\", \"religious_services\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "daily",
+      "notes": "University events calendar with filters by event type, category, and audience. Includes both public and student events.",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2025-12-07T22:17:58.405244",
+      "updated_at": "2025-12-07T22:17:58.405256"
     }
   }
 }
