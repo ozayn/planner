@@ -624,6 +624,24 @@ function formatFieldValue(fieldName, value, config = {}) {
         case 'url':
             return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">${value}</a>`;
         
+        case 'ticketing_url':
+            // Format ticketing URLs (Eventbrite, Ticketmaster, etc.) as clickable links
+            if (value.includes('eventbrite.com')) {
+                // Extract organizer or event name from Eventbrite URL for cleaner display
+                const eventbriteMatch = value.match(/eventbrite\.com\/(?:o|d)\/([^\/\?]+)/);
+                if (eventbriteMatch) {
+                    const displayName = eventbriteMatch[1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #F05537; text-decoration: none;">Eventbrite: ${displayName}</a>`;
+                }
+                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #F05537; text-decoration: none;">Eventbrite</a>`;
+            } else if (value.includes('ticketmaster.com')) {
+                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #026CDF; text-decoration: none;">Ticketmaster</a>`;
+            } else if (value.includes('ticketmaster')) {
+                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #026CDF; text-decoration: none;">Ticketmaster</a>`;
+            }
+            // Generic ticketing URL
+            return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">${value}</a>`;
+        
         case 'youtube_url':
             // Handle both full URLs and channel names
             if (value.startsWith('@')) {
