@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-12-07",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 52,
-    "last_updated": "2025-12-07 17:17:58"
+    "total_sources": 53,
+    "last_updated": "2025-12-07 17:20:47"
   },
   "sources": {
     "1": {
@@ -994,6 +994,25 @@
       "last_checked": null,
       "created_at": "2025-12-07T22:17:58.405244",
       "updated_at": "2025-12-07T22:17:58.405256"
+    },
+    "53": {
+      "name": "Korean Cultural Center Washington DC",
+      "handle": "korean-cultural-center-washington-dc",
+      "source_type": "eventbrite",
+      "url": "https://www.eventbrite.com/o/korean-cultural-center-washington-dc-30268623512",
+      "description": "Korean Cultural Center Washington, D.C. (KCCDC) celebrates and shares all things Korea. As a branch of the South Korean embassy, they host public cultural events, partner with artists and institutions, and promote Korean arts and culture.",
+      "city_id": 1,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"cultural_events\", \"art_exhibitions\", \"music\", \"performances\", \"film_screenings\", \"workshops\", \"lectures\", \"korean_culture\", \"traditional_arts\", \"popular_culture\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "weekly",
+      "notes": "Eventbrite organizer page for Korean Cultural Center. Hosts both traditional and popular Korean culture events.",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2025-12-07T22:20:47.815417",
+      "updated_at": "2025-12-07T22:20:47.815427"
     }
   }
 }
