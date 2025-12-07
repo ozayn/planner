@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-10-04",
+    "created": "2025-12-07",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 52,
-    "last_updated": "2025-01-18 12:00:00"
+    "total_sources": 51,
+    "last_updated": "2025-12-07 17:15:48"
   },
   "sources": {
     "1": {
@@ -12,7 +12,7 @@
       "handle": "@afwashington_dc",
       "source_type": "instagram",
       "url": "https://www.instagram.com/afwashington_dc/",
-      "description": "Alliance Fran\u00e7aise Washington DC promotes French cultural events, language classes, art exhibitions, and Franco-American cultural activities.",
+      "description": "Alliance Française Washington DC promotes French cultural events, language classes, art exhibitions, and Franco-American cultural activities.",
       "city_id": 1,
       "covers_multiple_cities": false,
       "covered_cities": "",
@@ -23,8 +23,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292014",
-      "updated_at": "2025-09-25T17:46:04.292021"
+      "created_at": "2025-10-08T20:50:45.859913",
+      "updated_at": "2025-10-08T20:50:45.859920"
     },
     "2": {
       "name": "City Cast DC",
@@ -42,8 +42,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292082",
-      "updated_at": "2025-09-25T17:46:04.292083"
+      "created_at": "2025-10-08T20:50:45.859920",
+      "updated_at": "2025-10-08T20:50:45.859921"
     },
     "3": {
       "name": "DC 4 Free",
@@ -61,8 +61,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292115",
-      "updated_at": "2025-09-25T17:46:04.292116"
+      "created_at": "2025-10-08T20:50:45.859921",
+      "updated_at": "2025-10-08T20:50:45.859922"
     },
     "4": {
       "name": "DC Art All Night",
@@ -80,8 +80,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292134",
-      "updated_at": "2025-09-25T17:46:04.292135"
+      "created_at": "2025-10-08T20:50:45.859922",
+      "updated_at": "2025-10-08T20:50:45.859923"
     },
     "5": {
       "name": "DC Arts Events",
@@ -99,8 +99,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292152",
-      "updated_at": "2025-09-25T17:46:04.292153"
+      "created_at": "2025-10-08T20:50:45.859923",
+      "updated_at": "2025-10-08T20:50:45.859923"
     },
     "6": {
       "name": "DC Improv",
@@ -118,8 +118,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292176",
-      "updated_at": "2025-09-25T17:46:04.292177"
+      "created_at": "2025-10-08T20:50:45.859924",
+      "updated_at": "2025-10-08T20:50:45.859924"
     },
     "7": {
       "name": "DC Public Library",
@@ -137,8 +137,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292194",
-      "updated_at": "2025-09-25T17:46:04.292194"
+      "created_at": "2025-10-08T20:50:45.859925",
+      "updated_at": "2025-10-08T20:50:45.859925"
     },
     "8": {
       "name": "DC Spot",
@@ -156,8 +156,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292209",
-      "updated_at": "2025-09-25T17:46:04.292209"
+      "created_at": "2025-10-08T20:50:45.859925",
+      "updated_at": "2025-10-08T20:50:45.859926"
     },
     "9": {
       "name": "DC Women Photographers",
@@ -175,8 +175,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292221",
-      "updated_at": "2025-09-25T17:46:04.292221"
+      "created_at": "2025-10-08T20:50:45.859926",
+      "updated_at": "2025-10-08T20:50:45.859927"
     },
     "10": {
       "name": "Eastern Market DC",
@@ -194,8 +194,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292233",
-      "updated_at": "2025-09-25T17:46:04.292233"
+      "created_at": "2025-10-08T20:50:45.859927",
+      "updated_at": "2025-10-08T20:50:45.859927"
     },
     "11": {
       "name": "Events DC",
@@ -213,8 +213,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292244",
-      "updated_at": "2025-09-25T17:46:04.292245"
+      "created_at": "2025-10-08T20:50:45.859928",
+      "updated_at": "2025-10-08T20:50:45.859928"
     },
     "12": {
       "name": "Film Festival DC",
@@ -232,8 +232,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292256",
-      "updated_at": "2025-09-25T17:46:04.292257"
+      "created_at": "2025-10-08T20:50:45.859928",
+      "updated_at": "2025-10-08T20:50:45.859929"
     },
     "13": {
       "name": "International Spy Museum",
@@ -251,8 +251,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292268",
-      "updated_at": "2025-09-25T17:46:04.292268"
+      "created_at": "2025-10-08T20:50:45.859929",
+      "updated_at": "2025-10-08T20:50:45.859930"
     },
     "14": {
       "name": "Joy Raft DC",
@@ -270,8 +270,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292279",
-      "updated_at": "2025-09-25T17:46:04.292280"
+      "created_at": "2025-10-08T20:50:45.859930",
+      "updated_at": "2025-10-08T20:50:45.859930"
     },
     "15": {
       "name": "Leica Store DC",
@@ -289,8 +289,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292291",
-      "updated_at": "2025-09-25T17:46:04.292291"
+      "created_at": "2025-10-08T20:50:45.859931",
+      "updated_at": "2025-10-08T20:50:45.859931"
     },
     "16": {
       "name": "National Air and Space Museum",
@@ -308,8 +308,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292303",
-      "updated_at": "2025-09-25T17:46:04.292303"
+      "created_at": "2025-10-08T20:50:45.859931",
+      "updated_at": "2025-10-08T20:50:45.859932"
     },
     "17": {
       "name": "National Gallery of Art",
@@ -327,8 +327,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292314",
-      "updated_at": "2025-09-25T17:46:04.292315"
+      "created_at": "2025-10-08T20:50:45.859932",
+      "updated_at": "2025-10-08T20:50:45.859932"
     },
     "18": {
       "name": "National Portrait Gallery",
@@ -346,8 +346,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292326",
-      "updated_at": "2025-09-25T17:46:04.292326"
+      "created_at": "2025-10-08T20:50:45.859933",
+      "updated_at": "2025-10-08T20:50:45.859933"
     },
     "19": {
       "name": "Portrait Meet DC",
@@ -365,8 +365,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292337",
-      "updated_at": "2025-09-25T17:46:04.292338"
+      "created_at": "2025-10-08T20:50:45.859934",
+      "updated_at": "2025-10-08T20:50:45.859934"
     },
     "20": {
       "name": "Secret Washington DC",
@@ -384,8 +384,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292348",
-      "updated_at": "2025-09-25T17:46:04.292349"
+      "created_at": "2025-10-08T20:50:45.859934",
+      "updated_at": "2025-10-08T20:50:45.859935"
     },
     "21": {
       "name": "Smithsonian",
@@ -403,8 +403,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292360",
-      "updated_at": "2025-09-25T17:46:04.292360"
+      "created_at": "2025-10-08T20:50:45.859935",
+      "updated_at": "2025-10-08T20:50:45.859935"
     },
     "22": {
       "name": "Smithsonian Arthur M. Sackler Gallery",
@@ -422,8 +422,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292371",
-      "updated_at": "2025-09-25T17:46:04.292372"
+      "created_at": "2025-10-08T20:50:45.859936",
+      "updated_at": "2025-10-08T20:50:45.859936"
     },
     "23": {
       "name": "Smithsonian Freer Gallery of Art",
@@ -441,8 +441,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292383",
-      "updated_at": "2025-09-25T17:46:04.292383"
+      "created_at": "2025-10-08T20:50:45.859937",
+      "updated_at": "2025-10-08T20:50:45.859937"
     },
     "24": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -460,8 +460,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292395",
-      "updated_at": "2025-09-25T17:46:04.292395"
+      "created_at": "2025-10-08T20:50:45.859937",
+      "updated_at": "2025-10-08T20:50:45.859938"
     },
     "25": {
       "name": "Smithsonian National Museum of African American History and Culture",
@@ -479,8 +479,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292406",
-      "updated_at": "2025-09-25T17:46:04.292406"
+      "created_at": "2025-10-08T20:50:45.859938",
+      "updated_at": "2025-10-08T20:50:45.859938"
     },
     "26": {
       "name": "Smithsonian National Museum of American History",
@@ -498,8 +498,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292417",
-      "updated_at": "2025-09-25T17:46:04.292418"
+      "created_at": "2025-10-08T20:50:45.859939",
+      "updated_at": "2025-10-08T20:50:45.859939"
     },
     "27": {
       "name": "Smithsonian National Museum of Natural History",
@@ -517,8 +517,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292429",
-      "updated_at": "2025-09-25T17:46:04.292429"
+      "created_at": "2025-10-08T20:50:45.859940",
+      "updated_at": "2025-10-08T20:50:45.859940"
     },
     "28": {
       "name": "Smithsonian National Museum of the American Indian",
@@ -536,8 +536,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292440",
-      "updated_at": "2025-09-25T17:46:04.292441"
+      "created_at": "2025-10-08T20:50:45.859940",
+      "updated_at": "2025-10-08T20:50:45.859941"
     },
     "29": {
       "name": "Street Meet DC",
@@ -555,8 +555,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292451",
-      "updated_at": "2025-09-25T17:46:04.292452"
+      "created_at": "2025-10-08T20:50:45.859941",
+      "updated_at": "2025-10-08T20:50:45.859941"
     },
     "30": {
       "name": "The Phillips Collection",
@@ -574,8 +574,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292463",
-      "updated_at": "2025-09-25T17:46:04.292463"
+      "created_at": "2025-10-08T20:50:45.859942",
+      "updated_at": "2025-10-08T20:50:45.859942"
     },
     "31": {
       "name": "United States Holocaust Memorial Museum",
@@ -593,8 +593,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292474",
-      "updated_at": "2025-09-25T17:46:04.292475"
+      "created_at": "2025-10-08T20:50:45.859943",
+      "updated_at": "2025-10-08T20:50:45.859943"
     },
     "32": {
       "name": "Visit Washington DC",
@@ -612,8 +612,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292486",
-      "updated_at": "2025-09-25T17:46:04.292486"
+      "created_at": "2025-10-08T20:50:45.859943",
+      "updated_at": "2025-10-08T20:50:45.859944"
     },
     "33": {
       "name": "Washington DC Photography Meetup",
@@ -631,8 +631,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292497",
-      "updated_at": "2025-09-25T17:46:04.292498"
+      "created_at": "2025-10-08T20:50:45.859944",
+      "updated_at": "2025-10-08T20:50:45.859944"
     },
     "34": {
       "name": "Washington Improv Theater",
@@ -650,8 +650,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292509",
-      "updated_at": "2025-09-25T17:46:04.292509"
+      "created_at": "2025-10-08T20:50:45.859945",
+      "updated_at": "2025-10-08T20:50:45.859945"
     },
     "35": {
       "name": "Washington National Cathedral",
@@ -669,8 +669,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292520",
-      "updated_at": "2025-09-25T17:46:04.292521"
+      "created_at": "2025-10-08T20:50:45.859946",
+      "updated_at": "2025-10-08T20:50:45.859946"
     },
     "36": {
       "name": "Washingtonian Magazine",
@@ -688,8 +688,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292532",
-      "updated_at": "2025-09-25T17:46:04.292532"
+      "created_at": "2025-10-08T20:50:45.859946",
+      "updated_at": "2025-10-08T20:50:45.859947"
     },
     "37": {
       "name": "Baltimore Scenes",
@@ -707,8 +707,8 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-09-25T17:46:04.292543",
-      "updated_at": "2025-09-25T17:46:04.292543"
+      "created_at": "2025-10-08T20:50:45.859947",
+      "updated_at": "2025-10-08T20:50:45.859947"
     },
     "38": {
       "name": "NYC Arts",
@@ -726,8 +726,8 @@
       "notes": "Official NYC government arts account. Highly reliable source for major cultural events and exhibitions across NYC.",
       "scraping_pattern": "Look for posts about art exhibitions, gallery openings, cultural events, and artist showcases. Monitor hashtags like #NYCArts, #NYCCulture, #ArtExhibitions, #GalleryOpenings.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.325947",
-      "updated_at": "2025-10-04T14:05:15.325952"
+      "created_at": "2025-10-08T20:50:45.859948",
+      "updated_at": "2025-10-08T20:50:45.859948"
     },
     "39": {
       "name": "Time Out New York",
@@ -745,8 +745,8 @@
       "notes": "Established NYC culture and events publication. Excellent source for comprehensive event coverage across all categories.",
       "scraping_pattern": "Look for posts about events, exhibitions, concerts, theater, food events, and cultural happenings. Monitor hashtags like #TimeOutNYC, #NYCEvents, #NYCCulture, #NYCFood.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.327077",
-      "updated_at": "2025-10-04T14:05:15.327078"
+      "created_at": "2025-10-08T20:50:45.859949",
+      "updated_at": "2025-10-08T20:50:45.859949"
     },
     "40": {
       "name": "The Metropolitan Museum of Art",
@@ -764,8 +764,8 @@
       "notes": "Official Met Museum account. Premier source for major art exhibitions, museum events, and cultural programming.",
       "scraping_pattern": "Look for posts about new exhibitions, museum events, lectures, workshops, and special programming. Monitor hashtags like #MetMuseum, #ArtExhibitions, #NYCArt, #MuseumEvents.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.327419",
-      "updated_at": "2025-10-04T14:05:15.327420"
+      "created_at": "2025-10-08T20:50:45.859949",
+      "updated_at": "2025-10-08T20:50:45.859950"
     },
     "41": {
       "name": "MoMA",
@@ -783,8 +783,8 @@
       "notes": "Official MoMA account. Leading source for contemporary art exhibitions, modern art events, and cutting-edge cultural programming.",
       "scraping_pattern": "Look for posts about contemporary art exhibitions, modern art events, artist talks, film screenings, and performance art. Monitor hashtags like #MoMA, #ModernArt, #ContemporaryArt, #NYCArt.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.327671",
-      "updated_at": "2025-10-04T14:05:15.327671"
+      "created_at": "2025-10-08T20:50:45.859950",
+      "updated_at": "2025-10-08T20:50:45.859950"
     },
     "42": {
       "name": "Brooklyn Museum",
@@ -802,8 +802,8 @@
       "notes": "Official Brooklyn Museum account. Great source for diverse art exhibitions, community events, and Brooklyn cultural programming.",
       "scraping_pattern": "Look for posts about art exhibitions, community events, artist showcases, workshops, and cultural programming. Monitor hashtags like #BrooklynMuseum, #BrooklynArt, #NYCArt, #CommunityEvents.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.327878",
-      "updated_at": "2025-10-04T14:05:15.327879"
+      "created_at": "2025-10-08T20:50:45.859951",
+      "updated_at": "2025-10-08T20:50:45.859951"
     },
     "43": {
       "name": "NYC Parks",
@@ -821,8 +821,8 @@
       "notes": "Official NYC Parks account. Excellent source for outdoor events, park activities, and nature-based programming across all boroughs.",
       "scraping_pattern": "Look for posts about park events, outdoor activities, nature programming, fitness events, and seasonal celebrations. Monitor hashtags like #NYCParks, #OutdoorEvents, #ParkEvents, #NYCNature.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.328074",
-      "updated_at": "2025-10-04T14:05:15.328075"
+      "created_at": "2025-10-08T20:50:45.859952",
+      "updated_at": "2025-10-08T20:50:45.859952"
     },
     "44": {
       "name": "Lincoln Center",
@@ -840,8 +840,8 @@
       "notes": "Official Lincoln Center account. Premier source for world-class performing arts events, classical music, opera, and cultural performances.",
       "scraping_pattern": "Look for posts about concerts, performances, opera, classical music, theater, and dance events. Monitor hashtags like #LincolnCenter, #ClassicalMusic, #NYCTheater, #PerformingArts.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.328292",
-      "updated_at": "2025-10-04T14:05:15.328292"
+      "created_at": "2025-10-08T20:50:45.859952",
+      "updated_at": "2025-10-08T20:50:45.859953"
     },
     "45": {
       "name": "Brooklyn Academy of Music",
@@ -859,8 +859,8 @@
       "notes": "Official BAM account. Leading source for cutting-edge performances, experimental art, and avant-garde cultural programming.",
       "scraping_pattern": "Look for posts about experimental performances, contemporary art, avant-garde events, film screenings, and cutting-edge cultural programming. Monitor hashtags like #BAM, #ExperimentalArt, #AvantGarde, #BrooklynCulture.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.328481",
-      "updated_at": "2025-10-04T14:05:15.328482"
+      "created_at": "2025-10-08T20:50:45.859953",
+      "updated_at": "2025-10-08T20:50:45.859953"
     },
     "46": {
       "name": "NYC.com",
@@ -878,8 +878,8 @@
       "notes": "Comprehensive NYC events website. Good source for broad coverage of events and attractions across all categories.",
       "scraping_pattern": "Look for event listings, attraction information, restaurant events, and activity recommendations. Monitor for event announcements and cultural programming updates.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.328680",
-      "updated_at": "2025-10-04T14:05:15.328681"
+      "created_at": "2025-10-08T20:50:45.859954",
+      "updated_at": "2025-10-08T20:50:45.859954"
     },
     "47": {
       "name": "Gothamist",
@@ -897,8 +897,8 @@
       "notes": "Local NYC news and culture publication. Good source for community events, neighborhood happenings, and local cultural programming.",
       "scraping_pattern": "Look for posts about community events, neighborhood happenings, local culture, festivals, and free events. Monitor hashtags like #Gothamist, #NYCLocal, #CommunityEvents, #NeighborhoodEvents.",
       "last_checked": null,
-      "created_at": "2025-10-04T14:05:15.328890",
-      "updated_at": "2025-10-04T14:05:15.328890"
+      "created_at": "2025-10-08T20:50:45.859955",
+      "updated_at": "2025-10-08T20:50:45.859955"
     },
     "48": {
       "name": "Big Onion Walking Tours",
@@ -916,8 +916,8 @@
       "notes": "Award-winning historical walking tour company. 'Best Place To Take Out Of Town Guests' - Village Voice 2014. Tours led by graduate students and historians. Covers all major NYC neighborhoods with themed tours including Revolutionary NY, Gangs of NY, Immigrant NY, Greenwich Village, Brooklyn Bridge, Harlem Renaissance, Jewish Lower East Side, and multi-ethnic food tours.",
       "scraping_pattern": "Check the tours page for scheduled walking tours across NYC neighborhoods. Look for tour dates, times, meeting locations, and special themed tours. Tours typically include: Lower Manhattan, Greenwich Village, Brooklyn Heights, Central Park, Harlem, Lower East Side, Chelsea, East Village, Upper East Side, and specialty food/holiday tours.",
       "last_checked": null,
-      "created_at": "2025-10-08T16:00:00.000000",
-      "updated_at": "2025-10-08T16:00:00.000000"
+      "created_at": "2025-10-08T20:50:45.859955",
+      "updated_at": "2025-10-08T20:50:45.859956"
     },
     "49": {
       "name": "Ellis Island Hard Hat Tours",
@@ -935,48 +935,10 @@
       "notes": "Unique Hard Hat Tours of Ellis Island's abandoned hospital buildings. Tours run daily from 10:30am to 4pm with 6 different time slots. Minimum age 10 years old. $55 per tour (ferry tickets sold separately). Proceeds support preservation efforts. Also offers Group Tours, Photography Tours, and School Programs. Contact: 201-332-8485 or reservations@saveellisisland.org",
       "scraping_pattern": "Check tour availability and schedule for Hard Hat Tours. Daily tours at: 10:30am-12pm (Early Bird), 11:30am-1pm, 12pm-1:30pm, 12:30pm-2pm, 1:30pm-3pm, 2:30pm-4pm. Monitor special photography tours, group tours, and school programs. Look for seasonal events and special exhibits.",
       "last_checked": null,
-      "created_at": "2025-10-08T16:05:00.000000",
-      "updated_at": "2025-10-08T16:05:00.000000"
+      "created_at": "2025-10-08T20:50:45.859956",
+      "updated_at": "2025-10-08T20:50:45.859957"
     },
     "50": {
-      "name": "National Gallery of Art - Finding Awe",
-      "handle": "nga.gov/calendar/finding-awe",
-      "source_type": "website",
-      "url": "https://www.nga.gov/calendar/finding-awe",
-      "description": "National Gallery of Art's Finding Awe series: Interactive workshops exploring where artists have found awe and how it has inspired their work. 90-minute sessions to breathe deeply and look mindfully at works of art. Includes awe practices based on research by Dacher Keltner. Ages 18 and up.",
-      "city_id": 1,
-      "covers_multiple_cities": false,
-      "covered_cities": "",
-      "event_types": "[\"talks\", \"conversations\", \"workshops\", \"educational_events\", \"art_events\", \"cultural_events\", \"museum_events\"]",
-      "is_active": true,
-      "reliability_score": 5.0,
-      "posting_frequency": "weekly",
-      "notes": "Finding Awe series runs October 3, 2025 - March 14, 2026. Workshops focus on specific artworks with registration required. Three workshops offered per artwork topic. Check calendar for dates and times.",
-      "scraping_pattern": "Scrape the calendar page for Finding Awe workshops. Look for event dates, times, artwork topics, and registration links. Events are typically 90 minutes long and require registration.",
-      "last_checked": null,
-      "created_at": "2025-12-01T12:00:00.000000",
-      "updated_at": "2025-12-01T12:00:00.000000"
-    },
-    "51": {
-      "name": "Webster's Bookstore Cafe",
-      "handle": "webstersbooksandcafe",
-      "source_type": "website",
-      "url": "https://www.webstersbooksandcafe.com/community",
-      "description": "Webster's Bookstore Cafe is a vibrant community hub in downtown State College, offering a unique blend of a used bookstore with thousands of titles and a cafe serving organic, fair-trade European-style coffee beverages. They host many community events including live music, book clubs, author readings, workshops, and a fully VEGAN/GF Brunch Buffet every Sunday with live music.",
-      "city_id": 26,
-      "covers_multiple_cities": false,
-      "covered_cities": "",
-      "event_types": "[\"community_events\", \"live_music\", \"book_clubs\", \"author_readings\", \"workshops\", \"brunch\", \"cultural_events\", \"open_mic\"]",
-      "is_active": true,
-      "reliability_score": 5.0,
-      "posting_frequency": "weekly",
-      "notes": "Events are listed on the community page. Format includes date (MM-DD), event name, time, and type (Brunch, Music, etc.). Some events are recurring (e.g., Sunday Music Brunch, Shut Up and Write).",
-      "scraping_pattern": "Scrape the /community page for events. Events are listed with format: MM-DD: Event Name Time - Time. Look for recurring events like Sunday Music Brunch, Shut Up and Write, etc.",
-      "last_checked": null,
-      "created_at": "2025-01-18T12:00:00.000000",
-      "updated_at": "2025-01-18T12:00:00.000000"
-    },
-    "52": {
       "name": "Photoworks at Glen Echo Park",
       "handle": "@glenechophotoworks",
       "source_type": "instagram",
@@ -992,8 +954,27 @@
       "notes": "",
       "scraping_pattern": "",
       "last_checked": null,
-      "created_at": "2025-12-05T04:00:00.000000",
-      "updated_at": "2025-12-05T04:00:00.000000"
+      "created_at": "2025-12-05T23:50:58.904002",
+      "updated_at": "2025-12-05T23:50:58.904010"
+    },
+    "51": {
+      "name": "Mexican Cultural Institute",
+      "handle": "instituteofmexicodc.org",
+      "source_type": "website",
+      "url": "https://instituteofmexicodc.org/index.php/cultural-happenings/",
+      "description": "Mexican Cultural Institute of Washington DC hosts cultural events including exhibitions, music, film screenings, talks, lectures, conferences, and culinary events.",
+      "city_id": 1,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"cultural_events\", \"exhibitions\", \"music\", \"film\", \"talks\", \"lectures\", \"conferences\", \"culinary\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "",
+      "notes": "Events page with calendar view. May require JavaScript rendering.",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2025-12-07T22:15:43.850587",
+      "updated_at": "2025-12-07T22:15:43.850600"
     }
   }
 }
