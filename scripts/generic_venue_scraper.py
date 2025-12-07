@@ -199,16 +199,21 @@ class GenericVenueScraper:
             '.exhibition-teaser', '.exhibition-summary', '.exhibition-list-item',
             '.current-exhibition', '.upcoming-exhibition', '.past-exhibition',
             '.exhibition-block', '.exhibition-tile', '.exhibition-grid-item',
+            '.exhibition-thumbnail', '.exhibition-image', '.exhibition-link',
+            '.exhibition-title', '.exhibition-details', '.exhibition-meta',
             # Museum program selectors
             '.program', '.program-item', '.program-card', '.program-entry',
             '.program-teaser', '.program-list-item', '.program-block',
+            '.program-thumbnail', '.program-image', '.program-link',
             # Gallery talk/lecture selectors
             '.gallery-talk', '.curator-talk', '.artist-talk', '.lecture-series',
             '.talk', '.talks', '.lecture', '.lectures', '.speaker-event',
             '.panel-discussion', '.conversation', '.symposium',
+            '.artist-conversation', '.curator-conversation',
             # Museum tour selectors
             '.tour', '.tours', '.guided-tour', '.walking-tour', '.tour-item',
             '.docent-tour', '.highlights-tour', '.special-tour',
+            '.collection-tour', '.gallery-tour',
             # Workshop/class selectors
             '.workshop', '.workshops', '.class', '.classes', '.course', '.courses',
             '.studio-class', '.art-class', '.family-program',
@@ -216,19 +221,24 @@ class GenericVenueScraper:
             '.event', '.events', '.event-item', '.event-card', '.event-list-item',
             '.event-entry', '.event-entry-item', '.event-teaser', '.event-summary',
             '.calendar-event', '.upcoming-event', '.past-event', '.featured-event',
+            '.event-thumbnail', '.event-image', '.event-link', '.event-title',
+            # Modern web patterns (common in React/Vue apps)
+            '[class*="EventCard"]', '[class*="EventItem"]', '[class*="ExhibitionCard"]',
+            '[class*="ProgramCard"]', '[class*="TourCard"]',
             # Generic patterns (museum-specific)
             '[class*="exhibition"]', '[class*="program"]', '[class*="gallery"]',
             '[class*="event"]', '[class*="tour"]', '[class*="workshop"]',
-            '[class*="lecture"]', '[class*="talk"]',
+            '[class*="lecture"]', '[class*="talk"]', '[class*="show"]',
             # Data attributes
             '[data-event]', '[data-event-id]', '[data-event-type]',
-            '[data-exhibition]', '[data-exhibition-id]',
+            '[data-exhibition]', '[data-exhibition-id]', '[data-program]',
+            '[data-tour]', '[data-workshop]',
             # Semantic HTML (museum-specific)
             'article.event', 'article.program', 'article.exhibition',
-            'article.gallery-talk', 'article.lecture',
-            'li.event', 'li.program', 'li.exhibition', 'li.talk',
+            'article.gallery-talk', 'article.lecture', 'article.tour',
+            'li.event', 'li.program', 'li.exhibition', 'li.talk', 'li.tour',
             'div[itemtype*="Event"]', 'div[itemtype*="ExhibitionEvent"]',
-            'div[itemtype*="VisualArtsEvent"]',
+            'div[itemtype*="VisualArtsEvent"]', 'div[itemtype*="TheaterEvent"]',
             # Common CMS patterns (museum websites)
             '.node-event', '.node-exhibition', '.node-program',
             '.view-events', '.view-exhibitions', '.view-programs',
@@ -236,19 +246,29 @@ class GenericVenueScraper:
             '.events-grid', '.exhibitions-grid', '.programs-grid',
             # Museum-specific patterns
             '.collection-highlight', '.special-exhibition', '.featured-exhibition',
-            '.on-view', '.current-show', '.upcoming-show'
+            '.on-view', '.current-show', '.upcoming-show',
+            # Additional common patterns
+            '.listing-item', '.content-item', '.post-item',
+            '.card', '.tile', '.teaser',  # Generic card patterns
+            'section.event', 'section.exhibition', 'section.program',
+            # Link-based patterns (many museums use links as event containers)
+            'a[href*="/exhibitions/"]', 'a[href*="/events/"]', 'a[href*="/programs/"]',
+            'a[href*="/tours/"]', 'a[href*="/talks/"]', 'a[href*="/lectures/"]',
         ]
         
         # Fallback to general event selectors if museum-specific ones don't work
         self.event_selectors = self.museum_event_selectors
         
-        # Common date/time patterns
+        # Common date/time patterns (expanded for better coverage)
         self.date_patterns = [
             # Full dates with time (comma-separated format: "December 5, 2025, 5:00–6:00 PM")
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',  # "December 5, 2025, 5:00–6:00 PM"
             # Full dates with time (pipe-separated format: "December 5, 2025 | 11:30 am–12:00 pm")
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?',  # "December 5, 2025 | 11:30 am–12:00 pm"
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+            # Abbreviated month formats
+            r'(\w+day,?\s+)?(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "Dec. 5, 2025" or "Dec 5, 2025"
+            r'(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "Dec 5, 2025" (no day of week)
             # Date ranges (museum exhibitions often use these)
             r'(\w+)\s+(\d{1,2})\s*[–-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23 - August 23, 2026"
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*[–-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 - August 23, 2026"
@@ -257,11 +277,16 @@ class GenericVenueScraper:
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+through\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 through August 23, 2026"
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+to\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 to August 23, 2026"
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*–\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026–August 23, 2026" (no spaces)
+            # Abbreviated month date ranges
+            r'(\w{3})\.?\s+(\d{1,2})\s*[–-]\s*(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "May 23 - Aug 23, 2026"
+            r'(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})\s*[–-]\s*(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 - Aug 23, 2026"
             # Standard formats
             r'(\d{1,2})/(\d{1,2})/(\d{4})',  # MM/DD/YYYY
             r'(\d{4})-(\d{2})-(\d{2})',  # YYYY-MM-DD
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "December 5, 2025"
             r'(\d{1,2})\s+(\w+)\s+(\d{4})',  # "5 December 2025"
+            # Relative dates (for ongoing exhibitions)
+            r'(ongoing|now\s+on\s+view|currently\s+on\s+view)',  # "Ongoing" or "Now on view"
         ]
         
         self.time_patterns = [
@@ -270,7 +295,11 @@ class GenericVenueScraper:
             r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s+to\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',  # "11:30 am to 12:00 pm"
             r'(\d{1,2}):(\d{2})\s*([AP]M)\s*[–-]\s*(\d{1,2}):(\d{2})\s*([AP]M)',  # "11:30 AM–12:00 PM"
             r'(\d{1,2}):(\d{2})\s*([AP]M)',  # "11:30 AM"
+            # 24-hour format
+            r'(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})',  # "11:30-12:00" (24-hour)
             r'(\d{1,2}):(\d{2})',  # "11:30"
+            # Single digit hour
+            r'(\d{1}):(\d{2})\s*([ap])\.?m\.?',  # "9:30 am"
         ]
     
     def scrape_venue_events(self, venue_url: str, venue_name: str = None, 
@@ -349,12 +378,15 @@ class GenericVenueScraper:
             # First, try common paths directly (many museums use standard paths)
             common_paths = [
                 '/exhibitions', '/exhibition', '/exhibitions/current', '/exhibitions/on-view',
+                '/exhibitions/upcoming', '/exhibitions/past',
                 '/events', '/event', '/calendar', '/programs', '/program',
-                '/whats-on', '/whats-on/current', '/whats-on/exhibitions',
+                '/whats-on', '/whats-on/current', '/whats-on/exhibitions', '/whats-on/events',
                 '/visit/exhibitions', '/see/exhibitions', '/explore/exhibitions',
                 '/collection/exhibitions', '/art/exhibitions',
                 '/current-exhibitions', '/upcoming-exhibitions', '/on-view',
-                '/gallery', '/galleries', '/shows', '/shows/current'
+                '/gallery', '/galleries', '/shows', '/shows/current',
+                '/tours', '/talks', '/lectures', '/workshops',
+                '/learn/programs', '/experience/events'
             ]
             
             parsed_base = urlparse(base_url)
@@ -592,14 +624,10 @@ Important:
             
             soup = BeautifulSoup(html_content, 'html.parser')
             
-            # Check if page is JavaScript-rendered
-            if self._is_javascript_rendered(soup) and use_llm_fallback:
-                logger.info(f"⚠️  Page appears to be JavaScript-rendered, trying LLM fallback...")
-                # Try LLM fallback for the main venue URL
-                llm_events = self._use_llm_fallback_for_venue(base_url, venue_name, event_type)
-                if llm_events:
-                    return llm_events
-                # Continue with normal extraction as fallback
+            # Check if page is JavaScript-rendered (but still try pattern matching first!)
+            is_js_rendered = self._is_javascript_rendered(soup)
+            if is_js_rendered:
+                logger.info(f"⚠️  Page appears to be JavaScript-rendered, but trying pattern matching first...")
             
             # Museum-specific: Check for exhibition listing pages (highest priority)
             url_lower = url.lower()
@@ -637,6 +665,17 @@ Important:
             valid_html_events = [e for e in html_events if self._is_valid_generic_event(e)]
             events.extend(valid_html_events)
             
+            # Only use LLM fallback if:
+            # 1. Page is JavaScript-rendered AND
+            # 2. Pattern matching found no events AND
+            # 3. LLM fallback is enabled
+            if is_js_rendered and len(events) == 0 and use_llm_fallback:
+                logger.info(f"⚠️  Pattern matching found no events on JS-rendered page, trying LLM fallback...")
+                llm_events = self._use_llm_fallback_for_venue(base_url, venue_name, event_type)
+                if llm_events:
+                    logger.info(f"✅ LLM fallback found {len(llm_events)} events")
+                    return llm_events
+        
         except Exception as e:
             logger.debug(f"Error scraping page {url}: {e}")
         
@@ -775,46 +814,47 @@ Important:
     def _extract_events_from_html(self, soup: BeautifulSoup, base_url: str, 
                                   venue_name: str = None, event_type: str = None, 
                                   time_range: str = 'this_month') -> List[Dict]:
-        """Extract events from HTML using museum-specific selectors first, then fallback"""
+        """Extract events from HTML using museum-specific selectors"""
         events = []
-        seen_elements = set()  # Track elements we've already processed
+        seen_elements = set()
 
-        # Prioritize museum-specific selectors
         selectors_to_try = self.museum_event_selectors if hasattr(self, 'museum_event_selectors') else self.event_selectors
 
-        # Try each selector
         for selector in selectors_to_try:
             try:
                 elements = soup.select(selector)
                 if elements:
-                    logger.debug(f"Found {len(elements)} elements with selector: {selector}")
+                    logger.info(f"   Found {len(elements)} elements with selector: {selector}")
 
                     for element in elements:
-                        # Skip if we've already processed this element
                         element_id = id(element)
                         if element_id in seen_elements:
                             continue
                         seen_elements.add(element_id)
                         
-                        # Skip navigation and calendar UI elements
                         if self._should_skip_element(element):
                             continue
 
-                        event = self._parse_event_element(element, base_url, venue_name, event_type, time_range)
-                        if event:
-                            # Enhance event type detection for museums
-                            if not event.get('event_type'):
-                                event['event_type'] = self._detect_museum_event_type(
-                                    event.get('title', ''),
-                                    event.get('description', ''),
-                                    element
-                                )
-                            events.append(event)
+                        try:
+                            event = self._parse_event_element(element, base_url, venue_name, event_type, time_range)
+                            if event:
+                                if not event.get('event_type'):
+                                    event['event_type'] = self._detect_museum_event_type(
+                                        event.get('title', ''),
+                                        event.get('description', ''),
+                                        element
+                                    )
+                                events.append(event)
+                                logger.debug(f"   ✅ Extracted event: {event.get('title', 'N/A')[:50]}")
+                        except Exception as e:
+                            logger.debug(f"   ⚠️  Error parsing event element: {e}")
+                            continue  # Continue with next element instead of failing
 
             except Exception as e:
                 logger.debug(f"Error with selector {selector}: {e}")
                 continue
 
+        logger.info(f"   Extracted {len(events)} events from HTML patterns")
         return events
     
     def _is_valid_event_title(self, title: str) -> bool:
@@ -906,6 +946,11 @@ Important:
         if not title:
             return title
         
+        # Remove HTML entities
+        title = title.replace('&nbsp;', ' ').replace('&amp;', '&')
+        title = title.replace('&quot;', '"').replace('&#39;', "'")
+        title = title.replace('\xa0', ' ')  # Non-breaking space
+        
         # Remove trailing commas and whitespace
         title = re.sub(r',\s*$', '', title)
         title = title.strip()
@@ -950,19 +995,52 @@ Important:
         # Normalize multiple spaces to single space
         title = re.sub(r'\s+', ' ', title)
         
+        # Remove common HTML entities and special characters
+        title = title.replace('&nbsp;', ' ').replace('&amp;', '&')
+        title = title.replace('\xa0', ' ')  # Non-breaking space
+        
         # Strip leading/trailing whitespace
         title = title.strip()
         
         return title
     
+    def _clean_description(self, description: str) -> str:
+        """Clean and normalize description text"""
+        if not description:
+            return description
+        
+        # Remove HTML entities
+        description = description.replace('&nbsp;', ' ').replace('&amp;', '&')
+        description = description.replace('&quot;', '"').replace('&#39;', "'")
+        description = description.replace('\xa0', ' ')  # Non-breaking space
+        
+        # Normalize whitespace (multiple spaces/newlines to single space)
+        description = re.sub(r'\s+', ' ', description)
+        
+        # Remove leading/trailing whitespace
+        description = description.strip()
+        
+        # Remove common prefixes that aren't useful
+        prefixes_to_remove = [
+            r'^Description:\s*',
+            r'^About:\s*',
+            r'^Details:\s*',
+        ]
+        for prefix in prefixes_to_remove:
+            description = re.sub(prefix, '', description, flags=re.IGNORECASE)
+        
+        return description
+    
     def _parse_event_element(self, element, base_url: str, venue_name: str = None,
                             event_type: str = None, time_range: str = 'this_month') -> Optional[Dict]:
         """Parse a single event element from HTML"""
         try:
-            # Extract title
+            # Extract title (enhanced with more selectors)
             title = self._extract_text(element, [
                 'h1', 'h2', 'h3', 'h4', '.title', '.event-title', '.name',
-                '[itemprop="name"]', 'meta[property="og:title"]'
+                '.exhibition-title', '.program-title', '.event-name',
+                '[itemprop="name"]', 'meta[property="og:title"]',
+                'a.title', 'a.event-title', '.heading', '.headline'
             ])
             
             if not title or len(title) < 3:
@@ -1000,10 +1078,12 @@ Important:
             # Clean title to remove dates, trailing commas, etc.
             title = self._clean_title(title)
             
-            # Extract description
+            # Extract description (enhanced)
             description = self._extract_text(element, [
                 '.description', '.summary', '.content', 'p', '.event-description',
-                '[itemprop="description"]', 'meta[property="og:description"]'
+                '.exhibition-description', '.program-description',
+                '[itemprop="description"]', 'meta[property="og:description"]',
+                '.excerpt', '.blurb', '.intro'
             ])
             
             # Extract date/time
@@ -1184,9 +1264,13 @@ Important:
                 # No date - include it (might be ongoing exhibition or event without specific date)
                 logger.debug(f"   ⚠️  Event '{title}' has no date, including anyway (might be ongoing)")
             
+            # Clean description
+            if description:
+                description = self._clean_description(description)
+            
             return {
                 'title': title.strip(),
-                'description': description.strip() if description else '',
+                'description': description if description else '',
                 'start_date': start_date.isoformat() if start_date else None,
                 'end_date': end_date.isoformat() if end_date else None,
                 'start_time': start_time.isoformat() if start_time else None,
@@ -1202,14 +1286,14 @@ Important:
             return None
     
     def _extract_text(self, element, selectors: List[str]) -> Optional[str]:
-        """Extract text using multiple selector strategies (enhanced from specialized scrapers)"""
+        """Extract text using multiple selector strategies"""
         # Try CSS selectors first
         for selector in selectors:
             try:
                 found = element.select_one(selector)
                 if found:
                     text = found.get_text(strip=True)
-                    if text and len(text) > 3:  # Minimum length check
+                    if text and len(text) > 3:
                         return text
             except:
                 continue
@@ -1226,6 +1310,32 @@ Important:
                                 return content
                     except:
                         continue
+        
+        # Fallback: try common heading/text patterns in element
+        if not element:
+            return None
+        
+        # Try h1-h4 tags
+        for tag in ['h1', 'h2', 'h3', 'h4']:
+            heading = element.find(tag)
+            if heading:
+                text = heading.get_text(strip=True)
+                if text and len(text) > 3:
+                    return text
+        
+        # Try first link text (often contains title)
+        link = element.find('a')
+        if link:
+            text = link.get_text(strip=True)
+            if text and len(text) > 3:
+                return text
+        
+        # Try first strong/b tag
+        strong = element.find(['strong', 'b'])
+        if strong:
+            text = strong.get_text(strip=True)
+            if text and len(text) > 3:
+                return text
 
         # Enhanced: For descriptions, try multiple strategies (learned from specialized scrapers)
         if any('description' in s.lower() or 'summary' in s.lower() or 'content' in s.lower() for s in selectors):
@@ -1257,15 +1367,31 @@ Important:
     
     def _extract_url(self, element, base_url: str) -> Optional[str]:
         """Extract event URL"""
-        # Try link
+        # Try link (check element itself and parent)
         link = element.find('a', href=True)
+        if not link and element.parent:
+            link = element.parent.find('a', href=True)
+        if not link and hasattr(element, 'parent') and element.parent and hasattr(element.parent, 'parent'):
+            link = element.parent.parent.find('a', href=True) if element.parent.parent else None
+        
         if link:
-            return urljoin(base_url, link['href'])
+            href = link.get('href', '')
+            if href and not href.startswith('#') and not href.startswith('javascript:'):
+                return urljoin(base_url, href)
         
         # Try data attributes
-        for attr in ['data-url', 'data-href', 'data-link']:
+        for attr in ['data-url', 'data-href', 'data-link', 'data-permalink']:
             if element.get(attr):
-                return urljoin(base_url, element[attr])
+                url_val = element[attr]
+                if url_val and not url_val.startswith('#') and not url_val.startswith('javascript:'):
+                    return urljoin(base_url, url_val)
+        
+        # Try onclick attribute (sometimes contains URL)
+        onclick = element.get('onclick', '')
+        if onclick:
+            url_match = re.search(r'["\']([^"\']+\.html?[^"\']*)["\']', onclick)
+            if url_match:
+                return urljoin(base_url, url_match.group(1))
         
         return base_url
     
@@ -1276,8 +1402,13 @@ Important:
         # Strategy 1: Look for hero/feature/main images by class (highest priority)
         img_elem = element.find('img', class_=re.compile(r'hero|feature|main|exhibition|header|event', re.I))
         if img_elem:
-            img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src') or img_elem.get('data-original')
+            img_src = (img_elem.get('src') or img_elem.get('data-src') or 
+                      img_elem.get('data-lazy-src') or img_elem.get('data-original') or
+                      img_elem.get('data-srcset') or img_elem.get('data-image'))
             if img_src:
+                # Handle srcset (take first URL)
+                if ',' in img_src:
+                    img_src = img_src.split(',')[0].strip().split()[0]
                 image_url = urljoin(base_url, img_src)
                 return image_url
         
@@ -1285,8 +1416,13 @@ Important:
         if not image_url:
             all_imgs = element.find_all('img')
             for img in all_imgs:
-                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                img_src = (img.get('src') or img.get('data-src') or 
+                          img.get('data-lazy-src') or img.get('data-original') or
+                          img.get('data-srcset') or img.get('data-image'))
                 if img_src:
+                    # Handle srcset
+                    if ',' in img_src:
+                        img_src = img_src.split(',')[0].strip().split()[0]
                     src_lower = img_src.lower()
                     # Skip small icons/logos/decoration (learned from specialized scrapers)
                     skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'twitter', 'facebook', 
@@ -1303,8 +1439,13 @@ Important:
         if not image_url:
             all_imgs = element.find_all('img')
             for img in all_imgs:
-                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                img_src = (img.get('src') or img.get('data-src') or 
+                          img.get('data-lazy-src') or img.get('data-original') or
+                          img.get('data-srcset') or img.get('data-image'))
                 if img_src:
+                    # Handle srcset
+                    if ',' in img_src:
+                        img_src = img_src.split(',')[0].strip().split()[0]
                     src_lower = img_src.lower()
                     # Skip icons/logos
                     skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']
@@ -1743,15 +1884,15 @@ Important:
         if not self._is_valid_event_title(title):
             return False
         
-        # Must have at least one of: date, URL (different from base), or meaningful description
+        # Must have at least one of: date, URL, description, or valid title
         has_date = event.get('start_date') is not None
         url = event.get('url', '')
-        # URL is valid if it exists and is not just the base page
-        has_url = bool(url and len(url) > 10)  # Basic check that URL is substantial
+        has_url = bool(url and len(url) > 10)
         description = event.get('description', '')
-        has_description = description and len(description.strip()) >= 20
+        has_description = description and len(description.strip()) >= 15  # Reduced from 20
+        has_good_title = title and len(title.strip()) >= 10  # Title with some substance
         
-        if not (has_date or has_url or has_description):
+        if not (has_date or has_url or has_description or has_good_title):
             return False
         
         # Filter out events with URLs that are clearly not event pages
@@ -1786,14 +1927,17 @@ Important:
             url = event.get('url', '')
             
             # Create multiple keys for better deduplication
-            # Key 1: title + date (most common)
-            key1 = (title, start_date)
+            # Normalize title for comparison (lowercase, remove extra spaces)
+            title_normalized = re.sub(r'\s+', ' ', title.lower().strip()) if title else ''
+            
+            # Key 1: normalized title + date (most common)
+            key1 = (title_normalized, start_date)
             
             # Key 2: URL + date (for events with unique URLs)
-            key2 = (url, start_date) if url and url != event.get('source_url', '') else None
+            key2 = (url, start_date) if url and url != event.get('source_url', '') and len(url) > 20 else None
             
-            # Key 3: title + URL (for recurring events)
-            key3 = (title, url) if url and url != event.get('source_url', '') else None
+            # Key 3: normalized title + URL (for recurring events)
+            key3 = (title_normalized, url) if url and url != event.get('source_url', '') and len(url) > 20 else None
             
             # Check if we've seen any of these keys
             is_duplicate = key1 in seen

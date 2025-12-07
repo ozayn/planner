@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-12-06",
+    "created": "2025-12-07",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 201,
-    "last_updated": "2025-12-06 23:39:36"
+    "last_updated": "2025-12-07 17:06:01"
   },
   "venues": {
     "1": {
@@ -90,7 +90,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 547-6839",
       "email": "info@chaw.org",
-      "website_url": "https://www.chaw.org",
+      "website_url": "https://chaw.org/",
       "instagram_url": "https://www.instagram.com/chawdc",
       "facebook_url": "https://www.facebook.com/CHAWinDC",
       "twitter_url": "https://twitter.com/CHAWinDC",
@@ -101,7 +101,7 @@
       "latitude": 38.8833,
       "longitude": -76.9967,
       "created_at": "2025-10-08T20:42:31.666199",
-      "updated_at": "2025-12-04T16:52:13.708769"
+      "updated_at": "2025-12-07T21:58:35.877310"
     },
     "5": {
       "name": "Dupont Circle",
@@ -138,7 +138,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 347-4833",
       "email": "info@fords.org",
-      "website_url": "https://www.fords.org",
+      "website_url": "https://fords.org/",
       "instagram_url": "https://www.instagram.com/fordstheatre",
       "facebook_url": "https://www.facebook.com/FordsTheatre",
       "twitter_url": "https://twitter.com/FordsTheatre",
@@ -149,7 +149,7 @@
       "latitude": 38.8967,
       "longitude": -77.0258,
       "created_at": "2025-10-08T20:42:31.666245",
-      "updated_at": "2025-12-04T16:52:13.709263"
+      "updated_at": "2025-12-07T21:58:38.068403"
     },
     "7": {
       "name": "Franklin Delano Roosevelt Memorial",
@@ -186,7 +186,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 298-7800",
       "email": "info@georgetowndc.com",
-      "website_url": "https://www.georgetown.org",
+      "website_url": "https://www.georgetown.com",
       "instagram_url": "https://www.instagram.com/georgetown",
       "facebook_url": "https://www.facebook.com/GeorgetownDC",
       "twitter_url": "https://twitter.com/Georgetown",
@@ -197,7 +197,7 @@
       "latitude": 38.9097,
       "longitude": -77.0654,
       "created_at": "2025-10-08T20:42:31.666293",
-      "updated_at": "2025-12-04T16:52:13.711367"
+      "updated_at": "2025-12-07T21:58:39.222107"
     },
     "9": {
       "name": "International Spy Museum",
@@ -258,7 +258,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 467-4600",
       "email": "info@kennedy-center.org",
-      "website_url": "https://www.kennedycenter.com",
+      "website_url": "https://www.kennedy-center.org",
       "instagram_url": "https://www.instagram.com/kennedycenter",
       "facebook_url": "https://www.facebook.com/KennedyCenter",
       "twitter_url": "https://twitter.com/kencen",
@@ -269,7 +269,7 @@
       "latitude": 38.8957,
       "longitude": -77.0558,
       "created_at": "2025-10-08T20:42:31.666358",
-      "updated_at": "2025-12-04T16:52:13.716095"
+      "updated_at": "2025-12-07T21:58:40.497056"
     },
     "12": {
       "name": "Korean War Veterans Memorial",
@@ -306,7 +306,7 @@
       "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 707-5000",
       "email": "info@loc.gov",
-      "website_url": "https://www.libraryofcongress.com",
+      "website_url": "https://www.loc.gov",
       "instagram_url": "https://www.instagram.com/libraryofcongress",
       "facebook_url": "https://www.facebook.com/LibraryOfCongress",
       "twitter_url": "https://twitter.com/LibraryOfCongress",
@@ -317,7 +317,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666404",
-      "updated_at": "2025-12-04T16:52:13.716664"
+      "updated_at": "2025-12-07T21:58:41.130928"
     },
     "14": {
       "name": "Lincoln Memorial",
@@ -546,7 +546,7 @@
       "holiday_hours": "Closed December 25",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
-      "website_url": "https://www.asia.si.edu",
+      "website_url": "https://asia.si.edu/",
       "instagram_url": "https://www.instagram.com/freergallery",
       "facebook_url": "https://www.facebook.com/FreerSackler",
       "twitter_url": "https://twitter.com/FreerGallery",
@@ -557,7 +557,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666617",
-      "updated_at": "2025-12-05T04:03:59.734540"
+      "updated_at": "2025-12-07T21:58:48.072760"
     },
     "25": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -762,7 +762,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 426-6841",
       "email": "info@nps.gov",
-      "website_url": "https://www.tidalbasin.com",
+      "website_url": "https://www.nps.gov/thje/planyourvisit/tidal-basin.htm",
       "instagram_url": "https://www.instagram.com/tidalbasin",
       "facebook_url": "https://www.facebook.com/TidalBasinDC",
       "twitter_url": "https://twitter.com/TidalBasin",
@@ -773,7 +773,7 @@
       "latitude": 38.8814,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666832",
-      "updated_at": "2025-12-04T16:52:13.720788"
+      "updated_at": "2025-12-07T21:58:54.194087"
     },
     "34": {
       "name": "United States Holocaust Memorial Museum",
@@ -786,7 +786,7 @@
       "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 488-0400",
       "email": "info@ushmm.org",
-      "website_url": "https://www.unitedstatesholocaustmemorialmuseum.com",
+      "website_url": "https://www.ushmm.org",
       "instagram_url": "https://www.instagram.com/holocaustmuseum",
       "facebook_url": "https://www.facebook.com/HolocaustMuseum",
       "twitter_url": "https://twitter.com/HolocaustMuseum",
@@ -797,7 +797,7 @@
       "latitude": 38.8869,
       "longitude": -77.0325,
       "created_at": "2025-10-08T20:42:31.666852",
-      "updated_at": "2025-12-04T16:52:13.720972"
+      "updated_at": "2025-12-07T21:58:54.196511"
     },
     "35": {
       "name": "Vietnam Veterans Memorial",
@@ -1002,7 +1002,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 298-4000",
       "email": "",
-      "website_url": "https://washington.diplo.de",
+      "website_url": "https://www.germany.info/us-en",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1013,7 +1013,7 @@
       "latitude": 38.9156,
       "longitude": -77.0789,
       "created_at": "2025-10-08T20:42:31.667028",
-      "updated_at": "2025-12-04T16:52:13.722668"
+      "updated_at": "2025-12-07T21:59:02.983319"
     },
     "44": {
       "name": "Embassy of Italy",
@@ -1026,7 +1026,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 612-4400",
       "email": "",
-      "website_url": "https://ambwashingtondc.esteri.it",
+      "website_url": "https://ambwashingtondc.esteri.it/it/",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1037,7 +1037,7 @@
       "latitude": 38.9189,
       "longitude": -77.0533,
       "created_at": "2025-10-08T20:42:31.667047",
-      "updated_at": "2025-12-04T16:52:13.722860"
+      "updated_at": "2025-12-07T21:59:05.477561"
     },
     "45": {
       "name": "Embassy of Japan",
@@ -1098,7 +1098,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 452-0100",
       "email": "",
-      "website_url": "https://www.exteriores.gob.es/embajadas/washington",
+      "website_url": "https://www.exteriores.gob.es/Embajadas/washington/es/Paginas/index.aspx",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1109,7 +1109,7 @@
       "latitude": 38.9025,
       "longitude": -77.0522,
       "created_at": "2025-10-08T20:42:31.667104",
-      "updated_at": "2025-12-04T16:52:13.723424"
+      "updated_at": "2025-12-07T21:59:14.868650"
     },
     "48": {
       "name": "Embassy of the Netherlands",
@@ -1122,7 +1122,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 244-5300",
       "email": "",
-      "website_url": "https://www.netherlandsworldwide.nl/countries/united-states",
+      "website_url": "https://www.netherlandsworldwide.nl/theme/topics",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1133,7 +1133,7 @@
       "latitude": 38.9289,
       "longitude": -77.0711,
       "created_at": "2025-10-08T20:42:31.667123",
-      "updated_at": "2025-12-04T16:52:13.723628"
+      "updated_at": "2025-12-07T21:59:16.307373"
     },
     "49": {
       "name": "Embassy of Australia",
@@ -1170,7 +1170,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 238-2700",
       "email": "",
-      "website_url": "https://washington.itamaraty.gov.br",
+      "website_url": "https://www.gov.br/mre/pt-br/embaixada-washington",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1181,7 +1181,7 @@
       "latitude": 38.9192,
       "longitude": -77.0539,
       "created_at": "2025-10-08T20:42:31.667166",
-      "updated_at": "2025-12-04T16:52:13.724040"
+      "updated_at": "2025-12-07T21:59:45.358509"
     },
     "51": {
       "name": "Embassy of India",
@@ -1194,7 +1194,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 939-7000",
       "email": "",
-      "website_url": "https://www.indianembassyusa.gov.in",
+      "website_url": "https://indianembassyusa.gov.in/index",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1205,7 +1205,7 @@
       "latitude": 38.9094,
       "longitude": -77.0434,
       "created_at": "2025-10-08T20:42:31.667185",
-      "updated_at": "2025-12-04T16:52:13.724253"
+      "updated_at": "2025-12-07T21:59:48.740314"
     },
     "52": {
       "name": "Embassy of Mexico",
@@ -1314,7 +1314,7 @@
       "holiday_hours": "",
       "phone_number": "",
       "email": "",
-      "website_url": "https://www.sunscinema.com",
+      "website_url": "https://sunscinema.com/",
       "instagram_url": "https://www.instagram.com/sunscinema/",
       "facebook_url": "",
       "twitter_url": "",
@@ -1325,7 +1325,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.667279",
-      "updated_at": "2025-12-04T16:52:13.725398"
+      "updated_at": "2025-12-07T22:00:18.327506"
     },
     "57": {
       "name": "Busboys and Poets",
@@ -1434,7 +1434,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 450-2917",
       "email": "info@songbyrddc.com",
-      "website_url": "https://www.songbyrddc.com",
+      "website_url": "https://songbyrddc.com/",
       "instagram_url": "https://www.instagram.com/songbyrddc",
       "facebook_url": "https://www.facebook.com/songbyrddc",
       "twitter_url": "",
@@ -1445,7 +1445,7 @@
       "latitude": 38.9181,
       "longitude": -77.042,
       "created_at": "2025-10-08T20:42:31.667372",
-      "updated_at": "2025-12-04T16:52:13.726450"
+      "updated_at": "2025-12-07T22:00:27.630093"
     },
     "62": {
       "name": "Founding Farmers",
@@ -1482,7 +1482,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 364-1919",
       "email": "info@politics-prose.com",
-      "website_url": "https://www.politics-prose.com",
+      "website_url": "https://politics-prose.com/",
       "instagram_url": "https://www.instagram.com/politicsandprose",
       "facebook_url": "https://www.facebook.com/PoliticsandProse",
       "twitter_url": "",
@@ -1493,7 +1493,7 @@
       "latitude": 38.958,
       "longitude": -77.0638,
       "created_at": "2025-10-08T20:42:31.667447",
-      "updated_at": "2025-12-04T16:52:13.726839"
+      "updated_at": "2025-12-07T22:00:30.270979"
     },
     "64": {
       "name": "East City Bookshop",
@@ -1554,7 +1554,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 735-3323",
       "email": "info@solidstatebooks.com",
-      "website_url": "https://www.solidstatebooks.com",
+      "website_url": "https://solidstatebooks.com/",
       "instagram_url": "https://www.instagram.com/solidstatebooks",
       "facebook_url": "https://www.facebook.com/SolidStateBooks",
       "twitter_url": "",
@@ -1565,7 +1565,7 @@
       "latitude": 38.8996,
       "longitude": -77.001,
       "created_at": "2025-10-08T20:42:31.667546",
-      "updated_at": "2025-12-04T16:52:13.727509"
+      "updated_at": "2025-12-07T22:00:33.532444"
     },
     "67": {
       "name": "Bridge Street Books",
@@ -1602,7 +1602,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 234-4755",
       "email": "info@sankofa.com",
-      "website_url": "https://sankofa.com",
+      "website_url": "https://www.sankofa.com/",
       "instagram_url": "@sankofacafe",
       "facebook_url": "https://www.facebook.com/SankofaCafe/",
       "twitter_url": "@sankofacafe",
@@ -1613,7 +1613,7 @@
       "latitude": 38.9153,
       "longitude": -77.0322,
       "created_at": "2025-10-08T20:42:31.667592",
-      "updated_at": "2025-12-04T16:52:13.727948"
+      "updated_at": "2025-12-07T22:00:36.329467"
     },
     "69": {
       "name": "American Museum of Natural History",
@@ -1914,7 +1914,7 @@
       "holiday_hours": "",
       "phone_number": "(323) 469-8311",
       "email": "info@hollywoodchamber.net",
-      "website_url": "https://www.walkoffame.com",
+      "website_url": "https://walkoffame.com/",
       "instagram_url": "https://www.instagram.com/hollywoodwalkoffame",
       "facebook_url": "https://www.facebook.com/HollywoodWalkOfFame",
       "twitter_url": "https://twitter.com/WalkOfFame",
@@ -1925,7 +1925,7 @@
       "latitude": 34.1016,
       "longitude": -118.3267,
       "created_at": "2025-10-08T20:42:31.670775",
-      "updated_at": "2025-12-04T16:52:13.730661"
+      "updated_at": "2025-12-07T22:00:57.684838"
     },
     "82": {
       "name": "Los Angeles County Museum of Art (LACMA)",
@@ -1962,7 +1962,7 @@
       "holiday_hours": "",
       "phone_number": "(310) 458-8900",
       "email": "info@santamonicapier.org",
-      "website_url": "https://www.santamonicapier.com",
+      "website_url": "https://santamonicapier.org/",
       "instagram_url": "https://www.instagram.com/santamonicapier",
       "facebook_url": "https://www.facebook.com/SantaMonicaPier",
       "twitter_url": "https://twitter.com/SantaMonicaPier",
@@ -1973,7 +1973,7 @@
       "latitude": 34.0089,
       "longitude": -118.4973,
       "created_at": "2025-10-08T20:42:31.670818",
-      "updated_at": "2025-12-04T16:52:13.731036"
+      "updated_at": "2025-12-07T22:01:36.754566"
     },
     "84": {
       "name": "Alcatraz Island",
@@ -2034,7 +2034,7 @@
       "holiday_hours": "",
       "phone_number": "(415) 563-6504",
       "email": "info@palaceoffinearts.org",
-      "website_url": "https://www.palaceoffinearts.com",
+      "website_url": "https://palaceoffinearts.com/",
       "instagram_url": "https://www.instagram.com/palaceoffinearts",
       "facebook_url": "https://www.facebook.com/PalaceOfFineArts",
       "twitter_url": "https://twitter.com/PalaceFineArts",
@@ -2045,7 +2045,7 @@
       "latitude": 37.8029,
       "longitude": -122.4484,
       "created_at": "2025-10-08T20:42:31.671220",
-      "updated_at": "2025-12-04T16:52:13.731641"
+      "updated_at": "2025-12-07T22:01:40.313699"
     },
     "87": {
       "name": "San Francisco Museum of Modern Art (SFMOMA)",
@@ -2082,7 +2082,7 @@
       "holiday_hours": "",
       "phone_number": "(415) 750-3600",
       "email": "info@famsf.org",
-      "website_url": "https://deyoung.famsf.org",
+      "website_url": "https://www.famsf.org/",
       "instagram_url": "https://www.instagram.com/deyoungmuseum",
       "facebook_url": "https://www.facebook.com/deyoungmuseum",
       "twitter_url": "https://twitter.com/deyoungmuseum",
@@ -2093,7 +2093,7 @@
       "latitude": 37.7694,
       "longitude": -122.4686,
       "created_at": "2025-10-08T20:42:31.671258",
-      "updated_at": "2025-12-07T04:09:38.463309"
+      "updated_at": "2025-12-07T22:01:43.110484"
     },
     "89": {
       "name": "Art Institute of Chicago",
@@ -2226,7 +2226,7 @@
       "holiday_hours": "",
       "phone_number": "(617) 635-4505",
       "email": "info@boston.gov",
-      "website_url": "https://www.bostoncommon.com",
+      "website_url": "https://www.afternic.com/forsale/bostoncommon.com?utm_source=TDFS&utm_medium=sn_affiliate_click&utm_campaign=TDFS_Affiliate_namefind_direct1&traffic_type=CL3&traffic_id=Namefind",
       "instagram_url": "https://www.instagram.com/bostoncommon",
       "facebook_url": "https://www.facebook.com/BostonCommon",
       "twitter_url": "https://twitter.com/BostonCommon",
@@ -2237,7 +2237,7 @@
       "latitude": 42.3551,
       "longitude": -71.0656,
       "created_at": "2025-10-08T20:42:31.671993",
-      "updated_at": "2025-12-04T16:52:13.733151"
+      "updated_at": "2025-12-07T22:02:00.497063"
     },
     "95": {
       "name": "Fenway Park",
@@ -2250,7 +2250,7 @@
       "holiday_hours": "",
       "phone_number": "(617) 226-6666",
       "email": "info@redsox.com",
-      "website_url": "https://www.fenwaypark.com",
+      "website_url": "https://www.mlb.com/redsox/ballpark",
       "instagram_url": "https://www.instagram.com/fenwaypark",
       "facebook_url": "https://www.facebook.com/FenwayPark",
       "twitter_url": "https://twitter.com/FenwayPark",
@@ -2261,7 +2261,7 @@
       "latitude": 42.3467,
       "longitude": -71.0972,
       "created_at": "2025-10-08T20:42:31.672019",
-      "updated_at": "2025-12-04T16:52:13.733342"
+      "updated_at": "2025-12-07T22:02:07.442306"
     },
     "96": {
       "name": "Freedom Trail",
@@ -2322,7 +2322,7 @@
       "holiday_hours": "",
       "phone_number": "(617) 267-9300",
       "email": "info@mfa.org",
-      "website_url": "https://www.museumoffineartsboston.com",
+      "website_url": "https://www.mfa.org",
       "instagram_url": "https://www.instagram.com/mfaboston",
       "facebook_url": "https://www.facebook.com/mfaboston",
       "twitter_url": "https://twitter.com/MFABoston",
@@ -2333,7 +2333,7 @@
       "latitude": 42.3394,
       "longitude": -71.0942,
       "created_at": "2025-10-08T20:42:31.672086",
-      "updated_at": "2025-12-04T16:52:13.733917"
+      "updated_at": "2025-12-07T22:02:19.751124"
     },
     "99": {
       "name": "Chihuly Garden and Glass",
@@ -2394,7 +2394,7 @@
       "holiday_hours": "",
       "phone_number": "(206) 682-7453",
       "email": "info@pikeplacemarket.org",
-      "website_url": "https://www.pikeplacemarket.com",
+      "website_url": "https://www.pikeplacemarket.org",
       "instagram_url": "https://www.instagram.com/pikeplacemarket",
       "facebook_url": "https://www.facebook.com/PikePlaceMarket",
       "twitter_url": "https://twitter.com/PikePlaceMarket",
@@ -2405,7 +2405,7 @@
       "latitude": 47.6097,
       "longitude": -122.3331,
       "created_at": "2025-10-08T20:42:31.672458",
-      "updated_at": "2025-12-04T16:52:13.734482"
+      "updated_at": "2025-12-07T22:02:29.725481"
     },
     "102": {
       "name": "Seattle Art Museum",
@@ -2418,7 +2418,7 @@
       "holiday_hours": "",
       "phone_number": "(206) 654-3100",
       "email": "info@seattleartmuseum.org",
-      "website_url": "https://www.seattleartmuseum.com",
+      "website_url": "https://www.seattleartmuseum.org",
       "instagram_url": "https://www.instagram.com/seattleartmuseum",
       "facebook_url": "https://www.facebook.com/SeattleArtMuseum",
       "twitter_url": "https://twitter.com/SeattleArtMuseum",
@@ -2429,7 +2429,7 @@
       "latitude": 47.6073,
       "longitude": -122.3387,
       "created_at": "2025-10-08T20:42:31.672478",
-      "updated_at": "2025-12-04T16:52:13.734688"
+      "updated_at": "2025-12-07T22:02:49.120077"
     },
     "103": {
       "name": "Space Needle",
@@ -2490,7 +2490,7 @@
       "holiday_hours": "",
       "phone_number": "(305) 375-3000",
       "email": "info@pamm.org",
-      "website_url": "https://www.pamm.org",
+      "website_url": "https://www.pamm.org/en/",
       "instagram_url": "https://www.instagram.com/pamm",
       "facebook_url": "https://www.facebook.com/PAMM",
       "twitter_url": "https://twitter.com/PAMM",
@@ -2501,7 +2501,7 @@
       "latitude": 25.7864,
       "longitude": -80.1869,
       "created_at": "2025-10-08T20:42:31.672852",
-      "updated_at": "2025-12-04T16:52:13.735310"
+      "updated_at": "2025-12-07T22:02:53.669623"
     },
     "106": {
       "name": "South Beach",
@@ -2538,7 +2538,7 @@
       "holiday_hours": "",
       "phone_number": "(305) 250-9133",
       "email": "info@vizcaya.org",
-      "website_url": "https://www.vizcayamuseumandgardens.com",
+      "website_url": "https://vizcaya.org/",
       "instagram_url": "https://www.instagram.com/vizcayamuseum",
       "facebook_url": "https://www.facebook.com/VizcayaMuseum",
       "twitter_url": "https://twitter.com/VizcayaMuseum",
@@ -2549,7 +2549,7 @@
       "latitude": 25.743,
       "longitude": -80.2106,
       "created_at": "2025-10-08T20:42:31.672891",
-      "updated_at": "2025-12-04T16:52:13.735705"
+      "updated_at": "2025-12-07T22:03:12.879813"
     },
     "108": {
       "name": "Wynwood Walls",
@@ -2562,7 +2562,7 @@
       "holiday_hours": "",
       "phone_number": "(305) 531-4411",
       "email": "info@wynwoodwalls.com",
-      "website_url": "https://www.wynwoodwalls.com",
+      "website_url": "https://thewynwoodwalls.com/",
       "instagram_url": "https://www.instagram.com/wynwoodwalls",
       "facebook_url": "https://www.facebook.com/WynwoodWalls",
       "twitter_url": "https://twitter.com/WynwoodWalls",
@@ -2573,7 +2573,7 @@
       "latitude": 25.801,
       "longitude": -80.1994,
       "created_at": "2025-10-08T20:42:31.672910",
-      "updated_at": "2025-12-04T16:52:13.735906"
+      "updated_at": "2025-12-07T22:03:20.648591"
     },
     "109": {
       "name": "British Museum",
@@ -2610,7 +2610,7 @@
       "holiday_hours": "",
       "phone_number": "+44 20 7747 2885",
       "email": "info@nationalgallery.org.uk",
-      "website_url": "https://www.nationalgallery.com",
+      "website_url": "https://wn.com/National_gallery?from=nationalgallery.com",
       "instagram_url": "https://www.instagram.com/nationalgallery",
       "facebook_url": "https://www.facebook.com/thenationalgallery",
       "twitter_url": "https://twitter.com/NationalGallery",
@@ -2621,7 +2621,7 @@
       "latitude": 51.5086,
       "longitude": -0.1283,
       "created_at": "2025-10-08T20:42:31.673252",
-      "updated_at": "2025-12-04T16:52:13.736297"
+      "updated_at": "2025-12-07T22:03:23.366135"
     },
     "111": {
       "name": "Natural History Museum",
@@ -2802,7 +2802,7 @@
       "holiday_hours": "",
       "phone_number": "+44 20 7222 5152",
       "email": "info@westminster-abbey.org",
-      "website_url": "https://www.westminsterabbey.com",
+      "website_url": "https://www.westminster-abbey.org/",
       "instagram_url": "https://www.instagram.com/westminsterabbey",
       "facebook_url": "https://www.facebook.com/WestminsterAbbey",
       "twitter_url": "https://twitter.com/WestminsterAbbey",
@@ -2813,7 +2813,7 @@
       "latitude": 51.4994,
       "longitude": -0.1274,
       "created_at": "2025-10-08T20:42:31.673405",
-      "updated_at": "2025-12-04T16:52:13.737966"
+      "updated_at": "2025-12-07T22:03:34.588682"
     },
     "119": {
       "name": "Arc de Triomphe",
@@ -2850,7 +2850,7 @@
       "holiday_hours": "",
       "phone_number": "+33 1 42 89 46 00",
       "email": "info@champselysees-paris.com",
-      "website_url": "https://www.champs-élysées.com",
+      "website_url": "https://www.champselysees.org/",
       "instagram_url": "https://www.instagram.com/champselysees",
       "facebook_url": "https://www.facebook.com/ChampsElyseesParis",
       "twitter_url": "https://twitter.com/ChampsElysees",
@@ -2861,7 +2861,7 @@
       "latitude": 48.8566,
       "longitude": 2.3522,
       "created_at": "2025-10-08T20:42:31.674009",
-      "updated_at": "2025-12-04T16:52:13.738496"
+      "updated_at": "2025-12-07T22:03:40.403706"
     },
     "121": {
       "name": "Eiffel Tower",
@@ -2957,7 +2957,7 @@
       "latitude": 48.86,
       "longitude": 2.3266,
       "created_at": "2025-10-08T20:42:31.674105",
-      "updated_at": "2025-12-04T16:52:13.739601"
+      "updated_at": "2025-12-07T22:03:43.121338"
     },
     "125": {
       "name": "Musée d'Orsay",
@@ -2981,7 +2981,7 @@
       "latitude": 48.86,
       "longitude": 2.3266,
       "created_at": "2025-10-08T20:42:31.674124",
-      "updated_at": "2025-10-08T20:42:31.674125"
+      "updated_at": "2025-12-07T22:03:43.122895"
     },
     "126": {
       "name": "Musée du Louvre",
@@ -3005,7 +3005,7 @@
       "latitude": 48.8606,
       "longitude": 2.3376,
       "created_at": "2025-10-08T20:42:31.674143",
-      "updated_at": "2025-12-04T16:52:13.739801"
+      "updated_at": "2025-12-07T22:03:43.123981"
     },
     "127": {
       "name": "Notre-Dame Cathedral",
@@ -3018,7 +3018,7 @@
       "holiday_hours": "",
       "phone_number": "+33 1 42 34 56 10",
       "email": "info@notredamedeparis.fr",
-      "website_url": "https://www.notre-damecathedral.com",
+      "website_url": "https://www.notredamedeparis.fr/",
       "instagram_url": "https://www.instagram.com/notredamecathedral",
       "facebook_url": "https://www.facebook.com/NotreDameCathedralParis",
       "twitter_url": "https://twitter.com/NotreDameCathedral",
@@ -3029,7 +3029,7 @@
       "latitude": 48.853,
       "longitude": 2.3499,
       "created_at": "2025-10-08T20:42:31.674162",
-      "updated_at": "2025-12-04T16:52:13.739995"
+      "updated_at": "2025-12-07T22:03:44.011417"
     },
     "128": {
       "name": "Seine River",
@@ -3090,7 +3090,7 @@
       "holiday_hours": "",
       "phone_number": "+81 3-3379-5511",
       "email": "info@meijijingu.or.jp",
-      "website_url": "https://www.meijishrine.com",
+      "website_url": "https://www.meijijingu.or.jp/en/",
       "instagram_url": "https://www.instagram.com/meijishrine",
       "facebook_url": "https://www.facebook.com/MeijiJinguOfficial",
       "twitter_url": "https://twitter.com/MeijiShrine",
@@ -3101,7 +3101,7 @@
       "latitude": 35.6762,
       "longitude": 139.6993,
       "created_at": "2025-10-08T20:42:31.674725",
-      "updated_at": "2025-12-04T16:52:13.740575"
+      "updated_at": "2025-12-07T22:03:47.841467"
     },
     "131": {
       "name": "Senso-ji Temple",
@@ -3114,7 +3114,7 @@
       "holiday_hours": "",
       "phone_number": "+81 3-3842-0181",
       "email": "info@senso-ji.jp",
-      "website_url": "https://www.senso-jitemple.com",
+      "website_url": "https://www.senso-ji.jp/",
       "instagram_url": "https://www.instagram.com/sensoji",
       "facebook_url": "https://www.facebook.com/Sensojitemple",
       "twitter_url": "https://twitter.com/Sensoji",
@@ -3125,7 +3125,7 @@
       "latitude": 35.7148,
       "longitude": 139.7967,
       "created_at": "2025-10-08T20:42:31.674747",
-      "updated_at": "2025-12-04T16:52:13.740767"
+      "updated_at": "2025-12-07T22:03:51.077587"
     },
     "132": {
       "name": "Tokyo National Museum",
@@ -3138,7 +3138,7 @@
       "holiday_hours": "",
       "phone_number": "+81 3-3822-1111",
       "email": "info@tnm.jp",
-      "website_url": "https://www.tokyonationalmuseum.com",
+      "website_url": "https://www.tnm.jp/?lang=en",
       "instagram_url": "https://www.instagram.com/tokyonationalmuseum",
       "facebook_url": "https://www.facebook.com/TokyoNationalMuseum",
       "twitter_url": "https://twitter.com/TokyoNationalMuseum",
@@ -3149,7 +3149,7 @@
       "latitude": 35.7186,
       "longitude": 139.7762,
       "created_at": "2025-10-08T20:42:31.674773",
-      "updated_at": "2025-12-04T16:52:13.740975"
+      "updated_at": "2025-12-07T22:03:53.507287"
     },
     "133": {
       "name": "Tokyo Tower",
@@ -3186,7 +3186,7 @@
       "holiday_hours": "",
       "phone_number": "+61 2 9225 1744",
       "email": "info@artgallery.nsw.gov.au",
-      "website_url": "https://www.artgalleryofnewsouthwales.com",
+      "website_url": "https://www.artgallery.nsw.gov.au/",
       "instagram_url": "https://www.instagram.com/artgallerynsw",
       "facebook_url": "https://www.facebook.com/ArtGalleryNSW",
       "twitter_url": "https://twitter.com/ArtGalleryNSW",
@@ -3197,7 +3197,7 @@
       "latitude": -33.8688,
       "longitude": 151.2093,
       "created_at": "2025-10-08T20:42:31.675133",
-      "updated_at": "2025-12-04T16:52:13.741393"
+      "updated_at": "2025-12-07T22:03:55.955461"
     },
     "135": {
       "name": "Australian Museum",
@@ -3210,7 +3210,7 @@
       "holiday_hours": "",
       "phone_number": "+61 2 9320 6000",
       "email": "info@australianmuseum.net.au",
-      "website_url": "https://www.australianmuseum.com",
+      "website_url": "https://australian.museum/",
       "instagram_url": "https://www.instagram.com/australianmuseum",
       "facebook_url": "https://www.facebook.com/AustralianMuseum",
       "twitter_url": "https://twitter.com/AustralianMuseum",
@@ -3221,7 +3221,7 @@
       "latitude": -33.8747,
       "longitude": 151.2129,
       "created_at": "2025-10-08T20:42:31.675160",
-      "updated_at": "2025-12-04T16:52:13.741584"
+      "updated_at": "2025-12-07T22:04:09.222982"
     },
     "136": {
       "name": "Sydney Harbour Bridge",
@@ -3234,7 +3234,7 @@
       "holiday_hours": "",
       "phone_number": "+61 2 8274 7777",
       "email": "info@bridgeclimb.com",
-      "website_url": "https://www.sydneyharbourbridge.com",
+      "website_url": "https://sydneyharbourbridge.com/",
       "instagram_url": "https://www.instagram.com/sydneyharbourbridge",
       "facebook_url": "https://www.facebook.com/SydneyHarbourBridge",
       "twitter_url": "https://twitter.com/SydneyHarbourBridge",
@@ -3245,7 +3245,7 @@
       "latitude": -33.8523,
       "longitude": 151.2108,
       "created_at": "2025-10-08T20:42:31.675180",
-      "updated_at": "2025-12-04T16:52:13.741778"
+      "updated_at": "2025-12-07T22:04:12.504566"
     },
     "137": {
       "name": "Sydney Opera House",
@@ -3330,7 +3330,7 @@
       "holiday_hours": "",
       "phone_number": "+1 514-285-2000",
       "email": "info@mbamtl.org",
-      "website_url": "https://www.montrealmuseumoffinearts.com",
+      "website_url": "https://www.mbam.qc.ca/en/",
       "instagram_url": "https://www.instagram.com/mbam",
       "facebook_url": "https://www.facebook.com/MBAMMontreal",
       "twitter_url": "https://twitter.com/MBAM",
@@ -3341,7 +3341,7 @@
       "latitude": 45.4984,
       "longitude": -73.5794,
       "created_at": "2025-10-08T20:42:31.675571",
-      "updated_at": "2025-12-04T16:52:13.742554"
+      "updated_at": "2025-12-07T22:04:17.529182"
     },
     "141": {
       "name": "Mount Royal Park",
@@ -3354,7 +3354,7 @@
       "holiday_hours": "",
       "phone_number": "+1 514-843-8240",
       "email": "info@lemontroyal.qc.ca",
-      "website_url": "https://www.mountroyalpark.com",
+      "website_url": "https://ville.montreal.qc.ca/parc-du-mont-royal",
       "instagram_url": "https://www.instagram.com/mountroyalpark",
       "facebook_url": "https://www.facebook.com/MountRoyalPark",
       "twitter_url": "https://twitter.com/MountRoyalPark",
@@ -3365,7 +3365,7 @@
       "latitude": 45.5017,
       "longitude": -73.5873,
       "created_at": "2025-10-08T20:42:31.675591",
-      "updated_at": "2025-12-04T16:52:13.742752"
+      "updated_at": "2025-12-07T22:04:22.549280"
     },
     "142": {
       "name": "Notre-Dame Basilica",
@@ -3378,7 +3378,7 @@
       "holiday_hours": "",
       "phone_number": "+1 514-842-2925",
       "email": "info@basiliquenddm.org",
-      "website_url": "https://www.notre-damebasilica.com",
+      "website_url": "https://www.basiliquenotredame.ca/",
       "instagram_url": "https://www.instagram.com/notredamebasilica",
       "facebook_url": "https://www.facebook.com/NotreDameBasilicaMontreal",
       "twitter_url": "https://twitter.com/NotreDameBasilica",
@@ -3389,7 +3389,7 @@
       "latitude": 45.5048,
       "longitude": -73.5562,
       "created_at": "2025-10-08T20:42:31.675610",
-      "updated_at": "2025-12-04T16:52:13.742977"
+      "updated_at": "2025-12-07T22:04:25.558684"
     },
     "143": {
       "name": "Old Montreal",
@@ -3402,7 +3402,7 @@
       "holiday_hours": "",
       "phone_number": "+1 514-844-4021",
       "email": "info@oldmontreal.com",
-      "website_url": "https://www.oldmontreal.com",
+      "website_url": "https://oldmontreal.com/",
       "instagram_url": "https://www.instagram.com/oldmontreal",
       "facebook_url": "https://www.facebook.com/OldMontreal",
       "twitter_url": "https://twitter.com/OldMontreal",
@@ -3413,7 +3413,7 @@
       "latitude": 45.5042,
       "longitude": -73.5562,
       "created_at": "2025-10-08T20:42:31.675629",
-      "updated_at": "2025-12-04T16:52:13.743190"
+      "updated_at": "2025-12-07T22:04:27.838374"
     },
     "144": {
       "name": "Art Gallery of Ontario",
@@ -3426,7 +3426,7 @@
       "holiday_hours": "",
       "phone_number": "+1 416-979-6648",
       "email": "info@ago.ca",
-      "website_url": "https://www.artgalleryofontario.com",
+      "website_url": "http://www.artgalleryofontario.com/",
       "instagram_url": "https://www.instagram.com/artgalleryontario",
       "facebook_url": "https://www.facebook.com/ArtGalleryOntario",
       "twitter_url": "https://twitter.com/ArtGalleryOntario",
@@ -3437,7 +3437,7 @@
       "latitude": 43.6536,
       "longitude": -79.3925,
       "created_at": "2025-10-08T20:42:31.675937",
-      "updated_at": "2025-12-04T16:52:13.743403"
+      "updated_at": "2025-12-07T22:04:28.800543"
     },
     "145": {
       "name": "CN Tower",
@@ -3450,7 +3450,7 @@
       "holiday_hours": "",
       "phone_number": "+1 416-868-6937",
       "email": "info@cntower.ca",
-      "website_url": "https://www.cntower.com",
+      "website_url": "https://www.cntower.ca",
       "instagram_url": "https://www.instagram.com/cntower",
       "facebook_url": "https://www.facebook.com/CNTower",
       "twitter_url": "https://twitter.com/CNTower",
@@ -3461,7 +3461,7 @@
       "latitude": 43.6426,
       "longitude": -79.3871,
       "created_at": "2025-10-08T20:42:31.675964",
-      "updated_at": "2025-12-04T16:52:13.743624"
+      "updated_at": "2025-12-07T22:04:33.804828"
     },
     "146": {
       "name": "Casa Loma",
@@ -3474,7 +3474,7 @@
       "holiday_hours": "",
       "phone_number": "+1 416-923-1171",
       "email": "info@casaloma.ca",
-      "website_url": "https://www.casaloma.com",
+      "website_url": "https://casalomalakeshore.ca/",
       "instagram_url": "https://www.instagram.com/casaloma",
       "facebook_url": "https://www.facebook.com/CasaLomaToronto",
       "twitter_url": "https://twitter.com/CasaLoma",
@@ -3485,7 +3485,7 @@
       "latitude": 43.678,
       "longitude": -79.4094,
       "created_at": "2025-10-08T20:42:31.675984",
-      "updated_at": "2025-12-04T16:52:13.743826"
+      "updated_at": "2025-12-07T22:04:34.621486"
     },
     "147": {
       "name": "Distillery District",
@@ -3498,7 +3498,7 @@
       "holiday_hours": "",
       "phone_number": "+1 416-364-1177",
       "email": "info@thedistillerydistrict.com",
-      "website_url": "https://www.distillerydistrict.com",
+      "website_url": "https://venture.com/domains/distillerydistrict.com",
       "instagram_url": "https://www.instagram.com/distillerydistrict",
       "facebook_url": "https://www.facebook.com/DistilleryDistrict",
       "twitter_url": "https://twitter.com/DistilleryDistrict",
@@ -3509,7 +3509,7 @@
       "latitude": 43.6519,
       "longitude": -79.3604,
       "created_at": "2025-10-08T20:42:31.676059",
-      "updated_at": "2025-12-04T16:52:13.744027"
+      "updated_at": "2025-12-07T22:04:36.405435"
     },
     "148": {
       "name": "Royal Ontario Museum",
@@ -3522,7 +3522,7 @@
       "holiday_hours": "",
       "phone_number": "+1 416-586-8000",
       "email": "info@rom.on.ca",
-      "website_url": "https://www.royalontariomuseum.com",
+      "website_url": "https://www.rom.on.ca/",
       "instagram_url": "https://www.instagram.com/royalontariomuseum",
       "facebook_url": "https://www.facebook.com/royalontariomuseum",
       "twitter_url": "https://twitter.com/RoyalOntarioMuseum",
@@ -3533,7 +3533,7 @@
       "latitude": 43.6677,
       "longitude": -79.3948,
       "created_at": "2025-10-08T20:42:31.676105",
-      "updated_at": "2025-12-04T16:52:13.744226"
+      "updated_at": "2025-12-07T22:04:39.087637"
     },
     "149": {
       "name": "Capilano Suspension Bridge",
@@ -3546,7 +3546,7 @@
       "holiday_hours": "",
       "phone_number": "+1 604-985-7474",
       "email": "info@capbridge.com",
-      "website_url": "https://www.capilanosuspensionbridge.com",
+      "website_url": "https://www.capbridge.com",
       "instagram_url": "https://www.instagram.com/capilanobridge",
       "facebook_url": "https://www.facebook.com/CapilanoSuspensionBridge",
       "twitter_url": "https://twitter.com/CapilanoBridge",
@@ -3557,7 +3557,7 @@
       "latitude": 49.3429,
       "longitude": -123.1149,
       "created_at": "2025-10-08T20:42:31.676542",
-      "updated_at": "2025-12-04T16:52:13.744418"
+      "updated_at": "2025-12-07T22:04:41.114892"
     },
     "150": {
       "name": "Granville Island",
@@ -3570,7 +3570,7 @@
       "holiday_hours": "",
       "phone_number": "+1 604-666-5784",
       "email": "info@granvilleisland.com",
-      "website_url": "https://www.granvilleisland.com",
+      "website_url": "https://granvilleisland.com/",
       "instagram_url": "https://www.instagram.com/granvilleisland",
       "facebook_url": "https://www.facebook.com/GranvilleIsland",
       "twitter_url": "https://twitter.com/GranvilleIsland",
@@ -3581,7 +3581,7 @@
       "latitude": 49.2726,
       "longitude": -123.135,
       "created_at": "2025-10-08T20:42:31.676573",
-      "updated_at": "2025-12-04T16:52:13.744654"
+      "updated_at": "2025-12-07T22:04:42.238234"
     },
     "151": {
       "name": "Museum of Anthropology",
@@ -3594,7 +3594,7 @@
       "holiday_hours": "",
       "phone_number": "+1 604-822-5087",
       "email": "info@moa.ubc.ca",
-      "website_url": "https://www.museumofanthropology.com",
+      "website_url": "https://museumofanthropology.com/",
       "instagram_url": "https://www.instagram.com/moa_ubc",
       "facebook_url": "https://www.facebook.com/MoAUBC",
       "twitter_url": "https://twitter.com/MOA_UBC",
@@ -3605,7 +3605,7 @@
       "latitude": 49.2696,
       "longitude": -123.2606,
       "created_at": "2025-10-08T20:42:31.676595",
-      "updated_at": "2025-12-04T16:52:13.745012"
+      "updated_at": "2025-12-07T22:04:43.488242"
     },
     "152": {
       "name": "Stanley Park",
@@ -3666,7 +3666,7 @@
       "holiday_hours": "",
       "phone_number": "+98 21 6602 2061",
       "email": "info@azaditower.ir",
-      "website_url": "https://www.azaditower.com",
+      "website_url": "https://www.hugedomains.com/domain_profile.cfm?d=azaditower.com",
       "instagram_url": "https://www.instagram.com/azaditower",
       "facebook_url": "https://www.facebook.com/AzadiTower",
       "twitter_url": "https://twitter.com/AzadiTower",
@@ -3677,7 +3677,7 @@
       "latitude": 35.6961,
       "longitude": 51.3379,
       "created_at": "2025-10-08T20:42:31.676980",
-      "updated_at": "2025-12-04T16:52:13.745827"
+      "updated_at": "2025-12-07T22:04:45.622563"
     },
     "155": {
       "name": "Golestan Palace",
@@ -3762,7 +3762,7 @@
       "holiday_hours": "",
       "phone_number": "+98 21 8898 9374",
       "email": "info@tmoca.com",
-      "website_url": "https://www.tehranmuseumofcontemporaryart.com",
+      "website_url": "https://tmoca.com/",
       "instagram_url": "https://www.instagram.com/tmoca",
       "facebook_url": "https://www.facebook.com/TehranMOCA",
       "twitter_url": "https://twitter.com/TMOCA",
@@ -3773,7 +3773,7 @@
       "latitude": 35.6892,
       "longitude": 51.3889,
       "created_at": "2025-10-08T20:42:31.677066",
-      "updated_at": "2025-12-04T16:52:13.746625"
+      "updated_at": "2025-12-07T22:04:59.788056"
     },
     "159": {
       "name": "Baltimore Museum of Art",
@@ -3834,7 +3834,7 @@
       "holiday_hours": "",
       "phone_number": "(410) 837-4636",
       "email": "info@baltimore.org",
-      "website_url": "https://www.baltimore.org/neighborhoods/inner-harbor/",
+      "website_url": "https://baltimore.org/what-to-do/museums-attractions/a-tour-of-baltimores-inner-harbor/",
       "instagram_url": "https://www.instagram.com/innerharbor",
       "facebook_url": "https://www.facebook.com/InnerHarborBaltimore",
       "twitter_url": "https://twitter.com/InnerHarbor",
@@ -3845,7 +3845,7 @@
       "latitude": 39.2854,
       "longitude": -76.6121,
       "created_at": "2025-10-08T20:42:31.677429",
-      "updated_at": "2025-12-04T16:52:13.747208"
+      "updated_at": "2025-12-07T22:05:02.739605"
     },
     "162": {
       "name": "National Aquarium",
@@ -3906,7 +3906,7 @@
       "holiday_hours": "",
       "phone_number": "(215) 448-1200",
       "email": "info@fi.edu",
-      "website_url": "https://fi.edu",
+      "website_url": "https://fi.edu/en",
       "instagram_url": "https://www.instagram.com/franklininstitute",
       "facebook_url": "https://www.facebook.com/TheFranklinInstitute",
       "twitter_url": "https://twitter.com/FranklinInstitute",
@@ -3917,7 +3917,7 @@
       "latitude": 39.9581,
       "longitude": -75.1725,
       "created_at": "2025-10-08T20:42:31.677771",
-      "updated_at": "2025-12-04T16:52:13.747785"
+      "updated_at": "2025-12-07T22:05:09.545898"
     },
     "165": {
       "name": "Independence Hall",
@@ -3965,7 +3965,7 @@
       "latitude": 39.9489,
       "longitude": -75.15,
       "created_at": "2025-10-08T20:42:31.677817",
-      "updated_at": "2025-12-04T16:52:13.748207"
+      "updated_at": "2025-12-07T21:42:45.661870"
     },
     "167": {
       "name": "Philadelphia Museum of Art",
@@ -3989,7 +3989,7 @@
       "latitude": 39.9656,
       "longitude": -75.1806,
       "created_at": "2025-10-08T20:42:31.677837",
-      "updated_at": "2025-12-04T16:52:13.748414"
+      "updated_at": "2025-12-07T21:42:45.662097"
     },
     "168": {
       "name": "Reading Terminal Market",
@@ -4002,7 +4002,7 @@
       "holiday_hours": "",
       "phone_number": "(215) 922-2317",
       "email": "info@readingterminalmarket.org",
-      "website_url": "https://www.readingterminalmarket.com",
+      "website_url": "https://readingterminalmarket.org",
       "instagram_url": "https://www.instagram.com/readingterminalmarket",
       "facebook_url": "https://www.facebook.com/ReadingTerminalMarket",
       "twitter_url": "https://twitter.com/ReadingTerminalMarket",
@@ -4013,7 +4013,7 @@
       "latitude": 39.9544,
       "longitude": -75.16,
       "created_at": "2025-10-08T20:42:31.677855",
-      "updated_at": "2025-12-04T16:52:13.748617"
+      "updated_at": "2025-12-07T22:05:14.695858"
     },
     "169": {
       "name": "Morven Museum & Garden",
@@ -4026,7 +4026,7 @@
       "holiday_hours": "",
       "phone_number": "(609) 924-8144",
       "email": "info@morven.org",
-      "website_url": "https://morven.org",
+      "website_url": "https://www.morven.org/",
       "instagram_url": "https://www.instagram.com/morvenmuseum",
       "facebook_url": "https://www.facebook.com/MorvenMuseum",
       "twitter_url": "https://twitter.com/MorvenMuseum",
@@ -4037,7 +4037,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678158",
-      "updated_at": "2025-12-04T16:52:13.748806"
+      "updated_at": "2025-12-07T22:05:15.659318"
     },
     "170": {
       "name": "Nassau Hall",
@@ -4074,7 +4074,7 @@
       "holiday_hours": "",
       "phone_number": "(609) 924-7450",
       "email": "info@palmersquare.com",
-      "website_url": "https://www.palmersquare.com",
+      "website_url": "https://palmersquare.com/",
       "instagram_url": "https://www.instagram.com/palmersquare",
       "facebook_url": "https://www.facebook.com/PalmerSquarePrinceton",
       "twitter_url": "https://twitter.com/PalmerSquare",
@@ -4085,7 +4085,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678205",
-      "updated_at": "2025-12-04T16:52:13.749188"
+      "updated_at": "2025-12-07T22:05:18.167713"
     },
     "172": {
       "name": "Princeton Battlefield State Park",
@@ -4146,7 +4146,7 @@
       "holiday_hours": "",
       "phone_number": "(609) 924-9529",
       "email": "info@princetonlibrary.org",
-      "website_url": "https://www.princetonlibrary.org",
+      "website_url": "https://princetonlibrary.org/",
       "instagram_url": "https://www.instagram.com/princetonlibrary",
       "facebook_url": "https://www.facebook.com/PrincetonPublicLibrary",
       "twitter_url": "https://twitter.com/PrincetonLibrary",
@@ -4157,7 +4157,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678262",
-      "updated_at": "2025-12-04T16:52:13.749768"
+      "updated_at": "2025-12-07T22:05:20.930005"
     },
     "175": {
       "name": "Princeton University Art Museum",
@@ -4242,7 +4242,7 @@
       "holiday_hours": "",
       "phone_number": "(301) 495-6700",
       "email": "silvertheatre@afi.com",
-      "website_url": "https://www.afi.com/silver",
+      "website_url": "https://silver.afi.com/",
       "instagram_url": "@afisilver",
       "facebook_url": "https://www.facebook.com/AFISilverTheatre",
       "twitter_url": "@AFISilver",
@@ -4253,7 +4253,7 @@
       "latitude": 38.9919,
       "longitude": -77.0256,
       "created_at": "2025-10-08T20:42:31.678698",
-      "updated_at": "2025-12-04T16:52:13.750581"
+      "updated_at": "2025-12-07T22:05:25.333376"
     },
     "179": {
       "name": "Webster's Bookstore Cafe",
@@ -4314,7 +4314,7 @@
       "holiday_hours": "",
       "phone_number": "(312) 923-2000",
       "email": "",
-      "website_url": "https://www.houseofblues.com/chicago",
+      "website_url": "https://chicago.houseofblues.com/",
       "instagram_url": "https://www.instagram.com/houseofblues",
       "facebook_url": "https://www.facebook.com/houseofblues",
       "twitter_url": "https://twitter.com/houseofblues",
@@ -4325,7 +4325,7 @@
       "latitude": 41.8886,
       "longitude": -87.6294,
       "created_at": "2025-12-03T22:14:47.203126",
-      "updated_at": "2025-12-04T16:52:13.751164"
+      "updated_at": "2025-12-07T22:05:28.750804"
     },
     "182": {
       "name": "Subterranean",
@@ -4338,7 +4338,7 @@
       "holiday_hours": "",
       "phone_number": "(773) 278-6600",
       "email": "",
-      "website_url": "https://www.subt.net",
+      "website_url": "https://subt.net/",
       "instagram_url": "https://www.instagram.com/subterraneanchicago",
       "facebook_url": "https://www.facebook.com/subterraneanchicago",
       "twitter_url": "",
@@ -4349,7 +4349,7 @@
       "latitude": 41.9106,
       "longitude": -87.6778,
       "created_at": "2025-12-03T22:14:47.203458",
-      "updated_at": "2025-12-04T16:52:13.751387"
+      "updated_at": "2025-12-07T22:05:30.890254"
     },
     "183": {
       "name": "Laugh Factory",
@@ -4458,7 +4458,7 @@
       "holiday_hours": "",
       "phone_number": "(312) 280-2660",
       "email": "info@mcachicago.org",
-      "website_url": "https://www.mcachicago.org",
+      "website_url": "https://mcachicago.org/",
       "instagram_url": "https://www.instagram.com/mcachicago",
       "facebook_url": "https://www.facebook.com/mcachicago",
       "twitter_url": "https://twitter.com/mcachicago",
@@ -4469,7 +4469,7 @@
       "latitude": 41.8967,
       "longitude": -87.6217,
       "created_at": "2025-12-03T22:14:47.204770",
-      "updated_at": "2025-12-04T16:52:13.752457"
+      "updated_at": "2025-12-07T22:05:37.597680"
     },
     "188": {
       "name": "Museum of Illusions Chicago",
@@ -4482,7 +4482,7 @@
       "holiday_hours": "",
       "phone_number": "(312) 300-0010",
       "email": "info@museumofillusions.com",
-      "website_url": "https://www.moichicago.com",
+      "website_url": "http://moichicago.com/",
       "instagram_url": "https://www.instagram.com/museumofillusions",
       "facebook_url": "https://www.facebook.com/museumofillusions",
       "twitter_url": "",
@@ -4493,7 +4493,7 @@
       "latitude": 41.8827,
       "longitude": -87.6274,
       "created_at": "2025-12-03T22:14:47.205027",
-      "updated_at": "2025-12-04T16:52:13.752670"
+      "updated_at": "2025-12-07T22:05:38.701981"
     },
     "189": {
       "name": "Ukrainian Institute of Modern Art",
@@ -4506,7 +4506,7 @@
       "holiday_hours": "",
       "phone_number": "(773) 227-5522",
       "email": "elena@uima-chicago.org",
-      "website_url": "https://www.uima-chicago.org",
+      "website_url": "https://uima-chicago.org/",
       "instagram_url": "https://www.instagram.com/uimachicago",
       "facebook_url": "https://www.facebook.com/uimachicago",
       "twitter_url": "",
@@ -4517,7 +4517,7 @@
       "latitude": 41.8958,
       "longitude": -87.6811,
       "created_at": "2025-12-03T22:14:47.205231",
-      "updated_at": "2025-12-04T16:52:13.752873"
+      "updated_at": "2025-12-07T22:05:39.524059"
     },
     "190": {
       "name": "Irvine Barclay Theatre",
@@ -4530,7 +4530,7 @@
       "holiday_hours": "",
       "phone_number": "(949) 854-4646",
       "email": "",
-      "website_url": "https://www.thebarclay.org",
+      "website_url": "https://www.thebarclay.org/Online/default.asp",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4541,7 +4541,7 @@
       "latitude": 33.6486,
       "longitude": -117.8428,
       "created_at": "2025-12-03T23:02:17.866640",
-      "updated_at": "2025-12-04T16:52:13.753073"
+      "updated_at": "2025-12-07T22:05:41.057973"
     },
     "191": {
       "name": "Orange County Great Park",
@@ -4554,7 +4554,7 @@
       "holiday_hours": "",
       "phone_number": "(949) 724-6247",
       "email": "",
-      "website_url": "https://www.ocgp.org",
+      "website_url": "https://suzyeatondesigns.com/",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4565,7 +4565,7 @@
       "latitude": 33.6906,
       "longitude": -117.7503,
       "created_at": "2025-12-03T23:02:17.867201",
-      "updated_at": "2025-12-04T16:52:13.753260"
+      "updated_at": "2025-12-07T22:05:42.387090"
     },
     "192": {
       "name": "Irvine Museum of Art",
@@ -4626,7 +4626,7 @@
       "holiday_hours": "",
       "phone_number": "(949) 753-5180",
       "email": "",
-      "website_url": "https://www.shopirvinespectrumcenter.com",
+      "website_url": "https://www.irvinespectrumcenter.com/?utm_medium=vanityurl&utm_source=SHOPIRVINESPECTRUMCENTER.COM",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4637,7 +4637,7 @@
       "latitude": 33.6506,
       "longitude": -117.7447,
       "created_at": "2025-12-03T23:02:17.867963",
-      "updated_at": "2025-12-04T16:52:13.753824"
+      "updated_at": "2025-12-07T22:05:46.276900"
     },
     "195": {
       "name": "Bren Events Center",
@@ -4650,7 +4650,7 @@
       "holiday_hours": "",
       "phone_number": "(949) 824-5000",
       "email": "",
-      "website_url": "https://www.bren.uci.edu",
+      "website_url": "https://ucirvinesports.com/sports/bren-events-center",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4661,7 +4661,7 @@
       "latitude": 33.6486,
       "longitude": -117.8428,
       "created_at": "2025-12-03T23:02:17.868198",
-      "updated_at": "2025-12-04T16:52:13.754014"
+      "updated_at": "2025-12-07T22:05:51.760013"
     },
     "196": {
       "name": "Irvine Fine Arts Center",
@@ -4674,7 +4674,7 @@
       "holiday_hours": "",
       "phone_number": "(949) 724-6880",
       "email": "",
-      "website_url": "https://www.cityofirvine.org/irvine-fine-arts-center",
+      "website_url": "https://cityofirvine.org/arts-irvine",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4685,7 +4685,7 @@
       "latitude": 33.6847,
       "longitude": -117.7947,
       "created_at": "2025-12-03T23:02:17.868419",
-      "updated_at": "2025-12-04T16:52:13.754208"
+      "updated_at": "2025-12-07T22:05:54.100586"
     },
     "197": {
       "name": "William R. Mason Regional Park",
