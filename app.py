@@ -394,15 +394,79 @@ def migrate_events_schema():
     except Exception as e:
         return False, f"SQLite migration error: {str(e)}", []
 
+def migrate_venues_schema():
+    """Migrate venues table schema to add ticketing_url column if missing."""
+    try:
+        # Check if we're on Railway (PostgreSQL)
+        db_url = os.getenv('DATABASE_URL', '')
+        is_railway = os.getenv('RAILWAY_ENVIRONMENT') or ('postgresql' in db_url or 'postgres' in db_url)
+        
+        if is_railway and db_url:
+            try:
+                import psycopg2
+                from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+                
+                railway_conn = psycopg2.connect(db_url)
+                railway_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                railway_cursor = railway_conn.cursor()
+                
+                # Check if ticketing_url column exists
+                railway_cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'venues' AND column_name = 'ticketing_url'
+                """)
+                exists = railway_cursor.fetchone()
+                
+                if not exists:
+                    railway_cursor.execute("ALTER TABLE venues ADD COLUMN ticketing_url VARCHAR(200)")
+                    railway_cursor.close()
+                    railway_conn.close()
+                    return True, "Added ticketing_url column to venues table", ['ticketing_url']
+                else:
+                    railway_cursor.close()
+                    railway_conn.close()
+                    return True, "Venues schema is already up to date", []
+            except ImportError:
+                pass
+            except Exception as e:
+                pass
+        
+        # Try SQLite migration for local development
+        try:
+            import sqlalchemy
+            inspector = sqlalchemy.inspect(db.engine)
+            existing_columns = [col['name'] for col in inspector.get_columns('venues')]
+            
+            if 'ticketing_url' not in existing_columns:
+                with db.engine.connect() as conn:
+                    conn.execute(sqlalchemy.text("ALTER TABLE venues ADD COLUMN ticketing_url VARCHAR(200)"))
+                    conn.commit()
+                return True, "Added ticketing_url column to venues table", ['ticketing_url']
+            else:
+                return True, "Venues schema is already up to date", []
+        except Exception as e:
+            return False, f"Venues migration error: {str(e)}", []
+    except Exception as e:
+        return False, f"Venues migration error: {str(e)}", []
+
 def auto_migrate_schema():
     """Automatically migrate schema on startup (Railway PostgreSQL or local SQLite)."""
     try:
         with app.app_context():
+            # Migrate events table
             success, message, _ = migrate_events_schema()
             if success:
-                print(f"✅ Schema migration: {message}")
+                print(f"✅ Events schema migration: {message}")
             else:
-                print(f"⚠️  Schema migration: {message}")
+                print(f"⚠️  Events schema migration: {message}")
+            
+            # Migrate venues table
+            success, message, _ = migrate_venues_schema()
+            if success:
+                print(f"✅ Venues schema migration: {message}")
+            else:
+                print(f"⚠️  Venues schema migration: {message}")
     except Exception as e:
         # Migration can fail on startup if database isn't ready yet - that's okay
         print(f"⚠️  Schema migration: {str(e)}")
