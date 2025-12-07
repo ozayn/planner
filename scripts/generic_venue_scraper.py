@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
-Generic Venue Event Scraper
-A universal scraper that works for any venue/location by using common patterns
-learned from specialized scrapers. This serves as a fallback when no specialized
-scraper exists for a venue.
+Generic Venue Event Scraper - Optimized for Museums
+A universal scraper optimized for museums that works for any venue/location by using 
+common patterns learned from specialized scrapers. This serves as a fallback when no 
+specialized scraper exists for a venue.
 
-Key Features:
+Key Features (Museum-Optimized):
+- Museum-specific event selectors (exhibitions, gallery talks, programs, tours)
+- Enhanced exhibition detection and date range parsing
+- Improved bot protection handling with cloudscraper
 - Extracts events from common HTML patterns
-- Handles various date/time formats
+- Handles various date/time formats (especially exhibition date ranges)
 - Extracts titles, descriptions, images, locations
 - Works with different event listing page structures
 - Handles registration information
-- Supports multiple event types (tours, exhibitions, talks, workshops, etc.)
+- Supports multiple event types (exhibitions, talks, lectures, tours, workshops, etc.)
+- Museum-specific event type detection
 """
 
 import os
@@ -25,6 +29,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import Timeout, ConnectionError, RequestException
+from urllib3.exceptions import NameResolutionError, NewConnectionError
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -54,13 +59,18 @@ class GenericVenueScraper:
         """Initialize the generic scraper with common patterns"""
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
         })
         
         # Disable SSL verification for sites with certificate issues
@@ -84,18 +94,148 @@ class GenericVenueScraper:
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
         
-        # Common event selectors (learned from specialized scrapers)
-        self.event_selectors = [
+        # Cloudscraper instance (created on demand)
+        self._cloudscraper = None
+    
+    def _get_cloudscraper(self, base_url=None):
+        """Get or create a cloudscraper instance with enhanced headers"""
+        if self._cloudscraper is None and CLOUDSCRAPER_AVAILABLE:
+            self._cloudscraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'darwin',
+                    'desktop': True
+                }
+            )
+            self._cloudscraper.headers.update({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0'
+            })
+            self._cloudscraper.verify = False
+            
+            # Establish session by visiting base URL if provided
+            if base_url:
+                try:
+                    logger.debug(f"   🔧 Establishing cloudscraper session with {base_url}...")
+                    self._cloudscraper.get(base_url, timeout=15)
+                    import time
+                    time.sleep(1)
+                except Exception as e:
+                    logger.debug(f"   ⚠️  Could not establish initial session: {e}")
+        
+        return self._cloudscraper
+    
+    def _fetch_with_retry(self, url, use_cloudscraper=False, base_url=None, max_retries=3, delay=2):
+        """Fetch URL with retry logic and exponential backoff"""
+        import time
+        
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    wait_time = delay * (2 ** (attempt - 1))
+                    logger.debug(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(wait_time)
+                
+                if use_cloudscraper and CLOUDSCRAPER_AVAILABLE:
+                    scraper = self._get_cloudscraper(base_url or url)
+                    response = scraper.get(url, timeout=20, verify=False)
+                else:
+                    response = self.session.get(url, timeout=20)
+                
+                # If we get a 403 and not using cloudscraper yet, try cloudscraper
+                if response.status_code == 403 and not use_cloudscraper and CLOUDSCRAPER_AVAILABLE:
+                    logger.info(f"   ⚠️  403 Forbidden, trying cloudscraper for {url}")
+                    if attempt < max_retries - 1:
+                        scraper = self._get_cloudscraper(base_url or url)
+                        # Refresh session
+                        try:
+                            scraper.get(base_url or url, timeout=15, verify=False)
+                            time.sleep(2)
+                        except:
+                            pass
+                        continue
+                
+                response.raise_for_status()
+                return response
+                
+            except (NameResolutionError, NewConnectionError) as e:
+                logger.error(f"❌ DNS resolution failed for {url}: {e}")
+                return None
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    if use_cloudscraper or not CLOUDSCRAPER_AVAILABLE:
+                        raise
+                    # Last attempt: try cloudscraper if we haven't already
+                    logger.info(f"   ⚠️  Final attempt with cloudscraper for {url}")
+                    try:
+                        scraper = self._get_cloudscraper(base_url or url)
+                        response = scraper.get(url, timeout=20, verify=False)
+                        response.raise_for_status()
+                        return response
+                    except:
+                        raise
+                logger.debug(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
+        
+        return None
+        
+        # Museum-specific event selectors (prioritized for museums)
+        self.museum_event_selectors = [
+            # Exhibition selectors (highest priority for museums)
+            '.exhibition', '.exhibitions', '.exhibition-item', '.exhibition-card',
+            '.exhibition-teaser', '.exhibition-summary', '.exhibition-list-item',
+            '.current-exhibition', '.upcoming-exhibition', '.past-exhibition',
+            '.exhibition-block', '.exhibition-tile', '.exhibition-grid-item',
+            # Museum program selectors
+            '.program', '.program-item', '.program-card', '.program-entry',
+            '.program-teaser', '.program-list-item', '.program-block',
+            # Gallery talk/lecture selectors
+            '.gallery-talk', '.curator-talk', '.artist-talk', '.lecture-series',
+            '.talk', '.talks', '.lecture', '.lectures', '.speaker-event',
+            '.panel-discussion', '.conversation', '.symposium',
+            # Museum tour selectors
+            '.tour', '.tours', '.guided-tour', '.walking-tour', '.tour-item',
+            '.docent-tour', '.highlights-tour', '.special-tour',
+            # Workshop/class selectors
+            '.workshop', '.workshops', '.class', '.classes', '.course', '.courses',
+            '.studio-class', '.art-class', '.family-program',
+            # General event selectors
             '.event', '.events', '.event-item', '.event-card', '.event-list-item',
-            '.calendar-event', '.upcoming-event', '.program', '.program-item',
-            '.tour', '.tours', '.guided-tour', '.walking-tour',
-            '.exhibition', '.exhibitions', '.exhibition-item',
-            '.workshop', '.workshops', '.class', '.classes',
-            '.talk', '.talks', '.lecture', '.lectures',
-            '[class*="event"]', '[class*="program"]', '[class*="tour"]',
-            '[class*="exhibition"]', '[data-event]', '[data-event-id]',
-            'article.event', 'article.program', 'li.event', 'li.program'
+            '.event-entry', '.event-entry-item', '.event-teaser', '.event-summary',
+            '.calendar-event', '.upcoming-event', '.past-event', '.featured-event',
+            # Generic patterns (museum-specific)
+            '[class*="exhibition"]', '[class*="program"]', '[class*="gallery"]',
+            '[class*="event"]', '[class*="tour"]', '[class*="workshop"]',
+            '[class*="lecture"]', '[class*="talk"]',
+            # Data attributes
+            '[data-event]', '[data-event-id]', '[data-event-type]',
+            '[data-exhibition]', '[data-exhibition-id]',
+            # Semantic HTML (museum-specific)
+            'article.event', 'article.program', 'article.exhibition',
+            'article.gallery-talk', 'article.lecture',
+            'li.event', 'li.program', 'li.exhibition', 'li.talk',
+            'div[itemtype*="Event"]', 'div[itemtype*="ExhibitionEvent"]',
+            'div[itemtype*="VisualArtsEvent"]',
+            # Common CMS patterns (museum websites)
+            '.node-event', '.node-exhibition', '.node-program',
+            '.view-events', '.view-exhibitions', '.view-programs',
+            '.event-list', '.exhibition-list', '.program-list',
+            '.events-grid', '.exhibitions-grid', '.programs-grid',
+            # Museum-specific patterns
+            '.collection-highlight', '.special-exhibition', '.featured-exhibition',
+            '.on-view', '.current-show', '.upcoming-show'
         ]
+        
+        # Fallback to general event selectors if museum-specific ones don't work
+        self.event_selectors = self.museum_event_selectors
         
         # Common date/time patterns
         self.date_patterns = [
@@ -104,9 +244,14 @@ class GenericVenueScraper:
             # Full dates with time (pipe-separated format: "December 5, 2025 | 11:30 am–12:00 pm")
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?',  # "December 5, 2025 | 11:30 am–12:00 pm"
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
-            # Date ranges
+            # Date ranges (museum exhibitions often use these)
             r'(\w+)\s+(\d{1,2})\s*[–-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23 - August 23, 2026"
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*[–-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 - August 23, 2026"
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*[–—\-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 – August 23, 2026" (em dash)
+            r'(\w+)\s+(\d{1,2})\s*[–—\-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23 – August 23, 2026" (em dash)
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+through\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 through August 23, 2026"
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+to\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 to August 23, 2026"
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*–\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026–August 23, 2026" (no spaces)
             # Standard formats
             r'(\d{1,2})/(\d{1,2})/(\d{4})',  # MM/DD/YYYY
             r'(\d{4})-(\d{2})-(\d{2})',  # YYYY-MM-DD
@@ -141,23 +286,35 @@ class GenericVenueScraper:
         
         try:
             logger.info(f"🔍 Generic scraper: Starting scrape for {venue_url}")
+            logger.info(f"   Venue: {venue_name}")
+            logger.info(f"   Event type filter: {event_type}")
+            logger.info(f"   Time range: {time_range}")
             
             # Try to find event listing pages
             event_pages = self._discover_event_pages(venue_url)
+            logger.info(f"   Discovered {len(event_pages)} event pages")
             
             # Scrape each event page
-            for page_url in event_pages:
+            for i, page_url in enumerate(event_pages, 1):
+                logger.info(f"   Scraping event page {i}/{len(event_pages)}: {page_url}")
                 page_events = self._scrape_event_page(page_url, venue_name, event_type, time_range)
+                logger.info(f"      Found {len(page_events)} events on this page")
                 events.extend(page_events)
             
             # Also scrape the main page
+            logger.info(f"   Scraping main page: {venue_url}")
             main_events = self._scrape_event_page(venue_url, venue_name, event_type, time_range)
+            logger.info(f"      Found {len(main_events)} events on main page")
             events.extend(main_events)
+            
+            logger.info(f"   Total events before deduplication: {len(events)}")
             
             # Deduplicate
             events = self._deduplicate_events(events)
             
             logger.info(f"✅ Generic scraper: Found {len(events)} unique events")
+            if events:
+                logger.info(f"   Event titles: {[e.get('title', 'N/A')[:50] for e in events[:5]]}")
             return events
             
         except Exception as e:
@@ -171,22 +328,57 @@ class GenericVenueScraper:
         event_pages = []
         
         try:
-            response = self.session.get(base_url, timeout=10)
-            response.raise_for_status()
+            response = self._fetch_with_retry(base_url, base_url=base_url)
+            if not response:
+                return event_pages
+            
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Look for links to event pages
-            event_keywords = ['events', 'calendar', 'programs', 'exhibitions', 'tours', 'schedule']
+            # Museum-specific event page keywords (prioritized)
+            museum_keywords = [
+                'exhibitions', 'exhibition', 'on-view', 'current-exhibitions',
+                'upcoming-exhibitions', 'past-exhibitions', 'gallery',
+                'programs', 'program', 'events', 'event', 'calendar',
+                'talks', 'lectures', 'gallery-talks', 'curator-talks',
+                'tours', 'guided-tours', 'workshops', 'classes',
+                'whats-on', 'what\'s-on', 'whats-on', 'visit', 'see',
+                'schedule', 'upcoming', 'current', 'featured'
+            ]
             
-            for link in soup.find_all('a', href=True):
+            # General event keywords (fallback)
+            event_keywords = museum_keywords + [
+                'activity', 'activities', 'happening', 'special-events'
+            ]
+            
+            # Also check navigation menus and footer links
+            nav_links = soup.find_all(['nav', 'header', 'footer'])
+            all_links = soup.find_all('a', href=True)
+            
+            # Add nav/header/footer links first (they're more likely to be event pages)
+            for nav in nav_links:
+                for link in nav.find_all('a', href=True):
+                    href = link.get('href', '')
+                    text = link.get_text(strip=True).lower()
+                    
+                    if any(keyword in href.lower() or keyword in text for keyword in event_keywords):
+                        full_url = urljoin(base_url, href)
+                        # Clean up URL (remove fragments, query params that are just tracking)
+                        parsed = urlparse(full_url)
+                        clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                        if clean_url not in event_pages and clean_url != base_url:
+                            event_pages.append(clean_url)
+            
+            # Then check all other links
+            for link in all_links:
                 href = link.get('href', '')
                 text = link.get_text(strip=True).lower()
                 
-                # Check if link text or URL contains event keywords
                 if any(keyword in href.lower() or keyword in text for keyword in event_keywords):
                     full_url = urljoin(base_url, href)
-                    if full_url not in event_pages:
-                        event_pages.append(full_url)
+                    parsed = urlparse(full_url)
+                    clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                    if clean_url not in event_pages and clean_url != base_url:
+                        event_pages.append(clean_url)
             
             logger.info(f"📄 Discovered {len(event_pages)} potential event pages")
             
@@ -201,32 +393,42 @@ class GenericVenueScraper:
         events = []
         
         try:
-            # Try regular requests first
-            try:
-                response = self.session.get(url, timeout=10)
-                response.raise_for_status()
-                html_content = response.text
-            except RequestException as e:
-                # If 403 or other error, try cloudscraper
-                if hasattr(e, 'response') and e.response is not None and e.response.status_code == 403:
-                    if CLOUDSCRAPER_AVAILABLE:
-                        logger.info(f"⚠️  403 error, trying cloudscraper for {url}")
-                        scraper = cloudscraper.create_scraper()
-                        response = scraper.get(url, timeout=10, verify=False)
-                        html_content = response.text
-                    else:
-                        return events
-                else:
-                    return events
+            # Use fetch_with_retry which handles cloudscraper automatically
+            base_url = urlparse(url).scheme + '://' + urlparse(url).netloc
+            response = self._fetch_with_retry(url, base_url=base_url)
+            
+            if not response:
+                return events
+            
+            html_content = response.text
             
             soup = BeautifulSoup(html_content, 'html.parser')
             
-            # Check if this is an exhibition listing page (e.g., OCMA)
-            if '/exhibitions' in url.lower() or event_type == 'exhibition':
+            # Museum-specific: Check for exhibition listing pages (highest priority)
+            url_lower = url.lower()
+            is_exhibition_page = any(keyword in url_lower for keyword in [
+                '/exhibitions', '/exhibition', '/on-view', '/current-exhibitions',
+                '/upcoming-exhibitions', '/gallery', '/show', '/shows'
+            ])
+            
+            if is_exhibition_page or event_type == 'exhibition':
                 exhibition_events = self._extract_exhibitions_from_listing_page(soup, url, venue_name, time_range)
                 if exhibition_events:
                     logger.info(f"✅ Found {len(exhibition_events)} exhibitions from listing page")
                     events.extend(exhibition_events)
+            
+            # Museum-specific: Check for program/event listing pages
+            is_program_page = any(keyword in url_lower for keyword in [
+                '/programs', '/program', '/events', '/calendar', '/talks',
+                '/lectures', '/workshops', '/tours', '/whats-on'
+            ])
+            
+            if is_program_page and not is_exhibition_page:
+                # Extract programs/events with enhanced museum patterns
+                program_events = self._extract_museum_programs(soup, url, venue_name, event_type, time_range)
+                if program_events:
+                    logger.info(f"✅ Found {len(program_events)} museum programs from listing page")
+                    events.extend(program_events)
             
             # Try JSON-LD first (structured data)
             json_ld_events = self._extract_json_ld_events(soup, url)
@@ -376,29 +578,46 @@ class GenericVenueScraper:
     def _extract_events_from_html(self, soup: BeautifulSoup, base_url: str, 
                                   venue_name: str = None, event_type: str = None, 
                                   time_range: str = 'this_month') -> List[Dict]:
-        """Extract events from HTML using common selectors"""
+        """Extract events from HTML using museum-specific selectors first, then fallback"""
         events = []
-        
+        seen_elements = set()  # Track elements we've already processed
+
+        # Prioritize museum-specific selectors
+        selectors_to_try = self.museum_event_selectors if hasattr(self, 'museum_event_selectors') else self.event_selectors
+
         # Try each selector
-        for selector in self.event_selectors:
+        for selector in selectors_to_try:
             try:
                 elements = soup.select(selector)
                 if elements:
                     logger.debug(f"Found {len(elements)} elements with selector: {selector}")
-                    
+
                     for element in elements:
+                        # Skip if we've already processed this element
+                        element_id = id(element)
+                        if element_id in seen_elements:
+                            continue
+                        seen_elements.add(element_id)
+                        
                         # Skip navigation and calendar UI elements
                         if self._should_skip_element(element):
                             continue
-                        
+
                         event = self._parse_event_element(element, base_url, venue_name, event_type, time_range)
                         if event:
+                            # Enhance event type detection for museums
+                            if not event.get('event_type'):
+                                event['event_type'] = self._detect_museum_event_type(
+                                    event.get('title', ''),
+                                    event.get('description', ''),
+                                    element
+                                )
                             events.append(event)
-                            
+
             except Exception as e:
                 logger.debug(f"Error with selector {selector}: {e}")
                 continue
-        
+
         return events
     
     def _is_valid_event_title(self, title: str) -> bool:
@@ -505,6 +724,19 @@ class GenericVenueScraper:
         for pattern in date_patterns:
             title = re.sub(pattern, '', title, flags=re.IGNORECASE)
         
+        # Remove "Through" dates from title (e.g., "TitleThrough Jan 25, 2026")
+        # Pattern: "Through Month Day, Year" or "through Month Day, Year"
+        through_patterns = [
+            r'[Tt]hrough\s+[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}\s*$',  # "Through January 25, 2026"
+            r'[Tt]hrough\s+[A-Z][a-z]{2,3}\.?\s+\d{1,2},?\s+\d{4}\s*$',  # "Through Jan 25, 2026"
+        ]
+        for pattern in through_patterns:
+            title = re.sub(pattern, '', title)
+        
+        # Remove date ranges from title (e.g., "Title Month Day, Year – Month Day, Year")
+        date_range_pattern = r'[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}\s*[–—\-]\s*[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}\s*$'
+        title = re.sub(date_range_pattern, '', title, flags=re.IGNORECASE)
+        
         # Fix missing spaces after apostrophes (e.g., "Bellows'sLove" -> "Bellows's Love")
         title = re.sub(r"([a-z]'s)([A-Z])", r"\1 \2", title)
         
@@ -539,6 +771,31 @@ class GenericVenueScraper:
             if not title or len(title) < 3:
                 return None
             
+            # Extract dates from title BEFORE cleaning (in case dates are concatenated)
+            # Pattern: "TitleThrough Month Day, Year" or "Title Through Month Day, Year"
+            extracted_start_date = None
+            extracted_end_date = None
+            
+            # Look for "Through" or "through" followed by date (common in museum exhibitions)
+            through_pattern = r'[Tt]hrough\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+            through_match = re.search(through_pattern, title)
+            if through_match:
+                end_date_str = through_match.group(1)
+                extracted_end_date = self._parse_single_date_string(end_date_str)
+                # For exhibitions, if we only have end date, set start to today (ongoing exhibition)
+                if extracted_end_date:
+                    from datetime import date
+                    extracted_start_date = date.today()
+                    logger.debug(f"   📅 Extracted end date from title: {extracted_end_date}, set start_date to {extracted_start_date}")
+            
+            # Also look for date ranges in title: "Title Month Day, Year – Month Day, Year"
+            if not extracted_start_date:
+                title_date_range = self._parse_date_range_string(title)
+                if title_date_range:
+                    extracted_start_date = title_date_range.get('start_date')
+                    extracted_end_date = title_date_range.get('end_date')
+                    logger.debug(f"   📅 Extracted date range from title: {extracted_start_date} to {extracted_end_date}")
+            
             # Validate title is actually an event, not navigation/page element
             if not self._is_valid_event_title(title):
                 return None
@@ -562,6 +819,12 @@ class GenericVenueScraper:
                 date_text, element, base_url
             )
             
+            # Use dates extracted from title if we don't have them from date_text
+            if not start_date and extracted_start_date:
+                start_date = extracted_start_date
+            if not end_date and extracted_end_date:
+                end_date = extracted_end_date
+            
             # Extract location
             location = self._extract_text(element, [
                 '.location', '.venue', '.where', '.address', '.meeting-point',
@@ -571,16 +834,42 @@ class GenericVenueScraper:
             # Extract URL
             url = self._extract_url(element, base_url)
             
-            # Extract image
+            # Extract image from listing page - search thoroughly
+            image_url = None
+            
+            # Strategy 1: Look in the element itself
             image_url = self._extract_image(element, base_url)
             
+            # Strategy 2: Look in parent container
+            if not image_url and element.parent:
+                image_url = self._extract_image(element.parent, base_url)
+            
+            # Strategy 3: Look at siblings (common pattern: image and event info are siblings)
+            if not image_url and element.parent:
+                # Check previous sibling
+                prev_sibling = element.previous_sibling
+                while prev_sibling and not image_url:
+                    if hasattr(prev_sibling, 'find'):
+                        image_url = self._extract_image(prev_sibling, base_url)
+                    prev_sibling = prev_sibling.previous_sibling if hasattr(prev_sibling, 'previous_sibling') else None
+                
+                # Check next sibling
+                if not image_url:
+                    next_sibling = element.next_sibling
+                    while next_sibling and not image_url:
+                        if hasattr(next_sibling, 'find'):
+                            image_url = self._extract_image(next_sibling, base_url)
+                        next_sibling = next_sibling.next_sibling if hasattr(next_sibling, 'next_sibling') else None
+            
             # IMPORTANT: Fetch individual event page for better data extraction (times, descriptions, etc.)
+            # Note: We already extracted image from listing page above, but will try event page if not found
             # This is similar to what we do in the OCMA scraper
             if url and url != base_url and url.startswith('http'):
                 try:
                     logger.debug(f"   🔍 Fetching individual event page for better extraction: {url}")
-                    event_response = self.session.get(url, timeout=10)
-                    if event_response.status_code == 200:
+                    # Use fetch_with_retry for better bot protection handling
+                    event_response = self._fetch_with_retry(url, base_url=base_url)
+                    if event_response and event_response.status_code == 200:
                         event_soup = BeautifulSoup(event_response.content, 'html.parser')
                         event_main_content = event_soup.find('article') or event_soup.find('main') or event_soup
                         
@@ -673,14 +962,12 @@ class GenericVenueScraper:
                                     end_time = parsed_end_time
                                     logger.debug(f"   ⏰ Extracted end time from event page: {end_time}")
                         
-                        # Extract image from event page if not found
+                        # Extract image from event page if not found (use enhanced extraction)
                         if not image_url:
-                            event_img = event_soup.find('img')
-                            if event_img:
-                                img_src = event_img.get('src') or event_img.get('data-src') or event_img.get('data-lazy-src')
-                                if img_src:
-                                    from urllib.parse import urljoin
-                                    image_url = urljoin(url, img_src)
+                            # Use the enhanced image extraction method on the event page
+                            image_url = self._extract_image(event_soup, url)
+                            if image_url:
+                                logger.debug(f"   ✅ Found image from event page: {image_url[:80]}")
                 except Exception as e:
                     logger.debug(f"Error fetching individual event page {url}: {e}")
             
@@ -688,9 +975,17 @@ class GenericVenueScraper:
             if not event_type:
                 event_type = self._determine_event_type(title, description)
             
-            # Filter by time range
-            if start_date and not self._is_in_time_range(start_date, time_range):
-                return None
+            # Filter by time range (only if we have a date)
+            # For events without dates (ongoing exhibitions), include them
+            if start_date:
+                if not self._is_in_time_range(start_date, time_range):
+                    logger.debug(f"   ⏭️  Event '{title}' filtered out (date {start_date} not in {time_range})")
+                    return None
+                else:
+                    logger.debug(f"   ✅ Event '{title}' passed time_range filter (date: {start_date})")
+            else:
+                # No date - include it (might be ongoing exhibition or event without specific date)
+                logger.debug(f"   ⚠️  Event '{title}' has no date, including anyway (might be ongoing)")
             
             return {
                 'title': title.strip(),
@@ -710,18 +1005,18 @@ class GenericVenueScraper:
             return None
     
     def _extract_text(self, element, selectors: List[str]) -> Optional[str]:
-        """Extract text using multiple selector strategies"""
+        """Extract text using multiple selector strategies (enhanced from specialized scrapers)"""
         # Try CSS selectors first
         for selector in selectors:
             try:
                 found = element.select_one(selector)
                 if found:
                     text = found.get_text(strip=True)
-                    if text:
+                    if text and len(text) > 3:  # Minimum length check
                         return text
             except:
                 continue
-        
+
         # Try meta tags
         if 'meta[' in str(selectors):
             for selector in selectors:
@@ -730,16 +1025,37 @@ class GenericVenueScraper:
                         meta = element.select_one(selector)
                         if meta:
                             content = meta.get('content', '')
-                            if content:
+                            if content and len(content) > 3:
                                 return content
                     except:
                         continue
-        
+
+        # Enhanced: For descriptions, try multiple strategies (learned from specialized scrapers)
+        if any('description' in s.lower() or 'summary' in s.lower() or 'content' in s.lower() for s in selectors):
+            # Strategy 1: Look for description/summary/intro classes in parent containers
+            parent = element
+            for _ in range(3):  # Check up to 3 levels up
+                if parent:
+                    desc_elem = parent.find(['div', 'p', 'section'], 
+                                          class_=re.compile(r'description|summary|intro|content', re.I))
+                    if desc_elem:
+                        text = desc_elem.get_text(strip=True)
+                        if text and len(text) > 50:  # Only use substantial descriptions
+                            return text
+                    parent = parent.parent if hasattr(parent, 'parent') else None
+            
+            # Strategy 2: Get first substantial paragraph
+            first_p = element.find('p')
+            if first_p:
+                text = first_p.get_text(strip=True)
+                if text and len(text) > 50:
+                    return text
+
         # Fallback: get text from element itself
         text = element.get_text(strip=True)
         if text and len(text) > 3:
             return text
-        
+
         return None
     
     def _extract_url(self, element, base_url: str) -> Optional[str]:
@@ -757,20 +1073,68 @@ class GenericVenueScraper:
         return base_url
     
     def _extract_image(self, element, base_url: str) -> Optional[str]:
-        """Extract event image URL"""
-        # Try img tag
-        img = element.find('img')
-        if img:
-            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
-            if src:
-                return urljoin(base_url, src)
+        """Extract event image URL using multiple strategies (learned from specialized scrapers)"""
+        image_url = None
         
-        # Try meta tags
-        og_image = element.select_one('meta[property="og:image"]')
-        if og_image:
-            return og_image.get('content', '')
+        # Strategy 1: Look for hero/feature/main images by class (highest priority)
+        img_elem = element.find('img', class_=re.compile(r'hero|feature|main|exhibition|header|event', re.I))
+        if img_elem:
+            img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src') or img_elem.get('data-original')
+            if img_src:
+                image_url = urljoin(base_url, img_src)
+                return image_url
         
-        return None
+        # Strategy 2: Look for images with keywords in URL
+        if not image_url:
+            all_imgs = element.find_all('img')
+            for img in all_imgs:
+                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                if img_src:
+                    src_lower = img_src.lower()
+                    # Skip small icons/logos/decoration (learned from specialized scrapers)
+                    skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'twitter', 'facebook', 
+                                   'instagram', 'svg', 'site-header', 'nav-background', 'hero-background']
+                    if any(pattern in src_lower for pattern in skip_patterns):
+                        continue
+                    
+                    # Prefer images with certain keywords in path
+                    if any(keyword in src_lower for keyword in ['exhibition', 'hero', 'feature', 'header', 'banner', 'event']):
+                        image_url = urljoin(base_url, img_src)
+                        break
+        
+        # Strategy 3: Find first substantial image (jpg/png/webp) not in nav/footer
+        if not image_url:
+            all_imgs = element.find_all('img')
+            for img in all_imgs:
+                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                if img_src:
+                    src_lower = img_src.lower()
+                    # Skip icons/logos
+                    skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']
+                    if any(pattern in src_lower for pattern in skip_patterns):
+                        continue
+                    
+                    # Check if it's a real image file
+                    if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                        # Check if it's not in navigation/footer
+                        parent = img.parent
+                        skip_containers = ['nav', 'header', 'footer', 'menu']
+                        parent_tag = parent.name if parent else ''
+                        parent_classes = ' '.join(parent.get('class', [])) if parent and hasattr(parent, 'get') else ''
+                        
+                        if parent_tag not in skip_containers and not any(skip in parent_classes.lower() for skip in skip_containers):
+                            image_url = urljoin(base_url, img_src)
+                            break
+        
+        # Strategy 4: Try meta tags (og:image)
+        if not image_url:
+            og_image = element.select_one('meta[property="og:image"]')
+            if og_image:
+                image_url = og_image.get('content', '')
+                if image_url and not image_url.startswith('http'):
+                    image_url = urljoin(base_url, image_url)
+        
+        return image_url
     
     def _parse_dates_and_times(self, date_text: str, element, base_url: str) -> Tuple:
         """Parse dates and times from text and HTML attributes"""
@@ -849,16 +1213,23 @@ class GenericVenueScraper:
                     continue
         
         # Parse from text if we don't have dates yet
+        # Enhanced: Try date range parsing first (learned from specialized scrapers)
         if date_text and not start_date:
-            # Try date patterns
-            for pattern in self.date_patterns:
-                match = re.search(pattern, search_text, re.IGNORECASE)
-                if match:
-                    parsed_start, parsed_end = self._parse_date_match(match, search_text)
-                    if parsed_start:
-                        start_date = parsed_start
-                        end_date = parsed_end
-                        break
+            # Try to parse date ranges with multiple separators (like specialized scrapers)
+            date_range = self._parse_date_range_string(search_text)
+            if date_range:
+                start_date = date_range.get('start_date')
+                end_date = date_range.get('end_date')
+            else:
+                # Fallback to pattern matching
+                for pattern in self.date_patterns:
+                    match = re.search(pattern, search_text, re.IGNORECASE)
+                    if match:
+                        parsed_start, parsed_end = self._parse_date_match(match, search_text)
+                        if parsed_start:
+                            start_date = parsed_start
+                            end_date = parsed_end
+                            break
         
         # Parse times from text if we don't have them yet
         if search_text and not start_time:
@@ -981,6 +1352,100 @@ class GenericVenueScraper:
             logger.debug(f"Error parsing date match: {e}")
         
         return None, None
+    
+    def _parse_date_range_string(self, date_string: str) -> Optional[Dict[str, date]]:
+        """
+        Parse date range string like "November 25, 2025–July 12, 2026" (learned from specialized scrapers)
+        Returns dict with 'start_date' and 'end_date' or None if parsing fails
+        """
+        if not date_string:
+            return None
+        
+        # Clean up the date string
+        date_string = date_string.strip()
+        
+        # Handle different separators (learned from specialized scrapers)
+        separators = ['–', '-', '—', 'to', 'through']
+        for sep in separators:
+            if sep in date_string:
+                parts = date_string.split(sep, 1)
+                if len(parts) == 2:
+                    start_str = parts[0].strip()
+                    end_str = parts[1].strip()
+                    
+                    try:
+                        start_date = self._parse_single_date_string(start_str)
+                        end_date = self._parse_single_date_string(end_str)
+                        
+                        if start_date and end_date:
+                            return {
+                                'start_date': start_date,
+                                'end_date': end_date
+                            }
+                    except Exception as e:
+                        logger.debug(f"Error parsing date range '{date_string}': {e}")
+                        continue
+        
+        # Try to parse as single date
+        single_date = self._parse_single_date_string(date_string)
+        if single_date:
+            return {
+                'start_date': single_date,
+                'end_date': single_date
+            }
+        
+        return None
+    
+    def _parse_single_date_string(self, date_string: str) -> Optional[date]:
+        """Parse a single date string in various formats (learned from specialized scrapers)"""
+        if not date_string:
+            return None
+        
+        date_string = date_string.strip()
+        
+        # Try common date formats
+        date_formats = [
+            '%B %d, %Y',      # November 25, 2025
+            '%b %d, %Y',      # Nov 25, 2025
+            '%d %B %Y',       # 25 November 2025
+            '%d %b %Y',       # 25 Nov 2025
+            '%Y-%m-%d',       # 2025-11-25
+            '%m/%d/%Y',       # 11/25/2025
+            '%d/%m/%Y',       # 25/11/2025
+            '%B %Y',          # November 2025
+            '%b %Y',          # Nov 2025
+            '%Y',             # 2025
+        ]
+        
+        for fmt in date_formats:
+            try:
+                parsed = datetime.strptime(date_string, fmt).date()
+                return parsed
+            except ValueError:
+                continue
+        
+        # Try regex patterns for more flexible parsing
+        month_pattern = r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+        day_pattern = r'(\d{1,2})'
+        year_pattern = r'(\d{4})'
+        
+        # Pattern: "Month Day, Year"
+        pattern1 = rf'{month_pattern}\s+{day_pattern},?\s+{year_pattern}'
+        match = re.search(pattern1, date_string, re.IGNORECASE)
+        if match:
+            try:
+                month_str = match.group(1)
+                day = int(match.group(2))
+                year = int(match.group(3))
+                
+                month = self._month_name_to_num(month_str)
+                if month:
+                    return date(year, month, day)
+            except (ValueError, IndexError):
+                pass
+        
+        logger.debug(f"Could not parse date: {date_string}")
+        return None
     
     def _month_name_to_num(self, month_name: str) -> int:
         """Convert month name to number"""
@@ -1246,10 +1711,36 @@ class GenericVenueScraper:
                 start_date = None
                 end_date = None
                 if date_text:
-                    dates = self._parse_dates_and_times(date_text, None, base_url)
-                    if dates:
-                        start_date = dates.get('start_date')
-                        end_date = dates.get('end_date')
+                    # Use the date range parser
+                    date_range = self._parse_date_range_string(date_text)
+                    if date_range:
+                        start_date = date_range.get('start_date')
+                        end_date = date_range.get('end_date')
+                
+                # Also try to extract dates from title if we don't have them yet
+                # Pattern: "TitleThrough Month Day, Year" or "Title Through Month Day, Year"
+                if not start_date and title:
+                    # Look for "Through" or "through" followed by date
+                    through_pattern = r'[Tt]hrough\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+                    through_match = re.search(through_pattern, title)
+                    if through_match:
+                        end_date_str = through_match.group(1)
+                        end_date = self._parse_single_date_string(end_date_str)
+                        # Clean title by removing the date part
+                        title = re.sub(r'[Tt]hrough\s+[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}', '', title).strip()
+                        # For exhibitions, if we only have end date, set start to today
+                        if end_date and not start_date:
+                            from datetime import date
+                            start_date = date.today()
+                    
+                    # Also look for date ranges in title: "Title Month Day, Year – Month Day, Year"
+                    if not start_date:
+                        title_date_range = self._parse_date_range_string(title)
+                        if title_date_range:
+                            start_date = title_date_range.get('start_date')
+                            end_date = title_date_range.get('end_date')
+                            # Clean title by removing date range
+                            title = re.sub(r'[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}\s*[–—\-]\s*[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}', '', title).strip()
                 
                 # Build full URL
                 from urllib.parse import urljoin
@@ -1284,14 +1775,77 @@ class GenericVenueScraper:
                         if meta_desc:
                             description = meta_desc.get('content', '')[:500]
                 
-                # Extract image from link or parent
+                # Extract image from listing page - search thoroughly before fetching individual page
                 image_url = None
-                if parent:
-                    img = parent.find('img')
-                    if img:
-                        img_src = img.get('src') or img.get('data-src')
-                        if img_src:
-                            image_url = urljoin(base_url, img_src)
+                
+                # Strategy 1: Look in the link element itself
+                if not image_url:
+                    image_url = self._extract_image(link, base_url)
+                
+                # Strategy 2: Look in parent container
+                if not image_url and parent:
+                    image_url = self._extract_image(parent, base_url)
+                
+                # Strategy 3: Look in parent's parent (common pattern: article > div > a)
+                if not image_url and parent and parent.parent:
+                    image_url = self._extract_image(parent.parent, base_url)
+                
+                # Strategy 4: Look at next/previous siblings (common pattern: image and link are siblings)
+                if not image_url and parent:
+                    # Check previous sibling
+                    prev_sibling = parent.previous_sibling
+                    while prev_sibling and not image_url:
+                        if hasattr(prev_sibling, 'find'):
+                            image_url = self._extract_image(prev_sibling, base_url)
+                        prev_sibling = prev_sibling.previous_sibling if hasattr(prev_sibling, 'previous_sibling') else None
+                    
+                    # Check next sibling
+                    if not image_url:
+                        next_sibling = parent.next_sibling
+                        while next_sibling and not image_url:
+                            if hasattr(next_sibling, 'find'):
+                                image_url = self._extract_image(next_sibling, base_url)
+                            next_sibling = next_sibling.next_sibling if hasattr(next_sibling, 'next_sibling') else None
+                
+                # Strategy 5: Look for images in the same container as the link (search up the tree)
+                if not image_url:
+                    container = parent
+                    for _ in range(3):  # Search up to 3 levels up
+                        if not container:
+                            break
+                        if hasattr(container, 'find_all'):
+                            # Find all images in this container
+                            imgs = container.find_all('img', limit=5)
+                            for img in imgs:
+                                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                                if img_src:
+                                    src_lower = img_src.lower()
+                                    # Skip icons/logos
+                                    if any(skip in src_lower for skip in ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']):
+                                        continue
+                                    # Prefer substantial images
+                                    if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                                        from urllib.parse import urljoin
+                                        image_url = urljoin(base_url, img_src)
+                                        logger.debug(f"   ✅ Found image in container: {image_url[:80]}")
+                                        break
+                        if image_url:
+                            break
+                        container = container.parent if hasattr(container, 'parent') else None
+                
+                # Only fetch individual page as last resort if no image found on listing page
+                if not image_url and full_url and full_url != base_url:
+                    try:
+                        logger.debug(f"   🖼️  No image on listing page, fetching individual exhibition page: {full_url}")
+                        event_response = self._fetch_with_retry(full_url, base_url=base_url)
+                        if event_response and event_response.status_code == 200:
+                            event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                            # Use enhanced image extraction on the full page
+                            image_url = self._extract_image(event_soup, base_url)
+                            if image_url:
+                                logger.debug(f"   ✅ Found image from exhibition page: {image_url[:80]}")
+                    except Exception as e:
+                        logger.debug(f"   ⚠️  Error fetching exhibition page for image: {e}")
                 
                 events.append({
                     'title': title,
@@ -1331,17 +1885,17 @@ class GenericVenueScraper:
                 start_date = None
                 end_date = None
                 
+                # Parse dates using the single date parser
+                start_date = None
+                end_date = None
                 try:
                     # Parse start date
-                    start_dates = self._parse_dates_and_times(start_date_str, None, base_url)
-                    if start_dates and start_dates.get('start_date'):
-                        start_date = start_dates['start_date']
+                    start_date = self._parse_single_date_string(start_date_str)
                     
                     # Parse end date
-                    end_dates = self._parse_dates_and_times(end_date_str, None, base_url)
-                    if end_dates and end_dates.get('start_date'):
-                        end_date = end_dates['start_date']
-                except:
+                    end_date = self._parse_single_date_string(end_date_str)
+                except Exception as e:
+                    logger.debug(f"Error parsing dates from pattern match: {e}")
                     pass
                 
                 # Only include if in time range
@@ -1357,6 +1911,61 @@ class GenericVenueScraper:
                         exhibition_url = urljoin(base_url, link.get('href', ''))
                         break
                 
+                # Extract image from listing page - search in the full page soup
+                image_url = None
+                
+                # Try to find image associated with this exhibition in the listing page
+                # Look for images near exhibition links that match the title
+                if exhibition_links:
+                    for link in exhibition_links:
+                        link_text = link.get_text(strip=True)
+                        if title.lower() in link_text.lower() or link_text.lower() in title.lower():
+                            # Found matching link, extract image from its container
+                            link_parent = link.parent
+                            if link_parent:
+                                image_url = self._extract_image(link_parent, base_url)
+                                if not image_url and link_parent.parent:
+                                    image_url = self._extract_image(link_parent.parent, base_url)
+                            if image_url:
+                                logger.debug(f"   ✅ Found image from listing page: {image_url[:80]}")
+                                break
+                
+                # If still no image, try searching the full page for images near the title text
+                if not image_url:
+                    # Find all images in the page
+                    all_imgs = soup.find_all('img')
+                    for img in all_imgs:
+                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                        if img_src:
+                            src_lower = img_src.lower()
+                            # Skip icons/logos
+                            if any(skip in src_lower for skip in ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']):
+                                continue
+                            # Check if image is near exhibition-related content
+                            img_parent = img.parent
+                            if img_parent:
+                                parent_text = img_parent.get_text().lower()
+                                # If image is in a container that mentions the title or exhibition keywords
+                                if title.lower()[:20] in parent_text or any(kw in parent_text for kw in ['exhibition', 'show', 'gallery']):
+                                    from urllib.parse import urljoin
+                                    image_url = urljoin(base_url, img_src)
+                                    logger.debug(f"   ✅ Found image near exhibition content: {image_url[:80]}")
+                                    break
+                
+                # Only fetch individual page as last resort
+                if not image_url and exhibition_url and exhibition_url != base_url:
+                    try:
+                        logger.debug(f"   🖼️  No image on listing page, fetching exhibition page: {exhibition_url}")
+                        event_response = self._fetch_with_retry(exhibition_url, base_url=base_url)
+                        if event_response and event_response.status_code == 200:
+                            event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                            # Use enhanced image extraction on the full page
+                            image_url = self._extract_image(event_soup, base_url)
+                            if image_url:
+                                logger.debug(f"   ✅ Found image from exhibition page: {image_url[:80]}")
+                    except Exception as e:
+                        logger.debug(f"   ⚠️  Error fetching exhibition page for image: {e}")
+                
                 events.append({
                     'title': title,
                     'description': '',
@@ -1366,18 +1975,102 @@ class GenericVenueScraper:
                     'end_time': None,
                     'start_location': venue_name,
                     'url': exhibition_url,
-                    'image_url': None,
+                    'image_url': image_url,
                     'event_type': 'exhibition'
                 })
             
             logger.info(f"📦 Extracted {len(events)} exhibitions from listing page")
-            
+
         except Exception as e:
             logger.debug(f"Error extracting exhibitions from listing page: {e}")
             import traceback
             logger.debug(traceback.format_exc())
+
+        return events
+    
+    def _extract_museum_programs(self, soup: BeautifulSoup, base_url: str,
+                                 venue_name: str = None, event_type: str = None,
+                                 time_range: str = 'this_month') -> List[Dict]:
+        """Extract museum programs (talks, lectures, workshops, tours) from listing pages"""
+        events = []
+        
+        try:
+            # Use museum-specific selectors first
+            for selector in self.museum_event_selectors:
+                try:
+                    elements = soup.select(selector)
+                    if elements:
+                        logger.debug(f"Found {len(elements)} elements with museum selector: {selector}")
+                        
+                        for element in elements:
+                            if self._should_skip_element(element):
+                                continue
+                            
+                            event = self._parse_event_element(element, base_url, venue_name, event_type, time_range)
+                            if event:
+                                # Enhance event type detection for museum programs
+                                if not event.get('event_type'):
+                                    event['event_type'] = self._detect_museum_event_type(
+                                        event.get('title', ''),
+                                        event.get('description', ''),
+                                        element
+                                    )
+                                events.append(event)
+                except Exception as e:
+                    logger.debug(f"Error with museum selector {selector}: {e}")
+                    continue
+            
+            # Also extract from JSON-LD for museum events
+            json_ld_events = self._extract_json_ld_events(soup, base_url)
+            for event in json_ld_events:
+                if not event.get('event_type'):
+                    event['event_type'] = self._detect_museum_event_type(
+                        event.get('title', ''),
+                        event.get('description', ''),
+                        None
+                    )
+            events.extend(json_ld_events)
+            
+        except Exception as e:
+            logger.debug(f"Error extracting museum programs: {e}")
         
         return events
+    
+    def _detect_museum_event_type(self, title: str, description: str, element=None) -> str:
+        """Detect museum-specific event types"""
+        content = (title + ' ' + description).lower()
+        
+        # Museum-specific patterns
+        if any(keyword in content for keyword in ['gallery talk', 'curator talk', 'curator\'s talk']):
+            return 'talk'
+        elif any(keyword in content for keyword in ['artist talk', 'artist conversation', 'artist discussion']):
+            return 'talk'
+        elif any(keyword in content for keyword in ['panel discussion', 'symposium', 'conference']):
+            return 'talk'
+        elif any(keyword in content for keyword in ['docent tour', 'guided tour', 'highlights tour']):
+            return 'tour'
+        elif any(keyword in content for keyword in ['workshop', 'studio class', 'art class']):
+            return 'workshop'
+        elif any(keyword in content for keyword in ['family program', 'family day', 'kids program']):
+            return 'program'
+        elif any(keyword in content for keyword in ['lecture', 'lecture series']):
+            return 'talk'
+        elif any(keyword in content for keyword in ['exhibition', 'exhibit', 'on view']):
+            return 'exhibition'
+        
+        # Check element classes if available
+        if element:
+            classes = ' '.join(element.get('class', []))
+            if 'exhibition' in classes.lower():
+                return 'exhibition'
+            elif 'talk' in classes.lower() or 'lecture' in classes.lower():
+                return 'talk'
+            elif 'tour' in classes.lower():
+                return 'tour'
+            elif 'workshop' in classes.lower() or 'class' in classes.lower():
+                return 'workshop'
+        
+        return 'event'  # Default fallback
 
 
 

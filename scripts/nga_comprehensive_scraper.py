@@ -47,13 +47,62 @@ def create_scraper():
     
     scraper.headers.update({
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
         'DNT': '1',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
     })
     
+    # Try to establish a session by visiting the main page first
+    try:
+        logger.info("   🔧 Establishing session with NGA website...")
+        scraper.get(NGA_BASE_URL, timeout=15)
+        import time
+        time.sleep(1)  # Small delay after initial request
+    except Exception as e:
+        logger.warning(f"   ⚠️  Could not establish initial session: {e}")
+    
     return scraper
+
+
+def fetch_with_retry(scraper, url, max_retries=3, delay=2):
+    """Fetch URL with retry logic and exponential backoff"""
+    import time
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                wait_time = delay * (2 ** (attempt - 1))  # Exponential backoff
+                logger.info(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(wait_time)
+            
+            response = scraper.get(url, timeout=20)
+            
+            # If we get a 403, try refreshing the session
+            if response.status_code == 403 and attempt < max_retries - 1:
+                logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, refreshing session...")
+                # Try to re-establish session
+                try:
+                    scraper.get(NGA_BASE_URL, timeout=15)
+                    time.sleep(2)
+                except:
+                    pass
+                continue
+            
+            response.raise_for_status()
+            return response
+            
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            logger.warning(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
+    
+    return None
 
 
 def scrape_all_nga_events():
@@ -125,8 +174,10 @@ def scrape_nga_exhibitions(scraper):
             
             try:
                 logger.info(f"   📄 Fetching exhibitions page {page}...")
-                response = scraper.get(url, timeout=15)
-                response.raise_for_status()
+                response = fetch_with_retry(scraper, url, max_retries=3, delay=2)
+                if not response:
+                    logger.warning(f"   ⚠️  Failed to fetch exhibitions page {page} after retries")
+                    break
                 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
@@ -156,9 +207,9 @@ def scrape_nga_exhibitions(scraper):
                 
                 page += 1
                 
-                # Small delay to be respectful
+                # Delay to be respectful and avoid rate limiting
                 import time
-                time.sleep(0.5)
+                time.sleep(2)  # Increased delay to avoid 403 errors
                 
             except Exception as e:
                 logger.warning(f"   ⚠️  Error fetching exhibitions page {page}: {e}")
@@ -188,8 +239,9 @@ def scrape_nga_exhibitions(scraper):
 def scrape_nga_exhibition_page(exhibition_url, scraper):
     """Scrape a single NGA exhibition page"""
     try:
-        response = scraper.get(exhibition_url, timeout=15)
-        response.raise_for_status()
+        response = fetch_with_retry(scraper, exhibition_url, max_retries=2, delay=1)
+        if not response:
+            return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()
@@ -517,8 +569,10 @@ def scrape_nga_tours(scraper):
             
             try:
                 logger.info(f"   📄 Fetching page {page}...")
-                response = scraper.get(url, timeout=15)
-                response.raise_for_status()
+                response = fetch_with_retry(scraper, url, max_retries=3, delay=2)
+                if not response:
+                    logger.warning(f"   ⚠️  Failed to fetch tours page {page} after retries")
+                    break
                 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
@@ -581,9 +635,9 @@ def scrape_nga_tours(scraper):
                 
                 page += 1
                 
-                # Small delay to be respectful
+                # Delay to be respectful and avoid rate limiting
                 import time
-                time.sleep(0.5)
+                time.sleep(2)  # Increased delay to avoid 403 errors
                 
             except Exception as e:
                 logger.warning(f"   ⚠️  Error fetching page {page}: {e}")
@@ -631,8 +685,9 @@ def scrape_nga_tours(scraper):
 def scrape_nga_tour_page(tour_url, scraper):
     """Scrape a single NGA tour page"""
     try:
-        response = scraper.get(tour_url, timeout=15)
-        response.raise_for_status()
+        response = fetch_with_retry(scraper, tour_url, max_retries=2, delay=1)
+        if not response:
+            return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()
@@ -793,8 +848,9 @@ def scrape_nga_talks(scraper):
         for url in urls_to_check:
             try:
                 logger.info(f"   📄 Fetching from: {url}")
-                response = scraper.get(url, timeout=15)
-                response.raise_for_status()
+                response = fetch_with_retry(scraper, url, max_retries=3, delay=2)
+                if not response:
+                    continue
                 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
@@ -833,8 +889,9 @@ def scrape_nga_talks(scraper):
 def scrape_nga_talk_page(talk_url, scraper):
     """Scrape a single NGA talk/lecture page"""
     try:
-        response = scraper.get(talk_url, timeout=15)
-        response.raise_for_status()
+        response = fetch_with_retry(scraper, talk_url, max_retries=2, delay=1)
+        if not response:
+            return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()
@@ -904,8 +961,9 @@ def scrape_nga_calendar_events(scraper):
     
     try:
         logger.info(f"   📄 Fetching calendar events from: {NGA_CALENDAR_URL}")
-        response = scraper.get(NGA_CALENDAR_URL, timeout=15)
-        response.raise_for_status()
+        response = fetch_with_retry(scraper, NGA_CALENDAR_URL, max_retries=3, delay=2)
+        if not response:
+            return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -943,8 +1001,9 @@ def scrape_nga_calendar_events(scraper):
 def scrape_nga_generic_event_page(event_url, scraper):
     """Scrape a generic NGA event page"""
     try:
-        response = scraper.get(event_url, timeout=15)
-        response.raise_for_status()
+        response = fetch_with_retry(scraper, event_url, max_retries=2, delay=1)
+        if not response:
+            return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()

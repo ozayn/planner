@@ -296,6 +296,73 @@ class VenueEventScraper:
         if not venue.website_url:
             return events
         
+        # For San Francisco venues (city_id == 4), use generic scraper first
+        # since we don't have tailored scrapers for SF venues
+        if venue.city_id == 4:
+            logger.info(f"🌉 San Francisco venue detected ({venue.name}), using generic scraper...")
+            logger.info(f"   URL: {venue.website_url}")
+            
+            # Validate URL before attempting to scrape
+            if not venue.website_url or not venue.website_url.startswith('http'):
+                logger.warning(f"   ⚠️  Invalid URL for {venue.name}, skipping...")
+                return events
+            
+            # Use 'this_month' for SF venues to be less restrictive (instead of 'today')
+            sf_time_range = 'this_month' if time_range == 'today' else time_range
+            logger.info(f"   Using time_range: {sf_time_range} (original: {time_range})")
+            try:
+                from scripts.generic_venue_scraper import GenericVenueScraper
+                generic_scraper = GenericVenueScraper()
+                generic_events = generic_scraper.scrape_venue_events(
+                    venue_url=venue.website_url,
+                    venue_name=venue.name,
+                    event_type=event_type,
+                    time_range=sf_time_range
+                )
+                logger.info(f"   Generic scraper returned {len(generic_events)} raw events")
+                # Convert generic events to our format and validate them
+                valid_generic_events = []
+                invalid_count = 0
+                for event in generic_events:
+                    event['venue_id'] = venue.id
+                    event['city_id'] = venue.city_id
+                    event['source'] = 'website'
+                    event['source_url'] = venue.website_url
+                    event['organizer'] = venue.name
+                    # Add meeting_point if start_location exists
+                    if event.get('start_location') and not event.get('meeting_point'):
+                        event['meeting_point'] = event.get('start_location')
+                    
+                    # Validate the event before adding it
+                    if self._is_valid_event(event):
+                        valid_generic_events.append(event)
+                        logger.debug(f"   ✅ Valid event: '{event.get('title', 'N/A')}' (date: {event.get('start_date', 'N/A')})")
+                    else:
+                        invalid_count += 1
+                        logger.debug(f"   ⚠️  Invalid event filtered out: '{event.get('title', 'N/A')}' (date: {event.get('start_date', 'N/A')})")
+                
+                logger.info(f"   Validation: {len(valid_generic_events)} valid, {invalid_count} invalid events")
+                
+                events.extend(valid_generic_events)
+                if valid_generic_events:
+                    logger.info(f"✅ Generic scraper found {len(valid_generic_events)} valid events for {venue.name} (filtered {len(generic_events) - len(valid_generic_events)} invalid events)")
+                    # Apply limits
+                    if event_type and event_type.lower() == 'exhibition':
+                        exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
+                        other_events = [e for e in events if e.get('event_type') != 'exhibition']
+                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                        events = limited_exhibitions + other_events
+                    else:
+                        events = events[:max_events_per_venue]
+                    return events
+                elif generic_events:
+                    logger.info(f"⚠️ Generic scraper found {len(generic_events)} events but all were filtered out by validation")
+                else:
+                    logger.info(f"⚠️ Generic scraper found no events for {venue.name}")
+            except Exception as generic_error:
+                logger.warning(f"⚠️ Generic scraper failed for {venue.name}: {generic_error}, falling back to standard methods...")
+                # Continue with standard scraping methods below
+        
         try:
             logger.info(f"Scraping website: {venue.website_url}")
             try:
@@ -4418,10 +4485,11 @@ class VenueEventScraper:
                     except ValueError as e:
                         logger.debug(f"Invalid date values: {e}")
             
-            # Pattern 2: "Feb 14–May 9, 2021" or "January 17–May 3, 2026" (same year)
+            # Pattern 2: "Feb 14–May 9, 2021" or "January 17–May 3, 2026" or "Jan 24 – Aug 2, 2026" (same year)
             # Support both abbreviated (Jan) and full (January) month names
+            # Note: Allow optional comma after first date and flexible whitespace around dash
             if not start_date:
-                range_pattern = r'([A-Z][a-z]{2,9})\s+(\d{1,2})[–—\-]\s*([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})'
+                range_pattern = r'([A-Z][a-z]{2,9})\s+(\d{1,2}),?\s*[–—\-]\s*([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})'
                 match = re.search(range_pattern, date_text)
                 
                 if match:
@@ -5106,7 +5174,10 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
         
         # Use NLP/LLM for uncertain cases (titles that pass heuristics but might still be invalid)
         # Only check if title seems potentially problematic (short, generic, or contains common section words)
-        if self._is_uncertain_title(title):
+        # NOTE: Skip LLM validation for exhibitions - they're usually clearly identifiable and LLM adds latency/cost
+        # Only use LLM for other event types (tours, talks, etc.) where titles might be more ambiguous
+        event_type = event_data.get('event_type', '').lower()
+        if event_type != 'exhibition' and self._is_uncertain_title(title):
             is_valid = self._validate_title_with_nlp(title, description)
             if not is_valid:
                 logger.debug(f"⚠️ NLP filtered out invalid title: '{title}'")
