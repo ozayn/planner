@@ -1,0 +1,1713 @@
+INFO: 🔍 Validating 201 venue URLs...
+INFO:    Dry run: False
+INFO:    Fix invalid: True
+INFO:    Use LLM: True
+INFO: ================================================================================
+INFO: 
+[1/201] Arena Stage
+INFO:    Current URL: https://www.arenastage.org
+INFO:    Type: theater, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[2/201] Capitol Building
+INFO:    Current URL: https://www.visitthecapitol.gov
+INFO:    Type: government, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[3/201] Capitol Hill
+INFO:    Current URL: https://www.visitthecapitol.gov
+INFO:    Type: historic_site, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[4/201] Capitol Hill Arts Workshop
+INFO:    Current URL: https://www.chaw.org
+INFO:    Type: arts_center, City: Washington
+INFO:    ✅ Valid: Redirects to https://chaw.org/
+INFO:    📍 Redirects to: https://chaw.org/
+INFO: 
+[5/201] Dupont Circle
+INFO:    Current URL: https://www.nps.gov/rocr/planyourvisit/dupont-circle.htm
+INFO:    Type: historic_site, City: Washington
+INFO:    ❌ Invalid: HTTP 404
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 369
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.nps.gov/state/districtofcolumbia/learn/about-the-park/dupont-circle.htm
+INFO: 
+[6/201] Ford's Theatre
+INFO:    Current URL: https://www.fords.org
+INFO:    Type: theater, City: Washington
+INFO:    ✅ Valid: Redirects to https://fords.org/
+INFO:    📍 Redirects to: https://fords.org/
+INFO: 
+[7/201] Franklin Delano Roosevelt Memorial
+INFO:    Current URL: https://www.nps.gov/frde/index.htm
+INFO:    Type: memorial, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[8/201] Georgetown
+INFO:    Current URL: https://www.georgetown.org
+INFO:    Type: historic_site, City: Washington
+INFO:    🔧 Known correction: https://www.georgetown.com
+INFO: 
+[9/201] International Spy Museum
+INFO:    Current URL: https://www.spymuseum.org
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[10/201] Jefferson Memorial
+INFO:    Current URL: https://www.nps.gov/thje/index.htm
+INFO:    Type: monument, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[11/201] Kennedy Center
+INFO:    Current URL: https://www.kennedycenter.com
+INFO:    Type: arts_center, City: Washington
+INFO:    🔧 Known correction: https://www.kennedy-center.org
+INFO: 
+[12/201] Korean War Veterans Memorial
+INFO:    Current URL: https://www.koreanwarveteransmemorial.com
+INFO:    Type: memorial, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[13/201] Library of Congress
+INFO:    Current URL: https://www.libraryofcongress.com
+INFO:    Type: library, City: Washington
+INFO:    🔧 Known correction: https://www.loc.gov
+INFO: 
+[14/201] Lincoln Memorial
+INFO:    Current URL: https://www.nps.gov/linc/index.htm
+INFO:    Type: monument, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[15/201] Martin Luther King Jr. Memorial
+INFO:    Current URL: https://www.nps.gov/mlkm/index.htm
+INFO:    Type: memorial, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[16/201] National Air and Space Museum
+INFO:    Current URL: https://airandspace.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[17/201] National Gallery of Art
+INFO:    Current URL: https://www.nga.gov
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[18/201] National Mall
+INFO:    Current URL: https://www.nps.gov/nama/index.htm
+INFO:    Type: park, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[19/201] National Portrait Gallery
+INFO:    Current URL: https://npg.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid (SSL cert issue, but URL works)
+INFO: 
+[20/201] National Zoo
+INFO:    Current URL: https://nationalzoo.si.edu
+INFO:    Type: zoo, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[21/201] Newseum
+INFO:    Current URL: https://www.newseum.com
+INFO:    Type: museum, City: Washington
+INFO:    ⚠️  Known to be closed/unavailable
+INFO: 
+[22/201] Rock Creek Park
+INFO:    Current URL: https://www.nps.gov/rocr/index.htm
+INFO:    Type: park, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[23/201] Smithsonian National Museum of Asian Art
+INFO:    Current URL: https://www.asia.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Redirects to https://asia.si.edu/
+INFO:    📍 Redirects to: https://asia.si.edu/
+INFO: 
+[24/201] Smithsonian Hirshhorn Museum and Sculpture Garden
+INFO:    Current URL: https://hirshhorn.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid (SSL cert issue, but URL works)
+INFO: 
+[25/201] Smithsonian National Air and Space Museum
+INFO:    Current URL: https://airandspace.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[26/201] Smithsonian National Museum of African American History and Culture
+INFO:    Current URL: https://nmaahc.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid (SSL cert issue, but URL works)
+INFO: 
+[27/201] Smithsonian National Museum of American History
+INFO:    Current URL: https://americanhistory.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid (SSL cert issue, but URL works)
+INFO: 
+[28/201] Smithsonian National Museum of Natural History
+INFO:    Current URL: https://naturalhistory.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[29/201] Smithsonian National Museum of the American Indian
+INFO:    Current URL: https://americanindian.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[30/201] Supreme Court
+INFO:    Current URL: https://www.supremecourt.gov
+INFO:    Type: government, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[31/201] The Phillips Collection
+INFO:    Current URL: https://www.phillipscollection.org
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[32/201] Tidal Basin
+INFO:    Current URL: https://www.tidalbasin.com
+INFO:    Type: park, City: Washington
+INFO:    🔧 Known correction: https://www.nps.gov/thje/planyourvisit/tidal-basin.htm
+INFO: 
+[33/201] United States Holocaust Memorial Museum
+INFO:    Current URL: https://www.unitedstatesholocaustmemorialmuseum.com
+INFO:    Type: museum, City: Washington
+INFO:    🔧 Known correction: https://www.ushmm.org
+INFO: 
+[34/201] Vietnam Veterans Memorial
+INFO:    Current URL: https://www.nps.gov/vive/index.htm
+INFO:    Type: memorial, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[35/201] Washington Monument
+INFO:    Current URL: https://www.nps.gov/wamo/index.htm
+INFO:    Type: monument, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[36/201] White House
+INFO:    Current URL: https://www.whitehouse.gov
+INFO:    Type: government, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[37/201] World War II Memorial
+INFO:    Current URL: https://www.nps.gov/wwii/index.htm
+INFO:    Type: memorial, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[38/201] United States Botanic Garden
+INFO:    Current URL: https://www.usbg.gov
+INFO:    Type: garden, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[39/201] 9:30 Club
+INFO:    Current URL: https://www.930.com
+INFO:    Type: concert_hall, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[40/201] Embassy of the United Kingdom
+INFO:    Current URL: https://www.gov.uk/world/organisations/british-embassy-washington
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[41/201] Embassy of France
+INFO:    Current URL: https://franceintheus.org
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[42/201] Embassy of Germany
+INFO:    Current URL: https://washington.diplo.de
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Redirects to https://www.germany.info/us-en
+INFO:    📍 Redirects to: https://www.germany.info/us-en
+INFO: 
+[43/201] Embassy of Italy
+INFO:    Current URL: https://ambwashingtondc.esteri.it
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Redirects to https://ambwashingtondc.esteri.it/it/
+INFO:    📍 Redirects to: https://ambwashingtondc.esteri.it/it/
+INFO: 
+[44/201] Embassy of Japan
+INFO:    Current URL: https://www.us.emb-japan.go.jp
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[45/201] Embassy of Canada
+INFO:    Current URL: https://www.canadainternational.gc.ca/washington
+INFO:    Type: embassy, City: Washington
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 367
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.canada.ca/en/embassy-united-states.html
+INFO: 
+[46/201] Embassy of Spain
+INFO:    Current URL: https://www.exteriores.gob.es/embajadas/washington
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Redirects to https://www.exteriores.gob.es/Embajadas/washington/es/Paginas/index.aspx
+INFO:    📍 Redirects to: https://www.exteriores.gob.es/Embajadas/washington/es/Paginas/index.aspx
+INFO: 
+[47/201] Embassy of the Netherlands
+INFO:    Current URL: https://www.netherlandsworldwide.nl/countries/united-states
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Redirects to https://www.netherlandsworldwide.nl/theme/topics
+INFO:    📍 Redirects to: https://www.netherlandsworldwide.nl/theme/topics
+INFO: 
+[48/201] Embassy of Australia
+INFO:    Current URL: https://usa.embassy.gov.au
+INFO:    Type: embassy, City: Washington
+INFO:    ❌ Invalid: Error: The read operation timed out
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 370
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://usa.embassy.gov.au
+INFO: 
+[49/201] Embassy of Brazil
+INFO:    Current URL: https://washington.itamaraty.gov.br
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Redirects to https://www.gov.br/mre/pt-br/embaixada-washington
+INFO:    📍 Redirects to: https://www.gov.br/mre/pt-br/embaixada-washington
+INFO: 
+[50/201] Embassy of India
+INFO:    Current URL: https://www.indianembassyusa.gov.in
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Redirects to https://indianembassyusa.gov.in/index
+INFO:    📍 Redirects to: https://indianembassyusa.gov.in/index
+INFO: 
+[51/201] Embassy of Mexico
+INFO:    Current URL: https://embamex.sre.gob.mx/eua
+INFO:    Type: embassy, City: Washington
+INFO:    ❌ Invalid: Error: timed out
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 367
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://embamex.sre.gob.mx/eua/index.html
+INFO: 
+[52/201] Embassy of South Korea
+INFO:    Current URL: https://usa-mofa.go.kr/us-washington-en
+INFO:    Type: embassy, City: Washington
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 372
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://overseas.mofa.go.kr/us-en/index.do
+INFO: 
+[53/201] Embassy of Sweden
+INFO:    Current URL: https://www.swedenabroad.se/en/embassies/usa-washington
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[54/201] Embassy of Switzerland
+INFO:    Current URL: https://www.eda.admin.ch/washington
+INFO:    Type: embassy, City: Washington
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[55/201] Suns Cinema
+INFO:    Current URL: https://www.sunscinema.com
+INFO:    Type: cinema, City: Washington
+INFO:    ✅ Valid: Redirects to https://sunscinema.com/
+INFO:    📍 Redirects to: https://sunscinema.com/
+INFO: 
+[56/201] Busboys and Poets
+INFO:    Current URL: https://www.busboysandpoets.com
+INFO:    Type: cafe, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[57/201] The Kennedy Center Roof Terrace Restaurant
+INFO:    Current URL: https://www.kennedy-center.org/visit/food-and-drinks/
+INFO:    Type: restaurant, City: Washington
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[58/201] Kramerbooks & Afterwords Cafe
+INFO:    Current URL: https://www.kramers.com
+INFO:    Type: cafe, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[59/201] The Hamilton
+INFO:    Current URL: https://www.thehamiltondc.com
+INFO:    Type: restaurant, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[60/201] Songbyrd Music House & Record Cafe
+INFO:    Current URL: https://www.songbyrddc.com
+INFO:    Type: cafe, City: Washington
+INFO:    ✅ Valid: Redirects to https://songbyrddc.com/
+INFO:    📍 Redirects to: https://songbyrddc.com/
+INFO: 
+[61/201] Founding Farmers
+INFO:    Current URL: https://www.wearefoundingfarmers.com
+INFO:    Type: restaurant, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[62/201] Politics and Prose Bookstore
+INFO:    Current URL: https://www.politics-prose.com
+INFO:    Type: bookstore, City: Washington
+INFO:    ✅ Valid: Redirects to https://politics-prose.com/
+INFO:    📍 Redirects to: https://politics-prose.com/
+INFO: 
+[63/201] East City Bookshop
+INFO:    Current URL: https://www.eastcitybookshop.com
+INFO:    Type: bookstore, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[64/201] The Bookstore in Glover Park
+INFO:    Current URL: https://www.bookstoreingloverpark.com
+INFO:    Type: bookstore, City: Washington
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 380
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Could not find correct URL
+INFO: 
+[65/201] Solid State Books
+INFO:    Current URL: https://www.solidstatebooks.com
+INFO:    Type: bookstore, City: Washington
+INFO:    ✅ Valid: Redirects to https://solidstatebooks.com/
+INFO:    📍 Redirects to: https://solidstatebooks.com/
+INFO: 
+[66/201] Bridge Street Books
+INFO:    Current URL: https://www.bridgestreetbooks.com
+INFO:    Type: bookstore, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[67/201] Sankofa Video Books & Café
+INFO:    Current URL: https://sankofa.com
+INFO:    Type: cafe, City: Washington
+INFO:    ✅ Valid: Redirects to https://www.sankofa.com/
+INFO:    📍 Redirects to: https://www.sankofa.com/
+INFO: 
+[68/201] American Museum of Natural History
+INFO:    Current URL: https://www.amnh.org
+INFO:    Type: museum, City: New York
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[69/201] American Museum of Natural History
+INFO:    Current URL: https://www.amnh.org
+INFO:    Type: museum, City: New York
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[70/201] Brooklyn Bridge
+INFO:    Current URL: https://www.nyc.gov/html/dot/html/infrastructure/brooklyn-bridge.shtml
+INFO:    Type: landmark, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[71/201] Central Park
+INFO:    Current URL: https://www.centralparknyc.org
+INFO:    Type: park, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[72/201] Empire State Building
+INFO:    Current URL: https://www.esbnyc.com
+INFO:    Type: landmark, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[73/201] Metropolitan Museum of Art
+INFO:    Current URL: https://www.metmuseum.org
+INFO:    Type: museum, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[74/201] Metropolitan Museum of Art
+INFO:    Current URL: https://www.metmuseum.org
+INFO:    Type: museum, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[75/201] Museum of Modern Art (MoMA)
+INFO:    Current URL: https://www.moma.org
+INFO:    Type: museum, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[76/201] Statue of Liberty
+INFO:    Current URL: https://www.nps.gov/stli/index.htm
+INFO:    Type: monument, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[77/201] Times Square
+INFO:    Current URL: https://www.timessquarenyc.org
+INFO:    Type: landmark, City: New York
+INFO:    ✅ Valid: Valid
+INFO: 
+[78/201] Getty Center
+INFO:    Current URL: https://www.getty.edu
+INFO:    Type: museum, City: Los Angeles
+INFO:    ✅ Valid: Valid
+INFO: 
+[79/201] Griffith Observatory
+INFO:    Current URL: https://griffithobservatory.org
+INFO:    Type: observation, City: Los Angeles
+INFO:    ✅ Valid: Valid
+INFO: 
+[80/201] Hollywood Walk of Fame
+INFO:    Current URL: https://www.walkoffame.com
+INFO:    Type: landmark, City: Los Angeles
+INFO:    ✅ Valid: Redirects to https://walkoffame.com/
+INFO:    📍 Redirects to: https://walkoffame.com/
+INFO: 
+[81/201] Los Angeles County Museum of Art (LACMA)
+INFO:    Current URL: https://www.lacma.org
+INFO:    Type: museum, City: Los Angeles
+INFO:    ✅ Valid: Valid
+INFO: 
+[82/201] Santa Monica Pier
+INFO:    Current URL: https://www.santamonicapier.com
+INFO:    Type: landmark, City: Los Angeles
+INFO:    ❌ Invalid: URL Error: <urlopen error timed out>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 369
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://santamonicapier.org/
+INFO: 
+[83/201] Alcatraz Island
+INFO:    Current URL: https://www.nps.gov/alca/index.htm
+INFO:    Type: historic_site, City: San Francisco
+INFO:    ✅ Valid: Valid
+INFO: 
+[84/201] Golden Gate Bridge
+INFO:    Current URL: https://www.goldengate.org
+INFO:    Type: landmark, City: San Francisco
+INFO:    ✅ Valid: Valid
+INFO: 
+[85/201] Palace of Fine Arts
+INFO:    Current URL: https://www.palaceoffinearts.com
+INFO:    Type: landmark, City: San Francisco
+INFO:    ✅ Valid: Redirects to https://palaceoffinearts.com/
+INFO:    📍 Redirects to: https://palaceoffinearts.com/
+INFO: 
+[86/201] San Francisco Museum of Modern Art (SFMOMA)
+INFO:    Current URL: https://www.sfmoma.org
+INFO:    Type: museum, City: San Francisco
+INFO:    ✅ Valid: Valid
+INFO: 
+[87/201] de Young Museum
+INFO:    Current URL: https://deyoung.famsf.org
+INFO:    Type: museum, City: San Francisco
+INFO:    ✅ Valid: Redirects to https://www.famsf.org/
+INFO:    📍 Redirects to: https://www.famsf.org/
+INFO: 
+[88/201] Art Institute of Chicago
+INFO:    Current URL: https://www.artic.edu
+INFO:    Type: museum, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[89/201] Field Museum
+INFO:    Current URL: https://www.fieldmuseum.org
+INFO:    Type: museum, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[90/201] Millennium Park
+INFO:    Current URL: https://www.millenniumpark.com
+INFO:    Type: park, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[91/201] Shedd Aquarium
+INFO:    Current URL: https://www.sheddaquarium.com
+INFO:    Type: aquarium, City: Chicago
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[92/201] Willis Tower Skydeck
+INFO:    Current URL: https://theskydeck.com/
+INFO:    Type: observation, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[93/201] Boston Common
+INFO:    Current URL: https://www.bostoncommon.com
+INFO:    Type: park, City: Boston
+INFO:    ✅ Valid: Redirects to https://www.afternic.com/forsale/bostoncommon.com?utm_source=TDFS&utm_medium=sn_affiliate_click&utm_campaign=TDFS_Affiliate_namefind_direct1&traffic_type=CL3&traffic_id=Namefind
+INFO:    📍 Redirects to: https://www.afternic.com/forsale/bostoncommon.com?utm_source=TDFS&utm_medium=sn_affiliate_click&utm_campaign=TDFS_Affiliate_namefind_direct1&traffic_type=CL3&traffic_id=Namefind
+INFO: 
+[94/201] Fenway Park
+INFO:    Current URL: https://www.fenwaypark.com
+INFO:    Type: stadium, City: Boston
+INFO:    ✅ Valid: Redirects to https://www.mlb.com/redsox/ballpark
+INFO:    📍 Redirects to: https://www.mlb.com/redsox/ballpark
+INFO: 
+[95/201] Freedom Trail
+INFO:    Current URL: https://www.freedomtrail.com
+INFO:    Type: historic_site, City: Boston
+INFO:    ✅ Valid: Valid
+INFO: 
+[96/201] Isabella Stewart Gardner Museum
+INFO:    Current URL: https://www.isabellastewartgardnermuseum.com
+INFO:    Type: museum, City: Boston
+INFO:    ✅ Valid: Valid
+INFO: 
+[97/201] Museum of Fine Arts Boston
+INFO:    Current URL: https://www.museumoffineartsboston.com
+INFO:    Type: museum, City: Boston
+INFO:    ❌ Invalid: URL Error: <urlopen error timed out>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 371
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.mfa.org
+INFO: 
+[98/201] Chihuly Garden and Glass
+INFO:    Current URL: https://www.chihulygardenandglass.com
+INFO:    Type: museum, City: Seattle
+INFO:    ✅ Valid: Valid
+INFO: 
+[99/201] Museum of Pop Culture (MoPOP)
+INFO:    Current URL: https://www.mopop.org
+INFO:    Type: museum, City: Seattle
+INFO:    ✅ Valid: Valid
+INFO: 
+[100/201] Pike Place Market
+INFO:    Current URL: https://www.pikeplacemarket.com
+INFO:    Type: market, City: Seattle
+INFO:    ❌ Invalid: URL Error: <urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] t
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 363
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.pikeplacemarket.org
+INFO: 
+[101/201] Seattle Art Museum
+INFO:    Current URL: https://www.seattleartmuseum.com
+INFO:    Type: museum, City: Seattle
+INFO:    ❌ Invalid: URL Error: <urlopen error timed out>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 364
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.seattleartmuseum.org
+INFO: 
+[102/201] Space Needle
+INFO:    Current URL: https://www.spaceneedle.com
+INFO:    Type: observation, City: Seattle
+INFO:    ✅ Valid: Valid
+INFO: 
+[103/201] Frost Science Museum
+INFO:    Current URL: https://www.frostscience.org
+INFO:    Type: museum, City: Miami
+INFO:    ✅ Valid: Valid
+INFO: 
+[104/201] Pérez Art Museum Miami (PAMM)
+INFO:    Current URL: https://www.pamm.org
+INFO:    Type: museum, City: Miami
+INFO:    ✅ Valid: Redirects to https://www.pamm.org/en/
+INFO:    📍 Redirects to: https://www.pamm.org/en/
+INFO: 
+[105/201] South Beach
+INFO:    Current URL: https://www.southbeach.com
+INFO:    Type: beach, City: Miami
+INFO:    ❌ Invalid: URL Error: <urlopen error timed out>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 354
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.miamibeach.gov/parks-recreation/beaches/south-beach
+INFO: 
+[106/201] Vizcaya Museum and Gardens
+INFO:    Current URL: https://www.vizcayamuseumandgardens.com
+INFO:    Type: museum, City: Miami
+INFO:    ✅ Valid: Redirects to https://vizcaya.org/
+INFO:    📍 Redirects to: https://vizcaya.org/
+INFO: 
+[107/201] Wynwood Walls
+INFO:    Current URL: https://www.wynwoodwalls.com
+INFO:    Type: arts_district, City: Miami
+INFO:    ✅ Valid: Redirects to https://thewynwoodwalls.com/
+INFO:    📍 Redirects to: https://thewynwoodwalls.com/
+INFO: 
+[108/201] British Museum
+INFO:    Current URL: https://www.britishmuseum.org
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[109/201] National Gallery
+INFO:    Current URL: https://www.nationalgallery.com
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Redirects to https://wn.com/National_gallery?from=nationalgallery.com
+INFO:    📍 Redirects to: https://wn.com/National_gallery?from=nationalgallery.com
+INFO: 
+[110/201] Natural History Museum
+INFO:    Current URL: https://www.nhm.ac.uk
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Valid
+INFO: 
+[111/201] Royal Academy of Arts
+INFO:    Current URL: https://www.royalacademy.org.uk
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Valid
+INFO: 
+[112/201] Science Museum
+INFO:    Current URL: https://www.sciencemuseum.org.uk
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Valid
+INFO: 
+[113/201] Tate Britain
+INFO:    Current URL: https://www.tate.org.uk/visit/tate-britain
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Valid
+INFO: 
+[114/201] Tate Modern
+INFO:    Current URL: https://www.tatemodern.com
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Valid
+INFO: 
+[115/201] Tower of London
+INFO:    Current URL: https://www.toweroflondon.com
+INFO:    Type: historic_site, City: London
+INFO:    ✅ Valid: Valid (SSL cert issue, but URL works)
+INFO: 
+[116/201] Victoria and Albert Museum
+INFO:    Current URL: https://www.vam.ac.uk
+INFO:    Type: museum, City: London
+INFO:    ✅ Valid: Valid
+INFO: 
+[117/201] Westminster Abbey
+INFO:    Current URL: https://www.westminsterabbey.com
+INFO:    Type: religious_site, City: London
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 61] Connection refused>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 370
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.westminster-abbey.org/
+INFO: 
+[118/201] Arc de Triomphe
+INFO:    Current URL: https://www.arcdetriomphe.com
+INFO:    Type: monument, City: Paris
+INFO:    ✅ Valid: Valid
+INFO: 
+[119/201] Champs-Élysées
+INFO:    Current URL: https://www.champs-élysées.com
+INFO:    Type: landmark, City: Paris
+INFO:    ❌ Invalid: HTTP 400
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 360
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.champselysees.org/
+INFO: 
+[120/201] Eiffel Tower
+INFO:    Current URL: https://www.eiffeltower.com
+INFO:    Type: monument, City: Paris
+INFO:    ✅ Valid: Valid
+INFO: 
+[121/201] Louvre Museum
+INFO:    Current URL: https://www.louvremuseum.com
+INFO:    Type: museum, City: Paris
+INFO:    ✅ Valid: Valid
+INFO: 
+[122/201] Montmartre
+INFO:    Current URL: https://www.montmartre.com
+INFO:    Type: historic_site, City: Paris
+INFO:    ✅ Valid: Valid
+INFO: 
+[123/201] Musée d'Orsay
+INFO:    Current URL: https://www.muséed'orsay.com
+INFO:    Type: museum, City: Paris
+INFO:    🔧 Known correction: https://www.musee-orsay.fr
+INFO: 
+[124/201] Musée d'Orsay
+INFO:    Current URL: https://www.muséed'orsay.com
+INFO:    Type: museum, City: Paris
+INFO:    🔧 Known correction: https://www.musee-orsay.fr
+INFO: 
+[125/201] Musée du Louvre
+INFO:    Current URL: https://www.muséedulouvre.com
+INFO:    Type: museum, City: Paris
+INFO:    🔧 Known correction: https://www.louvre.fr
+INFO: 
+[126/201] Notre-Dame Cathedral
+INFO:    Current URL: https://www.notre-damecathedral.com
+INFO:    Type: religious_site, City: Paris
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 372
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.notredamedeparis.fr/
+INFO: 
+[127/201] Seine River
+INFO:    Current URL: https://www.seineriver.com
+INFO:    Type: waterfront, City: Paris
+INFO:    ✅ Valid: Valid
+INFO: 
+[128/201] Ginza District
+INFO:    Current URL: https://www.ginzadistrict.com
+INFO:    Type: shopping, City: Tokyo
+INFO:    ✅ Valid: Valid
+INFO: 
+[129/201] Meiji Shrine
+INFO:    Current URL: https://www.meijishrine.com
+INFO:    Type: religious_site, City: Tokyo
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 364
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.meijijingu.or.jp/en/
+INFO: 
+[130/201] Senso-ji Temple
+INFO:    Current URL: https://www.senso-jitemple.com
+INFO:    Type: religious_site, City: Tokyo
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 367
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.senso-ji.jp/
+INFO: 
+[131/201] Tokyo National Museum
+INFO:    Current URL: https://www.tokyonationalmuseum.com
+INFO:    Type: museum, City: Tokyo
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 365
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.tnm.jp/?lang=en
+INFO: 
+[132/201] Tokyo Tower
+INFO:    Current URL: https://www.tokyotower.com
+INFO:    Type: observation, City: Tokyo
+INFO:    ✅ Valid: Valid
+INFO: 
+[133/201] Art Gallery of New South Wales
+INFO:    Current URL: https://www.artgalleryofnewsouthwales.com
+INFO:    Type: museum, City: Sydney
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 375
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.artgallery.nsw.gov.au/
+INFO: 
+[134/201] Australian Museum
+INFO:    Current URL: https://www.australianmuseum.com
+INFO:    Type: museum, City: Sydney
+INFO:    ❌ Invalid: URL Error: <urlopen error timed out>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 362
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://australian.museum/
+INFO: 
+[135/201] Sydney Harbour Bridge
+INFO:    Current URL: https://www.sydneyharbourbridge.com
+INFO:    Type: landmark, City: Sydney
+INFO:    ✅ Valid: Redirects to https://sydneyharbourbridge.com/
+INFO:    📍 Redirects to: https://sydneyharbourbridge.com/
+INFO: 
+[136/201] Sydney Opera House
+INFO:    Current URL: https://www.sydneyoperahouse.com
+INFO:    Type: arts_center, City: Sydney
+INFO:    ✅ Valid: Valid
+INFO: 
+[137/201] The Rocks
+INFO:    Current URL: https://www.therocks.com
+INFO:    Type: historic_site, City: Sydney
+INFO:    ✅ Valid: Valid
+INFO: 
+[138/201] McCord Museum
+INFO:    Current URL: https://www.mccordmuseum.com
+INFO:    Type: museum, City: Montreal
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 360
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.mccord.mcgill.ca/
+INFO: 
+[139/201] Montreal Museum of Fine Arts
+INFO:    Current URL: https://www.montrealmuseumoffinearts.com
+INFO:    Type: museum, City: Montreal
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 375
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.mbam.qc.ca/en/
+INFO: 
+[140/201] Mount Royal Park
+INFO:    Current URL: https://www.mountroyalpark.com
+INFO:    Type: park, City: Montreal
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 361
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://ville.montreal.qc.ca/parc-du-mont-royal
+INFO: 
+[141/201] Notre-Dame Basilica
+INFO:    Current URL: https://www.notre-damebasilica.com
+INFO:    Type: religious_site, City: Montreal
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 374
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.basiliquenotredame.ca/
+INFO: 
+[142/201] Old Montreal
+INFO:    Current URL: https://www.oldmontreal.com
+INFO:    Type: historic_site, City: Montreal
+INFO:    ✅ Valid: Redirects to https://oldmontreal.com/
+INFO:    📍 Redirects to: https://oldmontreal.com/
+INFO: 
+[143/201] Art Gallery of Ontario
+INFO:    Current URL: https://www.artgalleryofontario.com
+INFO:    Type: museum, City: Toronto
+INFO:    ✅ Valid: Valid (SSL cert issue, redirects to http://www.artgalleryofontario.com/)
+INFO:    📍 Redirects to: http://www.artgalleryofontario.com/
+INFO: 
+[144/201] CN Tower
+INFO:    Current URL: https://www.cntower.com
+INFO:    Type: observation, City: Toronto
+INFO:    ❌ Invalid: URL Error: <urlopen error [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 359
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.cntower.ca
+INFO: 
+[145/201] Casa Loma
+INFO:    Current URL: https://www.casaloma.com
+INFO:    Type: historic_site, City: Toronto
+INFO:    ✅ Valid: Redirects to https://casalomalakeshore.ca/
+INFO:    📍 Redirects to: https://casalomalakeshore.ca/
+INFO: 
+[146/201] Distillery District
+INFO:    Current URL: https://www.distillerydistrict.com
+INFO:    Type: historic_site, City: Toronto
+INFO:    ✅ Valid: Valid (SSL cert issue, redirects to https://venture.com/domains/distillerydistrict.com)
+INFO:    📍 Redirects to: https://venture.com/domains/distillerydistrict.com
+INFO: 
+[147/201] Royal Ontario Museum
+INFO:    Current URL: https://www.royalontariomuseum.com
+INFO:    Type: museum, City: Toronto
+INFO:    ✅ Valid: Valid (SSL cert issue, redirects to https://www.rom.on.ca/)
+INFO:    📍 Redirects to: https://www.rom.on.ca/
+INFO: 
+[148/201] Capilano Suspension Bridge
+INFO:    Current URL: https://www.capilanosuspensionbridge.com
+INFO:    Type: landmark, City: Vancouver
+INFO:    ❌ Invalid: URL Error: <urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 376
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://www.capbridge.com
+INFO: 
+[149/201] Granville Island
+INFO:    Current URL: https://www.granvilleisland.com
+INFO:    Type: market, City: Vancouver
+INFO:    ✅ Valid: Redirects to https://granvilleisland.com/
+INFO:    📍 Redirects to: https://granvilleisland.com/
+INFO: 
+[150/201] Museum of Anthropology
+INFO:    Current URL: https://www.museumofanthropology.com
+INFO:    Type: museum, City: Vancouver
+INFO:    ✅ Valid: Valid (SSL cert issue, redirects to https://museumofanthropology.com/)
+INFO:    📍 Redirects to: https://museumofanthropology.com/
+INFO: 
+[151/201] Stanley Park
+INFO:    Current URL: https://www.stanleypark.com
+INFO:    Type: park, City: Vancouver
+INFO:    ✅ Valid: Valid
+INFO: 
+[152/201] Vancouver Art Gallery
+INFO:    Current URL: https://www.vancouverartgallery.com
+INFO:    Type: museum, City: Vancouver
+INFO:    ✅ Valid: Valid
+INFO: 
+[153/201] Azadi Tower
+INFO:    Current URL: https://www.azaditower.com
+INFO:    Type: monument, City: Tehran
+INFO:    ✅ Valid: Redirects to https://www.hugedomains.com/domain_profile.cfm?d=azaditower.com
+INFO:    📍 Redirects to: https://www.hugedomains.com/domain_profile.cfm?d=azaditower.com
+INFO: 
+[154/201] Golestan Palace
+INFO:    Current URL: https://www.golestanpalace.com
+INFO:    Type: historic_site, City: Tehran
+INFO:    ✅ Valid: Valid
+INFO: 
+[155/201] Grand Bazaar
+INFO:    Current URL: https://www.grandbazaar.com
+INFO:    Type: market, City: Tehran
+INFO:    ✅ Valid: Valid
+INFO: 
+[156/201] National Museum of Iran
+INFO:    Current URL: https://www.nationalmuseumofiran.com
+INFO:    Type: museum, City: Tehran
+INFO:    ❌ Invalid: URL Error: <urlopen error timed out>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 368
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.museumiran.ir/
+INFO: 
+[157/201] Tehran Museum of Contemporary Art
+INFO:    Current URL: https://www.tehranmuseumofcontemporaryart.com
+INFO:    Type: museum, City: Tehran
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 378
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://tmoca.com/
+INFO: 
+[158/201] Baltimore Museum of Art
+INFO:    Current URL: https://artbma.org
+INFO:    Type: museum, City: Baltimore
+INFO:    ✅ Valid: Valid
+INFO: 
+[159/201] Fort McHenry National Monument
+INFO:    Current URL: https://www.nps.gov/fomc/index.htm
+INFO:    Type: historic_site, City: Baltimore
+INFO:    ✅ Valid: Valid
+INFO: 
+[160/201] Inner Harbor
+INFO:    Current URL: https://www.baltimore.org/neighborhoods/inner-harbor/
+INFO:    Type: waterfront, City: Baltimore
+INFO:    ✅ Valid: Redirects to https://baltimore.org/what-to-do/museums-attractions/a-tour-of-baltimores-inner-harbor/
+INFO:    📍 Redirects to: https://baltimore.org/what-to-do/museums-attractions/a-tour-of-baltimores-inner-harbor/
+INFO: 
+[161/201] National Aquarium
+INFO:    Current URL: https://aqua.org
+INFO:    Type: aquarium, City: Baltimore
+INFO:    ✅ Valid: Valid
+INFO: 
+[162/201] Walters Art Museum
+INFO:    Current URL: https://thewalters.org
+INFO:    Type: museum, City: Baltimore
+INFO:    ✅ Valid: Valid
+INFO: 
+[163/201] Franklin Institute
+INFO:    Current URL: https://fi.edu
+INFO:    Type: museum, City: Philadelphia
+INFO:    ✅ Valid: Redirects to https://fi.edu/en
+INFO:    📍 Redirects to: https://fi.edu/en
+INFO: 
+[164/201] Independence Hall
+INFO:    Current URL: https://www.independencehall.com
+INFO:    Type: historic_site, City: Philadelphia
+INFO:    ✅ Valid: Valid
+INFO: 
+[165/201] Liberty Bell Center
+INFO:    Current URL: https://www.nps.gov/inde/planyourvisit/libertybellcenter.htm
+INFO:    Type: historic_site, City: Philadelphia
+INFO:    ✅ Valid: Valid
+INFO: 
+[166/201] Philadelphia Museum of Art
+INFO:    Current URL: https://www.visitpham.org
+INFO:    Type: museum, City: Philadelphia
+INFO:    ✅ Valid: Valid
+INFO: 
+[167/201] Reading Terminal Market
+INFO:    Current URL: https://www.readingterminalmarket.com
+INFO:    Type: market, City: Philadelphia
+INFO:    ❌ Invalid: HTTP 410
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 374
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ✅ Found valid URL: https://readingterminalmarket.org
+INFO: 
+[168/201] Morven Museum & Garden
+INFO:    Current URL: https://morven.org
+INFO:    Type: historic_site, City: Princeton
+INFO:    ✅ Valid: Redirects to https://www.morven.org/
+INFO:    📍 Redirects to: https://www.morven.org/
+INFO: 
+[169/201] Nassau Hall
+INFO:    Current URL: https://www.princeton.edu/visit
+INFO:    Type: historic_site, City: Princeton
+INFO:    ❌ Invalid: URL Error: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] ce
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 366
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.princeton.edu/nassauhall/
+INFO: 
+[170/201] Palmer Square
+INFO:    Current URL: https://www.palmersquare.com
+INFO:    Type: shopping, City: Princeton
+INFO:    ✅ Valid: Redirects to https://palmersquare.com/
+INFO:    📍 Redirects to: https://palmersquare.com/
+INFO: 
+[171/201] Princeton Battlefield State Park
+INFO:    Current URL: https://www.nj.gov/dep/parksandforests/parks/princeton.html
+INFO:    Type: historic_site, City: Princeton
+INFO:    ✅ Valid: Valid
+INFO: 
+[172/201] Princeton Cemetery
+INFO:    Current URL: https://www.princetoncemetery.org
+INFO:    Type: historic_site, City: Princeton
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 61] Connection refused>
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 373
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.princetoncemetery.org/
+INFO: 
+[173/201] Princeton Public Library
+INFO:    Current URL: https://www.princetonlibrary.org
+INFO:    Type: arts_center, City: Princeton
+INFO:    ✅ Valid: Redirects to https://princetonlibrary.org/
+INFO:    📍 Redirects to: https://princetonlibrary.org/
+INFO: 
+[174/201] Princeton University Art Museum
+INFO:    Current URL: https://artmuseum.princeton.edu
+INFO:    Type: museum, City: Princeton
+INFO:    ✅ Valid: Valid
+INFO: 
+[175/201] Princeton University Chapel
+INFO:    Current URL: https://chapel.princeton.edu
+INFO:    Type: historic_site, City: Princeton
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[176/201] Princeton University Store
+INFO:    Current URL: https://store.princeton.edu
+INFO:    Type: shopping, City: Princeton
+INFO:    ❌ Invalid: URL Error: <urlopen error [Errno 8] nodename nor servname pro
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 376
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.princeton.edu/princetonuniversitystore/
+INFO: 
+[177/201] AFI Silver Theatre and Cultural Center
+INFO:    Current URL: https://www.afi.com/silver
+INFO:    Type: cinema, City: Silver Spring
+INFO:    ✅ Valid: Redirects to https://silver.afi.com/
+INFO:    📍 Redirects to: https://silver.afi.com/
+INFO: 
+[178/201] Webster's Bookstore Cafe
+INFO:    Current URL: https://www.webstersbooksandcafe.com/
+INFO:    Type: cafe, City: State College
+INFO:    ✅ Valid: Valid
+INFO: 
+[179/201] Rosa's Lounge
+INFO:    Current URL: https://www.rosaslounge.com
+INFO:    Type: music_venue, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[180/201] House of Blues
+INFO:    Current URL: https://www.houseofblues.com/chicago
+INFO:    Type: music_venue, City: Chicago
+INFO:    ✅ Valid: Redirects to https://chicago.houseofblues.com/
+INFO:    📍 Redirects to: https://chicago.houseofblues.com/
+INFO: 
+[181/201] Subterranean
+INFO:    Current URL: https://www.subt.net
+INFO:    Type: music_venue, City: Chicago
+INFO:    ✅ Valid: Redirects to https://subt.net/
+INFO:    📍 Redirects to: https://subt.net/
+INFO: 
+[182/201] Laugh Factory
+INFO:    Current URL: https://www.laughfactory.com/clubs/chicago
+INFO:    Type: comedy_club, City: Chicago
+INFO:    ❌ Invalid: HTTP 404
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 364
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.laughfactory.com/clubs/chicago
+INFO: 
+[183/201] The Comedy Bar
+INFO:    Current URL: https://comedybar.com/chicago/
+INFO:    Type: comedy_club, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[184/201] Gallery Cabaret
+INFO:    Current URL: https://www.gallerycabaret.com
+INFO:    Type: music_venue, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[185/201] Second City
+INFO:    Current URL: https://www.secondcity.com
+INFO:    Type: theater, City: Chicago
+INFO:    ✅ Valid: Valid
+INFO: 
+[186/201] Museum of Contemporary Art Chicago
+INFO:    Current URL: https://www.mcachicago.org
+INFO:    Type: museum, City: Chicago
+INFO:    ✅ Valid: Redirects to https://mcachicago.org/
+INFO:    📍 Redirects to: https://mcachicago.org/
+INFO: 
+[187/201] Museum of Illusions Chicago
+INFO:    Current URL: https://www.moichicago.com
+INFO:    Type: museum, City: Chicago
+INFO:    ✅ Valid: Redirects to http://moichicago.com/
+INFO:    📍 Redirects to: http://moichicago.com/
+INFO: 
+[188/201] Ukrainian Institute of Modern Art
+INFO:    Current URL: https://www.uima-chicago.org
+INFO:    Type: museum, City: Chicago
+INFO:    ✅ Valid: Redirects to https://uima-chicago.org/
+INFO:    📍 Redirects to: https://uima-chicago.org/
+INFO: 
+[189/201] Irvine Barclay Theatre
+INFO:    Current URL: https://www.thebarclay.org
+INFO:    Type: theater, City: Irvine
+INFO:    ✅ Valid: Redirects to https://www.thebarclay.org/Online/default.asp
+INFO:    📍 Redirects to: https://www.thebarclay.org/Online/default.asp
+INFO: 
+[190/201] Orange County Great Park
+INFO:    Current URL: https://www.ocgp.org
+INFO:    Type: park, City: Irvine
+INFO:    ✅ Valid: Redirects to https://suzyeatondesigns.com/
+INFO:    📍 Redirects to: https://suzyeatondesigns.com/
+INFO: 
+[191/201] Irvine Museum of Art
+INFO:    Current URL: https://www.irvinemuseum.org
+INFO:    Type: museum, City: Irvine
+INFO:    ✅ Valid: Valid
+INFO: 
+[192/201] Pretend City Children's Museum
+INFO:    Current URL: https://www.pretendcity.org
+INFO:    Type: museum, City: Irvine
+INFO:    ✅ Valid: Valid
+INFO: 
+[193/201] Irvine Spectrum Center
+INFO:    Current URL: https://www.shopirvinespectrumcenter.com
+INFO:    Type: shopping_center, City: Irvine
+INFO:    ✅ Valid: Redirects to https://www.irvinespectrumcenter.com/?utm_medium=vanityurl&utm_source=SHOPIRVINESPECTRUMCENTER.COM
+INFO:    📍 Redirects to: https://www.irvinespectrumcenter.com/?utm_medium=vanityurl&utm_source=SHOPIRVINESPECTRUMCENTER.COM
+INFO: 
+[194/201] Bren Events Center
+INFO:    Current URL: https://www.bren.uci.edu
+INFO:    Type: sports_venue, City: Irvine
+INFO:    ✅ Valid: Redirects to https://ucirvinesports.com/sports/bren-events-center
+INFO:    📍 Redirects to: https://ucirvinesports.com/sports/bren-events-center
+INFO: 
+[195/201] Irvine Fine Arts Center
+INFO:    Current URL: https://www.cityofirvine.org/irvine-fine-arts-center
+INFO:    Type: arts_center, City: Irvine
+INFO:    ✅ Valid: Redirects to https://cityofirvine.org/arts-irvine
+INFO:    📍 Redirects to: https://cityofirvine.org/arts-irvine
+INFO: 
+[196/201] William R. Mason Regional Park
+INFO:    Current URL: https://www.ocparks.com/parks/william-r-mason
+INFO:    Type: park, City: Irvine
+INFO:    ❌ Invalid: HTTP 404
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 373
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://www.ocparks.com/parks/wmason
+INFO: 
+[197/201] Orange County Museum of Art (OCMA)
+INFO:    Current URL: https://ocma.art
+INFO:    Type: museum, City: Irvine
+INFO:    ❌ Invalid: HTTP 406
+INFO:    🔍 Searching for correct URL...
+INFO: Starting LLM query with fallback. Prompt length: 379
+WARNING: google failed: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO: Success with groq (llama-3.3-70b-versatile)
+INFO:    ⚠️  Found URL but it's also invalid: https://ocmaexpand.org/
+INFO: 
+[198/201] Smithsonian American Art Museum
+INFO:    Current URL: https://americanart.si.edu
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[199/201] Renwick Gallery
+INFO:    Current URL: https://americanart.si.edu/visit/renwick
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: Valid
+INFO: 
+[200/201] Smithsonian National Museum of African Art
+INFO:    Current URL: https://www.si.edu/museums/african-art-museum
+INFO:    Type: museum, City: Washington
+INFO:    ✅ Valid: HTTP 403 (bot protection, but URL likely valid)
+INFO: 
+[201/201] Photoworks at Glen Echo Park
+INFO:    Current URL: 
+INFO:    Type: gallery, City: Washington
+INFO:    ⚠️  No URL - skipping
+INFO: 
+================================================================================
+INFO: 📊 VALIDATION SUMMARY
+INFO: ================================================================================
+INFO: Total venues: 201
+INFO: ✅ Valid: 109
+INFO: ❌ Invalid: 34
+INFO: 🔧 Fixed: 75
+INFO: ⚠️  Failed to fix: 15
+INFO: ⏭️  Skipped (no URL): 2
+INFO: 
+📄 Detailed results saved to: /Users/oz/Dropbox/2025/planner/venue_url_validation_results.json
+INFO: 
+🔄 Updating venues.json...
+INFO: ✅ venues.json updated
+⚠️  requests not found, trying to use app's session...
+⚠️  Warning: Google OAuth libraries not found. Admin authentication will be disabled.
+⚠️  Warning: python-dotenv not found. Environment variables may not be loaded.
+   Run: source venv/bin/activate
+✅ Successfully loaded dotenv from virtual environment
+✅ Environment loaded from /Users/oz/Dropbox/2025/planner/.env
+✅ Schema migration: Schema is already up to date
+✅ Generic CRUD endpoints registered successfully
+🔄 Updating venues.json from database...
+📊 Found 201 venues in database
+  Added: Arena Stage (ID: 1) - Washington
+  Added: Capitol Building (ID: 2) - Washington
+  Added: Capitol Hill (ID: 3) - Washington
+  Added: Capitol Hill Arts Workshop (ID: 4) - Washington
+  Added: Dupont Circle (ID: 5) - Washington
+  Added: Ford's Theatre (ID: 6) - Washington
+  Added: Franklin Delano Roosevelt Memorial (ID: 7) - Washington
+  Added: Georgetown (ID: 8) - Washington
+  Added: International Spy Museum (ID: 9) - Washington
+  Added: Jefferson Memorial (ID: 10) - Washington
+  Added: Kennedy Center (ID: 11) - Washington
+  Added: Korean War Veterans Memorial (ID: 12) - Washington
+  Added: Library of Congress (ID: 13) - Washington
+  Added: Lincoln Memorial (ID: 14) - Washington
+  Added: Martin Luther King Jr. Memorial (ID: 15) - Washington
+  Added: National Air and Space Museum (ID: 16) - Washington
+  Added: National Gallery of Art (ID: 17) - Washington
+  Added: National Mall (ID: 18) - Washington
+  Added: National Portrait Gallery (ID: 19) - Washington
+  Added: National Zoo (ID: 20) - Washington
+  Added: Newseum (ID: 21) - Washington
+  Added: Rock Creek Park (ID: 22) - Washington
+  Added: Smithsonian National Museum of Asian Art (ID: 23) - Washington
+  Added: Smithsonian Hirshhorn Museum and Sculpture Garden (ID: 25) - Washington
+  Added: Smithsonian National Air and Space Museum (ID: 26) - Washington
+  Added: Smithsonian National Museum of African American History and Culture (ID: 27) - Washington
+  Added: Smithsonian National Museum of American History (ID: 28) - Washington
+  Added: Smithsonian National Museum of Natural History (ID: 29) - Washington
+  Added: Smithsonian National Museum of the American Indian (ID: 30) - Washington
+  Added: Supreme Court (ID: 31) - Washington
+  Added: The Phillips Collection (ID: 32) - Washington
+  Added: Tidal Basin (ID: 33) - Washington
+  Added: United States Holocaust Memorial Museum (ID: 34) - Washington
+  Added: Vietnam Veterans Memorial (ID: 35) - Washington
+  Added: Washington Monument (ID: 36) - Washington
+  Added: White House (ID: 37) - Washington
+  Added: World War II Memorial (ID: 38) - Washington
+  Added: United States Botanic Garden (ID: 39) - Washington
+  Added: 9:30 Club (ID: 40) - Washington
+  Added: Embassy of the United Kingdom (ID: 41) - Washington
+  Added: Embassy of France (ID: 42) - Washington
+  Added: Embassy of Germany (ID: 43) - Washington
+  Added: Embassy of Italy (ID: 44) - Washington
+  Added: Embassy of Japan (ID: 45) - Washington
+  Added: Embassy of Canada (ID: 46) - Washington
+  Added: Embassy of Spain (ID: 47) - Washington
+  Added: Embassy of the Netherlands (ID: 48) - Washington
+  Added: Embassy of Australia (ID: 49) - Washington
+  Added: Embassy of Brazil (ID: 50) - Washington
+  Added: Embassy of India (ID: 51) - Washington
+  Added: Embassy of Mexico (ID: 52) - Washington
+  Added: Embassy of South Korea (ID: 53) - Washington
+  Added: Embassy of Sweden (ID: 54) - Washington
+  Added: Embassy of Switzerland (ID: 55) - Washington
+  Added: Suns Cinema (ID: 56) - Washington
+  Added: Busboys and Poets (ID: 57) - Washington
+  Added: The Kennedy Center Roof Terrace Restaurant (ID: 58) - Washington
+  Added: Kramerbooks & Afterwords Cafe (ID: 59) - Washington
+  Added: The Hamilton (ID: 60) - Washington
+  Added: Songbyrd Music House & Record Cafe (ID: 61) - Washington
+  Added: Founding Farmers (ID: 62) - Washington
+  Added: Politics and Prose Bookstore (ID: 63) - Washington
+  Added: East City Bookshop (ID: 64) - Washington
+  Added: The Bookstore in Glover Park (ID: 65) - Washington
+  Added: Solid State Books (ID: 66) - Washington
+  Added: Bridge Street Books (ID: 67) - Washington
+  Added: Sankofa Video Books & Café (ID: 68) - Washington
+  Added: American Museum of Natural History (ID: 69) - New York
+  Added: American Museum of Natural History (ID: 70) - New York
+  Added: Brooklyn Bridge (ID: 71) - New York
+  Added: Central Park (ID: 72) - New York
+  Added: Empire State Building (ID: 73) - New York
+  Added: Metropolitan Museum of Art (ID: 74) - New York
+  Added: Metropolitan Museum of Art (ID: 75) - New York
+  Added: Museum of Modern Art (MoMA) (ID: 76) - New York
+  Added: Statue of Liberty (ID: 77) - New York
+  Added: Times Square (ID: 78) - New York
+  Added: Getty Center (ID: 79) - Los Angeles
+  Added: Griffith Observatory (ID: 80) - Los Angeles
+  Added: Hollywood Walk of Fame (ID: 81) - Los Angeles
+  Added: Los Angeles County Museum of Art (LACMA) (ID: 82) - Los Angeles
+  Added: Santa Monica Pier (ID: 83) - Los Angeles
+  Added: Alcatraz Island (ID: 84) - San Francisco
+  Added: Golden Gate Bridge (ID: 85) - San Francisco
+  Added: Palace of Fine Arts (ID: 86) - San Francisco
+  Added: San Francisco Museum of Modern Art (SFMOMA) (ID: 87) - San Francisco
+  Added: de Young Museum (ID: 88) - San Francisco
+  Added: Art Institute of Chicago (ID: 89) - Chicago
+  Added: Field Museum (ID: 90) - Chicago
+  Added: Millennium Park (ID: 91) - Chicago
+  Added: Shedd Aquarium (ID: 92) - Chicago
+  Added: Willis Tower Skydeck (ID: 93) - Chicago
+  Added: Boston Common (ID: 94) - Boston
+  Added: Fenway Park (ID: 95) - Boston
+  Added: Freedom Trail (ID: 96) - Boston
+  Added: Isabella Stewart Gardner Museum (ID: 97) - Boston
+  Added: Museum of Fine Arts Boston (ID: 98) - Boston
+  Added: Chihuly Garden and Glass (ID: 99) - Seattle
+  Added: Museum of Pop Culture (MoPOP) (ID: 100) - Seattle
+  Added: Pike Place Market (ID: 101) - Seattle
+  Added: Seattle Art Museum (ID: 102) - Seattle
+  Added: Space Needle (ID: 103) - Seattle
+  Added: Frost Science Museum (ID: 104) - Miami
+  Added: Pérez Art Museum Miami (PAMM) (ID: 105) - Miami
+  Added: South Beach (ID: 106) - Miami
+  Added: Vizcaya Museum and Gardens (ID: 107) - Miami
+  Added: Wynwood Walls (ID: 108) - Miami
+  Added: British Museum (ID: 109) - London
+  Added: National Gallery (ID: 110) - London
+  Added: Natural History Museum (ID: 111) - London
+  Added: Royal Academy of Arts (ID: 112) - London
+  Added: Science Museum (ID: 113) - London
+  Added: Tate Britain (ID: 114) - London
+  Added: Tate Modern (ID: 115) - London
+  Added: Tower of London (ID: 116) - London
+  Added: Victoria and Albert Museum (ID: 117) - London
+  Added: Westminster Abbey (ID: 118) - London
+  Added: Arc de Triomphe (ID: 119) - Paris
+  Added: Champs-Élysées (ID: 120) - Paris
+  Added: Eiffel Tower (ID: 121) - Paris
+  Added: Louvre Museum (ID: 122) - Paris
+  Added: Montmartre (ID: 123) - Paris
+  Added: Musée d'Orsay (ID: 124) - Paris
+  Added: Musée d'Orsay (ID: 125) - Paris
+  Added: Musée du Louvre (ID: 126) - Paris
+  Added: Notre-Dame Cathedral (ID: 127) - Paris
+  Added: Seine River (ID: 128) - Paris
+  Added: Ginza District (ID: 129) - Tokyo
+  Added: Meiji Shrine (ID: 130) - Tokyo
+  Added: Senso-ji Temple (ID: 131) - Tokyo
+  Added: Tokyo National Museum (ID: 132) - Tokyo
+  Added: Tokyo Tower (ID: 133) - Tokyo
+  Added: Art Gallery of New South Wales (ID: 134) - Sydney
+  Added: Australian Museum (ID: 135) - Sydney
+  Added: Sydney Harbour Bridge (ID: 136) - Sydney
+  Added: Sydney Opera House (ID: 137) - Sydney
+  Added: The Rocks (ID: 138) - Sydney
+  Added: McCord Museum (ID: 139) - Montreal
+  Added: Montreal Museum of Fine Arts (ID: 140) - Montreal
+  Added: Mount Royal Park (ID: 141) - Montreal
+  Added: Notre-Dame Basilica (ID: 142) - Montreal
+  Added: Old Montreal (ID: 143) - Montreal
+  Added: Art Gallery of Ontario (ID: 144) - Toronto
+  Added: CN Tower (ID: 145) - Toronto
+  Added: Casa Loma (ID: 146) - Toronto
+  Added: Distillery District (ID: 147) - Toronto
+  Added: Royal Ontario Museum (ID: 148) - Toronto
+  Added: Capilano Suspension Bridge (ID: 149) - Vancouver
+  Added: Granville Island (ID: 150) - Vancouver
+  Added: Museum of Anthropology (ID: 151) - Vancouver
+  Added: Stanley Park (ID: 152) - Vancouver
+  Added: Vancouver Art Gallery (ID: 153) - Vancouver
+  Added: Azadi Tower (ID: 154) - Tehran
+  Added: Golestan Palace (ID: 155) - Tehran
+  Added: Grand Bazaar (ID: 156) - Tehran
+  Added: National Museum of Iran (ID: 157) - Tehran
+  Added: Tehran Museum of Contemporary Art (ID: 158) - Tehran
+  Added: Baltimore Museum of Art (ID: 159) - Baltimore
+  Added: Fort McHenry National Monument (ID: 160) - Baltimore
+  Added: Inner Harbor (ID: 161) - Baltimore
+  Added: National Aquarium (ID: 162) - Baltimore
+  Added: Walters Art Museum (ID: 163) - Baltimore
+  Added: Franklin Institute (ID: 164) - Philadelphia
+  Added: Independence Hall (ID: 165) - Philadelphia
+  Added: Liberty Bell Center (ID: 166) - Philadelphia
+  Added: Philadelphia Museum of Art (ID: 167) - Philadelphia
+  Added: Reading Terminal Market (ID: 168) - Philadelphia
+  Added: Morven Museum & Garden (ID: 169) - Princeton
+  Added: Nassau Hall (ID: 170) - Princeton
+  Added: Palmer Square (ID: 171) - Princeton
+  Added: Princeton Battlefield State Park (ID: 172) - Princeton
+  Added: Princeton Cemetery (ID: 173) - Princeton
+  Added: Princeton Public Library (ID: 174) - Princeton
+  Added: Princeton University Art Museum (ID: 175) - Princeton
+  Added: Princeton University Chapel (ID: 176) - Princeton
+  Added: Princeton University Store (ID: 177) - Princeton
+  Added: AFI Silver Theatre and Cultural Center (ID: 178) - Silver Spring
+  Added: Webster's Bookstore Cafe (ID: 179) - State College
+  Added: Rosa's Lounge (ID: 180) - Chicago
+  Added: House of Blues (ID: 181) - Chicago
+  Added: Subterranean (ID: 182) - Chicago
+  Added: Laugh Factory (ID: 183) - Chicago
+  Added: The Comedy Bar (ID: 184) - Chicago
+  Added: Gallery Cabaret (ID: 185) - Chicago
+  Added: Second City (ID: 186) - Chicago
+  Added: Museum of Contemporary Art Chicago (ID: 187) - Chicago
+  Added: Museum of Illusions Chicago (ID: 188) - Chicago
+  Added: Ukrainian Institute of Modern Art (ID: 189) - Chicago
+  Added: Irvine Barclay Theatre (ID: 190) - Irvine
+  Added: Orange County Great Park (ID: 191) - Irvine
+  Added: Irvine Museum of Art (ID: 192) - Irvine
+  Added: Pretend City Children's Museum (ID: 193) - Irvine
+  Added: Irvine Spectrum Center (ID: 194) - Irvine
+  Added: Bren Events Center (ID: 195) - Irvine
+  Added: Irvine Fine Arts Center (ID: 196) - Irvine
+  Added: William R. Mason Regional Park (ID: 197) - Irvine
+  Added: Orange County Museum of Art (OCMA) (ID: 198) - Irvine
+  Added: Smithsonian American Art Museum (ID: 199) - Washington
+  Added: Renwick Gallery (ID: 200) - Washington
+  Added: Smithsonian National Museum of African Art (ID: 201) - Washington
+  Added: Photoworks at Glen Echo Park (ID: 202) - Washington
+📦 Created backup: data/backups/venues.json.backup.20251207_170601
+✅ Successfully updated venues.json with 201 venues
+
+📊 Venue Statistics:
+  Total Venues: 201
+  Venue Types: 32
+  Cities: 22
+
+🏛️ Top Venue Types:
+    museum: 70
+    historic_site: 20
+    embassy: 15
+    park: 10
+    landmark: 10
+
+🏙️ Top Cities:
+    Washington: 71
+    Chicago: 15
+    New York: 10
+    London: 10
+    Paris: 10

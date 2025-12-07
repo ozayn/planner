@@ -1,0 +1,891 @@
+{
+  "test_date": "2025-12-07T00:37:31.886779",
+  "total_museums": 15,
+  "successful": 5,
+  "failed": 10,
+  "results": [
+    {
+      "museum": "Metropolitan Museum of Art",
+      "city": "New York",
+      "url": "https://www.metmuseum.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Museum of Modern Art (MoMA)",
+      "city": "New York",
+      "url": "https://www.moma.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "American Museum of Natural History",
+      "city": "New York",
+      "url": "https://www.amnh.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Getty Center",
+      "city": "Los Angeles",
+      "url": "https://www.getty.edu",
+      "success": true,
+      "events_found": 1,
+      "exhibitions_found": 1,
+      "events": [
+        {
+          "title": "Future Exhibitions",
+          "description": "Current and future exhibitions on view at the Getty Center in Los Angeles and the Getty Villa in Pacific Palisades.",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Getty Center",
+          "url": "https://www.getty.edu/exhibitions/?tab=future",
+          "image_url": null,
+          "event_type": "exhibition"
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "Many events missing dates"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": [],
+      "quality_metrics": {
+        "with_dates": 0,
+        "with_times": 0,
+        "with_descriptions": 1,
+        "with_urls": 1
+      }
+    },
+    {
+      "museum": "Los Angeles County Museum of Art (LACMA)",
+      "city": "Los Angeles",
+      "url": "https://www.lacma.org",
+      "success": true,
+      "events_found": 20,
+      "exhibitions_found": 20,
+      "events": [
+        {
+          "title": "Sunday, December 7",
+          "description": "Get ready for a free, fun-filled day for NexGenLA members and their families and celebrate iconic artworks from LACMA's permanent collection on view in theModern Art Galleries...",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Sunday, December 7",
+          "url": "https://www.lacma.org/event",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ZodiacHeads_header_FY26_0.png?itok=S4nzl0XH",
+          "event_type": "event"
+        },
+        {
+          "title": "Special Events|RSVPNex GenLA Celebration: Family Fun with Kahlo, Lichtenstein, P...Get ready for a free, fun-filled day for Nex GenLA members and their families and celebrate iconic artworks from LACMA's permanent collection on view in the Modern Art Galleries...Sun Dec 7|10 am PTLACMATours Gallery Tour: Large Scale Art...Sun Dec 7|11 am PTTours Gallery Tour: Realms of the Dharma Join a LACMA docent for a 60-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Sun Dec 7|12 pm PTResnick Pavilion|LACMATours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Sun Dec 7|12:30 pm PTBCAM, Level 3|LACMATours In Focus Tour: Grounded Join a LACMA docent for a 30-minute tour of Grounded...Sun Dec 7|1 pm PTTours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Sun Dec 7|1:30 pm PTBCAM, Level 3|LACMATours Gallery Tour: Deep Cuts Join a LACMA docent for a 60-minute tour of Deep Cuts: Block Printing Across Cultures...Sun Dec 7|2 pm PTResnick Pavilion",
+          "description": "Get ready for a free, fun-filled day for NexGenLA members and their families and celebrate iconic artworks from LACMA's permanent collection on view in theModern Art Galleries. Enjoy a variety of inspired activities and experiences throughout the museum including hands-on art workshops, dynamic dance sessions, story time read-alouds, face painting, and family-friendly tours. Check out our full schedule below to plan your day better. Reserve Your Tickets This event celebrates our NexGenLA community but is open to all visitors. All outdoor activities on the Smidt Welcome Plaza are free. Activities in the galleries require tickets to the museum: you may either sign up for a free NexGenLA membership at the museum, reserve NexGenLA tickets in advance, or purchase general admission tickets. NexGenLAis LACMA\u2019s free youth membership for kids and teens 17 and under who live in L.A. County. Members receive free admission anytime and can bring one guest for free. Schedule On the Smidt Welcome Plaza: 10 am\u20132 pm 11 am & 1 pm 11:30 am & 1:30 pm In BCAM, Level 1: 10:30 am & 12:30 pm *Free with museum admission. All outdoor activities are free to attend without museum admission. Free Get ready for a free, fun-filled day for NexGenLA members and their families and celebrate iconic artworks from LACMA's permanent collection on view in theModern Art Galleries. Enjoy a variety of inspired activities and experiences throughout the museum including hands-on art workshops, dynamic dance sessions, story time read-alouds, face painting, and family-friendly tours. Check out our full schedule below to plan your day better. Reserve Your Tickets This event celebrates our NexGenLA community but is open to all visitors. All outdoor activities on the Smidt Welcome Plaza are free. Activities in the galleries require tickets to the museum: you may either sign up for a free NexGenLA membership at the museum, reserve NexGenLA tickets in advance, or purchase general admission tickets. NexGenLAis LACMA\u2019s free youth membership for kids and teens 17 and under who live in L.A. County. Members receive free admission anytime and can bring one guest for free. Schedule On the Smidt Welcome Plaza: 10 am\u20132 pm 11 am & 1 pm 11:30 am & 1:30 pm In BCAM, Level 1: 10:30 am & 12:30 pm *Free with museum admission. All outdoor activities are free to attend without museum admission. Major support for NexGenLA is provided by The Smidt Foundation. Generous additional support is provided by The Eisner Foundation. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit:\u00a0Photo \u00a9 Museum Associates/LACMA, by HRDWRKR Major support for NexGenLA is provided by The Smidt Foundation. Generous additional support is provided by The Eisner Foundation. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit:\u00a0Photo \u00a9 Museum Associates/LACMA, by HRDWRKR",
+          "start_date": "2025-12-07",
+          "end_date": "2025-12-07",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Special Events|RSVPNexGenLA Celebration: Family Fun with Kahlo, Lichtenstein, P...Get ready for a free, fun-filled day for NexGenLA members and their families and celebrate iconic artworks from LACMA's permanent collection on view in theModern Art Galleries...Sun Dec 7|10 am PTLACMAToursGallery Tour: Large Scale Art...Sun Dec 7|11 am PTToursGallery Tour: Realms of the DharmaJoin a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Sun Dec 7|12 pm PTResnick Pavilion|LACMAToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Sun Dec 7|12:30 pm PTBCAM, Level 3|LACMAToursIn Focus Tour: GroundedJoin a LACMA docent for a 30-minute tour ofGrounded...Sun Dec 7|1 pm PTToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Sun Dec 7|1:30 pm PTBCAM, Level 3|LACMAToursGallery Tour: Deep CutsJoin a LACMA docent for a 60-minute tour ofDeep Cuts: Block Printing Across Cultures...Sun Dec 7|2 pm PTResnick Pavilion",
+          "url": "https://www.lacma.org/event/nexgenla-celebration-dec-7",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ZodiacHeads_header_FY26_0.png?itok=S4nzl0XH",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours Gallery Tour: Large Scale Art...Sun Dec 7|11 am PT",
+          "description": "Join a LACMA docent for a one-hour thematic tour of some of the most massive sculptures and installations around the museum's campus. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Join a LACMA docent for a one-hour thematic tour of some of the most massive sculptures and installations around the museum's campus. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Installation photograph,Ai Weiwei: Circle of Animals/Zodiac Heads,Los Angeles County Museum of Art, August 20, 2011 - February 12, 2012, \u00a9 Ai Weiwei Studio, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Installation photograph,Ai Weiwei: Circle of Animals/Zodiac Heads,Los Angeles County Museum of Art, August 20, 2011 - February 12, 2012, \u00a9 Ai Weiwei Studio, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-07",
+          "end_date": "2025-12-07",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursGallery Tour: Large Scale Art...Sun Dec 7|11 am PT",
+          "url": "https://www.lacma.org/event/gallery-tour-large-scale-art-33",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ZodiacHeads_header_FY26_0.png?itok=S4nzl0XH",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours Gallery Tour: Realms of the Dharma Join a LACMA docent for a 60-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Sun Dec 7|12 pm PTResnick Pavilion|LACMA",
+          "description": "Join a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-07",
+          "end_date": "2026-07-12",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursGallery Tour: Realms of the DharmaJoin a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Sun Dec 7|12 pm PTResnick Pavilion|LACMA",
+          "url": "https://www.lacma.org/event/gallery-tour-realms-dharma-33",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/Realms%20of%20the%20Dharma_header_FY26.png?itok=y0sDdCW3",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Sun Dec 7|12:30 pm PTBCAM, Level 3|LACMA",
+          "description": "Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen",
+          "start_date": "2025-12-07",
+          "end_date": "2021-06-13",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Sun Dec 7|12:30 pm PTBCAM, Level 3|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-modern-art-783",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ModernArtGalleries_header_FY26.png?itok=wNcobXpI",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours In Focus Tour: Grounded Join a LACMA docent for a 30-minute tour of Grounded...Sun Dec 7|1 pm PT",
+          "description": "Join a LACMA docent for a 30-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Join a LACMA docent for a 30-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler",
+          "start_date": "2025-12-07",
+          "end_date": "2025-12-07",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: GroundedJoin a LACMA docent for a 30-minute tour ofGrounded...Sun Dec 7|1 pm PT",
+          "url": "https://www.lacma.org/event/focus-tour-grounded-9",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-08/Grounded%20web.png?itok=rRuMu1UI",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Sun Dec 7|1:30 pm PTBCAM, Level 3|LACMA",
+          "description": "Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen",
+          "start_date": "2025-12-07",
+          "end_date": "2021-06-13",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Sun Dec 7|1:30 pm PTBCAM, Level 3|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-modern-art-784",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ModernArtGalleries_header_FY26.png?itok=wNcobXpI",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours Gallery Tour: Deep Cuts Join a LACMA docent for a 60-minute tour of Deep Cuts: Block Printing Across Cultures...Sun Dec 7|2 pm PTResnick Pavilion",
+          "description": "Join a LACMA docent for a 60-minute tour ofDeep Cuts: Block Printing Across Cultures. Deep Cutsexplores the world's oldest and most versatile method of making multiple images. More than 150 works from Asia, Europe, and the Americas present the medium as both a means of creative expression and a vehicle for mass production that enabled images and ideas to circulate widely. Textiles, prints, and books offer intricate patterns and striking imagery that reveal block printing\u2019s global history, from the patterned fabrics of India to the illustrated books of the Kelmscott Press to modern artistic experiments by German Expressionist artists and contemporary makers like Christiane Baumgartner. The exhibition also includes a section developed with Los Angeles\u2013based Block Shop, highlighting how contemporary makers continue to reinterpret this enduring art form. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 60-minute tour ofDeep Cuts: Block Printing Across Cultures. Deep Cutsexplores the world's oldest and most versatile method of making multiple images. More than 150 works from Asia, Europe, and the Americas present the medium as both a means of creative expression and a vehicle for mass production that enabled images and ideas to circulate widely. Textiles, prints, and books offer intricate patterns and striking imagery that reveal block printing\u2019s global history, from the patterned fabrics of India to the illustrated books of the Kelmscott Press to modern artistic experiments by German Expressionist artists and contemporary makers like Christiane Baumgartner. The exhibition also includes a section developed with Los Angeles\u2013based Block Shop, highlighting how contemporary makers continue to reinterpret this enduring art form. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Yoshida Fujio,Myga, c. 1953\u201354, Los Angeles County Museum of Art, gift of Mr. and Mrs. Felix Juda, \u00a9 Yoshida Hanga Academy, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Yoshida Fujio,Myga, c. 1953\u201354, Los Angeles County Museum of Art, gift of Mr. and Mrs. Felix Juda, \u00a9 Yoshida Hanga Academy, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-07",
+          "end_date": "2025-12-07",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursGallery Tour: Deep CutsJoin a LACMA docent for a 60-minute tour ofDeep Cuts: Block Printing Across Cultures...Sun Dec 7|2 pm PTResnick Pavilion",
+          "url": "https://www.lacma.org/event/gallery-tour-deep-cuts-3",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-08/deep%20cuts%20web.png?VersionId=vfN6DmSr0X03n.koFH1WteXwpTNzFnz_&itok=uNR6DAJl",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Mon Dec 8|12:30 pm PTBCAM, Level 3|LACMATours In Focus Tour: Deep Cuts Join a LACMA docent for a 30-minute tour of Deep Cuts: Block Printing Across Cultures...Mon Dec 8|1 pm PTResnick Pavilion Tours In Focus Tour: Realms of the Dharma Join a LACMA docent for a 30-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Mon Dec 8|1:30 pm PTResnick Pavilion|LACMATours Gallery Tour: Grounded Join a LACMA docent for a 60-minute tour of Grounded...Mon Dec 8|2 pm PT",
+          "description": "Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen",
+          "start_date": "2025-12-08",
+          "end_date": "2021-06-13",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Mon Dec 8|12:30 pm PTBCAM, Level 3|LACMAToursIn Focus Tour: Deep CutsJoin a LACMA docent for a 30-minute tour ofDeep Cuts: Block Printing Across Cultures...Mon Dec 8|1 pm PTResnick PavilionToursIn Focus Tour: Realms of the DharmaJoin a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Mon Dec 8|1:30 pm PTResnick Pavilion|LACMAToursGallery Tour: GroundedJoin a LACMA docent for a 60-minute tour ofGrounded...Mon Dec 8|2 pm PT",
+          "url": "https://www.lacma.org/event/focus-tour-modern-art-785",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ModernArtGalleries_header_FY26.png?itok=wNcobXpI",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours In Focus Tour: Deep Cuts Join a LACMA docent for a 30-minute tour of Deep Cuts: Block Printing Across Cultures...Mon Dec 8|1 pm PTResnick Pavilion",
+          "description": "Join a LACMA docent for a 30-minute tour ofDeep Cuts: Block Printing Across Cultures. Deep Cutsexplores the world's oldest and most versatile method of making multiple images. More than 150 works from Asia, Europe, and the Americas present the medium as both a means of creative expression and a vehicle for mass production that enabled images and ideas to circulate widely. Textiles, prints, and books offer intricate patterns and striking imagery that reveal block printing\u2019s global history, from the patterned fabrics of India to the illustrated books of the Kelmscott Press to modern artistic experiments by German Expressionist artists and contemporary makers like Christiane Baumgartner. The exhibition also includes a section developed with Los Angeles\u2013based Block Shop, highlighting how contemporary makers continue to reinterpret this enduring art form. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute tour ofDeep Cuts: Block Printing Across Cultures. Deep Cutsexplores the world's oldest and most versatile method of making multiple images. More than 150 works from Asia, Europe, and the Americas present the medium as both a means of creative expression and a vehicle for mass production that enabled images and ideas to circulate widely. Textiles, prints, and books offer intricate patterns and striking imagery that reveal block printing\u2019s global history, from the patterned fabrics of India to the illustrated books of the Kelmscott Press to modern artistic experiments by German Expressionist artists and contemporary makers like Christiane Baumgartner. The exhibition also includes a section developed with Los Angeles\u2013based Block Shop, highlighting how contemporary makers continue to reinterpret this enduring art form. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Yoshida Fujio,Myga, c. 1953\u201354, Los Angeles County Museum of Art, gift of Mr. and Mrs. Felix Juda, \u00a9 Yoshida Hanga Academy, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Yoshida Fujio,Myga, c. 1953\u201354, Los Angeles County Museum of Art, gift of Mr. and Mrs. Felix Juda, \u00a9 Yoshida Hanga Academy, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-08",
+          "end_date": "2025-12-08",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Deep CutsJoin a LACMA docent for a 30-minute tour ofDeep Cuts: Block Printing Across Cultures...Mon Dec 8|1 pm PTResnick Pavilion",
+          "url": "https://www.lacma.org/event/focus-tour-deep-cuts-7",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-08/deep%20cuts%20web.png?VersionId=vfN6DmSr0X03n.koFH1WteXwpTNzFnz_&itok=uNR6DAJl",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours In Focus Tour: Realms of the Dharma Join a LACMA docent for a 30-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Mon Dec 8|1:30 pm PTResnick Pavilion|LACMA",
+          "description": "Join a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-08",
+          "end_date": "2026-07-12",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Realms of the DharmaJoin a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Mon Dec 8|1:30 pm PTResnick Pavilion|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-realms-dharma-35",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/Realms%20of%20the%20Dharma_header_FY26.png?itok=y0sDdCW3",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours Gallery Tour: Grounded Join a LACMA docent for a 60-minute tour of Grounded...Mon Dec 8|2 pm PT",
+          "description": "Join a LACMA docent for a 60-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Join a LACMA docent for a 60-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler",
+          "start_date": "2025-12-08",
+          "end_date": "2025-12-08",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursGallery Tour: GroundedJoin a LACMA docent for a 60-minute tour ofGrounded...Mon Dec 8|2 pm PT",
+          "url": "https://www.lacma.org/event/gallery-tour-grounded-15",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-08/Grounded%20web.png?itok=rRuMu1UI",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours In Focus Tour: Grounded Join a LACMA docent for a 30-minute tour of Grounded...Tue Dec 9|1 pm PTTours Gallery Tour: Modern Art Join a LACMA docent for a 60-minute tour in the Modern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Tue Dec 9|2:30 pm PTBCAM, Level 3|LACMA",
+          "description": "Join a LACMA docent for a 30-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Join a LACMA docent for a 30-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler",
+          "start_date": "2025-12-09",
+          "end_date": "2025-12-09",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: GroundedJoin a LACMA docent for a 30-minute tour ofGrounded...Tue Dec 9|1 pm PTToursGallery Tour: Modern ArtJoin a LACMA docent for a 60-minute tour in theModern Art Galleries.Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details.Tue Dec 9|2:30 pm PTBCAM, Level 3|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-grounded-10",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-08/Grounded%20web.png?itok=rRuMu1UI",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours Gallery Tour: Modern Art Join a LACMA docent for a 60-minute tour in the Modern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Tue Dec 9|2:30 pm PTBCAM, Level 3|LACMA",
+          "description": "Join a LACMA docent for a 60-minute tour in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 60-minute tour in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen",
+          "start_date": "2025-12-09",
+          "end_date": null,
+          "start_time": "14:30:00",
+          "end_time": "15:30:00",
+          "start_location": "ToursGallery Tour: Modern ArtJoin a LACMA docent for a 60-minute tour in theModern Art Galleries.Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details.Tue Dec 9|2:30 pm PTBCAM, Level 3|LACMA",
+          "url": "https://www.lacma.org/event/gallery-tour-modern-art-92",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/primary_image/2021-05/Modern%20Art_LACMA.jpg?VersionId=HtHl1KrwTJX0ZA7VcdGhSktOuNGgddma&itok=3KpuZpCi",
+          "event_type": "tour"
+        },
+        {
+          "title": "Talks|RSVPX as Intersection: Transforming Tradition Hear from artists Barbara Carrasco,Marie Romero Cash, and Kathy Vargasduring a focused dialogue moderated by Rita Gonzalez, Curator...Wed Dec 10|4 pm PTOnline",
+          "description": "Hear from artistsBarbara Carrasco,Marie Romero Cash, andKathy Vargasduring a focused dialogue moderated by Rita Gonzalez, Curator and Department Head, Contemporary Art, LACMA and Sonja E. Gandert, Assistant Professor, Department of Art and Art History, University of Colorado Boulder. The panel will consider how the artists\u2014who engage with mediums that span painting, printmaking, woodcarving, and photography\u2014explore historic forms and influences through a contemporary lens. This program is presented online via Zoom. Presented in partnership withU.S. Latinx Art Forum. Free, RSVP required Hear from artistsBarbara Carrasco,Marie Romero Cash, andKathy Vargasduring a focused dialogue moderated by Rita Gonzalez, Curator and Department Head, Contemporary Art, LACMA and Sonja E. Gandert, Assistant Professor, Department of Art and Art History, University of Colorado Boulder. The panel will consider how the artists\u2014who engage with mediums that span painting, printmaking, woodcarving, and photography\u2014explore historic forms and influences through a contemporary lens. This program is presented online via Zoom. Presented in partnership withU.S. Latinx Art Forum. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Barbara Carrasco,L.A. History: A Mexican Perspective, 1981, \u00a91981, Barbara Carrasco All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Barbara Carrasco,L.A. History: A Mexican Perspective, 1981, \u00a91981, Barbara Carrasco",
+          "start_date": "2025-12-10",
+          "end_date": "2025-12-10",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Talks|RSVPX as Intersection: Transforming TraditionHear from artistsBarbara Carrasco,Marie Romero Cash, andKathy Vargasduring a focused dialogue moderated by Rita Gonzalez, Curator...Wed Dec 10|4 pm PTOnline",
+          "url": "https://www.lacma.org/event/x-intersection-transforming-tradition",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-09/XasIbtersection_Fall_header_FY26.png?itok=oLjANT7o",
+          "event_type": "talk"
+        },
+        {
+          "title": "Tours In Focus Tour: Realms of the Dharma Join a LACMA docent for a 30-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Thu Dec 11|1:30 pm PTResnick Pavilion|LACMATours Gallery Tour: Grounded Join a LACMA docent for a 60-minute tour of Grounded...Thu Dec 11|2 pm PTTours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Thu Dec 11|3:30 pm PTBCAM, Level 3|LACMA",
+          "description": "Join a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-11",
+          "end_date": "2026-07-12",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Realms of the DharmaJoin a LACMA docent for a 30-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Thu Dec 11|1:30 pm PTResnick Pavilion|LACMAToursGallery Tour: GroundedJoin a LACMA docent for a 60-minute tour ofGrounded...Thu Dec 11|2 pm PTToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Thu Dec 11|3:30 pm PTBCAM, Level 3|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-realms-dharma-36",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/Realms%20of%20the%20Dharma_header_FY26.png?itok=y0sDdCW3",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours Gallery Tour: Grounded Join a LACMA docent for a 60-minute tour of Grounded...Thu Dec 11|2 pm PT",
+          "description": "Join a LACMA docent for a 60-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Join a LACMA docent for a 60-minute tour ofGrounded. Groundedinvites visitors to see land not just as terrain, but as a foundation for exploring ecology, sovereignty, memory, and home. Featuring 35 artists based in the Americas and the Pacific, the exhibition showcases 40 works, spanning the 1970s to today, with many on view for the first time. Works include Lisa Reihana\u2019s monumental video installationIn Pursuit of Venus [infected]that reimagines colonial narratives from her perspective as a M\u0101ori artist; photographs and video by Clarissa Tossin, Laura Aguilar, and Ana Mendieta that trace the artists\u2019 bodies in dialogue with the earth; paintings and sculptures by Eamon Ore Gir\u00f3n, Courtney M. Leonard, and Rose B. Simpson that blend technology with Indigenous iconography and craft; and works by Leslie Martinez and Abraham Cruzvillegas that upcycle everyday materials to document consumption and to suggest possibilities for renewal. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Tidawhitney Lek,Local Market, 2023, Los Angeles County Museum of Art, purchased with funds provided by AHAN: Studio Forum, 2023 Art Here and Now, \u00a9 Tidawhitney Lek, courtesy of the artist and Sow & Tailor, Los Angeles, photo: Mason Kuehler",
+          "start_date": "2025-12-11",
+          "end_date": "2025-12-11",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursGallery Tour: GroundedJoin a LACMA docent for a 60-minute tour ofGrounded...Thu Dec 11|2 pm PT",
+          "url": "https://www.lacma.org/event/gallery-tour-grounded-16",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/2025-08/Grounded%20web.png?itok=rRuMu1UI",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Tours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Thu Dec 11|3:30 pm PTBCAM, Level 3|LACMA",
+          "description": "Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen",
+          "start_date": "2025-12-11",
+          "end_date": "2021-06-13",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Thu Dec 11|3:30 pm PTBCAM, Level 3|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-modern-art-786",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ModernArtGalleries_header_FY26.png?itok=wNcobXpI",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours In Focus Tour: Modern Art Join a LACMA docent for a 30-minute thematic tour of works in the Modern Art Galleries...Fri Dec 12|1:30 pm PTBCAM, Level 3|LACMATours Gallery Tour: Realms of the Dharma Join a LACMA docent for a 60-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Fri Dec 12|2 pm PTResnick Pavilion|LACMA",
+          "description": "Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries. Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credits: Installation view of the new Modern Art presentation on BCAM, Level 3, Los Angeles County Museum of Art, June 13, 2021\u2013ongoing, photo \u00a9 Fredrik Nilsen",
+          "start_date": "2025-12-12",
+          "end_date": "2021-06-13",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursIn Focus Tour: Modern ArtJoin a LACMA docent for a 30-minute thematic tour of works in theModern Art Galleries...Fri Dec 12|1:30 pm PTBCAM, Level 3|LACMAToursGallery Tour: Realms of the DharmaJoin a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Fri Dec 12|2 pm PTResnick Pavilion|LACMA",
+          "url": "https://www.lacma.org/event/focus-tour-modern-art-787",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/ModernArtGalleries_header_FY26.png?itok=wNcobXpI",
+          "event_type": "tour"
+        },
+        {
+          "title": "Tours Gallery Tour: Realms of the Dharma Join a LACMA docent for a 60-minute tour of Realms of the Dharma: Buddhist Art Across Asia...Fri Dec 12|2 pm PTResnick Pavilion|LACMA",
+          "description": "Join a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. Free with museum admission Join a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia. Realms of the Dharma: Buddhist Art Across Asiapresents an international survey of Buddhism and Buddhist art, beginning with the religion\u2019s origins in India and following its spread through mainland and island Southeast Asia (Myanmar [Burma], Thailand, Cambodia, Vietnam, and Indonesia), the Himalayas (Kashmir, Nepal, and Tibet), and East Asia (China, Korea, and Japan). Incorporating 180 masterpieces of pan-Asian Buddhist art, the exhibition introduces key concepts of Buddhist thought and practice viewed through the prism of rare and extraordinarily beautiful Buddhist sculptures, paintings, and ritual objects. Drawn from LACMA\u2019s permanent collection, with several significant loans from private collections, the exhibition explores the life of the Buddha, the role of the bodhisattva or Buddhist savior, Buddhist cosmology, and such key concepts as dharma, karma, nirvana, mantra, mudra, and mandala. The show will focus on art associated with such key phases of Buddhism as Theravada (early monastic Buddhism), Mahayana (the \u201cGreat Vehicle\u201d), Vajrayana (the \u201cDiamond Vehicle\u201d\u2014tantric or esoteric Buddhism), and Chan (Zen). Please be aware that these tours are volunteer-led and subject to cancellation. Ask a member of our team on the day for details. All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA All education and outreach programs at LACMA are underwritten by the LACMA Education Fund.Major support is provided by Generous additional support is provided by the Judy and Bernard Briskin Family Foundation, Capital Group, The Rosalinde and Arthur Gilbert Foundation, William Randolph Hearst Endowment Fund for Arts Education, Alfred E. Mann Charities, The Ralph M. Parsons Foundation, Gloria Ricci Lothrop, Flora L. Thornton Foundation, U.S. Bank, and The Yabuki Family Foundation. Image Credit: Installation photo,Realms of the Dharma: Buddhist Art Across Asia, Los Angeles County Museum of Art, May 11, 2025\u2013July 12, 2026, photo \u00a9 Museum Associates/LACMA",
+          "start_date": "2025-12-12",
+          "end_date": "2026-07-12",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursGallery Tour: Realms of the DharmaJoin a LACMA docent for a 60-minute tour ofRealms of the Dharma: Buddhist Art Across Asia...Fri Dec 12|2 pm PTResnick Pavilion|LACMA",
+          "url": "https://www.lacma.org/event/gallery-tour-realms-dharma-34",
+          "image_url": "https://www-images.lacma.org/s3fs-public/styles/card_16_9/public/events/2025-06/Realms%20of%20the%20Dharma_header_FY26.png?itok=y0sDdCW3",
+          "event_type": "exhibition"
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "issues": [],
+      "pages_discovered": 0,
+      "extraction_methods_used": [],
+      "quality_metrics": {
+        "with_dates": 19,
+        "with_times": 1,
+        "with_descriptions": 20,
+        "with_urls": 20
+      }
+    },
+    {
+      "museum": "de Young Museum",
+      "city": "San Francisco",
+      "url": "https://deyoung.famsf.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "San Francisco Museum of Modern Art (SFMOMA)",
+      "city": "San Francisco",
+      "url": "https://www.sfmoma.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Art Institute of Chicago",
+      "city": "Chicago",
+      "url": "https://www.artic.edu",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Field Museum",
+      "city": "Chicago",
+      "url": "https://www.fieldmuseum.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Museum of Contemporary Art Chicago",
+      "city": "Chicago",
+      "url": "https://www.mcachicago.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Museum of Fine Arts Boston",
+      "city": "Boston",
+      "url": "https://www.mfa.org",
+      "success": true,
+      "events_found": 1,
+      "exhibitions_found": 1,
+      "events": [
+        {
+          "title": "Gallery Highlights",
+          "description": "Claude Monet,Water Lilies, 1907. Oil on canvas. Bequest of Alexander Cochrane. Claude Monet,Water Lilies, 1907. Oil on canvas. Bequest of Alexander Cochrane. The MFA boasts one of the largest collections of the celebrated Impressionist painter Claude Monet\u2019s work outside France. Gallery 252 is dedicated to Monet, providing an immersive experience of his work from the MFA\u2019s holdings and select loans from private collectors. Visitors can engage with how Monet saw and captured the world\u2014from watery reflections to his famed series paintings from the 1890s and beyond, and his innovative perspectives in landscape. The beauty and magic of nature come to life through his nuanced visions of light and atmosphere. Monet returned time and again to his favorite motifs and locations, which often depict familiar sites near where he lived. Curving roads, grain stacks, and poplar trees feature throughout his long career, in early plein-air compositions likeEntrance to the Village at V\u00e9theuil in Winter(1879) and inGrainstack (Sunset)(1891). Experience the bravura brushwork and vivid color of Monet\u2019s late work inWater Lilies, Reflections of Weeping Willows(about 1916\u201319), a new highlight on loan from a private collectionand\u00a0featured in a fully reimagined gallery display. Made about a decade later than any other Monet painting in the MFA\u2019s collection, this late example extends the chronology of Monet\u2019s career on view, giving visitors a deeper and more expansive story of the artist and his work. The large-scale work is remarkable for its deep jewel-toned palette and expressive surface. It captures the emotive and encompassing power of Monet\u2019s increasingly abstract compositions in the last decade of his career. On view in Gallery 252 An introduction to the dazzling paintings of an Impressionist master",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Gallery HighlightsMonetMummiesFrench SalonArt of the Italian RenaissanceJapanese Garden, Tenshin-enArts of Islamic CulturesArtists on the Move in 18th-Century EuropeEurope in the 19th and Early 20th CenturiesChinese Song Dynasty GalleryEuropean Painting 1550\u20131700 and Hanoverian SilverArts of the PacificImpressionism and BeyondNewland House Drawing RoomBritish Art 1560\u20131830Hamilton Palace Dining RoomSouth and Southeast Asian ArtArts of Korea",
+          "url": "https://www.mfa.org/gallery/monet",
+          "image_url": "https://d1nn9x4fgzyvn4.cloudfront.net/styles/scaled_562_wide/s3/migration-slide-image/19-170_sc235559_4x3.jpg?itok=5aWnXKPY",
+          "event_type": "event"
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "Many events missing dates"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": [],
+      "quality_metrics": {
+        "with_dates": 0,
+        "with_times": 0,
+        "with_descriptions": 1,
+        "with_urls": 1
+      }
+    },
+    {
+      "museum": "Isabella Stewart Gardner Museum",
+      "city": "Boston",
+      "url": "https://www.gardnermuseum.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Philadelphia Museum of Art",
+      "city": "Philadelphia",
+      "url": "https://www.philamuseum.org",
+      "success": false,
+      "events_found": 0,
+      "exhibitions_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": []
+    },
+    {
+      "museum": "Baltimore Museum of Art",
+      "city": "Baltimore",
+      "url": "https://artbma.org",
+      "success": true,
+      "events_found": 8,
+      "exhibitions_found": 8,
+      "events": [
+        {
+          "title": "Collection Galleries",
+          "description": "A new perspective on the BMA\u2019s Asian art collection debuts this fall with the addition of works from India, Indonesia, Iran, and Tu\u0308rkiye displayed alongside works from East Asia, resulting in new insights into materials, cultural and technological influences, and exchange and trade. From feasting to writing, the traditions associated with daily life are explored in the first gallery\u2019s variety of ceramics, prints, and textiles. The Museum\u2019s strong holdings in Chinese works of art are showcased in the second gallery with metal and earthenware objects, as well as export porcelain that reveal China\u2019s importance in world trade, its place within Asia\u2019s diverse philosophical and religious systems, and its belief in continued existence beyond a human lifetime. This installation is made possible by the Victor J. Schenk Trust, the E. Rhodes and Leona B. Carpenter Foundation, and Amy L. Gould and Matthew S. Polk, Jr. The Asian collection is located in the Julius Levy Memorial Gallery. The BMA\u2019s collection of Asian art includes more than 3,200 objects comprised of works from China, Japan, India, Tibet, Southeast Asia, and the Near East. The strength of the collection resides in Chinese ceramics, with a particular depth in mortuary wares from the Tang Dynasty (618-907) and utilitarian stonewares from the 11th through the 13th centuries. The extensive textile collection represents Asia\u2019s major cultures. Asian art is also represented in other areas of the BMA\u2019s collection, including Japanese prints and books as well as Contemporary Art. Drawn primarily from the BMA\u2019s collection, the exhibition\u2019s photographs, books, prints, and a hand scroll feature artists born or working in China, Japan, Korea, and Vietnam. Many of the photographers began their careers in another field, such as photojournalism, commercial photography, architecture, sculpture, or filmmaking, but they all share a similar engagement with time as a visual reference or part of their creative process. On view for the first time when the exhibition opened in 2016, these stunning garments were made after the lifting of sumptuary laws during Japan\u2019s Edo period (1603\u20131867) when commoners were forbidden to wear showy clothing with colors like red or purple.",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Collection GalleriesAsian ArtIndigenous Arts of the Ancient AmericasAfrican ArtSee MoreCollection OverviewSearch the Collection",
+          "url": "https://artbma.org/collection/asian-art/",
+          "image_url": "https://cdn.artbma.org/2021/04/05120528/2023_Asian_Gallery_30-scaled.jpg",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Sunday Shorts",
+          "description": "SunDec7ToursSunday ShortsBMA Main Campus2:00 pmFreeSunDec7For FamiliesFree Family SundaysBMA Main Campus2:00 pmFreeThuDec11After HoursTeacher Night: Amy Sherald: American SublimeBMA Main Campus4:30 pmSold Out; Email for WaitlistFriDec12Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 amFriDec12For FamiliesBaby Art DateBMA Main Campus10:00 amFree for BMA Members; $5 per baby for Non-MembersFriDec12For FamiliesBaby Art DateBMA Main Campus1:00 pmSold OutSatDec13For FamiliesMembers OnlyThe Making of a Picture Book: There\u2019s a Dragon in the Tree House and He Won\u2019t Come Down!BMA Main Campus2:00 pmFree; Registration requiredSatDec13Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 amSatDec13WorkshopsMira Work: Affirm Your ReflectionBMA Lexington Market1:00 pmOnline tickets now sold out. Please drop in!SatDec13For FamiliesFamily Art AdventuresBMA Main Campus10:30 amFree; Registration encouragedSunDec14Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 amSunDec14ToursSunday ShortsBMA Main Campus2:00 pmFreeSunDec14For FamiliesFree Family SundaysBMA Main Campus2:00 pmFreeSunDec21ToursSunday ShortsBMA Main Campus2:00 pmFreeSunDec21For FamiliesFree Family SundaysBMA Main Campus2:00 pmFreeSunDec28ToursSunday ShortsBMA Main Campus2:00 pmFreeFriJan9For FamiliesBaby Art DateBMA Main Campus10:00 amFree for BMA Members; $5 per baby for Non-MembersFriJan9For FamiliesBaby Art DateBMA Main Campus1:00 pmFree for BMA Members; $5 per baby for Non-MembersSatJan10For FamiliesFamily Art AdventuresBMA Main Campus10:30 amFree; Registration encouragedThuJan15WorkshopsIntroduction to Computer BasicsBMA Lexington Market10:00 amFree; Registration encouragedThuJan15Free Admission Day: American SublimeBMA Main CampusFree; Timed-entry tickets requiredThuJan22Performanceabdu mongo ali presents: between every breath, there is atmosphereBMA Main Campus6:30 pmFree; Registration requiredThuFeb19Free Admission Day: American SublimeBMA Main CampusFree; Timed-entry tickets requiredThuMar5Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%SatMar7Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%SatMar7Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%SunMar8Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%WedMar11Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%ThuMar12Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%SatMar14Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%SunMar15Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%",
+          "start_date": "2025-12-07",
+          "end_date": null,
+          "start_time": "00:00:00",
+          "end_time": "01:00:00",
+          "start_location": "SunDec7ToursSunday ShortsBMA Main Campus2:00 pmFreeSunDec7For FamiliesFree Family SundaysBMA Main Campus2:00 pmFreeThuDec11After HoursTeacher Night: Amy Sherald: American SublimeBMA Main Campus4:30 pmSold Out; Email for WaitlistFriDec12Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 amFriDec12For FamiliesBaby Art DateBMA Main Campus10:00 amFree for BMA Members; $5 per baby for Non-MembersFriDec12For FamiliesBaby Art DateBMA Main Campus1:00 pmSold OutSatDec13For FamiliesMembers OnlyThe Making of a Picture Book: There\u2019s a Dragon in the Tree House and He Won\u2019t Come Down!BMA Main Campus2:00 pmFree; Registration requiredSatDec13Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 amSatDec13WorkshopsMira Work: Affirm Your ReflectionBMA Lexington Market1:00 pmOnline tickets now sold out. Please drop in!SatDec13For FamiliesFamily Art AdventuresBMA Main Campus10:30 amFree; Registration encouragedSunDec14Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 amSunDec14ToursSunday ShortsBMA Main Campus2:00 pmFreeSunDec14For FamiliesFree Family SundaysBMA Main Campus2:00 pmFreeSunDec21ToursSunday ShortsBMA Main Campus2:00 pmFreeSunDec21For FamiliesFree Family SundaysBMA Main Campus2:00 pmFreeSunDec28ToursSunday ShortsBMA Main Campus2:00 pmFreeFriJan9For FamiliesBaby Art DateBMA Main Campus10:00 amFree for BMA Members; $5 per baby for Non-MembersFriJan9For FamiliesBaby Art DateBMA Main Campus1:00 pmFree for BMA Members; $5 per baby for Non-MembersSatJan10For FamiliesFamily Art AdventuresBMA Main Campus10:30 amFree; Registration encouragedThuJan15WorkshopsIntroduction to Computer BasicsBMA Lexington Market10:00 amFree; Registration encouragedThuJan15Free Admission Day: American SublimeBMA Main CampusFree; Timed-entry tickets requiredThuJan22Performanceabdu mongo ali presents: between every breath, there is atmosphereBMA Main Campus6:30 pmFree; Registration requiredThuFeb19Free Admission Day: American SublimeBMA Main CampusFree; Timed-entry tickets requiredThuMar5Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%SatMar7Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%SatMar7Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%SunMar8Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%WedMar11Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%ThuMar12Rental EventNo Mean City: Baltimore 1966BMA Main Campus7:30 pm$35 General Admission; BMA Members save 15%SatMar14Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%SunMar15Rental EventNo Mean City: Baltimore 1966BMA Main Campus2:00 pm$35 General Admission; BMA Members save 15%",
+          "url": "https://artbma.org/event/sunday-shorts-2/",
+          "image_url": "https://cdn.artbma.org/2025/09/04173917/sundayshorts_hero.jpg",
+          "event_type": "tour"
+        },
+        {
+          "title": "Sunday Shorts",
+          "description": "ToursSunday ShortsBMA Main Campus2:00 pmFree",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "ToursSunday ShortsBMA Main Campus2:00 pmFree",
+          "url": "https://artbma.org/events",
+          "image_url": "https://cdn.artbma.org/2025/09/04173917/sundayshorts_hero.jpg",
+          "event_type": "tour"
+        },
+        {
+          "title": "Free Family Sundays",
+          "description": "SunDec7For FamiliesFree Family SundaysBMA Main Campus2:00 pmFree",
+          "start_date": "2025-12-07",
+          "end_date": null,
+          "start_time": "00:00:00",
+          "end_time": "01:00:00",
+          "start_location": "SunDec7For FamiliesFree Family SundaysBMA Main Campus2:00 pmFree",
+          "url": "https://artbma.org/events",
+          "image_url": "https://cdn.artbma.org/2024/12/02124456/BMA-Preoccupied-Community-Day-MF-8806-sm.jpg",
+          "event_type": "event"
+        },
+        {
+          "title": "Teacher Night: Amy Sherald: American Sublime",
+          "description": "ThuDec11After HoursTeacher Night: Amy Sherald: American SublimeBMA Main Campus4:30 pmSold Out; Email for Waitlist",
+          "start_date": "2025-12-11",
+          "end_date": null,
+          "start_time": "00:00:00",
+          "end_time": "01:00:00",
+          "start_location": "ThuDec11After HoursTeacher Night: Amy Sherald: American SublimeBMA Main Campus4:30 pmSold Out; Email for Waitlist",
+          "url": "https://artbma.org/events",
+          "image_url": "https://cdn.artbma.org/2025/10/11175637/teachernight_amysherald.jpg",
+          "event_type": "event"
+        },
+        {
+          "title": "Members Holiday Shopping Days",
+          "description": "FriDec12Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 am",
+          "start_date": "2025-12-12",
+          "end_date": null,
+          "start_time": "00:00:00",
+          "end_time": "01:00:00",
+          "start_location": "FriDec12Members OnlyMembers Holiday Shopping DaysBMA Main Campus10:00 am",
+          "url": "https://artbma.org/events",
+          "image_url": "https://cdn.artbma.org/2025/10/31171611/membersholidayshopping.jpg",
+          "event_type": "event"
+        },
+        {
+          "title": "The Making of a Picture Book: There\u2019s a Dragon in the Tree House and He Won\u2019t Come Down!",
+          "description": "SatDec13For FamiliesMembers OnlyThe Making of a Picture Book: There\u2019s a Dragon in the Tree House and He Won\u2019t Come Down!BMA Main Campus2:00 pmFree; Registration required",
+          "start_date": "2025-12-13",
+          "end_date": null,
+          "start_time": "00:00:00",
+          "end_time": "01:00:00",
+          "start_location": "SatDec13For FamiliesMembers OnlyThe Making of a Picture Book: There\u2019s a Dragon in the Tree House and He Won\u2019t Come Down!BMA Main Campus2:00 pmFree; Registration required",
+          "url": "https://artbma.org/events",
+          "image_url": "https://cdn.artbma.org/2025/11/12173030/nancypatz.jpg",
+          "event_type": "event"
+        },
+        {
+          "title": "Free Family Sundays",
+          "description": "For FamiliesFree Family SundaysBMA Main Campus2:00 pmFree",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "For FamiliesFree Family SundaysBMA Main Campus2:00 pmFree",
+          "url": "https://artbma.org",
+          "image_url": "https://cdn.artbma.org/2024/12/02124456/BMA-Preoccupied-Community-Day-MF-8806-sm.jpg",
+          "event_type": "event"
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "issues": [],
+      "pages_discovered": 0,
+      "extraction_methods_used": [],
+      "quality_metrics": {
+        "with_dates": 5,
+        "with_times": 5,
+        "with_descriptions": 8,
+        "with_urls": 8
+      }
+    },
+    {
+      "museum": "P\u00e9rez Art Museum Miami (PAMM)",
+      "city": "Miami",
+      "url": "https://www.pamm.org",
+      "success": true,
+      "events_found": 21,
+      "exhibitions_found": 21,
+      "events": [
+        {
+          "title": "Exhibitionsat PAMM",
+          "description": "Narratives in Focus is one of three exhibitions exploring photography drawn from PAMM\u2019s collection. Featuring a diverse range of artists from the Caribbean, United States, Latin America, and Africa, this exhibition delves into nuanced expressions of individual and collective identities, prompting viewers to critically engage with themes of race, gender,\u2026",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Exhibitionsat PAMM",
+          "url": "https://www.pamm.org/exhibitions",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/02/Othello_Ibeji-2022_WDO00459ST_Alternate-view-03_Eric-Ruby-683x1024.jpg?dpr=1&ixlib=php-4.1.0&q=75",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Events Calendar",
+          "description": "VisitVisitTickets and InformationEventsDiningEntertainArtArtExhibitionsCollectionPAMMTVCaribbean Cultural InstituteEducationEducationEducation PortalExhibition GuidesPAMM BlogShop\u26b2",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "EventsCalendarAll EventsAdult and General PublicEducator WorkshopsFamily & CommunityFilmsSecond SaturdayStorytime",
+          "url": "https://www.pamm.org/events",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Adult and General Public",
+          "description": "Miami, FL 73\u00b0F, clear sky",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "Adult and General Public",
+          "url": "https://www.pamm.org/en/search/?term_id=12405",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Educator Workshops",
+          "description": "Miami, FL 73\u00b0F, clear sky",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "Educator Workshops",
+          "url": "https://www.pamm.org/en/search/?term_id=12930",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "workshop"
+        },
+        {
+          "title": "Family & Community",
+          "description": "Miami, FL 73\u00b0F, clear sky",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "Family & Community",
+          "url": "https://www.pamm.org/en/search/?term_id=12922",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Films",
+          "description": "Miami, FL 73\u00b0F, clear sky",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "Films",
+          "url": "https://www.pamm.org/en/search/?term_id=18901",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Second Saturday",
+          "description": "Miami, FL 73\u00b0F, clear sky",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "Second Saturday",
+          "url": "https://www.pamm.org/en/search/?term_id=12924",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Storytime",
+          "description": "Miami, FL 73\u00b0F, clear sky",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "Storytime",
+          "url": "https://www.pamm.org/en/search/?term_id=12926",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Close December 2025Event Close December 2025January February March April May June July August September October November December20132014201520162017201820192020202120222023202420252026See events Clear Select date Thursday, December 11, 2025Adult and General Public6:30 PM \u2013 8:00 PMCurator\u2019s Corner with PAMM Curator Jennifer Inacio Enjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio. Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00 AM \u2013 3:00 PMPAMM Free Second Saturdays: Landscapes Reimagined Join us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions. Thursday, December 18, 2025Adult and General Public \u2013 Films7:00 PM \u2013 8:30 PMFloating Films with Ballyhoo Media: The Muppet Christmas Carol Celebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde. Saturday, December 27, 2025Family & Community \u2013 Storytime11:00 AM \u2013 12:30 PMPAMM Art Storytime: Clay, Spirit, and Everyday Magic Join us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination. Saturday, February 7, 2026Adult and General Public6:15 PM \u2013 1:00 AMArt + Soul Don\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars. Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00 AM \u2013 11:59 PMProfessional Learning at PAMM: Extra-Ordinary Objects In this professional learning workshop inspired by Woody De Othello: coming forth by day, explore how the artist recasts still lifes of everyday objects into works with deep ancestral, spiritual, and anthropomorphic qualities. Wednesday, February 25, 2026Adult and General Public11:00 AM \u2013 2:00 PMSeventeenth Annual Corporate Luncheon Join South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group. Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30 PM \u2013 3:30 PMProfessional Learning at PAMM: Art & Sports In this professional learning workshop inspired by Get in the Game: Sports, Arts, Culture, explore the connections between contemporary art and sports culture.",
+          "description": "VisitVisitTickets and InformationEventsDiningEntertainArtArtExhibitionsCollectionPAMMTVCaribbean Cultural InstituteEducationEducationEducation PortalExhibition GuidesPAMM BlogShop\u26b2",
+          "start_date": "2025-12-11",
+          "end_date": "2025-12-13",
+          "start_time": "18:30:00",
+          "end_time": "20:00:00",
+          "start_location": "CloseDecember 2025EventCloseDecember 2025JanuaryFebruaryMarchAprilMayJuneJulyAugustSeptemberOctoberNovemberDecember20132014201520162017201820192020202120222023202420252026See eventsClearSelect dateThursday, December 11, 2025Adult and General Public6:30\u202fPM \u2013 8:00\u202fPMCurator\u2019s Corner with PAMM Curator Jennifer InacioEnjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio.Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00\u202fAM \u2013 3:00\u202fPMPAMM Free Second Saturdays: Landscapes ReimaginedJoin us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.Thursday, December 18, 2025Adult and General Public \u2013 Films7:00\u202fPM \u2013 8:30\u202fPMFloating Films with Ballyhoo Media: The Muppet Christmas CarolCelebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.Saturday, December 27, 2025Family & Community \u2013 Storytime11:00\u202fAM \u2013 12:30\u202fPMPAMM Art Storytime: Clay, Spirit, and Everyday MagicJoin us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.Saturday, February 7, 2026Adult and General Public6:15\u202fPM \u2013 1:00\u202fAMArt + SoulDon\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars.Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00\u202fAM \u2013 11:59\u202fPMProfessional Learning at PAMM:\u00a0Extra-Ordinary ObjectsIn this professional learning workshop inspired by\u00a0Woody De Othello: coming forth by day,\u00a0explore\u00a0how the artist recasts\u00a0still\u00a0lifes\u00a0of\u00a0everyday\u00a0objects\u00a0into works with deep\u00a0ancestral, spiritual, and anthropomorphic qualities.Wednesday, February 25, 2026Adult and General Public11:00\u202fAM \u2013 2:00\u202fPMSeventeenth Annual Corporate LuncheonJoin South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group.Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30\u202fPM \u2013 3:30\u202fPMProfessional Learning at PAMM: Art & SportsIn this professional learning workshop inspired by\u00a0Get in the Game: Sports, Arts, Culture,\u00a0explore\u00a0the connections between contemporary art and sports culture.",
+          "url": "https://www.pamm.org/events",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/11/De-Othello-gallery.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Thursday, December 11, 2025Adult and General Public6:30 PM \u2013 8:00 PMCurator\u2019s Corner with PAMM Curator Jennifer Inacio Enjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio. Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00 AM \u2013 3:00 PMPAMM Free Second Saturdays: Landscapes Reimagined Join us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions. Thursday, December 18, 2025Adult and General Public \u2013 Films7:00 PM \u2013 8:30 PMFloating Films with Ballyhoo Media: The Muppet Christmas Carol Celebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde. Saturday, December 27, 2025Family & Community \u2013 Storytime11:00 AM \u2013 12:30 PMPAMM Art Storytime: Clay, Spirit, and Everyday Magic Join us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination. Saturday, February 7, 2026Adult and General Public6:15 PM \u2013 1:00 AMArt + Soul Don\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars. Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00 AM \u2013 11:59 PMProfessional Learning at PAMM: Extra-Ordinary Objects In this professional learning workshop inspired by Woody De Othello: coming forth by day, explore how the artist recasts still lifes of everyday objects into works with deep ancestral, spiritual, and anthropomorphic qualities. Wednesday, February 25, 2026Adult and General Public11:00 AM \u2013 2:00 PMSeventeenth Annual Corporate Luncheon Join South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group. Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30 PM \u2013 3:30 PMProfessional Learning at PAMM: Art & Sports In this professional learning workshop inspired by Get in the Game: Sports, Arts, Culture, explore the connections between contemporary art and sports culture.",
+          "description": "Thursday, December 11, 2025Adult and General Public6:30\u202fPM \u2013 8:00\u202fPMCurator\u2019s Corner with PAMM Curator Jennifer InacioEnjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio.Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00\u202fAM \u2013 3:00\u202fPMPAMM Free Second Saturdays: Landscapes ReimaginedJoin us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.Thursday, December 18, 2025Adult and General Public \u2013 Films7:00\u202fPM \u2013 8:30\u202fPMFloating Films with Ballyhoo Media: The Muppet Christmas CarolCelebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.Saturday, December 27, 2025Family & Community \u2013 Storytime11:00\u202fAM \u2013 12:30\u202fPMPAMM Art Storytime: Clay, Spirit, and Everyday MagicJoin us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.Saturday, February 7, 2026Adult and General Public6:15\u202fPM \u2013 1:00\u202fAMArt + SoulDon\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars.Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00\u202fAM \u2013 11:59\u202fPMProfessional Learning at PAMM:\u00a0Extra-Ordinary ObjectsIn this professional learning workshop inspired by\u00a0Woody De Othello: coming forth by day,\u00a0explore\u00a0how the artist recasts\u00a0still\u00a0lifes\u00a0of\u00a0everyday\u00a0objects\u00a0into works with deep\u00a0ancestral, spiritual, and anthropomorphic qualities.Wednesday, February 25, 2026Adult and General Public11:00\u202fAM \u2013 2:00\u202fPMSeventeenth Annual Corporate LuncheonJoin South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group.Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30\u202fPM \u2013 3:30\u202fPMProfessional Learning at PAMM: Art & SportsIn this professional learning workshop inspired by\u00a0Get in the Game: Sports, Arts, Culture,\u00a0explore\u00a0the connections between contemporary art and sports culture.",
+          "start_date": "2025-12-11",
+          "end_date": "2025-12-13",
+          "start_time": "18:30:00",
+          "end_time": "20:00:00",
+          "start_location": "Thursday, December 11, 2025Adult and General Public6:30\u202fPM \u2013 8:00\u202fPMCurator\u2019s Corner with PAMM Curator Jennifer InacioEnjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio.Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00\u202fAM \u2013 3:00\u202fPMPAMM Free Second Saturdays: Landscapes ReimaginedJoin us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.Thursday, December 18, 2025Adult and General Public \u2013 Films7:00\u202fPM \u2013 8:30\u202fPMFloating Films with Ballyhoo Media: The Muppet Christmas CarolCelebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.Saturday, December 27, 2025Family & Community \u2013 Storytime11:00\u202fAM \u2013 12:30\u202fPMPAMM Art Storytime: Clay, Spirit, and Everyday MagicJoin us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.Saturday, February 7, 2026Adult and General Public6:15\u202fPM \u2013 1:00\u202fAMArt + SoulDon\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars.Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00\u202fAM \u2013 11:59\u202fPMProfessional Learning at PAMM:\u00a0Extra-Ordinary ObjectsIn this professional learning workshop inspired by\u00a0Woody De Othello: coming forth by day,\u00a0explore\u00a0how the artist recasts\u00a0still\u00a0lifes\u00a0of\u00a0everyday\u00a0objects\u00a0into works with deep\u00a0ancestral, spiritual, and anthropomorphic qualities.Wednesday, February 25, 2026Adult and General Public11:00\u202fAM \u2013 2:00\u202fPMSeventeenth Annual Corporate LuncheonJoin South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group.Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30\u202fPM \u2013 3:30\u202fPMProfessional Learning at PAMM: Art & SportsIn this professional learning workshop inspired by\u00a0Get in the Game: Sports, Arts, Culture,\u00a0explore\u00a0the connections between contemporary art and sports culture.",
+          "url": "https://www.pamm.org/en/events/event/curators-corner-with-pamm-curator-jennifer-inacio-2/",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/11/De-Othello-gallery.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00 AM \u2013 3:00 PMPAMM Free Second Saturdays: Landscapes Reimagined Join us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.",
+          "description": "Miami, FL 73\u00b0F, clear sky Join us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions. Her large-scale artworks invite families to look closely, imagine freely, and create their own art in surprising new ways. For the rest of the day, explore the galleries, grab a meal at Verde, or sit back and enjoy the breeze on the waterfront terrace. Admission is free all day. Art activities from 11am-3pm.",
+          "start_date": "2025-12-13",
+          "end_date": "2025-12-13",
+          "start_time": "11:00:00",
+          "end_time": "15:00:00",
+          "start_location": "Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00\u202fAM \u2013 3:00\u202fPMPAMM Free Second Saturdays: Landscapes ReimaginedJoin us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.",
+          "url": "https://www.pamm.org/en/events/event/pamm-free-second-saturdays-landscapes-reimagined/",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/07/second-saturdays.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Saturday,",
+          "description": "Saturday, December 13, 2025",
+          "start_date": "2025-12-13",
+          "end_date": "2025-12-13",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Saturday, December 13, 2025",
+          "url": "https://www.pamm.org/events",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/07/second-saturdays.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Thursday, December 18, 2025Adult and General Public \u2013 Films7:00 PM \u2013 8:30 PMFloating Films with Ballyhoo Media: The Muppet Christmas Carol Celebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.",
+          "description": "Miami, FL 73\u00b0F, clear sky Celebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde. The film will be screened from the water, and you are welcome to bring lawn chairs and blankets to set up the perfect sunset spot on the beach. Food and drinks will be available for purchase. Schedule 5\u20138pmHappy hour drink specials7\u20138:30pmScreening of \u201cThe Muppet Christmas Carol\u201d9pmGalleries and museum close Access to the PAMM terrace and beach is free with RSVP. Admission to the galleries is free for members and $18 for adults. About \u201cThe Muppet Christmas Carol\u201d The Muppets perform the classic Dickens holiday tale, with Kermit the Frog playing Bob Cratchit, the put-upon clerk of stingy Ebenezer Scrooge (Michael Caine). Other Muppets\u2014Miss Piggy, Gonzo, Fozzie Bear and Sam the Eagle\u2014weave in and out of the story, while Scrooge receives visits from spirits of three Christmases\u2014past, present and future. They show him the error of his self-serving ways, but the miserable old man seems to be past any hope of redemption and happiness.",
+          "start_date": "2025-12-18",
+          "end_date": "2025-12-18",
+          "start_time": "19:00:00",
+          "end_time": "20:30:00",
+          "start_location": "Thursday, December 18, 2025Adult and General Public \u2013 Films7:00\u202fPM \u2013 8:30\u202fPMFloating Films with Ballyhoo Media: The Muppet Christmas CarolCelebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.",
+          "url": "https://www.pamm.org/en/events/event/floating-films-with-ballyhoo-media-the-muppet-christmas-carol/",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/12/p_themuppetchristmascarol_19640_76856619.jpeg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "tour"
+        },
+        {
+          "title": "Thursday,",
+          "description": "Thursday, December 18, 2025",
+          "start_date": "2025-12-18",
+          "end_date": "2025-12-18",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Thursday, December 18, 2025",
+          "url": "https://www.pamm.org/events",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/12/p_themuppetchristmascarol_19640_76856619.jpeg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Saturday, December 27, 2025Family & Community \u2013 Storytime11:00 AM \u2013 12:30 PMPAMM Art Storytime: Clay, Spirit, and Everyday Magic Join us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.",
+          "description": "Miami, FL 73\u00b0F, clear sky Join us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination. Inspired by artist Woody De Othello\u2019s playful sculptures in the exhibitioncoming forth by day, families will enjoy a read-aloud, hands-on sensory play, and a chance to make their own clay-inspired creations. \u200b Free with RSVP and first 50 guests to arrive. Space is limited. Pre-registration required.",
+          "start_date": "2025-12-27",
+          "end_date": "2025-12-27",
+          "start_time": "11:00:00",
+          "end_time": "12:30:00",
+          "start_location": "Saturday, December 27, 2025Family & Community \u2013 Storytime11:00\u202fAM \u2013 12:30\u202fPMPAMM Art Storytime: Clay, Spirit, and Everyday MagicJoin us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.",
+          "url": "https://www.pamm.org/en/events/event/pamm-art-storytime-clay-spirit-and-everyday-magic/",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/01/IMG_9153-Enhanced-NR-scaled.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Alex Bartole Photo Elisa Lopez Photography Photo by Lazaro Llanes Alex Bartole Photo Kt Crabb Photography Elisa Lopez Photography Arevalo Photography LLCPhoto by Lazaro Llanes",
+          "description": "VisitVisitTickets and InformationEventsDiningEntertainArtArtExhibitionsCollectionPAMMTVCaribbean Cultural InstituteEducationEducationEducation PortalExhibition GuidesPAMM BlogShop\u26b2",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Alex Bartole PhotoElisa Lopez PhotographyPhoto by Lazaro LlanesAlex Bartole PhotoKt Crabb PhotographyElisa Lopez PhotographyArevalo Photography LLCPhoto by Lazaro Llanes",
+          "url": "https://www.pamm.org/event",
+          "image_url": "https://www.pamm.org/wp-content/uploads/2024/03/G1-1024x683.jpg",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "All Events Adult and General Public Educator Workshops Family & Community Films Second Saturday Storytime",
+          "description": "All EventsAdult and General PublicEducator WorkshopsFamily & CommunityFilmsSecond SaturdayStorytime",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "All EventsAdult and General PublicEducator WorkshopsFamily & CommunityFilmsSecond SaturdayStorytime",
+          "url": "https://www.pamm.org/calendar",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "workshop"
+        },
+        {
+          "title": "Select date Thursday, December 11, 2025Adult and General Public6:30 PM \u2013 8:00 PMCurator\u2019s Corner with PAMM Curator Jennifer Inacio Enjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio. Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00 AM \u2013 3:00 PMPAMM Free Second Saturdays: Landscapes Reimagined Join us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions. Thursday, December 18, 2025Adult and General Public \u2013 Films7:00 PM \u2013 8:30 PMFloating Films with Ballyhoo Media: The Muppet Christmas Carol Celebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde. Saturday, December 27, 2025Family & Community \u2013 Storytime11:00 AM \u2013 12:30 PMPAMM Art Storytime: Clay, Spirit, and Everyday Magic Join us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination. Saturday, February 7, 2026Adult and General Public6:15 PM \u2013 1:00 AMArt + Soul Don\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars. Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00 AM \u2013 11:59 PMProfessional Learning at PAMM: Extra-Ordinary Objects In this professional learning workshop inspired by Woody De Othello: coming forth by day, explore how the artist recasts still lifes of everyday objects into works with deep ancestral, spiritual, and anthropomorphic qualities. Wednesday, February 25, 2026Adult and General Public11:00 AM \u2013 2:00 PMSeventeenth Annual Corporate Luncheon Join South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group. Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30 PM \u2013 3:30 PMProfessional Learning at PAMM: Art & Sports In this professional learning workshop inspired by Get in the Game: Sports, Arts, Culture, explore the connections between contemporary art and sports culture.",
+          "description": "Select dateThursday, December 11, 2025Adult and General Public6:30\u202fPM \u2013 8:00\u202fPMCurator\u2019s Corner with PAMM Curator Jennifer InacioEnjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio.Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00\u202fAM \u2013 3:00\u202fPMPAMM Free Second Saturdays: Landscapes ReimaginedJoin us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.Thursday, December 18, 2025Adult and General Public \u2013 Films7:00\u202fPM \u2013 8:30\u202fPMFloating Films with Ballyhoo Media: The Muppet Christmas CarolCelebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.Saturday, December 27, 2025Family & Community \u2013 Storytime11:00\u202fAM \u2013 12:30\u202fPMPAMM Art Storytime: Clay, Spirit, and Everyday MagicJoin us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.Saturday, February 7, 2026Adult and General Public6:15\u202fPM \u2013 1:00\u202fAMArt + SoulDon\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars.Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00\u202fAM \u2013 11:59\u202fPMProfessional Learning at PAMM:\u00a0Extra-Ordinary ObjectsIn this professional learning workshop inspired by\u00a0Woody De Othello: coming forth by day,\u00a0explore\u00a0how the artist recasts\u00a0still\u00a0lifes\u00a0of\u00a0everyday\u00a0objects\u00a0into works with deep\u00a0ancestral, spiritual, and anthropomorphic qualities.Wednesday, February 25, 2026Adult and General Public11:00\u202fAM \u2013 2:00\u202fPMSeventeenth Annual Corporate LuncheonJoin South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group.Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30\u202fPM \u2013 3:30\u202fPMProfessional Learning at PAMM: Art & SportsIn this professional learning workshop inspired by\u00a0Get in the Game: Sports, Arts, Culture,\u00a0explore\u00a0the connections between contemporary art and sports culture.",
+          "start_date": "2025-12-11",
+          "end_date": "2025-12-13",
+          "start_time": "18:30:00",
+          "end_time": "20:00:00",
+          "start_location": "Select dateThursday, December 11, 2025Adult and General Public6:30\u202fPM \u2013 8:00\u202fPMCurator\u2019s Corner with PAMM Curator Jennifer InacioEnjoy an exclusive private guided tour of artist Woody De Othello\u2019s first major museum solo exhibition,coming forth by day, at P\u00e9rez Art Museum Miami (PAMM), led by Curator Jennifer Inacio.Saturday, December 13, 2025Family & Community \u2013 Second Saturday11:00\u202fAM \u2013 3:00\u202fPMPAMM Free Second Saturdays: Landscapes ReimaginedJoin us at P\u00e9rez Art Museum Miami (PAMM) for a free, fun-filled family day! Explore the vibrant world of Miami-born artist Teresita Fern\u00e1ndez, whose creative use of unconventional materials turns landscapes into mesmerizing illusions.Thursday, December 18, 2025Adult and General Public \u2013 Films7:00\u202fPM \u2013 8:30\u202fPMFloating Films with Ballyhoo Media: The Muppet Christmas CarolCelebrate the holiday season at P\u00e9rez Art Museum Miami (PAMM) with the beloved 1992 holiday classic \u201cThe Muppet Christmas Carol.\u201d Prior to the film, enjoy tours in the galleries and happy hour specials at Verde.Saturday, December 27, 2025Family & Community \u2013 Storytime11:00\u202fAM \u2013 12:30\u202fPMPAMM Art Storytime: Clay, Spirit, and Everyday MagicJoin us for PAMM Art Storytime, where ordinary things become extraordinary! Little ones will discover how everyday objects\u2014like cups, clocks, and mirrors\u2014can hold big feelings and even come alive with imagination.Saturday, February 7, 2026Adult and General Public6:15\u202fPM \u2013 1:00\u202fAMArt + SoulDon\u2019t miss P\u00e9rez Art Museum Miami\u2019s 13th anniversary of Art + Soul, celebrating the PAMM Fund for Black Art. Support the Fund and enjoy an evening of art, cocktails, music, and dancing under the stars.Saturday, February 21, 2026Adult and General Public \u2013 Educator Workshops12:00\u202fAM \u2013 11:59\u202fPMProfessional Learning at PAMM:\u00a0Extra-Ordinary ObjectsIn this professional learning workshop inspired by\u00a0Woody De Othello: coming forth by day,\u00a0explore\u00a0how the artist recasts\u00a0still\u00a0lifes\u00a0of\u00a0everyday\u00a0objects\u00a0into works with deep\u00a0ancestral, spiritual, and anthropomorphic qualities.Wednesday, February 25, 2026Adult and General Public11:00\u202fAM \u2013 2:00\u202fPMSeventeenth Annual Corporate LuncheonJoin South Florida\u2019s most influential leaders for an inspiring afternoon of meaningful connections, exclusive gallery access, and a gourmet lunch curated by Constellation Culinary Group.Friday, April 3, 2026Adult and General Public \u2013 Educator Workshops2:30\u202fPM \u2013 3:30\u202fPMProfessional Learning at PAMM: Art & SportsIn this professional learning workshop inspired by\u00a0Get in the Game: Sports, Arts, Culture,\u00a0explore\u00a0the connections between contemporary art and sports culture.",
+          "url": "https://www.pamm.org/calendar",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/11/De-Othello-gallery.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "exhibition"
+        },
+        {
+          "title": "Saturday,",
+          "description": "Saturday, December 27, 2025",
+          "start_date": "2025-12-27",
+          "end_date": "2025-12-27",
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Saturday, December 27, 2025",
+          "url": "https://www.pamm.org/calendar",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/01/IMG_9153-Enhanced-NR-scaled.jpg?auto=format&blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "P\u00e9rez Art Museum Miami",
+          "description": "Miami, FL 23\u00b0C, cielo claro \u00a1Acomp\u00e1\u00f1anos en el P\u00e9rez Art Museum Miami (PAMM) para un d\u00eda lleno de diversi\u00f3n para toda la familia! Explora el vibrante mundo de la artista nacida en Miami Teresita Fern\u00e1ndez, cuya creatividad y uso de materiales poco convencionales transforman los paisajes en hipn\u00f3ticas ilusiones. El artista miamense Woody De Othello presentaSalida a la luz del d\u00eda, una nueva serie de esculturas en cer\u00e1mica y madera, obras de pared con azulejos y un bronce de gran formato que exploran la relaci\u00f3n primordial entre el cuerpo, la tierra y el esp\u00edritu. Presentado en el Auditorio de PAMM, los visitantes del museo pueden disfrutar de una selecci\u00f3n de las exposiciones de PAMMTV seg\u00fan el horario que se detalla a continuaci\u00f3n.",
+          "start_date": null,
+          "end_date": null,
+          "start_time": "11:00:00",
+          "end_time": "18:00:00",
+          "start_location": "B\u00fasquedaMiami, FL23\u00b0C, cielo claroP\u00e9rez Art Museum MiamiOpen Today, 11:00\u202fAM \u2013 6:00\u202fPMP\u00e9rez Art Museum MiamiMiami, FL, 23\u00b0C, cielo claroLunes11am-6pmMartes-Mi\u00e9rcoles11am-6pmJueves11am-5pmViernes-Domingo11am-6pm\u00daneteEntradasenesVis\u00edtanosVis\u00edtanosEntradas e informaci\u00f3nEventosRestauranteEspacios para eventosArteArteExposicionesColecci\u00f3nPAMMTVInstituto Cultural del CaribeEducaci\u00f3nEducaci\u00f3nAprendeGu\u00edas de las exposicionesPAMM BlogTienda\u26b2EventoPrograma ARTrek de la Asociaci\u00f3n del Museo: Visita al estudio de Jason Seife17 de septiembre de 20222:00 PM \u2013 4:00 PMEvento PasadoAcompa\u00f1a a la curadora asistente de PAMM, Maritza Lacayo, para una visita del estudio y un vino de honor con el artista Jason Seife, cuya primera exposici\u00f3n individual en Estados Unidos se inaugurar\u00e1 en el P\u00e9rez Art Museum Miami (PAMM) en mayo de 2023.Acerca de Jason SeifeNacido y criado en Miami, Jason Seife es hijo de inmigrantes de ascendencia cubana y siria. Su pr\u00e1ctica se centra en su herencia del Medio Oriente y hace referencia a las alfombras persas y a los intrincados detalles que se encuentran en las mezquitas y en otras formas de arte isl\u00e1mico. Seife dise\u00f1a sus propias composiciones inspiradas en alfombras de forma digital replicando la pr\u00e1ctica de los tejedores tradicionales al asociar sus dise\u00f1os y colores espec\u00edficos con diferentes lugares y comunidades. Posteriormente, pinta a mano sus intrincados dise\u00f1os en lienzos o en losas de concreto.\u00a1Acomp\u00e1\u00f1anos!Evento exclusivo para miembros de la Asociaci\u00f3n del Museo (de nivel Amigo, Patr\u00f3n, Benefactor o mayor). El evento ser\u00e1 de cupo limitado. Favor de confirmar tu asistencia antes del mi\u00e9rcoles, 14 de septiembre.Para obtener m\u00e1s informaci\u00f3n sobre el evento o para afiliarte a la Asociaci\u00f3n del Museo, comun\u00edcate con nosotros almuseumcircle@pamm.orgObt\u00e9n m\u00e1s informaci\u00f3nCont\u00e1ctanosMuseum Circlemuseumcircle@pamm.orgAcerca del PAMMEmpleos y oportunidadesEventos privadosPAMM Portraits BlogSuscribete a Nuestro Boletin!You are now subscribed.newsletter_errorLunes11am-6pmMartes-Mi\u00e9rcoles11am-6pmJueves11am-5pmViernes-Domingo11am-6pmP+1 305 375 3000A1103 Biscayne Blvd., Miami, FL 33132YouTubeInstagramXFacebookTikTokPor favor, don\u2019t touch the artP\u00e9rez Art Museum MiamiP\u00e9rez Art Museum Miami\u00ae | PAMM\u00ae | Por favor, don\u2019t touch the art\u2122. Acreditado por el American Alliance of Museums, el P\u00e9rez Art Museum Miami (PAMM) est\u00e1 patrocinado en parte por el Estado de Florida, el Departamento de Estado, la Divisi\u00f3n de Asuntos Culturales, y el Consejo de Arte y Cultura de Florida. Contamos con el apoyo del Departamento de Asuntos Culturales del Condado de Miami-Dade y el Consejo de Asuntos Culturales, el Alcalde del Condado de Miami-Dade y la Junta de Comisionados del Condado. Apoyo adicional es proporcionado por la Ciudad de Miami y Miami OMNI Community Redevelopment Agency (Agencia de Reurbanizaci\u00f3n de la Comunidad de Miami OMNI, OMNI CRA). El P\u00e9rez Art Museum Miami es una instituci\u00f3n accesible.",
+          "url": "https://www.pamm.org/es/",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2022/03/night-scaled.jpg?blur=16&h=12&ixlib=php-4.1.0",
+          "event_type": "event"
+        },
+        {
+          "title": "Woody De Othello: coming forth by day",
+          "description": "Woody De Othello: coming forth by day",
+          "start_date": null,
+          "end_date": null,
+          "start_time": null,
+          "end_time": null,
+          "start_location": "Woody De Othello: coming forth by day",
+          "url": "https://www.pamm.org",
+          "image_url": "https://livepammdotorg.imgix.net/wp-content/uploads/2025/02/Othello_Ibeji-2022_WDO00459ST_Alternate-view-03_Eric-Ruby-683x1024.jpg?dpr=1&ixlib=php-4.1.0&q=75",
+          "event_type": "event"
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "Many events missing dates"
+      ],
+      "pages_discovered": 0,
+      "extraction_methods_used": [],
+      "quality_metrics": {
+        "with_dates": 9,
+        "with_times": 13,
+        "with_descriptions": 21,
+        "with_urls": 21
+      }
+    }
+  ]
+}

@@ -200,6 +200,7 @@ def load_venues_from_json():
                         tour_info=venue_data.get('tour_info', ''),
                         admission_fee=venue_data.get('admission_fee', ''),
                         website_url=venue_data.get('website_url', ''),
+                        ticketing_url=venue_data.get('ticketing_url', ''),
                         image_url=image_url,
                         latitude=venue_data.get('latitude'),
                         longitude=venue_data.get('longitude'),

@@ -462,6 +462,7 @@ class Venue(db.Model):
     youtube_url = db.Column(db.String(200))
     tiktok_url = db.Column(db.String(200))
     website_url = db.Column(db.String(200))
+    ticketing_url = db.Column(db.String(200))  # Eventbrite, Ticketmaster, or other ticketing links
     description = db.Column(db.Text)
     opening_hours = db.Column(db.Text)
     holiday_hours = db.Column(db.Text)
@@ -534,6 +535,7 @@ class Venue(db.Model):
             'youtube_url': self.youtube_url,
             'tiktok_url': self.tiktok_url,
             'website_url': self.website_url,
+            'ticketing_url': self.ticketing_url,
             'description': self.description,
             'opening_hours': self.opening_hours,
             'holiday_hours': self.holiday_hours,
@@ -4207,6 +4209,7 @@ def reload_venues_from_json():
                 venue.youtube_url = venue_data.get('youtube_url', venue.youtube_url)
                 venue.tiktok_url = venue_data.get('tiktok_url', venue.tiktok_url)
                 venue.website_url = new_url
+                venue.ticketing_url = venue_data.get('ticketing_url', venue.ticketing_url)
                 venue.description = venue_data.get('description', venue.description)
                 venue.opening_hours = venue_data.get('opening_hours', venue.opening_hours)
                 venue.holiday_hours = venue_data.get('holiday_hours', venue.holiday_hours)
@@ -4249,6 +4252,7 @@ def reload_venues_from_json():
                     youtube_url=venue_data.get('youtube_url'),
                     tiktok_url=venue_data.get('tiktok_url'),
                     website_url=venue_data.get('website_url'),
+                    ticketing_url=venue_data.get('ticketing_url'),
                     description=venue_data.get('description'),
                     opening_hours=venue_data.get('opening_hours'),
                     holiday_hours=venue_data.get('holiday_hours'),
@@ -4828,6 +4832,8 @@ def edit_venue():
             venue.holiday_hours = clean_text_field(data['holiday_hours'])
         if 'website_url' in data:
             venue.website_url = clean_url_field(data['website_url'])
+        if 'ticketing_url' in data:
+            venue.ticketing_url = clean_url_field(data['ticketing_url'])
         if 'instagram_url' in data:
             venue.instagram_url = clean_url_field(data['instagram_url'])
         if 'facebook_url' in data:

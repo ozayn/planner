@@ -1,0 +1,190 @@
+{
+  "test_date": "2025-12-06T23:57:11.930075",
+  "total_museums": 13,
+  "successful": 0,
+  "failed": 13,
+  "results": [
+    {
+      "museum": "Metropolitan Museum of Art",
+      "city": "New York",
+      "url": "https://www.metmuseum.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Museum of Modern Art (MoMA)",
+      "city": "New York",
+      "url": "https://www.moma.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Getty Center",
+      "city": "Los Angeles",
+      "url": "https://www.getty.edu",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 4
+    },
+    {
+      "museum": "Los Angeles County Museum of Art (LACMA)",
+      "city": "Los Angeles",
+      "url": "https://www.lacma.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "de Young Museum",
+      "city": "San Francisco",
+      "url": "https://deyoung.famsf.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Art Institute of Chicago",
+      "city": "Chicago",
+      "url": "https://www.artic.edu",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Field Museum",
+      "city": "Chicago",
+      "url": "https://www.fieldmuseum.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Museum of Fine Arts Boston",
+      "city": "Boston",
+      "url": "https://www.mfa.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "British Museum",
+      "city": "London",
+      "url": "https://www.britishmuseum.org",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Tate Modern",
+      "city": "London",
+      "url": "https://www.tate.org.uk/visit/tate-modern",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Louvre Museum",
+      "city": "Paris",
+      "url": "https://www.louvre.fr",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Art Gallery of Ontario",
+      "city": "Toronto",
+      "url": "https://ago.ca",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 0
+    },
+    {
+      "museum": "Royal Ontario Museum",
+      "city": "Toronto",
+      "url": "https://www.rom.on.ca",
+      "success": false,
+      "events_found": 0,
+      "events": [],
+      "errors": [],
+      "warnings": [],
+      "issues": [
+        "No events found"
+      ],
+      "exhibitions_found": 3
+    }
+  ]
+}

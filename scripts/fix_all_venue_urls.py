@@ -43,7 +43,7 @@ VENUE_URL_FIXES = {
     
     # San Francisco
     "Alcatraz Island": "https://www.nps.gov/alca/index.htm",
-    "Golden Gate Bridge": "https://www.goldengatebridge.org",
+    "Golden Gate Bridge": "https://www.goldengate.org",
     
     # London
     "British Museum": "https://www.britishmuseum.org",

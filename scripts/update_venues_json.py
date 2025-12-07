@@ -54,6 +54,7 @@ def update_venues_json():
                     "phone_number": venue.phone_number or "",
                     "email": venue.email or "",
                     "website_url": venue.website_url or "",
+                    "ticketing_url": venue.ticketing_url or "",
                     "instagram_url": venue.instagram_url or "",
                     "facebook_url": venue.facebook_url or "",
                     "twitter_url": venue.twitter_url or "",

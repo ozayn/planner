@@ -511,6 +511,13 @@ function generateDynamicVenueForm() {
             placeholder: 'https://www.venue.com'
         },
         {
+            id: 'venueTicketing',
+            name: 'ticketing_url',
+            label: 'Ticketing URL',
+            type: 'url',
+            placeholder: 'https://www.eventbrite.com/... or https://www.ticketmaster.com/...'
+        },
+        {
             id: 'venueAdmission',
             name: 'admission_fee',
             label: 'Admission Fee',
