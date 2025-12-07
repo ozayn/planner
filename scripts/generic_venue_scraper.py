@@ -96,6 +96,9 @@ class GenericVenueScraper:
         
         # Cloudscraper instance (created on demand)
         self._cloudscraper = None
+        
+        # Initialize selectors and patterns
+        self._initialize_selectors()
     
     def _get_cloudscraper(self, base_url=None):
         """Get or create a cloudscraper instance with enhanced headers"""
@@ -186,7 +189,9 @@ class GenericVenueScraper:
                 logger.debug(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
         
         return None
-        
+    
+    def _initialize_selectors(self):
+        """Initialize event selectors and patterns"""
         # Museum-specific event selectors (prioritized for museums)
         self.museum_event_selectors = [
             # Exhibition selectors (highest priority for museums)
@@ -283,6 +288,7 @@ class GenericVenueScraper:
             List of event dictionaries
         """
         events = []
+        llm_fallback_used = False  # Track if we've already used LLM fallback
         
         try:
             logger.info(f"🔍 Generic scraper: Starting scrape for {venue_url}")
@@ -297,13 +303,24 @@ class GenericVenueScraper:
             # Scrape each event page
             for i, page_url in enumerate(event_pages, 1):
                 logger.info(f"   Scraping event page {i}/{len(event_pages)}: {page_url}")
-                page_events = self._scrape_event_page(page_url, venue_name, event_type, time_range)
+                page_events = self._scrape_event_page(
+                    page_url, venue_name, event_type, time_range, 
+                    use_llm_fallback=not llm_fallback_used
+                )
+                # If LLM fallback was used and returned events, mark it
+                if page_events and any(e.get('llm_extracted') for e in page_events):
+                    llm_fallback_used = True
                 logger.info(f"      Found {len(page_events)} events on this page")
                 events.extend(page_events)
             
-            # Also scrape the main page
+            # Also scrape the main page (only use LLM if not already used)
             logger.info(f"   Scraping main page: {venue_url}")
-            main_events = self._scrape_event_page(venue_url, venue_name, event_type, time_range)
+            main_events = self._scrape_event_page(
+                venue_url, venue_name, event_type, time_range,
+                use_llm_fallback=not llm_fallback_used
+            )
+            if main_events and any(e.get('llm_extracted') for e in main_events):
+                llm_fallback_used = True
             logger.info(f"      Found {len(main_events)} events on main page")
             events.extend(main_events)
             
@@ -326,11 +343,35 @@ class GenericVenueScraper:
     def _discover_event_pages(self, base_url: str) -> List[str]:
         """Discover event listing pages from the main page"""
         event_pages = []
+        seen_urls = set()
         
         try:
+            # First, try common paths directly (many museums use standard paths)
+            common_paths = [
+                '/exhibitions', '/exhibition', '/exhibitions/current', '/exhibitions/on-view',
+                '/events', '/event', '/calendar', '/programs', '/program',
+                '/whats-on', '/whats-on/current', '/whats-on/exhibitions',
+                '/visit/exhibitions', '/see/exhibitions', '/explore/exhibitions',
+                '/collection/exhibitions', '/art/exhibitions',
+                '/current-exhibitions', '/upcoming-exhibitions', '/on-view',
+                '/gallery', '/galleries', '/shows', '/shows/current'
+            ]
+            
+            parsed_base = urlparse(base_url)
+            base_domain = f"{parsed_base.scheme}://{parsed_base.netloc}"
+            
+            # Try common paths first (fast and often works)
+            for path in common_paths:
+                test_url = base_domain + path
+                if test_url not in seen_urls:
+                    seen_urls.add(test_url)
+                    event_pages.append(test_url)
+            
+            # Then fetch the main page and discover links
             response = self._fetch_with_retry(base_url, base_url=base_url)
             if not response:
-                return event_pages
+                logger.info(f"📄 Discovered {len(event_pages)} potential event pages (from common paths)")
+                return event_pages[:10]  # Return common paths even if main page fails
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -342,7 +383,7 @@ class GenericVenueScraper:
                 'talks', 'lectures', 'gallery-talks', 'curator-talks',
                 'tours', 'guided-tours', 'workshops', 'classes',
                 'whats-on', 'what\'s-on', 'whats-on', 'visit', 'see',
-                'schedule', 'upcoming', 'current', 'featured'
+                'schedule', 'upcoming', 'current', 'featured', 'shows'
             ]
             
             # General event keywords (fallback)
@@ -365,7 +406,8 @@ class GenericVenueScraper:
                         # Clean up URL (remove fragments, query params that are just tracking)
                         parsed = urlparse(full_url)
                         clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-                        if clean_url not in event_pages and clean_url != base_url:
+                        if clean_url not in seen_urls and clean_url != base_url:
+                            seen_urls.add(clean_url)
                             event_pages.append(clean_url)
             
             # Then check all other links
@@ -377,19 +419,165 @@ class GenericVenueScraper:
                     full_url = urljoin(base_url, href)
                     parsed = urlparse(full_url)
                     clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-                    if clean_url not in event_pages and clean_url != base_url:
+                    if clean_url not in seen_urls and clean_url != base_url:
+                        seen_urls.add(clean_url)
                         event_pages.append(clean_url)
+            
+            # Try to find sitemap and extract exhibition/event URLs
+            try:
+                sitemap_urls = [
+                    urljoin(base_url, '/sitemap.xml'),
+                    urljoin(base_url, '/sitemap_index.xml'),
+                    urljoin(base_url, '/sitemap-exhibitions.xml'),
+                    urljoin(base_url, '/sitemap-events.xml')
+                ]
+                for sitemap_url in sitemap_urls:
+                    try:
+                        sitemap_response = self._fetch_with_retry(sitemap_url, base_url=base_url, timeout=5)
+                        if sitemap_response and sitemap_response.status_code == 200:
+                            sitemap_soup = BeautifulSoup(sitemap_response.content, 'xml')
+                            # Find URLs in sitemap
+                            for url_tag in sitemap_soup.find_all('url'):
+                                loc = url_tag.find('loc')
+                                if loc:
+                                    url_text = loc.get_text()
+                                    if any(keyword in url_text.lower() for keyword in ['exhibition', 'event', 'program', 'show']):
+                                        parsed = urlparse(url_text)
+                                        clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                                        if clean_url not in seen_urls and clean_url != base_url:
+                                            seen_urls.add(clean_url)
+                                            event_pages.append(clean_url)
+                            logger.info(f"   Found {len([e for e in event_pages if sitemap_url in str(e)])} URLs from sitemap")
+                            break  # Found a sitemap, no need to try others
+                    except:
+                        continue
+            except Exception as sitemap_error:
+                logger.debug(f"Error checking sitemap: {sitemap_error}")
             
             logger.info(f"📄 Discovered {len(event_pages)} potential event pages")
             
         except Exception as e:
             logger.debug(f"Error discovering event pages: {e}")
         
-        return event_pages[:5]  # Limit to 5 pages
+        return event_pages[:10]  # Increased limit to 10 pages
+    
+    def _is_javascript_rendered(self, soup: BeautifulSoup) -> bool:
+        """Detect if a page is JavaScript-rendered (SPA) with minimal HTML content"""
+        try:
+            # Check for very few links (JavaScript-rendered pages often have minimal HTML)
+            all_links = soup.find_all('a', href=True)
+            page_text = soup.get_text()
+            text_length = len(page_text.strip())
+            
+            # If page has very few links (< 5) and very little text (< 500 chars), likely JS-rendered
+            if len(all_links) < 5 and text_length < 500:
+                logger.info(f"⚠️  Detected JavaScript-rendered page: {len(all_links)} links, {text_length} chars of text")
+                return True
+            
+            # Also check if page has common SPA indicators
+            scripts = soup.find_all('script')
+            has_react = any('react' in str(script).lower() or 'react-dom' in str(script).lower() for script in scripts)
+            has_vue = any('vue' in str(script).lower() for script in scripts)
+            has_angular = any('angular' in str(script).lower() for script in scripts)
+            has_nextjs = any('__next' in str(script).lower() or 'next.js' in str(script).lower() for script in scripts)
+            
+            if (has_react or has_vue or has_angular or has_nextjs) and len(all_links) < 10:
+                logger.info(f"⚠️  Detected SPA framework (React/Vue/Angular/Next.js) with minimal links")
+                return True
+            
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking if page is JS-rendered: {e}")
+            return False
+    
+    def _use_llm_fallback_for_venue(self, venue_url: str, venue_name: str = None, 
+                                    event_type: str = None) -> List[Dict]:
+        """Use LLM fallback to extract events when web scraping fails"""
+        events = []
+        
+        try:
+            logger.info(f"🤖 Using LLM fallback for {venue_name or venue_url}")
+            
+            from scripts.enhanced_llm_fallback import EnhancedLLMFallback
+            llm = EnhancedLLMFallback(silent=True)
+            
+            prompt = f"""I need to find current and upcoming exhibitions/events at {venue_name or 'this museum'} (website: {venue_url}).
+
+The website appears to be JavaScript-rendered, so I cannot scrape it directly. Based on your knowledge, can you help me find:
+
+1. Current and upcoming exhibitions with their dates
+2. Any special events or programs
+
+Please provide a JSON array of events with this structure:
+[
+    {{
+        "title": "exhibition or event name",
+        "description": "brief description",
+        "start_date": "YYYY-MM-DD or null",
+        "end_date": "YYYY-MM-DD or null",
+        "event_type": "exhibition or event",
+        "url": "{venue_url}/exhibitions/... or similar"
+    }}
+]
+
+Important:
+- Return ONLY valid JSON array, no other text
+- Include only current or upcoming events (not past)
+- Use null for missing dates
+- Be as accurate as possible based on your knowledge"""
+
+            response = llm.query_with_fallback(prompt)
+            
+            if response and response.get('success') and response.get('content'):
+                content = response['content']
+                # Try to extract JSON from response
+                import json
+                import re
+                
+                # Look for JSON array in the response
+                json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                if json_match:
+                    try:
+                        llm_events = json.loads(json_match.group())
+                        for event_data in llm_events:
+                            event = {
+                                'title': event_data.get('title', ''),
+                                'description': event_data.get('description', ''),
+                                'start_date': event_data.get('start_date'),
+                                'end_date': event_data.get('end_date'),
+                                'event_type': event_data.get('event_type', event_type or 'exhibition'),
+                                'url': event_data.get('url', venue_url),
+                                'venue_name': venue_name,
+                                'llm_extracted': True,
+                                'confidence': 'medium'
+                            }
+                            if event['title']:
+                                events.append(event)
+                        logger.info(f"✅ LLM fallback extracted {len(events)} events")
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse LLM JSON response: {e}")
+                else:
+                    logger.warning("LLM response did not contain valid JSON array")
+            else:
+                logger.warning("LLM fallback did not return valid response")
+                
+        except Exception as e:
+            logger.debug(f"Error in LLM fallback: {e}")
+        
+        return events
     
     def _scrape_event_page(self, url: str, venue_name: str = None, 
-                          event_type: str = None, time_range: str = 'this_month') -> List[Dict]:
-        """Scrape events from a single page"""
+                          event_type: str = None, time_range: str = 'this_month',
+                          use_llm_fallback: bool = True) -> List[Dict]:
+        """Scrape events from a single page
+        
+        Args:
+            url: Page URL to scrape
+            venue_name: Optional venue name
+            event_type: Optional event type filter
+            time_range: Time range filter
+            use_llm_fallback: Whether to use LLM fallback if page is JS-rendered (default: True)
+        """
         events = []
         
         try:
@@ -403,6 +591,15 @@ class GenericVenueScraper:
             html_content = response.text
             
             soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Check if page is JavaScript-rendered
+            if self._is_javascript_rendered(soup) and use_llm_fallback:
+                logger.info(f"⚠️  Page appears to be JavaScript-rendered, trying LLM fallback...")
+                # Try LLM fallback for the main venue URL
+                llm_events = self._use_llm_fallback_for_venue(base_url, venue_name, event_type)
+                if llm_events:
+                    return llm_events
+                # Continue with normal extraction as fallback
             
             # Museum-specific: Check for exhibition listing pages (highest priority)
             url_lower = url.lower()

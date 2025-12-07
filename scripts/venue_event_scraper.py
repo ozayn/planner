@@ -736,6 +736,8 @@ class VenueEventScraper:
                         continue
             
             # Look for event pages (for performances, concerts, talks, etc.) - not exhibitions
+            # Initialize event_links list first
+            event_links = []
             # Only if event_type is not 'exhibition' or None (all types)
             if not event_type or event_type.lower() != 'exhibition':
                 # Look for /event/ URLs (Hirshhorn, etc.)
