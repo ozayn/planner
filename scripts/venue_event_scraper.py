@@ -4346,6 +4346,32 @@ class VenueEventScraper:
                     logger.info(f"📅 Found date in h2 after h1: {h2_text}")
                     return h2_text
         
+        # Special handling for SFMOMA: dates are often in specific divs or spans
+        # Look for common SFMOMA date patterns first
+        sfmoma_date_selectors = [
+            '.exhibition-date-range',
+            '.date-range',
+            '.exhibition-meta .date',
+            '.exhibition-header .date',
+            '[data-date-range]',
+            '.hero-meta .date',
+            '.exhibition-info .date'
+        ]
+        
+        for selector in sfmoma_date_selectors:
+            element = soup.select_one(selector)
+            if element:
+                date_text = element.get_text(strip=True)
+                if date_text and len(date_text) > 5:
+                    # Check if it's a date range (contains dash or date pattern)
+                    if '–' in date_text or '—' in date_text or ('-' in date_text and len(date_text.split('-')) > 1):
+                        logger.info(f"📅 Found SFMOMA date in {selector}: {date_text}")
+                        return date_text
+                    # Also check for date patterns even without dash (might be formatted differently)
+                    if re.search(r'[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}', date_text):
+                        logger.info(f"📅 Found SFMOMA date pattern in {selector}: {date_text}")
+                        return date_text
+        
         # Look for date patterns in various places
         date_selectors = [
             '.exhibition-dates',
@@ -4372,13 +4398,22 @@ class VenueEventScraper:
         # Second pass: Look for date ranges in page text (prioritize ranges)
         page_text = soup.get_text()
         date_range_patterns = [
-            r'([A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4})',  # November 28, 2025–May 29, 2026 (full month names with commas)
-            r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14–May 9, 2021
-            r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*\d{1,2},\s*\d{4})',  # Feb 14–9, 2021
-            r'([A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14, 2021–May 9, 2021
-            r'(\d{1,2}/\d{1,2}/\d{4}[–—\-]\d{1,2}/\d{1,2}/\d{4})',  # 2/14/2021–5/9/2021
-            r'([A-Z][a-z]{2,8}\s+\d{1,2}\s*[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',  # Feb 14 – May 9, 2021 (with spaces)
-            r'(\d{4}-\d{2}-\d{2}[–—\-]\d{4}-\d{2}-\d{2})',  # 2024-03-15–2024-06-20 (ISO format)
+            # SFMOMA format: "January 17, 2026 – May 3, 2026" (with commas, spaces, and en-dash)
+            r'([A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4}\s*[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4})',
+            # Full month names with commas: "November 28, 2025–May 29, 2026"
+            r'([A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,9}\s+\d{1,2},\s*\d{4})',
+            # Abbreviated: "Feb 14–May 9, 2021"
+            r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',
+            # Same month: "Feb 14–9, 2021"
+            r'([A-Z][a-z]{2,8}\s+\d{1,2}[–—\-]\s*\d{1,2},\s*\d{4})',
+            # With commas: "Feb 14, 2021–May 9, 2021"
+            r'([A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4}[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',
+            # Numeric: "2/14/2021–5/9/2021"
+            r'(\d{1,2}/\d{1,2}/\d{4}[–—\-]\d{1,2}/\d{1,2}/\d{4})',
+            # With spaces: "Feb 14 – May 9, 2021"
+            r'([A-Z][a-z]{2,8}\s+\d{1,2}\s*[–—\-]\s*[A-Z][a-z]{2,8}\s+\d{1,2},\s*\d{4})',
+            # ISO format: "2024-03-15–2024-06-20"
+            r'(\d{4}-\d{2}-\d{2}[–—\-]\d{4}-\d{2}-\d{2})',
         ]
         
         for pattern in date_range_patterns:
@@ -4488,27 +4523,53 @@ class VenueEventScraper:
             # Pattern 2: "Feb 14–May 9, 2021" or "January 17–May 3, 2026" or "Jan 24 – Aug 2, 2026" (same year)
             # Support both abbreviated (Jan) and full (January) month names
             # Note: Allow optional comma after first date and flexible whitespace around dash
+            # Also handle SFMOMA format: "January 17, 2026 – May 3, 2026" (with commas and spaces)
             if not start_date:
-                range_pattern = r'([A-Z][a-z]{2,9})\s+(\d{1,2}),?\s*[–—\-]\s*([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})'
-                match = re.search(range_pattern, date_text)
+                # Try pattern with commas first (SFMOMA format)
+                range_pattern_with_commas = r'([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})\s*[–—\-]\s*([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})'
+                match = re.search(range_pattern_with_commas, date_text)
                 
                 if match:
                     start_month_name = match.group(1)
                     start_day = int(match.group(2))
-                    end_month_name = match.group(3)
-                    end_day = int(match.group(4))
-                    year = int(match.group(5))
+                    start_year = int(match.group(3))
+                    end_month_name = match.group(4)
+                    end_day = int(match.group(5))
+                    end_year = int(match.group(6))
                     
                     start_month = month_map.get(start_month_name.lower())
                     end_month = month_map.get(end_month_name.lower())
                     
                     if start_month and end_month:
                         try:
-                            start_date = date(year, start_month, start_day)
-                            end_date = date(year, end_month, end_day)
-                            logger.info(f"📅 Parsed exhibition dates (same year): {start_date.isoformat()} to {end_date.isoformat()}")
+                            start_date = date(start_year, start_month, start_day)
+                            end_date = date(end_year, end_month, end_day)
+                            logger.info(f"📅 Parsed exhibition dates (with commas, different years): {start_date.isoformat()} to {end_date.isoformat()}")
                         except ValueError as e:
                             logger.debug(f"Invalid date values: {e}")
+                
+                # If that didn't match, try the original pattern without commas
+                if not start_date:
+                    range_pattern = r'([A-Z][a-z]{2,9})\s+(\d{1,2}),?\s*[–—\-]\s*([A-Z][a-z]{2,9})\s+(\d{1,2}),\s*(\d{4})'
+                    match = re.search(range_pattern, date_text)
+                    
+                    if match:
+                        start_month_name = match.group(1)
+                        start_day = int(match.group(2))
+                        end_month_name = match.group(3)
+                        end_day = int(match.group(4))
+                        year = int(match.group(5))
+                        
+                        start_month = month_map.get(start_month_name.lower())
+                        end_month = month_map.get(end_month_name.lower())
+                        
+                        if start_month and end_month:
+                            try:
+                                start_date = date(year, start_month, start_day)
+                                end_date = date(year, end_month, end_day)
+                                logger.info(f"📅 Parsed exhibition dates (same year): {start_date.isoformat()} to {end_date.isoformat()}")
+                            except ValueError as e:
+                                logger.debug(f"Invalid date values: {e}")
             
             # Pattern 3: "Feb 14–9, 2021" or "January 17–3, 2026" (same month, different days)
             # Support both abbreviated (Jan) and full (January) month names
