@@ -4,7 +4,7 @@
     "created": "2025-12-07",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 198,
-    "last_updated": "2025-12-07 17:24:30"
+    "last_updated": "2025-12-07 17:25:26"
   },
   "venues": {
     "1": {
@@ -1119,7 +1119,7 @@
       "phone_number": "(202) 682-1740",
       "email": "",
       "website_url": "https://www.eventbrite.com/d/dc--washington/canadian-embassy/",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/d/dc--washington/canadian-embassy/",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1130,7 +1130,7 @@
       "latitude": 38.8938,
       "longitude": -77.0186,
       "created_at": "2025-10-08T20:42:31.667086",
-      "updated_at": "2025-12-07T22:14:11.920739"
+      "updated_at": "2025-12-07T22:25:26.139694"
     },
     "47": {
       "name": "Embassy of Spain",
@@ -1294,7 +1294,7 @@
       "phone_number": "(202) 939-5600",
       "email": "",
       "website_url": "https://www.eventbrite.com/o/korean-cultural-center-washington-dc-30268623512",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/korean-cultural-center-washington-dc-30268623512",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1305,7 +1305,7 @@
       "latitude": 38.9101,
       "longitude": -77.0469,
       "created_at": "2025-10-08T20:42:31.667223",
-      "updated_at": "2025-12-07T22:21:17.457260"
+      "updated_at": "2025-12-07T22:25:26.139698"
     },
     "54": {
       "name": "Embassy of Sweden",
