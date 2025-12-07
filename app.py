@@ -2910,22 +2910,48 @@ def admin_venues():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/migrate-schema', methods=['POST'])
-@login_required
-def migrate_schema():
-    """Manually trigger schema migration for events table"""
+@app.route('/api/admin/migrate-venues-schema', methods=['POST'])
+def migrate_venues_schema_endpoint():
+    """Public endpoint to migrate venues schema (for emergency fixes)"""
     try:
-        success, message, added_columns = migrate_events_schema()
+        success, message, added_columns = migrate_venues_schema()
         if success:
             return jsonify({
                 'success': True,
                 'message': message,
-                'added_columns': added_columns
+                'added_columns': added_columns or []
             })
         else:
             return jsonify({
                 'success': False,
                 'error': message
+            }), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/migrate-schema', methods=['POST'])
+@login_required
+def migrate_schema():
+    """Manually trigger schema migration for events and venues tables"""
+    try:
+        # Migrate events table
+        success, message, added_columns = migrate_events_schema()
+        events_message = message
+        
+        # Migrate venues table
+        venues_success, venues_message, venues_columns = migrate_venues_schema()
+        
+        if success and venues_success:
+            return jsonify({
+                'success': True,
+                'message': f'Events: {events_message}. Venues: {venues_message}',
+                'added_columns': (added_columns or []) + (venues_columns or [])
+            })
+        else:
+            error_msg = f'Events: {events_message}. Venues: {venues_message}'
+            return jsonify({
+                'success': False,
+                'error': error_msg
             }), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
