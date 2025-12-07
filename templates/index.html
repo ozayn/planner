@@ -2387,7 +2387,14 @@
 
                     <div class="form-group" id="maxEventsGroup">
                         <label for="maxEventsPerVenue">Max Events per Venue</label>
-                        <input type="number" id="maxEventsPerVenue" min="1" max="50" value="10" style="padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); width: 100%;">
+                        <select id="maxEventsPerVenue" style="padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); width: 100%;">
+                            <option value="all" selected>All</option>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
                     </div>
 
                     <div class="form-group" id="customDateGroup" style="display: none;">
@@ -4926,15 +4933,18 @@
                 // Add max_events_per_venue for all event types
                 const maxEventsInput = document.getElementById('maxEventsPerVenue');
                 if (maxEventsInput) {
-                    const maxEvents = parseInt(maxEventsInput.value) || 10;
+                    const maxEventsValue = maxEventsInput.value;
+                    // Handle "all" option - use a very high number to effectively remove the limit
+                    const maxEvents = maxEventsValue === 'all' ? 9999 : parseInt(maxEventsValue) || 10;
                     requestBody.max_events_per_venue = maxEvents;
-                    console.log(`📊 Frontend: Setting max_events_per_venue to ${maxEvents} from input value: ${maxEventsInput.value}`);
+                    console.log(`📊 Frontend: Setting max_events_per_venue to ${maxEvents} from select value: ${maxEventsValue}`);
                     // Also set max_exhibitions_per_venue for backward compatibility with exhibitions
                     if (eventType === 'exhibition' || !eventType) {
                         requestBody.max_exhibitions_per_venue = maxEvents;
                     }
                 } else {
-                    console.warn('⚠️ Frontend: maxEventsPerVenue input not found, using default 10');
+                    console.warn('⚠️ Frontend: maxEventsPerVenue select not found, using default 9999 (all)');
+                    requestBody.max_events_per_venue = 9999;
                 }
                 
                 console.log('📤 Frontend: Sending request body:', JSON.stringify(requestBody, null, 2));
