@@ -18,7 +18,16 @@ async function loadSources() {
         }
         
         // Handle both array and object with sources property
-        window.allSources = Array.isArray(data) ? data : (data.sources || []);
+        let sources = Array.isArray(data) ? data : (data.sources || []);
+        
+        // Sort by most recently updated first (descending)
+        sources.sort((a, b) => {
+            const aDate = new Date(a.updated_at || a.created_at || 0);
+            const bDate = new Date(b.updated_at || b.created_at || 0);
+            return bDate - aDate; // Descending order (most recent first)
+        });
+        
+        window.allSources = sources;
         window.filteredSources = null; // Reset filters
         
         populateSourceFilters();
@@ -142,6 +151,13 @@ function applySourceFilters() {
         const matchesCity = !cityFilter || source.city_id == cityFilter;
         
         return matchesSearch && matchesType && matchesCity;
+    });
+    
+    // Sort by most recently updated first (descending) - default sort order
+    window.filteredSources.sort((a, b) => {
+        const aDate = new Date(a.updated_at || a.created_at || 0);
+        const bDate = new Date(b.updated_at || b.created_at || 0);
+        return bDate - aDate; // Descending order (most recent first)
     });
     
     // Update filter summary

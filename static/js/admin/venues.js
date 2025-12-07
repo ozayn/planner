@@ -19,6 +19,13 @@ async function loadVenues() {
         
         if (venues.error) throw new Error(venues.error);
         
+        // Sort by most recently updated first (descending)
+        venues.sort((a, b) => {
+            const aDate = new Date(a.updated_at || a.created_at || 0);
+            const bDate = new Date(b.updated_at || b.created_at || 0);
+            return bDate - aDate; // Descending order (most recent first)
+        });
+        
         // Store venues globally for filtering
         window.allVenues = venues;
         window.filteredVenues = [...venues];
@@ -318,9 +325,9 @@ function applyVenueFilters() {
         return matchesSearch && matchesType && matchesCity && matchesFee && matchesClosure;
     });
     
-    // Apply sorting if specified
-    if (sortBy) {
-        window.filteredVenues.sort((a, b) => {
+    // Apply sorting - default to most recently updated first if no sort specified
+    window.filteredVenues.sort((a, b) => {
+        if (sortBy) {
             switch(sortBy) {
                 case 'name':
                     return (a.name || '').localeCompare(b.name || '');
@@ -339,10 +346,18 @@ function applyVenueFilters() {
                 case 'city_name':
                     return (a.city_name || '').localeCompare(b.city_name || '');
                 default:
-                    return 0;
+                    // Default to most recently updated first
+                    const aDate = new Date(a.updated_at || a.created_at || 0);
+                    const bDate = new Date(b.updated_at || b.created_at || 0);
+                    return bDate - aDate;
             }
-        });
-    }
+        } else {
+            // Default to most recently updated first
+            const aDate = new Date(a.updated_at || a.created_at || 0);
+            const bDate = new Date(b.updated_at || b.created_at || 0);
+            return bDate - aDate;
+        }
+    });
     
     renderVenuesTable();
 }

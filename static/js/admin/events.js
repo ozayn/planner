@@ -19,6 +19,13 @@ async function loadEvents() {
         
         if (events.error) throw new Error(events.error);
         
+        // Sort by most recently updated first (descending)
+        events.sort((a, b) => {
+            const aDate = new Date(a.updated_at || a.created_at || 0);
+            const bDate = new Date(b.updated_at || b.created_at || 0);
+            return bDate - aDate; // Descending order (most recent first)
+        });
+        
         // Store events globally for filtering
         window.allEvents = events;
         window.filteredEvents = [...events];
@@ -556,6 +563,13 @@ function applyEventFilters() {
         const matchesVenue = !venueFilter || event.venue_name === venueFilter;
         
         return matchesSearch && matchesType && matchesCity && matchesVenue;
+    });
+    
+    // Sort by most recently updated first (descending) - default sort order
+    window.filteredEvents.sort((a, b) => {
+        const aDate = new Date(a.updated_at || a.created_at || 0);
+        const bDate = new Date(b.updated_at || b.created_at || 0);
+        return bDate - aDate; // Descending order (most recent first)
     });
     
     // Update filter summary

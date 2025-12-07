@@ -6,6 +6,13 @@ async function loadCities() {
         
         if (cities.error) throw new Error(cities.error);
         
+        // Sort by most recently updated first (descending)
+        cities.sort((a, b) => {
+            const aDate = new Date(a.updated_at || a.created_at || 0);
+            const bDate = new Date(b.updated_at || b.created_at || 0);
+            return bDate - aDate; // Descending order (most recent first)
+        });
+        
         // Store cities globally for filtering
         window.allCities = cities;
         window.filteredCities = [...cities];
@@ -131,6 +138,13 @@ function applyCityFilters() {
         })();
         
         return matchesSearch && matchesCountry && matchesVenue;
+    });
+    
+    // Sort by most recently updated first (descending) - default sort order
+    window.filteredCities.sort((a, b) => {
+        const aDate = new Date(a.updated_at || a.created_at || 0);
+        const bDate = new Date(b.updated_at || b.created_at || 0);
+        return bDate - aDate; // Descending order (most recent first)
     });
     
     renderCitiesTable();
