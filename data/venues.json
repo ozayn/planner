@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-12-07",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 201,
-    "last_updated": "2025-12-07 17:14:12"
+    "total_venues": 198,
+    "last_updated": "2025-12-07 17:18:49"
   },
   "venues": {
     "1": {
@@ -4039,30 +4039,6 @@
       "created_at": "2025-10-08T20:42:31.678158",
       "updated_at": "2025-12-07T22:05:15.659318"
     },
-    "170": {
-      "name": "Nassau Hall",
-      "venue_type": "historic_site",
-      "address": "Princeton University, Princeton, NJ 08544",
-      "city_id": 22,
-      "city_name": "Princeton",
-      "description": "Historic building built in 1756, served as the temporary U.S. Capitol and is now the administrative center of Princeton University.",
-      "opening_hours": "9:00 AM - 5:00 PM (Mon-Fri)",
-      "holiday_hours": "",
-      "phone_number": "(609) 258-3000",
-      "email": "visitor@princeton.edu",
-      "website_url": "https://www.princeton.edu/about/history/nassau-hall",
-      "instagram_url": "https://www.instagram.com/princeton",
-      "facebook_url": "https://www.facebook.com/Princeton",
-      "twitter_url": "https://twitter.com/Princeton",
-      "youtube_url": "",
-      "tiktok_url": "",
-      "admission_fee": "",
-      "image_url": "AciIO2ejNSNXd3LLvAW9eunqpo35Dfe7NTo0JFVlifK1CJ8ZSaS1SOPNDg_hOkBMFqpMVoEDZEEM9iroq7uEIfDTqeVo2sJhrdPTBExhJho4MO3iBdsnzebet-trVjARixggpHgnuU1P6IFz8iM9Y7raKU_40w9GA7Bq-SUPoUgcV1aZmyiIvCuk8zGNRf3CtBgMJeT461M-ORcog0Hq6Pk6TrDwE-S5Bx9PlXFq29gn1hKfCgZvjoRzLwTT32sDYsXolCH7B4j5nt71Wr3FU-FgaVuHuFzWLx7CfNqoOH4LnHNSu1TPZ3KmkIZU6L7VB3w3iMhEwSaQ9_Pdurx9boPwhFGgm162pC616i3XrxjHHvj-wbHAsssGfcpguzwPQmimEATByYJHRLlf7nKKo8O9xuUgsn0g2-MX-U6cQeYKEsfq4Q",
-      "latitude": null,
-      "longitude": null,
-      "created_at": "2025-10-08T20:42:31.678184",
-      "updated_at": "2025-12-07T22:12:26.896298"
-    },
     "171": {
       "name": "Palmer Square",
       "venue_type": "shopping",
@@ -4110,30 +4086,6 @@
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678224",
       "updated_at": "2025-12-04T16:52:13.749385"
-    },
-    "173": {
-      "name": "Princeton Cemetery",
-      "venue_type": "historic_site",
-      "address": "29 Greenview Ave, Princeton, NJ 08542",
-      "city_id": 22,
-      "city_name": "Princeton",
-      "description": "Historic cemetery established in 1757, final resting place of many notable figures including Aaron Burr and Grover Cleveland.",
-      "opening_hours": "7:00 AM - 7:00 PM (Daily)",
-      "holiday_hours": "",
-      "phone_number": "(609) 924-1369",
-      "email": "info@princetoncemetery.org",
-      "website_url": "https://www.princeton.edu/visit/princeton-cemetery",
-      "instagram_url": "",
-      "facebook_url": "",
-      "twitter_url": "",
-      "youtube_url": "",
-      "tiktok_url": "",
-      "admission_fee": "",
-      "image_url": "AciIO2fSCcpl_ZtfAHx2N3p_4Z2MmsvfW8XEUr9khza5XMUGRZv4tksNKBpHquRh_Wq8gcjrMmAHsEgrW-DEok_wbVIfLEzYXB9QfLfXGcRlcIySOfE21aHmWAsPAzUpB07MNjE2jrPdbOw3yyFdQ83AcE5kacWdkqtKjiU8zDVIWayaj1G_R5ZXP6hapaWYq-uB_qKazJlH7jNmx0tbzioZAjTXDYLrwAWwS4OvYR8dExni--d3IxUsxH9Bjj40Y74VSiWyJQI6SAYSw85syqT6KzuLgspUkZiDBoGB620mFVCD0rEjbeDPB_vISeWKQDv6ZMpKdLUJhQm9cxWx6fvxwx5mJZ-_2yWrelw3fz7tEBhC3RPBsV_KbJk-oczcBNv2WViiKkTP1GjSlPZ5bt73596AXzqbdXBfd3qVOT87lWSQjGw",
-      "latitude": null,
-      "longitude": null,
-      "created_at": "2025-10-08T20:42:31.678243",
-      "updated_at": "2025-12-07T22:12:26.896930"
     },
     "174": {
       "name": "Princeton Public Library",
@@ -4206,30 +4158,6 @@
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678300",
       "updated_at": "2025-12-04T16:52:13.750167"
-    },
-    "177": {
-      "name": "Princeton University Store",
-      "venue_type": "shopping",
-      "address": "36 University Pl, Princeton, NJ 08540",
-      "city_id": 22,
-      "city_name": "Princeton",
-      "description": "University bookstore offering Princeton merchandise, textbooks, clothing, and gifts in a historic building.",
-      "opening_hours": "9:00 AM - 7:00 PM (Mon-Fri), 10:00 AM - 6:00 PM (Sat), 11:00 AM - 5:00 PM (Sun)",
-      "holiday_hours": "",
-      "phone_number": "(609) 921-8500",
-      "email": "customer.service@princeton.edu",
-      "website_url": "https://store.princeton.edu/",
-      "instagram_url": "https://www.instagram.com/princetonstore",
-      "facebook_url": "https://www.facebook.com/PrincetonUniversityStore",
-      "twitter_url": "",
-      "youtube_url": "",
-      "tiktok_url": "",
-      "admission_fee": "",
-      "image_url": "AciIO2eVOA9p-JTRdhwllJPMsuA3qHGyIy5nMdyJbFu4UqRR1EhfFEFLX9Qii7KSFGV1xDH5AkvNFKiCPcrenjvxCQBhuJn8Qj-BZnp96GxQgvPXGODtinzCOxin2t2iN-c5YPR3VGcA6hFfORcGxPWnQ2lc3VKJ20FrIFE8GS2rn2SbpsZYgWFdlntD42XiP0-Rk68a5Es9WkM2leEkCa1s4O30cXkY7Y3KNnQD2IiHmketSTGSnsPdOgVnuiS3N9O_CBkEdS3zmM33KPHGo8I684trlU1esA99VmapLd6AfnAYvzuWNd0zUx86VKSAcMMZzjlJl2JK8MMs1wuCoOOjbtoYzrw5cpipMdUyhLtB1kilVTBZ8u2Uj8UfjAMnQu9-O1LflkE6BCJAyWre9FcrPkoEOYP6HhMw52AnerzuMn_3Yg",
-      "latitude": null,
-      "longitude": null,
-      "created_at": "2025-10-08T20:42:31.678318",
-      "updated_at": "2025-12-07T22:12:26.897660"
     },
     "178": {
       "name": "AFI Silver Theatre and Cultural Center",
