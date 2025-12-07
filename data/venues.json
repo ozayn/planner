@@ -4,7 +4,7 @@
     "created": "2025-12-07",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 201,
-    "last_updated": "2025-12-07 17:06:01"
+    "last_updated": "2025-12-07 17:12:26"
   },
   "venues": {
     "1": {
@@ -1074,7 +1074,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 682-1740",
       "email": "",
-      "website_url": "https://www.canadainternational.gc.ca/washington",
+      "website_url": "https://international.gc.ca/world-monde/united_states-etats_unis/washington.aspx",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1085,7 +1085,7 @@
       "latitude": 38.8938,
       "longitude": -77.0186,
       "created_at": "2025-10-08T20:42:31.667086",
-      "updated_at": "2025-12-04T16:52:13.723228"
+      "updated_at": "2025-12-07T22:12:26.891657"
     },
     "47": {
       "name": "Embassy of Spain",
@@ -1218,7 +1218,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 728-1600",
       "email": "",
-      "website_url": "https://embamex.sre.gob.mx/eua",
+      "website_url": "https://embamex.sre.gob.mx/eua/index.php/en/",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1229,7 +1229,7 @@
       "latitude": 38.9015,
       "longitude": -77.0432,
       "created_at": "2025-10-08T20:42:31.667204",
-      "updated_at": "2025-12-04T16:52:13.724465"
+      "updated_at": "2025-12-07T22:12:26.892777"
     },
     "53": {
       "name": "Embassy of South Korea",
@@ -1242,7 +1242,7 @@
       "holiday_hours": "",
       "phone_number": "(202) 939-5600",
       "email": "",
-      "website_url": "https://usa-mofa.go.kr/us-washington-en",
+      "website_url": "https://overseas.mofa.go.kr/us-washington-en/index.do",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1253,7 +1253,7 @@
       "latitude": 38.9101,
       "longitude": -77.0469,
       "created_at": "2025-10-08T20:42:31.667223",
-      "updated_at": "2025-12-04T16:52:13.724702"
+      "updated_at": "2025-12-07T22:12:26.893406"
     },
     "54": {
       "name": "Embassy of Sweden",
@@ -2514,7 +2514,7 @@
       "holiday_hours": "",
       "phone_number": "(305) 673-7714",
       "email": "info@miamibeachfl.gov",
-      "website_url": "https://www.southbeach.com",
+      "website_url": "https://www.miamibeach.gov/parks-recreation/beaches/south-beach",
       "instagram_url": "https://www.instagram.com/southbeach",
       "facebook_url": "https://www.facebook.com/SouthBeachMiami",
       "twitter_url": "https://twitter.com/SouthBeach",
@@ -2525,7 +2525,7 @@
       "latitude": 25.7907,
       "longitude": -80.13,
       "created_at": "2025-10-08T20:42:31.672872",
-      "updated_at": "2025-12-04T16:52:13.735501"
+      "updated_at": "2025-12-07T22:12:26.894119"
     },
     "107": {
       "name": "Vizcaya Museum and Gardens",
@@ -3306,7 +3306,7 @@
       "holiday_hours": "",
       "phone_number": "+1 514-398-7100",
       "email": "info@mccord-stewart.ca",
-      "website_url": "https://www.mccordmuseum.com",
+      "website_url": "https://www.mccord-stewart.ca/en/",
       "instagram_url": "https://www.instagram.com/mccordmuseum",
       "facebook_url": "https://www.facebook.com/McCordMuseum",
       "twitter_url": "https://twitter.com/McCordMuseum",
@@ -3317,7 +3317,7 @@
       "latitude": 45.5042,
       "longitude": -73.5708,
       "created_at": "2025-10-08T20:42:31.675544",
-      "updated_at": "2025-12-04T16:52:13.742358"
+      "updated_at": "2025-12-07T22:12:26.894673"
     },
     "140": {
       "name": "Montreal Museum of Fine Arts",
@@ -3738,7 +3738,7 @@
       "holiday_hours": "",
       "phone_number": "+98 21 6670 2061",
       "email": "info@nmi.ir",
-      "website_url": "https://www.nationalmuseumofiran.com",
+      "website_url": "https://www.museumiran.ir/",
       "instagram_url": "https://www.instagram.com/nationalmuseumiran",
       "facebook_url": "https://www.facebook.com/NationalMuseumIran",
       "twitter_url": "https://twitter.com/NationalMuseumIran",
@@ -3749,7 +3749,7 @@
       "latitude": 35.6892,
       "longitude": 51.3889,
       "created_at": "2025-10-08T20:42:31.677047",
-      "updated_at": "2025-12-04T16:52:13.746431"
+      "updated_at": "2025-12-07T22:12:26.895535"
     },
     "158": {
       "name": "Tehran Museum of Contemporary Art",
@@ -4050,7 +4050,7 @@
       "holiday_hours": "",
       "phone_number": "(609) 258-3000",
       "email": "visitor@princeton.edu",
-      "website_url": "https://www.princeton.edu/visit",
+      "website_url": "https://www.princeton.edu/about/history/nassau-hall",
       "instagram_url": "https://www.instagram.com/princeton",
       "facebook_url": "https://www.facebook.com/Princeton",
       "twitter_url": "https://twitter.com/Princeton",
@@ -4061,7 +4061,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678184",
-      "updated_at": "2025-12-04T16:52:13.748999"
+      "updated_at": "2025-12-07T22:12:26.896298"
     },
     "171": {
       "name": "Palmer Square",
@@ -4122,7 +4122,7 @@
       "holiday_hours": "",
       "phone_number": "(609) 924-1369",
       "email": "info@princetoncemetery.org",
-      "website_url": "https://www.princetoncemetery.org",
+      "website_url": "https://www.princeton.edu/visit/princeton-cemetery",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4133,7 +4133,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678243",
-      "updated_at": "2025-12-04T16:52:13.749573"
+      "updated_at": "2025-12-07T22:12:26.896930"
     },
     "174": {
       "name": "Princeton Public Library",
@@ -4218,7 +4218,7 @@
       "holiday_hours": "",
       "phone_number": "(609) 921-8500",
       "email": "customer.service@princeton.edu",
-      "website_url": "https://store.princeton.edu",
+      "website_url": "https://store.princeton.edu/",
       "instagram_url": "https://www.instagram.com/princetonstore",
       "facebook_url": "https://www.facebook.com/PrincetonUniversityStore",
       "twitter_url": "",
@@ -4229,7 +4229,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678318",
-      "updated_at": "2025-12-04T16:52:13.750360"
+      "updated_at": "2025-12-07T22:12:26.897660"
     },
     "178": {
       "name": "AFI Silver Theatre and Cultural Center",
@@ -4698,7 +4698,7 @@
       "holiday_hours": "",
       "phone_number": "(949) 923-2220",
       "email": "",
-      "website_url": "https://www.ocparks.com/parks/william-r-mason",
+      "website_url": "https://www.ocparks.com/parks/wmason",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -4709,7 +4709,7 @@
       "latitude": 33.6708,
       "longitude": -117.8447,
       "created_at": "2025-12-03T23:02:17.868838",
-      "updated_at": "2025-12-04T16:52:13.754423"
+      "updated_at": "2025-12-07T22:12:26.898418"
     },
     "198": {
       "name": "Orange County Museum of Art (OCMA)",
