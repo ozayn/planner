@@ -4,7 +4,7 @@
     "created": "2025-12-07",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 198,
-    "last_updated": "2025-12-07 17:21:17"
+    "last_updated": "2025-12-07 17:22:40"
   },
   "venues": {
     "1": {
@@ -2514,7 +2514,7 @@
       "holiday_hours": "",
       "phone_number": "(305) 673-7714",
       "email": "info@miamibeachfl.gov",
-      "website_url": "https://www.miamibeach.gov/parks-recreation/beaches/south-beach",
+      "website_url": "https://events.miamibeachfl.gov/",
       "instagram_url": "https://www.instagram.com/southbeach",
       "facebook_url": "https://www.facebook.com/SouthBeachMiami",
       "twitter_url": "https://twitter.com/SouthBeach",
@@ -2525,7 +2525,7 @@
       "latitude": 25.7907,
       "longitude": -80.13,
       "created_at": "2025-10-08T20:42:31.672872",
-      "updated_at": "2025-12-07T22:12:26.894119"
+      "updated_at": "2025-12-07T22:22:40.240577"
     },
     "107": {
       "name": "Vizcaya Museum and Gardens",
