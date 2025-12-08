@@ -515,7 +515,8 @@ function generateDynamicVenueForm() {
             name: 'ticketing_url',
             label: 'Ticketing URL',
             type: 'url',
-            placeholder: 'https://www.eventbrite.com/... or https://www.ticketmaster.com/...'
+            placeholder: 'https://www.eventbrite.com/... or https://www.ticketmaster.com/...',
+            special: 'eventbrite_search'
         },
         {
             id: 'venueAdmission',
@@ -588,6 +589,12 @@ function generateDynamicVenueForm() {
             formHTML += `<input type="${field.type}" id="${field.id}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}" style="flex: 1;">`;
             formHTML += '<button type="button" id="smartSearchBtn" onclick="smartSearchVenue()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">🔍 Smart Search</button>';
             formHTML += '</div>';
+        } else if (field.special === 'eventbrite_search') {
+            formHTML += '<div style="display: flex; gap: 8px; align-items: center;">';
+            formHTML += `<input type="${field.type}" id="${field.id}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}" style="flex: 1;">`;
+            formHTML += '<button type="button" onclick="searchEventbriteOrganizerForAdd()" class="btn btn-secondary" style="white-space: nowrap; padding: 8px 12px;">🔍 Search Eventbrite</button>';
+            formHTML += '</div>';
+            formHTML += '<div id="addEventbriteSearchResults" style="margin-top: 8px; display: none;"></div>';
         } else if (field.type === 'select') {
             formHTML += `<select id="${field.id}" name="${field.name}" ${field.required ? 'required' : ''}>`;
             field.options.forEach(option => {
@@ -964,7 +971,15 @@ function editVenue(id) {
     document.getElementById('editVenuePhone').value = venue.phone_number || '';
     document.getElementById('editVenueEmail').value = venue.email || '';
     document.getElementById('editVenueWebsite').value = venue.website_url || '';
+    document.getElementById('editVenueTicketing').value = venue.ticketing_url || '';
     document.getElementById('editVenueAdmission').value = venue.admission_fee || '';
+    
+    // Clear Eventbrite search results
+    const resultsDiv = document.getElementById('eventbriteSearchResults');
+    if (resultsDiv) {
+        resultsDiv.style.display = 'none';
+        resultsDiv.innerHTML = '';
+    }
     
     // Show the modal
     document.getElementById('editVenueModal').style.display = 'block';
@@ -988,5 +1003,388 @@ function deleteVenue(id) {
         .catch(error => {
             alert('Error deleting venue: ' + error.message);
         });
+    }
+}
+
+async function searchEventbriteOrganizer() {
+    /**Search Eventbrite for organizer pages matching the venue name or extract from URL*/
+    const venueNameInput = document.getElementById('editVenueName');
+    const ticketingInput = document.getElementById('editVenueTicketing');
+    const resultsDiv = document.getElementById('eventbriteSearchResults');
+    
+    if (!venueNameInput || !ticketingInput || !resultsDiv) {
+        console.error('Required elements not found for Eventbrite search');
+        return;
+    }
+    
+    const venueName = venueNameInput.value.trim();
+    const currentUrl = ticketingInput.value.trim();
+    
+    // If there's already a URL in the field, try to extract organizer ID from it
+    if (currentUrl && 'eventbrite.com' in currentUrl) {
+        // Show loading
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">🔍 Extracting organizer ID from URL...</div>';
+        
+        try {
+            const response = await fetch('/api/admin/search-eventbrite-organizer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    organizer_url: currentUrl,
+                    venue_name: venueName
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.organizers && data.organizers.length > 0) {
+                const org = data.organizers[0];
+                resultsDiv.innerHTML = `
+                    <div style="padding: 10px; background: #d1fae5; border-radius: 4px; color: #065f46;">
+                        ✅ Found organizer: ${org.name}
+                        ${org.verified ? '' : '<br><small>⚠️ Could not verify via API, but URL format looks correct</small>'}
+                    </div>
+                `;
+                return;
+            }
+        } catch (error) {
+            console.error('Error extracting organizer:', error);
+        }
+    }
+    
+    if (!venueName) {
+        alert('Please enter a venue name first, or paste an Eventbrite organizer URL in the Ticketing URL field');
+        return;
+    }
+    
+    // Get city name if available
+    const citySelect = document.getElementById('editVenueCity');
+    let cityName = '';
+    if (citySelect && citySelect.value) {
+        const selectedOption = citySelect.options[citySelect.selectedIndex];
+        cityName = selectedOption.text.split(',')[0]; // Get just the city name
+    }
+    
+    // Show loading state
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">🔍 Searching Eventbrite...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/search-eventbrite-organizer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                venue_name: venueName,
+                city_name: cityName
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Eventbrite API no longer supports public search
+        if (data.error === 'Eventbrite public search not available' || !data.success) {
+            const searchUrl = data.search_url || `https://www.eventbrite.com/d/${cityName ? cityName.toLowerCase().replace(' ', '-') : 'dc--washington'}/${venueName.replace(/\s+/g, '-').toLowerCase()}/`;
+            
+            resultsDiv.innerHTML = `
+                <div style="padding: 12px; background: #fef3c7; border-radius: 6px; border: 1px solid #fbbf24; color: #92400e;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">ℹ️ Manual Search Required</div>
+                    <div style="font-size: 0.875rem; margin-bottom: 12px;">
+                        Eventbrite API no longer provides public search. To find the organizer page:
+                    </div>
+                    <ol style="font-size: 0.875rem; margin: 0 0 12px 20px; padding: 0;">
+                        <li>Search Eventbrite for "${venueName}" events</li>
+                        <li>Click on any event from that venue</li>
+                        <li>Click the organizer name to go to their page</li>
+                        <li>Copy the organizer page URL</li>
+                        <li>Paste it in the Ticketing URL field above</li>
+                    </ol>
+                    <div style="margin-top: 12px;">
+                        <a href="${searchUrl}" target="_blank" style="display: inline-block; padding: 8px 16px; background: #3b82f6; color: white; text-decoration: none; border-radius: 4px; font-size: 0.875rem;">
+                            🔍 Open Eventbrite Search
+                        </a>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: #78716c;">
+                        Or paste an Eventbrite organizer URL directly in the field above and click "Search Eventbrite" again to verify it.
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        if (!data.organizers || data.organizers.length === 0) {
+            resultsDiv.innerHTML = `
+                <div style="padding: 10px; background: #fef3c7; border-radius: 4px; color: #92400e;">
+                    ℹ️ No Eventbrite organizers found for "${venueName}". 
+                    <br>You can manually enter the Eventbrite organizer page URL.
+                </div>
+            `;
+            return;
+        }
+        
+        // Display results (if we ever get any from a future API)
+        let resultsHTML = `
+            <div style="margin-top: 8px; padding: 12px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: #374151;">
+                    Found ${data.organizers.length} organizer${data.organizers.length > 1 ? 's' : ''}:
+                </div>
+        `;
+        
+        data.organizers.forEach((organizer, index) => {
+            const eventCount = organizer.event_count || 0;
+            const sampleEvents = organizer.sample_events || [];
+            
+            resultsHTML += `
+                <div style="margin-bottom: 12px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #d1d5db; cursor: pointer;" 
+                     onclick="selectEventbriteOrganizer('${organizer.url.replace(/'/g, "\\'")}', '${organizer.name.replace(/'/g, "\\'")}')"
+                     onmouseover="this.style.background='#f3f4f6'" 
+                     onmouseout="this.style.background='white'">
+                    <div style="font-weight: 500; color: #1f2937; margin-bottom: 4px;">
+                        ${organizer.name}
+                    </div>
+                    <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 6px;">
+                        ${eventCount} event${eventCount !== 1 ? 's' : ''} found
+                    </div>
+                    ${sampleEvents.length > 0 ? `
+                        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                            Sample: ${sampleEvents[0].name}
+                        </div>
+                    ` : ''}
+                    <div style="font-size: 0.75rem; color: #3b82f6; margin-top: 4px;">
+                        Click to use this organizer
+                    </div>
+                </div>
+            `;
+        });
+        
+        resultsHTML += '</div>';
+        resultsDiv.innerHTML = resultsHTML;
+        
+    } catch (error) {
+        console.error('Error searching Eventbrite:', error);
+        resultsDiv.innerHTML = `
+            <div style="padding: 10px; background: #fee2e2; border-radius: 4px; color: #991b1b;">
+                ❌ Error: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function selectEventbriteOrganizer(url, name) {
+    /**Select an Eventbrite organizer and populate the ticketing URL field (for edit modal)*/
+    const ticketingInput = document.getElementById('editVenueTicketing');
+    const resultsDiv = document.getElementById('eventbriteSearchResults');
+    
+    if (ticketingInput) {
+        ticketingInput.value = url;
+        // Show confirmation
+        if (resultsDiv) {
+            resultsDiv.innerHTML = `
+                <div style="padding: 10px; background: #d1fae5; border-radius: 4px; color: #065f46;">
+                    ✅ Selected: ${name}
+                </div>
+            `;
+            // Hide after 2 seconds
+            setTimeout(() => {
+                if (resultsDiv) {
+                    resultsDiv.style.display = 'none';
+                }
+            }, 2000);
+        }
+    }
+}
+
+function selectEventbriteOrganizerForAdd(url, name) {
+    /**Select an Eventbrite organizer and populate the ticketing URL field (for add modal)*/
+    const ticketingInput = document.getElementById('venueTicketing');
+    const resultsDiv = document.getElementById('addEventbriteSearchResults');
+    
+    if (ticketingInput) {
+        ticketingInput.value = url;
+        // Show confirmation
+        if (resultsDiv) {
+            resultsDiv.innerHTML = `
+                <div style="padding: 10px; background: #d1fae5; border-radius: 4px; color: #065f46;">
+                    ✅ Selected: ${name}
+                </div>
+            `;
+            // Hide after 2 seconds
+            setTimeout(() => {
+                if (resultsDiv) {
+                    resultsDiv.style.display = 'none';
+                }
+            }, 2000);
+        }
+    }
+}
+
+async function searchEventbriteOrganizerForAdd() {
+    /**Search Eventbrite for organizer pages (for add venue modal) or extract from URL*/
+    const venueNameInput = document.getElementById('venueName');
+    const ticketingInput = document.getElementById('venueTicketing');
+    const resultsDiv = document.getElementById('addEventbriteSearchResults');
+    
+    if (!venueNameInput || !ticketingInput || !resultsDiv) {
+        console.error('Required elements not found for Eventbrite search');
+        return;
+    }
+    
+    const venueName = venueNameInput.value.trim();
+    const currentUrl = ticketingInput.value.trim();
+    
+    // If there's already a URL in the field, try to extract organizer ID from it
+    if (currentUrl && 'eventbrite.com' in currentUrl) {
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">🔍 Extracting organizer ID from URL...</div>';
+        
+        try {
+            const response = await fetch('/api/admin/search-eventbrite-organizer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    organizer_url: currentUrl,
+                    venue_name: venueName
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.organizers && data.organizers.length > 0) {
+                const org = data.organizers[0];
+                resultsDiv.innerHTML = `
+                    <div style="padding: 10px; background: #d1fae5; border-radius: 4px; color: #065f46;">
+                        ✅ Found organizer: ${org.name}
+                        ${org.verified ? '' : '<br><small>⚠️ Could not verify via API, but URL format looks correct</small>'}
+                    </div>
+                `;
+                return;
+            }
+        } catch (error) {
+            console.error('Error extracting organizer:', error);
+        }
+    }
+    
+    if (!venueName) {
+        alert('Please enter a venue name first, or paste an Eventbrite organizer URL in the Ticketing URL field');
+        return;
+    }
+    
+    // Get city name if available
+    const citySelect = document.getElementById('venueCity');
+    let cityName = '';
+    if (citySelect && citySelect.value) {
+        const selectedOption = citySelect.options[citySelect.selectedIndex];
+        cityName = selectedOption.text.split(',')[0];
+    }
+    
+    // Show loading state
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">🔍 Searching Eventbrite...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/search-eventbrite-organizer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                venue_name: venueName,
+                city_name: cityName
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Eventbrite API no longer supports public search
+        if (data.error === 'Eventbrite public search not available' || !data.success) {
+            const searchUrl = data.search_url || `https://www.eventbrite.com/d/${cityName ? cityName.toLowerCase().replace(' ', '-') : 'dc--washington'}/${venueName.replace(/\s+/g, '-').toLowerCase()}/`;
+            
+            resultsDiv.innerHTML = `
+                <div style="padding: 12px; background: #fef3c7; border-radius: 6px; border: 1px solid #fbbf24; color: #92400e;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">ℹ️ Manual Search Required</div>
+                    <div style="font-size: 0.875rem; margin-bottom: 12px;">
+                        Eventbrite API no longer provides public search. To find the organizer page:
+                    </div>
+                    <ol style="font-size: 0.875rem; margin: 0 0 12px 20px; padding: 0;">
+                        <li>Search Eventbrite for "${venueName}" events</li>
+                        <li>Click on any event from that venue</li>
+                        <li>Click the organizer name to go to their page</li>
+                        <li>Copy the organizer page URL</li>
+                        <li>Paste it in the Ticketing URL field above</li>
+                    </ol>
+                    <div style="margin-top: 12px;">
+                        <a href="${searchUrl}" target="_blank" style="display: inline-block; padding: 8px 16px; background: #3b82f6; color: white; text-decoration: none; border-radius: 4px; font-size: 0.875rem;">
+                            🔍 Open Eventbrite Search
+                        </a>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: #78716c;">
+                        Or paste an Eventbrite organizer URL directly in the field above and click "Search Eventbrite" again to verify it.
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        if (!data.organizers || data.organizers.length === 0) {
+            resultsDiv.innerHTML = `
+                <div style="padding: 10px; background: #fef3c7; border-radius: 4px; color: #92400e;">
+                    ℹ️ No Eventbrite organizers found for "${venueName}". 
+                    <br>You can manually enter the Eventbrite organizer page URL.
+                </div>
+            `;
+            return;
+        }
+        
+        // Display results (if we ever get any)
+        let resultsHTML = `
+            <div style="margin-top: 8px; padding: 12px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: #374151;">
+                    Found ${data.organizers.length} organizer${data.organizers.length > 1 ? 's' : ''}:
+                </div>
+        `;
+        
+        data.organizers.forEach((organizer, index) => {
+            const eventCount = organizer.event_count || 0;
+            const sampleEvents = organizer.sample_events || [];
+            
+            resultsHTML += `
+                <div style="margin-bottom: 12px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #d1d5db; cursor: pointer;" 
+                     onclick="selectEventbriteOrganizerForAdd('${organizer.url.replace(/'/g, "\\'")}', '${organizer.name.replace(/'/g, "\\'")}')"
+                     onmouseover="this.style.background='#f3f4f6'" 
+                     onmouseout="this.style.background='white'">
+                    <div style="font-weight: 500; color: #1f2937; margin-bottom: 4px;">
+                        ${organizer.name}
+                    </div>
+                    <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 6px;">
+                        ${eventCount} event${eventCount !== 1 ? 's' : ''} found
+                    </div>
+                    ${sampleEvents.length > 0 ? `
+                        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                            Sample: ${sampleEvents[0].name}
+                        </div>
+                    ` : ''}
+                    <div style="font-size: 0.75rem; color: #3b82f6; margin-top: 4px;">
+                        Click to use this organizer
+                    </div>
+                </div>
+            `;
+        });
+        
+        resultsHTML += '</div>';
+        resultsDiv.innerHTML = resultsHTML;
+        
+    } catch (error) {
+        console.error('Error searching Eventbrite:', error);
+        resultsDiv.innerHTML = `
+            <div style="padding: 10px; background: #fee2e2; border-radius: 4px; color: #991b1b;">
+                ❌ Error: ${error.message}
+            </div>
+        `;
     }
 }

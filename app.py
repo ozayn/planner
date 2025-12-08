@@ -2890,8 +2890,15 @@ def admin_cities():
 def admin_venues():
     """Get all venues for admin"""
     try:
-        # Sort by most recently updated first, then by ID descending as tiebreaker
-        venues = Venue.query.order_by(Venue.updated_at.desc(), Venue.id.desc()).all()
+        # Sort by most recently updated first, then by created_at descending, then by ID descending as tiebreakers
+        # Use NULLS LAST to ensure NULL updated_at values appear at the end (PostgreSQL default behavior)
+        # Note: updated_at defaults to created_at on creation, so we use created_at as secondary sort
+        from sqlalchemy import desc, nulls_last
+        venues = Venue.query.order_by(
+            nulls_last(desc(Venue.updated_at)), 
+            desc(Venue.created_at),
+            desc(Venue.id)
+        ).all()
         venues_data = []
         
         for venue in venues:
@@ -6861,6 +6868,290 @@ def scrape_saam():
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0
+        }), 500
+
+@app.route('/api/admin/search-eventbrite-organizer', methods=['POST'])
+def search_eventbrite_organizer():
+    """
+    Search Eventbrite for organizer pages matching a venue name.
+    
+    Note: Eventbrite API doesn't have a public search endpoint for organizers.
+    This function can:
+    1. Extract and verify organizer IDs from URLs
+    2. Get organizer details if we have an organizer ID
+    3. Provide helpful instructions for manual search
+    """
+    try:
+        data = request.get_json() or {}
+        venue_name = data.get('venue_name', '').strip()
+        city_name = data.get('city_name', '').strip()
+        organizer_url = data.get('organizer_url', '').strip()  # Optional: if user provides URL
+        organizer_id = data.get('organizer_id', '').strip()  # Optional: if user provides ID directly
+        
+        # Import Eventbrite scraper
+        from scripts.eventbrite_scraper import EventbriteScraper
+        scraper = EventbriteScraper()
+        
+        # API token is optional - we can still extract IDs from URLs and do web scraping without it
+        # Only require it for API verification
+        
+        # If user provided an organizer URL, extract the organizer ID and verify it
+        if organizer_url and 'eventbrite.com' in organizer_url:
+            extracted_id = scraper.extract_organizer_id_from_url(organizer_url)
+            if extracted_id:
+                organizer_id = extracted_id
+        
+        # If we have an organizer ID, get organizer details
+        if organizer_id:
+            try:
+                org_url = f'{scraper.api_base_url}/organizers/{organizer_id}/'
+                response = scraper.session.get(org_url, params={'expand': 'description'}, timeout=10)
+                
+                if response.status_code == 200:
+                    org_data = response.json()
+                    
+                    # Try to get event count
+                    events_url = f'{scraper.api_base_url}/organizers/{organizer_id}/events/'
+                    events_response = scraper.session.get(events_url, params={'status': 'live'}, timeout=10)
+                    event_count = 0
+                    if events_response.status_code == 200:
+                        events_data = events_response.json()
+                        event_count = len(events_data.get('events', []))
+                    
+                    # Construct proper organizer URL
+                    org_name_slug = org_data.get('name', '').lower().replace(' ', '-').replace("'", '').replace(',', '')
+                    proper_url = organizer_url if organizer_url else f"https://www.eventbrite.com/o/{org_name_slug}-{organizer_id}"
+                    
+                    return jsonify({
+                        'success': True,
+                        'organizers': [{
+                            'id': organizer_id,
+                            'name': org_data.get('name', 'Unknown'),
+                            'description': org_data.get('description', {}).get('text', ''),
+                            'url': proper_url,
+                            'event_count': event_count,
+                            'verified': True
+                        }],
+                        'total_found': 1
+                    })
+                else:
+                    app_logger.warning(f"Could not fetch organizer {organizer_id}: {response.status_code}")
+            except Exception as e:
+                app_logger.warning(f"Error verifying organizer {organizer_id}: {e}")
+                # Still return success with the ID we extracted
+                if organizer_url:
+                    return jsonify({
+                        'success': True,
+                        'organizers': [{
+                            'id': organizer_id,
+                            'name': 'Unknown (from URL)',
+                            'url': organizer_url,
+                            'event_count': 0,
+                            'verified': False,
+                            'note': 'Organizer ID extracted but could not verify via API'
+                        }],
+                        'total_found': 1
+                    })
+        
+        # If we have a venue name, search for organizers using web scraping
+        if venue_name:
+            app_logger.info(f"Searching Eventbrite for organizers matching: {venue_name}")
+            
+            use_web_search = data.get('use_web_search', True)
+            organizers = []
+            
+            # Try web scraping search if enabled
+            if use_web_search:
+                try:
+                    organizers = scraper.search_organizers_by_venue_name(
+                        venue_name, 
+                        city_name,
+                        state=state if state else None,
+                        max_results=10
+                    )
+                    app_logger.info(f"Web search found {len(organizers)} organizers")
+                except Exception as e:
+                    app_logger.warning(f"Web search failed: {e}")
+                    import traceback
+                    app_logger.debug(traceback.format_exc())
+            
+            if organizers:
+                return jsonify({
+                    'success': True,
+                    'query': f"{venue_name} {city_name}".strip(),
+                    'organizers': organizers,
+                    'total_found': len(organizers),
+                    'source': 'web_search'
+                })
+            
+            # If no results, return helpful instructions with search URL
+            # Build location slug with city and state
+            if city_name and state:
+                city_slug = city_name.lower().replace(' ', '-')
+                state_slug = state.lower().replace(' ', '-')
+                if state_slug in ['dc', 'district-of-columbia', 'washington-dc']:
+                    location_slug = 'dc--washington'
+                else:
+                    location_slug = f"{city_slug}-{state_slug}"
+            elif city_name:
+                city_slug = city_name.lower().replace(' ', '-')
+                if city_slug == 'washington':
+                    location_slug = 'dc--washington'
+                else:
+                    location_slug = city_slug
+            else:
+                location_slug = 'dc--washington'
+            
+            venue_slug = venue_name.replace(' ', '-').lower()
+            search_url = f'https://www.eventbrite.com/d/{location_slug}/{venue_slug}/'
+            
+            return jsonify({
+                'success': False,
+                'error': 'No organizers found',
+                'message': f'Could not find Eventbrite organizers for "{venue_name}". Try searching manually on Eventbrite or paste an organizer URL.',
+                'search_url': search_url,
+                'organizers': [],
+                'instructions': [
+                    '1. Go to eventbrite.com and search for events by the venue name',
+                    '2. Click on any event from that venue',
+                    '3. Click on the organizer name to go to their organizer page',
+                    '4. Copy the organizer page URL (format: https://www.eventbrite.com/o/organizer-name-1234567890)',
+                    '5. Paste the URL into the Ticketing URL field',
+                    '6. Click "Search Eventbrite" again to verify and extract the organizer ID'
+                ]
+            })
+        
+        return jsonify({
+            'success': False,
+            'error': 'Missing parameters',
+            'message': 'Please provide either venue_name, organizer_url, or organizer_id'
+        }), 400
+            
+    except Exception as e:
+        app_logger.error(f"Error in search_eventbrite_organizer: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/scrape-eventbrite', methods=['POST'])
+def scrape_eventbrite():
+    """Scrape events from Eventbrite for venues with Eventbrite ticketing URLs"""
+    try:
+        data = request.get_json() or {}
+        venue_id = data.get('venue_id')
+        city_id = data.get('city_id')
+        time_range = data.get('time_range', 'this_month')
+        
+        # Import Eventbrite scraper
+        from scripts.eventbrite_scraper import EventbriteScraper, scrape_all_eventbrite_venues, scrape_eventbrite_events_for_venue
+        
+        if venue_id:
+            # Scrape events for specific venue
+            app_logger.info(f"Scraping Eventbrite events for venue ID {venue_id}")
+            events = scrape_eventbrite_events_for_venue(venue_id, time_range=time_range)
+        elif city_id:
+            # Scrape events for all Eventbrite venues in city
+            app_logger.info(f"Scraping Eventbrite events for city ID {city_id}")
+            events = scrape_all_eventbrite_venues(city_id=city_id, time_range=time_range)
+        else:
+            # Scrape all Eventbrite venues
+            app_logger.info("Scraping Eventbrite events for all venues")
+            events = scrape_all_eventbrite_venues(time_range=time_range)
+        
+        if not events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found from Eventbrite',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        # Save events to database (similar to other scrapers)
+        events_saved = 0
+        events_skipped = 0
+        
+        for event_data in events:
+            try:
+                title = event_data.get('title', 'Untitled Event')
+                venue_id_event = event_data.get('venue_id')
+                city_id_event = event_data.get('city_id')
+                start_date_str = event_data.get('start_date')
+                
+                # Check for duplicates
+                from datetime import datetime as dt
+                if start_date_str:
+                    try:
+                        start_date = dt.strptime(start_date_str, '%Y-%m-%d').date() if isinstance(start_date_str, str) else start_date_str
+                    except:
+                        start_date = None
+                else:
+                    start_date = None
+                
+                # Check if event already exists
+                existing = Event.query.filter_by(
+                    title=title,
+                    venue_id=venue_id_event,
+                    city_id=city_id_event
+                )
+                if start_date:
+                    existing = existing.filter_by(start_date=start_date)
+                
+                existing_event = existing.first()
+                
+                if existing_event:
+                    events_skipped += 1
+                    continue
+                
+                # Create new event
+                event = Event(
+                    title=title,
+                    description=event_data.get('description', ''),
+                    start_date=start_date or date.today(),
+                    end_date=event_data.get('end_date'),
+                    start_time=event_data.get('start_time'),
+                    end_time=event_data.get('end_time'),
+                    event_type=event_data.get('event_type', 'tour'),
+                    venue_id=venue_id_event,
+                    city_id=city_id_event,
+                    url=event_data.get('url'),
+                    image_url=event_data.get('image_url'),
+                    source='eventbrite',
+                    source_url=event_data.get('source_url', event_data.get('url')),
+                    is_registration_required=event_data.get('is_registration_required', True),
+                    registration_url=event_data.get('registration_url', event_data.get('url')),
+                    start_location=event_data.get('start_location', '')
+                )
+                
+                db.session.add(event)
+                events_saved += 1
+                
+            except Exception as e:
+                app_logger.error(f"Error saving event {event_data.get('title')}: {e}")
+                continue
+        
+        db.session.commit()
+        
+        app_logger.info(f"✅ Saved {events_saved} Eventbrite events, skipped {events_skipped} duplicates")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully scraped and saved {events_saved} events from Eventbrite',
+            'events_found': len(events),
+            'events_saved': events_saved,
+            'events_skipped': events_skipped
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error scraping Eventbrite events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 @app.route('/api/admin/scrape-npg', methods=['POST'])

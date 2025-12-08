@@ -536,6 +536,14 @@ MISTRAL_API_KEY=your_mistral_api_key
 # Google Maps (optional)
 GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
+# Eventbrite API (optional - for scraping Eventbrite events)
+# Use Personal OAuth Token (Private Token) - this is what you need for reading public events
+EVENTBRITE_API_TOKEN=your_eventbrite_personal_oauth_token
+# Alternative name (both work):
+# EVENTBRITE_PRIVATE_TOKEN=your_eventbrite_personal_oauth_token
+# Optional: Public token for anonymous access (limited functionality)
+# EVENTBRITE_PUBLIC_TOKEN=ZRQRSTL4V3Y5X2X5X2X5
+
 # Flask Configuration
 FLASK_ENV=development
 FLASK_DEBUG=True

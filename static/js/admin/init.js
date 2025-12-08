@@ -282,6 +282,7 @@ async function handleEditVenue(event) {
         phone_number: document.getElementById('editVenuePhone').value.trim(),
         email: document.getElementById('editVenueEmail').value.trim(),
         website_url: document.getElementById('editVenueWebsite').value.trim(),
+        ticketing_url: document.getElementById('editVenueTicketing').value.trim(),
         admission_fee: document.getElementById('editVenueAdmission').value.trim()
     };
     

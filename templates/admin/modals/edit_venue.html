@@ -51,6 +51,18 @@
                 <input type="url" id="editVenueWebsite">
             </div>
             <div class="form-group">
+                <label for="editVenueTicketing">Ticketing URL (Eventbrite, Ticketmaster, etc.)</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="url" id="editVenueTicketing" style="flex: 1;" placeholder="https://www.eventbrite.com/o/organizer-name-1234567890">
+                    <button type="button" onclick="searchEventbriteOrganizer()" class="btn btn-secondary" style="white-space: nowrap; padding: 8px 12px;">
+                        🔍 Search Eventbrite
+                    </button>
+                </div>
+                <div id="eventbriteSearchResults" style="margin-top: 8px; display: none;">
+                    <!-- Search results will appear here -->
+                </div>
+            </div>
+            <div class="form-group">
                 <label for="editVenueAdmission">Admission Fee</label>
                 <input type="text" id="editVenueAdmission">
             </div>

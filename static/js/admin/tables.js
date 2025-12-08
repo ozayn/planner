@@ -508,7 +508,7 @@ window.addEventListener('resize', updateAllTablesViewMode);
 function getFieldConfig(tableType) {
     const configs = {
         venues: {
-            order: ['id', 'name', 'venue_type', 'city_name', 'address', 'opening_hours', 'phone_number', 'email', 'website_url', 'image_url', 'latitude', 'longitude', 'facebook_url', 'instagram_url', 'twitter_url', 'youtube_url', 'tiktok_url', 'holiday_hours', 'admission_fee', 'tour_info', 'description', 'additional_info', 'created_at', 'updated_at'],
+            order: ['id', 'name', 'venue_type', 'city_name', 'address', 'opening_hours', 'phone_number', 'email', 'website_url', 'ticketing_url', 'image_url', 'latitude', 'longitude', 'facebook_url', 'instagram_url', 'twitter_url', 'youtube_url', 'tiktok_url', 'holiday_hours', 'admission_fee', 'tour_info', 'description', 'additional_info', 'created_at', 'updated_at'],
             fields: {
                 id: { label: 'ID', visible: true, sortable: true },
                 name: { label: 'Name', visible: true, sortable: true },
@@ -519,6 +519,7 @@ function getFieldConfig(tableType) {
                 phone_number: { label: 'Phone', visible: true, sortable: false },
                 email: { label: 'Email', visible: true, sortable: false },
                 website_url: { label: 'Website', visible: true, sortable: false },
+                ticketing_url: { label: 'Ticketing', visible: true, sortable: false },
                 image_url: { label: 'Image', visible: true, sortable: false },
                 latitude: { label: 'Latitude', visible: true, sortable: true },
                 longitude: { label: 'Longitude', visible: true, sortable: true },
@@ -626,21 +627,14 @@ function formatFieldValue(fieldName, value, config = {}) {
         
         case 'ticketing_url':
             // Format ticketing URLs (Eventbrite, Ticketmaster, etc.) as clickable links
+            // Show the full URL so users can see and copy it
             if (value.includes('eventbrite.com')) {
-                // Extract organizer or event name from Eventbrite URL for cleaner display
-                const eventbriteMatch = value.match(/eventbrite\.com\/(?:o|d)\/([^\/\?]+)/);
-                if (eventbriteMatch) {
-                    const displayName = eventbriteMatch[1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #F05537; text-decoration: none;">Eventbrite: ${displayName}</a>`;
-                }
-                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #F05537; text-decoration: none;">Eventbrite</a>`;
-            } else if (value.includes('ticketmaster.com')) {
-                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #026CDF; text-decoration: none;">Ticketmaster</a>`;
-            } else if (value.includes('ticketmaster')) {
-                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #026CDF; text-decoration: none;">Ticketmaster</a>`;
+                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none; word-break: break-all;">${value}</a>`;
+            } else if (value.includes('ticketmaster.com') || value.includes('ticketmaster')) {
+                return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #026CDF; text-decoration: none; word-break: break-all;">${value}</a>`;
             }
             // Generic ticketing URL
-            return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none;">${value}</a>`;
+            return `<a href="${value}" target="_blank" onclick="event.stopPropagation();" style="color: #1976d2; text-decoration: none; word-break: break-all;">${value}</a>`;
         
         case 'youtube_url':
             // Handle both full URLs and channel names
