@@ -4,7 +4,7 @@
     "created": "2025-12-07",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 206,
-    "last_updated": "2025-12-07 22:35:27"
+    "last_updated": "2025-12-07 22:53:55"
   },
   "venues": {
     "1": {
@@ -1069,7 +1069,7 @@
       "phone_number": "(202) 612-4400",
       "email": "",
       "website_url": "https://ambwashingtondc.esteri.it/it/",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/italian-cultural-institute-of-washington-3947489343",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1080,7 +1080,7 @@
       "latitude": 38.9189,
       "longitude": -77.0533,
       "created_at": "2025-10-08T20:42:31.667047",
-      "updated_at": "2025-12-07T21:59:05.477561"
+      "updated_at": "2025-12-08T03:41:09.926331"
     },
     "45": {
       "name": "Embassy of Japan",
@@ -1169,7 +1169,7 @@
       "phone_number": "(202) 244-5300",
       "email": "",
       "website_url": "https://www.netherlandsworldwide.nl/theme/topics",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/embassy-of-the-kingdom-of-the-netherlands-32846230335",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1180,7 +1180,7 @@
       "latitude": 38.9289,
       "longitude": -77.0711,
       "created_at": "2025-10-08T20:42:31.667123",
-      "updated_at": "2025-12-07T21:59:16.307373"
+      "updated_at": "2025-12-08T03:42:04.456644"
     },
     "49": {
       "name": "Embassy of Australia",
@@ -1444,7 +1444,7 @@
       "phone_number": "(202) 387-1400",
       "email": "info@kramers.com",
       "website_url": "https://www.kramers.com",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/kramers-12998924955",
       "instagram_url": "https://www.instagram.com/kramerbooksdc",
       "facebook_url": "https://www.facebook.com/KramerbooksAfterwords",
       "twitter_url": "",
@@ -1455,7 +1455,7 @@
       "latitude": 38.9093,
       "longitude": -77.0431,
       "created_at": "2025-10-08T20:42:31.667335",
-      "updated_at": "2025-12-04T16:52:13.726027"
+      "updated_at": "2025-12-08T03:48:57.361544"
     },
     "60": {
       "name": "The Hamilton",
@@ -1544,7 +1544,7 @@
       "phone_number": "(202) 364-1919",
       "email": "info@politics-prose.com",
       "website_url": "https://politics-prose.com/",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/politics-and-prose-17693712019",
       "instagram_url": "https://www.instagram.com/politicsandprose",
       "facebook_url": "https://www.facebook.com/PoliticsandProse",
       "twitter_url": "",
@@ -1555,7 +1555,7 @@
       "latitude": 38.958,
       "longitude": -77.0638,
       "created_at": "2025-10-08T20:42:31.667447",
-      "updated_at": "2025-12-07T22:00:30.270979"
+      "updated_at": "2025-12-08T03:39:29.175731"
     },
     "64": {
       "name": "East City Bookshop",
