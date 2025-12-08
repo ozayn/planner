@@ -415,7 +415,10 @@ class GenericVenueScraper:
                 'talks', 'lectures', 'gallery-talks', 'curator-talks',
                 'tours', 'guided-tours', 'workshops', 'classes',
                 'whats-on', 'what\'s-on', 'whats-on', 'visit', 'see',
-                'schedule', 'upcoming', 'current', 'featured', 'shows'
+                'schedule', 'upcoming', 'current', 'featured', 'shows',
+                # Additional patterns for better discovery
+                'what-to-see', 'on-display', 'special-exhibitions',
+                'temporary-exhibitions', 'visiting-exhibitions'
             ]
             
             # General event keywords (fallback)
@@ -857,13 +860,41 @@ Important:
         logger.info(f"   Extracted {len(events)} events from HTML patterns")
         return events
     
-    def _is_valid_event_title(self, title: str) -> bool:
+    def _is_valid_event_title(self, title: str, url: str = None) -> bool:
         """Validate that a title is actually an event title, not navigation/page element"""
         if not title or len(title) < 3:
             return False
         
         title_lower = title.lower().strip()
         title_original = title.strip()
+        
+        # Filter out permanent collection/gallery pages (not temporary exhibitions)
+        permanent_collection_patterns = [
+            r'^gallery\s+highlights?$',
+            r'^permanent\s+collection',
+            r'^collection\s+highlights?',
+            r'^on\s+view\s+permanent',
+            r'^permanent\s+galleries?',
+            r'^highlights?\s+of\s+the\s+collection',
+        ]
+        for pattern in permanent_collection_patterns:
+            if re.match(pattern, title_lower, re.IGNORECASE):
+                return False
+        
+        # Filter out URLs that indicate permanent galleries (not exhibitions)
+        if url:
+            url_lower = url.lower()
+            permanent_url_patterns = [
+                '/gallery/',  # MFA uses /gallery/monet for permanent galleries
+                '/collection/',
+                '/permanent-',
+                '/galleries/',
+            ]
+            # Check if URL contains permanent gallery indicators but NOT exhibition indicators
+            has_permanent_indicator = any(pattern in url_lower for pattern in permanent_url_patterns)
+            has_exhibition_indicator = any(indicator in url_lower for indicator in ['/exhibition', '/exhibit', '/show', '/on-view'])
+            if has_permanent_indicator and not has_exhibition_indicator:
+                return False
         
         # Filter out navigation and page elements
         invalid_patterns = [
@@ -913,7 +944,8 @@ Important:
             'upcoming events', 'past events', 'all events', 'all past events', 'all past events→', 'calendar of events',
             'ssun', 'mmon', 'ttue', 'wwed', 'tthu', 'ffri', 'ssat',
             'events search and views navigation', 'event views navigation',
-            'upcoming events', 'past events', 'all events'
+            'upcoming events', 'past events', 'all events',
+            'gallery highlights',  # Permanent collection pages
         ]
         
         if title_lower in invalid_keywords:
@@ -924,7 +956,7 @@ Important:
             return False
         
         # Filter out titles that start with invalid keywords (partial match)
-        for keyword in ['details', 'organizer', 'venue', 'filter', 'search', 'loading']:
+        for keyword in ['details', 'organizer', 'venue', 'filter', 'search', 'loading', 'gallery highlights']:
             if title_lower.startswith(keyword + ' ') or title_lower == keyword:
                 return False
         
@@ -1071,8 +1103,11 @@ Important:
                     extracted_end_date = title_date_range.get('end_date')
                     logger.debug(f"   📅 Extracted date range from title: {extracted_start_date} to {extracted_end_date}")
             
+            # Extract URL first (needed for validation)
+            url = self._extract_url(element, base_url)
+            
             # Validate title is actually an event, not navigation/page element
-            if not self._is_valid_event_title(title):
+            if not self._is_valid_event_title(title, url):
                 return None
             
             # Clean title to remove dates, trailing commas, etc.
@@ -1089,8 +1124,20 @@ Important:
             # Extract date/time
             date_text = self._extract_text(element, [
                 '.date', '.time', '.datetime', '.when', '.schedule',
-                '[itemprop="startDate"]', '[itemprop="endDate"]', 'time[datetime]'
+                '[itemprop="startDate"]', '[itemprop="endDate"]', 'time[datetime]',
+                '.exhibition-date', '.event-date', '.date-range', '.on-view',
+                '.dates', '.duration', '.period'
             ])
+            
+            # Also check parent and sibling elements for dates (common pattern)
+            if not date_text and element.parent:
+                parent_date_text = self._extract_text(element.parent, [
+                    '.date', '.time', '.datetime', '.when', '.schedule',
+                    '[itemprop="startDate"]', '[itemprop="endDate"]', 'time[datetime]',
+                    '.exhibition-date', '.event-date', '.date-range', '.on-view'
+                ])
+                if parent_date_text:
+                    date_text = parent_date_text
             
             start_date, end_date, start_time, end_time = self._parse_dates_and_times(
                 date_text, element, base_url
@@ -1102,14 +1149,40 @@ Important:
             if not end_date and extracted_end_date:
                 end_date = extracted_end_date
             
+            # If still no dates and this is an exhibition, try to extract from description
+            # Some museums embed dates in descriptions like "On view through January 2026"
+            if not start_date and not end_date and description:
+                # Look for "through" or "until" patterns in description
+                through_pattern = r'(?:through|until|thru)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+                through_match = re.search(through_pattern, description, re.IGNORECASE)
+                if through_match:
+                    end_date_str = through_match.group(1)
+                    parsed_end_date = self._parse_single_date_string(end_date_str)
+                    if parsed_end_date:
+                        from datetime import date
+                        end_date = parsed_end_date
+                        # For exhibitions ending in the future, assume they started recently or are ongoing
+                        if not start_date:
+                            start_date = date.today()
+                        logger.debug(f"   📅 Extracted end date from description: {end_date}")
+                
+                # Look for date ranges in description
+                if not start_date or not end_date:
+                    desc_date_range = self._parse_date_range_string(description)
+                    if desc_date_range:
+                        if not start_date:
+                            start_date = desc_date_range.get('start_date')
+                        if not end_date:
+                            end_date = desc_date_range.get('end_date')
+                        logger.debug(f"   📅 Extracted date range from description: {start_date} to {end_date}")
+            
             # Extract location
             location = self._extract_text(element, [
                 '.location', '.venue', '.where', '.address', '.meeting-point',
                 '[itemprop="location"]', '[itemprop="address"]'
             ])
             
-            # Extract URL
-            url = self._extract_url(element, base_url)
+            # URL already extracted above for validation
             
             # Extract image from listing page - search thoroughly
             image_url = None
@@ -1880,8 +1953,9 @@ Important:
         """Additional validation for generic scraper events"""
         title = event.get('title', '')
         
-        # Must have a valid title
-        if not self._is_valid_event_title(title):
+        # Must have a valid title (pass URL if available)
+        url = event.get('url', '')
+        if not self._is_valid_event_title(title, url if url else None):
             return False
         
         # Must have at least one of: date, URL, description, or valid title
@@ -2026,7 +2100,8 @@ Important:
                             title_parts = text_before_date.split('\n')
                             for part in reversed(title_parts):
                                 part = part.strip()
-                                if part and len(part) > 5 and self._is_valid_event_title(part):
+                                # URL not available yet at this point, so pass None
+                                if part and len(part) > 5 and self._is_valid_event_title(part, None):
                                     title = part
                                     break
                 
@@ -2034,8 +2109,12 @@ Important:
                 if not title and link_text and len(link_text) > 5:
                     title = link_text
                 
+                # Build full URL first (needed for validation)
+                from urllib.parse import urljoin
+                full_url = urljoin(base_url, href)
+                
                 # If we still don't have a title, try to extract from the URL slug
-                if not title or not self._is_valid_event_title(title):
+                if not title or not self._is_valid_event_title(title, full_url):
                     # Extract from URL: /exhibitions/yoshitomo-nara-i-dont-want-to-grow-up/ -> "Yoshitomo Nara: I Don't Want to Grow Up"
                     url_slug = href.split('/')[-2] if href.endswith('/') else href.split('/')[-1]
                     if url_slug and url_slug != 'exhibitions':
@@ -2043,7 +2122,7 @@ Important:
                         title = ' '.join(word.capitalize() for word in url_slug.replace('-', ' ').split())
                 
                 # Skip if title is invalid or already seen
-                if not title or not self._is_valid_event_title(title) or title.lower() in seen_titles:
+                if not title or not self._is_valid_event_title(title, full_url) or title.lower() in seen_titles:
                     continue
                 
                 seen_titles.add(title.lower())
@@ -2216,7 +2295,7 @@ Important:
                 start_date_str = match.group(2).strip()
                 end_date_str = match.group(3).strip()
                 
-                # Skip if title is too generic
+                # Skip if title is too generic (no URL available in this context)
                 if not self._is_valid_event_title(title) or title.lower() in seen_titles:
                     continue
                 
