@@ -332,15 +332,23 @@ class GenericVenueScraper:
             # Scrape each event page
             for i, page_url in enumerate(event_pages, 1):
                 logger.info(f"   Scraping event page {i}/{len(event_pages)}: {page_url}")
-                page_events = self._scrape_event_page(
-                    page_url, venue_name, event_type, time_range, 
-                    use_llm_fallback=not llm_fallback_used
-                )
-                # If LLM fallback was used and returned events, mark it
-                if page_events and any(e.get('llm_extracted') for e in page_events):
-                    llm_fallback_used = True
-                logger.info(f"      Found {len(page_events)} events on this page")
-                events.extend(page_events)
+                try:
+                    page_events = self._scrape_event_page(
+                        page_url, venue_name, event_type, time_range, 
+                        use_llm_fallback=not llm_fallback_used
+                    )
+                    # If LLM fallback was used and returned events, mark it
+                    if page_events and any(e.get('llm_extracted') for e in page_events):
+                        llm_fallback_used = True
+                    logger.info(f"      Found {len(page_events)} events on this page")
+                    events.extend(page_events)
+                except Exception as e:
+                    # Skip pages that don't exist or can't be scraped
+                    if '404' in str(e) or 'Not Found' in str(e):
+                        logger.debug(f"   ⏭️  Skipping non-existent page: {page_url}")
+                    else:
+                        logger.debug(f"   ⚠️  Error scraping {page_url}: {e}")
+                    continue
             
             # Also scrape the main page (only use LLM if not already used)
             logger.info(f"   Scraping main page: {venue_url}")
@@ -386,13 +394,20 @@ class GenericVenueScraper:
                 '/current-exhibitions', '/upcoming-exhibitions', '/on-view',
                 '/gallery', '/galleries', '/shows', '/shows/current',
                 '/tours', '/talks', '/lectures', '/workshops',
-                '/learn/programs', '/experience/events'
+                '/learn/programs', '/experience/events',
+                # Combined patterns (common in university museums)
+                '/exhibitions-events', '/exhibitions-events/events', '/exhibitions-events/exhibitions',
+                '/exhibitions-and-events', '/exhibitions-and-events/events', '/exhibitions-and-events/exhibitions',
+                '/events-exhibitions', '/events-exhibitions/events', '/events-exhibitions/exhibitions',
+                '/programs-events', '/programs-events/events', '/programs-events/programs',
+                '/whats-on/exhibitions-events', '/whats-on/events-exhibitions'
             ]
             
             parsed_base = urlparse(base_url)
             base_domain = f"{parsed_base.scheme}://{parsed_base.netloc}"
             
-            # Try common paths first (fast and often works)
+            # Try common paths first (they'll be validated when we try to scrape them)
+            # Non-existent URLs will be skipped gracefully during scraping
             for path in common_paths:
                 test_url = base_domain + path
                 if test_url not in seen_urls:
@@ -418,7 +433,10 @@ class GenericVenueScraper:
                 'schedule', 'upcoming', 'current', 'featured', 'shows',
                 # Additional patterns for better discovery
                 'what-to-see', 'on-display', 'special-exhibitions',
-                'temporary-exhibitions', 'visiting-exhibitions'
+                'temporary-exhibitions', 'visiting-exhibitions',
+                # Combined patterns (common in university museums)
+                'exhibitions-events', 'exhibitions-and-events', 'events-exhibitions',
+                'programs-events', 'events-programs'
             ]
             
             # General event keywords (fallback)
@@ -582,6 +600,7 @@ Important:
                                 'end_date': event_data.get('end_date'),
                                 'event_type': event_data.get('event_type', event_type or 'exhibition'),
                                 'url': event_data.get('url', venue_url),
+                                'image_url': event_data.get('image_url'),  # Include image URL from LLM extraction
                                 'venue_name': venue_name,
                                 'llm_extracted': True,
                                 'confidence': 'medium'
@@ -618,9 +637,23 @@ Important:
         try:
             # Use fetch_with_retry which handles cloudscraper automatically
             base_url = urlparse(url).scheme + '://' + urlparse(url).netloc
-            response = self._fetch_with_retry(url, base_url=base_url)
+            try:
+                response = self._fetch_with_retry(url, base_url=base_url)
+            except Exception as fetch_error:
+                # Handle 404s and other HTTP errors gracefully
+                error_str = str(fetch_error).lower()
+                if '404' in error_str or 'not found' in error_str:
+                    logger.debug(f"   ⏭️  Page not found (404): {url}")
+                    return events
+                # Re-raise other errors
+                raise
             
             if not response:
+                return events
+            
+            # Double-check status code (in case response was returned despite error)
+            if response.status_code == 404:
+                logger.debug(f"   ⏭️  Page not found (404): {url}")
                 return events
             
             html_content = response.text
@@ -634,10 +667,21 @@ Important:
             
             # Museum-specific: Check for exhibition listing pages (highest priority)
             url_lower = url.lower()
-            is_exhibition_page = any(keyword in url_lower for keyword in [
+            
+            # Check for combined paths first (e.g., /exhibitions-events/events should be treated as events page)
+            is_combined_events_page = any(pattern in url_lower for pattern in [
+                '/exhibitions-events/events', '/exhibitions-and-events/events',
+                '/events-exhibitions/events', '/programs-events/events'
+            ])
+            is_combined_exhibitions_page = any(pattern in url_lower for pattern in [
+                '/exhibitions-events/exhibitions', '/exhibitions-and-events/exhibitions',
+                '/events-exhibitions/exhibitions'
+            ])
+            
+            is_exhibition_page = (any(keyword in url_lower for keyword in [
                 '/exhibitions', '/exhibition', '/on-view', '/current-exhibitions',
                 '/upcoming-exhibitions', '/gallery', '/show', '/shows'
-            ])
+            ]) and not is_combined_events_page) or is_combined_exhibitions_page
             
             if is_exhibition_page or event_type == 'exhibition':
                 exhibition_events = self._extract_exhibitions_from_listing_page(soup, url, venue_name, time_range)
@@ -646,10 +690,10 @@ Important:
                     events.extend(exhibition_events)
             
             # Museum-specific: Check for program/event listing pages
-            is_program_page = any(keyword in url_lower for keyword in [
+            is_program_page = (any(keyword in url_lower for keyword in [
                 '/programs', '/program', '/events', '/calendar', '/talks',
                 '/lectures', '/workshops', '/tours', '/whats-on'
-            ])
+            ]) and not is_exhibition_page) or is_combined_events_page
             
             if is_program_page and not is_exhibition_page:
                 # Extract programs/events with enhanced museum patterns
@@ -664,8 +708,16 @@ Important:
             
             # Extract events from HTML
             html_events = self._extract_events_from_html(soup, url, venue_name, event_type, time_range)
-            # Filter out invalid events before adding
-            valid_html_events = [e for e in html_events if self._is_valid_generic_event(e)]
+            # Filter out invalid events and shopping events before adding
+            valid_html_events = [
+                e for e in html_events 
+                if self._is_valid_generic_event(e) and 
+                not self._is_shopping_event(
+                    e.get('title', ''),
+                    e.get('description', ''),
+                    e.get('url', '')
+                )
+            ]
             events.extend(valid_html_events)
             
             # Only use LLM fallback if:
@@ -983,6 +1035,25 @@ Important:
         title = title.replace('&quot;', '"').replace('&#39;', "'")
         title = title.replace('\xa0', ' ')  # Non-breaking space
         
+        # Normalize whitespace (multiple spaces/newlines to single space)
+        title = re.sub(r'\s+', ' ', title)
+        
+        # Remove "Museum Exhibition" prefix if it appears multiple times (indicates concatenation)
+        # Pattern: "Museum Exhibition Title1 ... Museum Exhibition Title2 ..."
+        if title.count('Museum Exhibition') > 1:
+            # Take only the first exhibition title
+            parts = title.split('Museum Exhibition')
+            if len(parts) > 1:
+                # Get the first part after "Museum Exhibition"
+                first_exhibition = parts[1].strip()
+                # Remove date ranges and other exhibitions from the end
+                # Look for the next "Museum Exhibition" or date pattern
+                next_exhibition_match = re.search(r'(Museum Exhibition|October|November|December|January|February|March|April|May|June|July|August|September)', first_exhibition[100:])
+                if next_exhibition_match:
+                    first_exhibition = first_exhibition[:100 + next_exhibition_match.start()].strip()
+                title = 'Museum Exhibition ' + first_exhibition
+                logger.debug(f"   🧹 Cleaned concatenated title, kept first: {title[:80]}")
+        
         # Remove trailing commas and whitespace
         title = re.sub(r',\s*$', '', title)
         title = title.strip()
@@ -1221,29 +1292,89 @@ Important:
                     event_response = self._fetch_with_retry(url, base_url=base_url)
                     if event_response and event_response.status_code == 200:
                         event_soup = BeautifulSoup(event_response.content, 'html.parser')
-                        event_main_content = event_soup.find('article') or event_soup.find('main') or event_soup
+                        # Try to find the main content area, but be more specific
+                        # Look for article, main, or content containers, but prefer more specific ones
+                        event_main_content = None
+                        # Try specific content containers first
+                        for selector in ['article', 'main', '[role="main"]', '.content', '.main-content', '.page-content']:
+                            event_main_content = event_soup.select_one(selector)
+                            if event_main_content:
+                                break
+                        if not event_main_content:
+                            event_main_content = event_soup
+                        
+                        # Extract title from event page (more accurate than listing page)
+                        # Prioritize h1, then og:title meta tag
+                        event_page_title = None
+                        h1 = event_soup.find('h1')
+                        if h1:
+                            event_page_title = h1.get_text(strip=True)
+                            # Clean up the title - remove extra whitespace and newlines
+                            event_page_title = re.sub(r'\s+', ' ', event_page_title)
+                            # Remove date ranges that might be in the h1
+                            event_page_title = re.sub(r'\s+[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}\s*[–—\-]\s*[A-Z][a-z]+\s+\d{1,2},?\s+\d{4}\s*$', '', event_page_title)
+                            logger.debug(f"   📝 Extracted title from h1: {event_page_title[:80]}")
+                        
+                        if not event_page_title:
+                            og_title = event_soup.find('meta', property='og:title')
+                            if og_title:
+                                event_page_title = og_title.get('content', '').strip()
+                                logger.debug(f"   📝 Extracted title from og:title: {event_page_title[:80]}")
+                        
+                        # Use event page title if we have one and it's reasonable
+                        if event_page_title:
+                            # Clean the event page title
+                            event_page_title = self._clean_title(event_page_title)
+                            # Check if it looks like a valid title (not too long, not multiple exhibitions)
+                            if event_page_title and len(event_page_title) < 200:
+                                # Check if it contains multiple "Museum Exhibition" patterns (indicates concatenation)
+                                museum_exhibition_count = event_page_title.count('Museum Exhibition')
+                                if museum_exhibition_count <= 1:
+                                    title = event_page_title
+                                    logger.info(f"   ✅ Updated title from event page: {title[:80]}")
+                                else:
+                                    logger.debug(f"   ⚠️  Title appears to contain multiple exhibitions, keeping original")
                         
                         # First, try to extract date/time from h2 tags (common pattern, e.g., OCMA)
-                        # Look for patterns like "December 5, 2025, 5:00–6:00 PM" in h2 tags
+                        # Look for patterns like "December 5, 2025, 5:00–6:00 PM" or "Dec 13 @ 1:00 pm – 3:00 pm" in h2 tags
                         h2_tags = event_soup.find_all('h2') if event_soup else []
                         for h2 in h2_tags:
                             h2_text = h2.get_text(strip=True)
-                            # Check for combined date+time pattern
-                            combined_pattern = r'(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?'
-                            match = re.search(combined_pattern, h2_text, re.IGNORECASE)
+                            # Check for combined date+time patterns (including @ format)
+                            combined_patterns = [
+                                r'(\w+)\s+(\d{1,2})\s*@\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',  # "Dec 13 @ 1:00 pm – 3:00 pm"
+                                r'(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',  # "December 5, 2025, 5:00–6:00 PM"
+                            ]
+                            match = None
+                            for pattern in combined_patterns:
+                                match = re.search(pattern, h2_text, re.IGNORECASE)
+                                if match:
+                                    break
                             if match:
                                 groups = match.groups()
                                 try:
-                                    # Parse date
+                                    # Parse date - handle patterns with and without year
                                     month = self._month_name_to_num(groups[0])
                                     day = int(groups[1])
-                                    year = int(groups[2])
+                                    
+                                    # Check if year is present (patterns with year have it in position 2)
+                                    if len(groups) >= 8 and groups[2].isdigit() and len(groups[2]) == 4:
+                                        year = int(groups[2])
+                                        time_start_idx = 3
+                                    else:
+                                        # No year - use current year or next year if month has passed
+                                        today = date.today()
+                                        year = today.year
+                                        if month < today.month or (month == today.month and day < today.day):
+                                            year = today.year + 1
+                                        time_start_idx = 2
+                                    
                                     start_date = date(year, month, day)
                                     
                                     # Parse start time
-                                    start_hour = int(groups[3])
-                                    start_min = int(groups[4])
-                                    start_ampm = groups[5].lower()
+                                    start_hour = int(groups[time_start_idx])
+                                    start_min = int(groups[time_start_idx + 1])
+                                    start_ampm = groups[time_start_idx + 2].lower()
                                     if start_ampm == 'p' and start_hour != 12:
                                         start_hour += 12
                                     elif start_ampm == 'a' and start_hour == 12:
@@ -1251,10 +1382,10 @@ Important:
                                     start_time = time(start_hour, start_min)
                                     
                                     # Parse end time
-                                    if len(groups) >= 9:
-                                        end_hour = int(groups[6])
-                                        end_min = int(groups[7])
-                                        end_ampm = groups[8].lower()
+                                    if len(groups) >= time_start_idx + 6:
+                                        end_hour = int(groups[time_start_idx + 3])
+                                        end_min = int(groups[time_start_idx + 4])
+                                        end_ampm = groups[time_start_idx + 5].lower()
                                         if end_ampm == 'p' and end_hour != 12:
                                             end_hour += 12
                                         elif end_ampm == 'a' and end_hour == 12:
@@ -1284,7 +1415,8 @@ Important:
                             
                             # Extract date/time from event page (more accurate)
                             # Use the full text from the event page for better extraction
-                            event_text = event_main_content.get_text()
+                            # But limit to the main content area to avoid getting text from other exhibitions
+                            event_text = event_main_content.get_text() if event_main_content else ''
                             
                             # Re-parse dates and times from the full event page text
                             # This will use the combined patterns to extract "December 5, 2025, 5:00–6:00 PM"
@@ -1312,12 +1444,59 @@ Important:
                                     end_time = parsed_end_time
                                     logger.debug(f"   ⏰ Extracted end time from event page: {end_time}")
                         
-                        # Extract image from event page if not found (use enhanced extraction)
+                        # Extract image from event page (prioritize event page image over listing page)
+                        # Strategy 1: Try og:image meta tag first (most reliable for individual pages)
+                        og_image = event_soup.find('meta', property='og:image')
+                        if og_image:
+                            og_image_url = og_image.get('content', '')
+                            if og_image_url:
+                                if not og_image_url.startswith('http'):
+                                    og_image_url = urljoin(url, og_image_url)
+                                image_url = og_image_url
+                                logger.info(f"   ✅ Found image from og:image meta tag: {image_url[:80]}")
+                        
+                        # Strategy 2: If no og:image, prioritize first image in article content (main event image)
+                        if not image_url and event_main_content:
+                            # Find first image in the main content area (not in sidebars)
+                            article_imgs = event_main_content.find_all('img')
+                            for img in article_imgs:
+                                # Skip if in sidebar/related sections
+                                ancestor = img.parent
+                                in_sidebar = False
+                                for _ in range(6):
+                                    if not ancestor:
+                                        break
+                                    if hasattr(ancestor, 'get'):
+                                        classes = ' '.join(ancestor.get('class', []))
+                                        if any(pattern in classes.lower() for pattern in [
+                                            'sidebar', 'footer', 'related', 'explore', 'spotlight', 
+                                            'recommended', 'more', 'also', 'other', 'secondary'
+                                        ]):
+                                            in_sidebar = True
+                                            break
+                                    ancestor = ancestor.parent if hasattr(ancestor, 'parent') else None
+                                
+                                if not in_sidebar:
+                                    img_src = (img.get('src') or img.get('data-src') or 
+                                              img.get('data-lazy-src') or img.get('data-original'))
+                                    if img_src:
+                                        # Skip icons/logos
+                                        src_lower = img_src.lower()
+                                        if not any(skip in src_lower for skip in ['icon', 'logo', 'favicon', 'avatar', 'social']):
+                                            if not img_src.startswith('http'):
+                                                img_src = urljoin(url, img_src)
+                                            image_url = img_src
+                                            logger.info(f"   ✅ Found first image in article content: {image_url[:80]}")
+                                            break
+                        
+                        # Strategy 3: If still no image, use the enhanced image extraction method
                         if not image_url:
-                            # Use the enhanced image extraction method on the event page
-                            image_url = self._extract_image(event_soup, url)
-                            if image_url:
-                                logger.debug(f"   ✅ Found image from event page: {image_url[:80]}")
+                            event_page_image = self._extract_image(event_soup, url)
+                            if event_page_image:
+                                image_url = event_page_image
+                                logger.info(f"   ✅ Found image from event page extraction: {image_url[:80]}")
+                            else:
+                                logger.debug(f"   ⚠️  No image found on event page: {url[:60]}")
                 except Exception as e:
                     logger.debug(f"Error fetching individual event page {url}: {e}")
             
@@ -1388,27 +1567,40 @@ Important:
         if not element:
             return None
         
+        # Check if element is a BeautifulSoup element (has find method), not a string
+        if not hasattr(element, 'find'):
+            return None
+        
         # Try h1-h4 tags
         for tag in ['h1', 'h2', 'h3', 'h4']:
-            heading = element.find(tag)
-            if heading:
-                text = heading.get_text(strip=True)
-                if text and len(text) > 3:
-                    return text
+            try:
+                heading = element.find(tag)
+                if heading:
+                    text = heading.get_text(strip=True)
+                    if text and len(text) > 3:
+                        return text
+            except (TypeError, AttributeError):
+                continue
         
         # Try first link text (often contains title)
-        link = element.find('a')
-        if link:
-            text = link.get_text(strip=True)
-            if text and len(text) > 3:
-                return text
+        try:
+            link = element.find('a')
+            if link:
+                text = link.get_text(strip=True)
+                if text and len(text) > 3:
+                    return text
+        except (TypeError, AttributeError):
+            pass
         
         # Try first strong/b tag
-        strong = element.find(['strong', 'b'])
-        if strong:
-            text = strong.get_text(strip=True)
-            if text and len(text) > 3:
-                return text
+        try:
+            strong = element.find(['strong', 'b'])
+            if strong:
+                text = strong.get_text(strip=True)
+                if text and len(text) > 3:
+                    return text
+        except (TypeError, AttributeError):
+            pass
 
         # Enhanced: For descriptions, try multiple strategies (learned from specialized scrapers)
         if any('description' in s.lower() or 'summary' in s.lower() or 'content' in s.lower() for s in selectors):
@@ -1425,16 +1617,23 @@ Important:
                     parent = parent.parent if hasattr(parent, 'parent') else None
             
             # Strategy 2: Get first substantial paragraph
-            first_p = element.find('p')
-            if first_p:
-                text = first_p.get_text(strip=True)
-                if text and len(text) > 50:
-                    return text
+            try:
+                first_p = element.find('p')
+                if first_p:
+                    text = first_p.get_text(strip=True)
+                    if text and len(text) > 50:
+                        return text
+            except (TypeError, AttributeError):
+                pass
 
         # Fallback: get text from element itself
-        text = element.get_text(strip=True)
-        if text and len(text) > 3:
-            return text
+        if hasattr(element, 'get_text'):
+            try:
+                text = element.get_text(strip=True)
+                if text and len(text) > 3:
+                    return text
+            except (TypeError, AttributeError):
+                pass
 
         return None
     
@@ -1472,78 +1671,129 @@ Important:
         """Extract event image URL using multiple strategies (learned from specialized scrapers)"""
         image_url = None
         
+        # Helper function to check if image is in sidebar/related/explore sections
+        def is_in_sidebar_or_related(img):
+            """Check if image is in sidebar, footer, or related content sections"""
+            ancestor = img.parent
+            for _ in range(6):  # Check up to 6 levels up
+                if not ancestor:
+                    break
+                if hasattr(ancestor, 'get'):
+                    classes = ' '.join(ancestor.get('class', []))
+                    tag = ancestor.name if hasattr(ancestor, 'name') else ''
+                    # Check for sidebar/related/explore patterns
+                    if any(pattern in classes.lower() for pattern in [
+                        'sidebar', 'footer', 'related', 'explore', 'spotlight', 
+                        'recommended', 'more', 'also', 'other', 'secondary'
+                    ]):
+                        return True
+                    # Check for specific section tags that are usually sidebars
+                    if tag in ['aside', 'footer']:
+                        return True
+                ancestor = ancestor.parent if hasattr(ancestor, 'parent') else None
+            return False
+        
         # Strategy 1: Look for hero/feature/main images by class (highest priority)
-        img_elem = element.find('img', class_=re.compile(r'hero|feature|main|exhibition|header|event', re.I))
+        img_elem = None
+        if hasattr(element, 'find'):
+            try:
+                img_elem = element.find('img', class_=re.compile(r'hero|feature|main|exhibition|header|event', re.I))
+            except (TypeError, AttributeError):
+                pass
         if img_elem:
-            img_src = (img_elem.get('src') or img_elem.get('data-src') or 
-                      img_elem.get('data-lazy-src') or img_elem.get('data-original') or
-                      img_elem.get('data-srcset') or img_elem.get('data-image'))
-            if img_src:
-                # Handle srcset (take first URL)
-                if ',' in img_src:
-                    img_src = img_src.split(',')[0].strip().split()[0]
-                image_url = urljoin(base_url, img_src)
-                return image_url
-        
-        # Strategy 2: Look for images with keywords in URL
-        if not image_url:
-            all_imgs = element.find_all('img')
-            for img in all_imgs:
-                img_src = (img.get('src') or img.get('data-src') or 
-                          img.get('data-lazy-src') or img.get('data-original') or
-                          img.get('data-srcset') or img.get('data-image'))
+            # Skip if in sidebar/related
+            if not is_in_sidebar_or_related(img_elem):
+                img_src = (img_elem.get('src') or img_elem.get('data-src') or 
+                          img_elem.get('data-lazy-src') or img_elem.get('data-original') or
+                          img_elem.get('data-srcset') or img_elem.get('data-image'))
                 if img_src:
-                    # Handle srcset
+                    # Handle srcset (take first URL)
                     if ',' in img_src:
                         img_src = img_src.split(',')[0].strip().split()[0]
-                    src_lower = img_src.lower()
-                    # Skip small icons/logos/decoration (learned from specialized scrapers)
-                    skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'twitter', 'facebook', 
-                                   'instagram', 'svg', 'site-header', 'nav-background', 'hero-background']
-                    if any(pattern in src_lower for pattern in skip_patterns):
-                        continue
-                    
-                    # Prefer images with certain keywords in path
-                    if any(keyword in src_lower for keyword in ['exhibition', 'hero', 'feature', 'header', 'banner', 'event']):
-                        image_url = urljoin(base_url, img_src)
-                        break
+                    image_url = urljoin(base_url, img_src)
+                    return image_url
         
-        # Strategy 3: Find first substantial image (jpg/png/webp) not in nav/footer
-        if not image_url:
-            all_imgs = element.find_all('img')
-            for img in all_imgs:
-                img_src = (img.get('src') or img.get('data-src') or 
-                          img.get('data-lazy-src') or img.get('data-original') or
-                          img.get('data-srcset') or img.get('data-image'))
-                if img_src:
-                    # Handle srcset
-                    if ',' in img_src:
-                        img_src = img_src.split(',')[0].strip().split()[0]
-                    src_lower = img_src.lower()
-                    # Skip icons/logos
-                    skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']
-                    if any(pattern in src_lower for pattern in skip_patterns):
+        # Strategy 2: Look for images with keywords in URL (but skip sidebar/related)
+        if not image_url and hasattr(element, 'find_all'):
+            try:
+                all_imgs = element.find_all('img')
+                for img in all_imgs:
+                    # Skip images in sidebar/related sections
+                    if is_in_sidebar_or_related(img):
                         continue
                     
-                    # Check if it's a real image file
-                    if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                        # Check if it's not in navigation/footer
-                        parent = img.parent
-                        skip_containers = ['nav', 'header', 'footer', 'menu']
-                        parent_tag = parent.name if parent else ''
-                        parent_classes = ' '.join(parent.get('class', [])) if parent and hasattr(parent, 'get') else ''
+                    img_src = (img.get('src') or img.get('data-src') or 
+                              img.get('data-lazy-src') or img.get('data-original') or
+                              img.get('data-srcset') or img.get('data-image'))
+                    if img_src:
+                        # Handle srcset
+                        if ',' in img_src:
+                            img_src = img_src.split(',')[0].strip().split()[0]
+                        src_lower = img_src.lower()
+                        # Skip small icons/logos/decoration (learned from specialized scrapers)
+                        skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'twitter', 'facebook', 
+                                       'instagram', 'svg', 'site-header', 'nav-background', 'hero-background']
+                        if any(pattern in src_lower for pattern in skip_patterns):
+                            continue
                         
-                        if parent_tag not in skip_containers and not any(skip in parent_classes.lower() for skip in skip_containers):
+                        # Prefer images with certain keywords in path
+                        if any(keyword in src_lower for keyword in ['exhibition', 'hero', 'feature', 'header', 'banner', 'event']):
                             image_url = urljoin(base_url, img_src)
                             break
+            except (TypeError, AttributeError):
+                pass
         
-        # Strategy 4: Try meta tags (og:image)
-        if not image_url:
-            og_image = element.select_one('meta[property="og:image"]')
-            if og_image:
-                image_url = og_image.get('content', '')
-                if image_url and not image_url.startswith('http'):
-                    image_url = urljoin(base_url, image_url)
+        # Strategy 3: Find first substantial image (jpg/png/webp) not in nav/footer/sidebar
+        if not image_url and hasattr(element, 'find_all'):
+            try:
+                all_imgs = element.find_all('img')
+                for img in all_imgs:
+                    # Skip images in sidebar/related sections
+                    if is_in_sidebar_or_related(img):
+                        continue
+                    
+                    img_src = (img.get('src') or img.get('data-src') or 
+                              img.get('data-lazy-src') or img.get('data-original') or
+                              img.get('data-srcset') or img.get('data-image'))
+                    if img_src:
+                        # Handle srcset
+                        if ',' in img_src:
+                            img_src = img_src.split(',')[0].strip().split()[0]
+                        src_lower = img_src.lower()
+                        # Skip icons/logos
+                        skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg']
+                        if any(pattern in src_lower for pattern in skip_patterns):
+                            continue
+                        
+                        # Check if it's a real image file
+                        if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                            # Check if it's not in navigation/footer
+                            parent = img.parent
+                            skip_containers = ['nav', 'header', 'footer', 'menu', 'aside']
+                            parent_tag = parent.name if parent else ''
+                            parent_classes = ' '.join(parent.get('class', [])) if parent and hasattr(parent, 'get') else ''
+                            
+                            if parent_tag not in skip_containers and not any(skip in parent_classes.lower() for skip in skip_containers):
+                                image_url = urljoin(base_url, img_src)
+                                break
+            except (TypeError, AttributeError):
+                pass
+        
+        # Strategy 4: Try meta tags (og:image) - highest priority for individual pages
+        if hasattr(element, 'select_one'):
+            try:
+                og_image = element.select_one('meta[property="og:image"]')
+                if og_image:
+                    og_image_url = og_image.get('content', '')
+                    if og_image_url:
+                        if not og_image_url.startswith('http'):
+                            og_image_url = urljoin(base_url, og_image_url)
+                        # Use og:image if we don't have one yet, or if current one seems wrong
+                        if not image_url or is_in_sidebar_or_related(element):
+                            image_url = og_image_url
+                            logger.debug(f"   ✅ Using og:image: {image_url[:80]}")
+            except (TypeError, AttributeError):
+                pass
         
         return image_url
     
@@ -1556,11 +1806,22 @@ Important:
         today = date.today()
         
         # Get full text from element if date_text is limited
-        full_text = element.get_text() if element else date_text or ''
+        # Check if element is a BeautifulSoup element (has get_text method), not a string
+        if element and hasattr(element, 'get_text'):
+            full_text = element.get_text()
+        else:
+            full_text = date_text or ''
         search_text = full_text if len(full_text) > len(date_text or '') else (date_text or '')
         
         # Try time[datetime] attribute first
-        time_elem = element.find('time', datetime=True) if element else None
+        # Only call find() if element is a BeautifulSoup element, not a string
+        time_elem = None
+        if element and hasattr(element, 'find'):
+            try:
+                time_elem = element.find('time', datetime=True)
+            except (TypeError, AttributeError):
+                # Element might be a string or not a BeautifulSoup element
+                time_elem = None
         if time_elem:
             datetime_str = time_elem.get('datetime', '')
             parsed = self._parse_iso_datetime(datetime_str)
@@ -1579,6 +1840,12 @@ Important:
         # Parse combined date+time patterns first (e.g., "December 5, 2025, 5:00–6:00 PM")
         # These patterns extract both date and time together
         combined_patterns = [
+            # "Dec 13 @ 1:00 pm – 3:00 pm" (at-symbol format, abbreviated month, no year)
+            r'(\w+)\s+(\d{1,2})\s*@\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+            # "December 13 @ 1:00 pm – 3:00 pm" (at-symbol format, full month, no year)
+            r'(\w+)\s+(\d{1,2})\s*@\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+            # "Dec 13, 2025 @ 1:00 pm – 3:00 pm" (at-symbol format with year)
+            r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*@\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
             # "December 5, 2025, 5:00–6:00 PM" (comma-separated)
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
             # "December 5, 2025 | 5:00–6:00 PM" (pipe-separated)
@@ -1590,16 +1857,31 @@ Important:
             if match:
                 groups = match.groups()
                 try:
-                    # Parse date
+                    # Parse date - handle patterns with and without year
                     month = self._month_name_to_num(groups[0])
                     day = int(groups[1])
-                    year = int(groups[2])
+                    
+                    # Check if year is in groups (patterns with year have it in position 2)
+                    # Patterns without year: groups[0]=month, groups[1]=day, groups[2]=hour
+                    # Patterns with year: groups[0]=month, groups[1]=day, groups[2]=year, groups[3]=hour
+                    if len(groups) >= 8 and groups[2].isdigit() and len(groups[2]) == 4:
+                        # Has year in position 2
+                        year = int(groups[2])
+                        time_start_idx = 3
+                    else:
+                        # No year - use current year or next year if month has passed
+                        today = date.today()
+                        year = today.year
+                        if month < today.month or (month == today.month and day < today.day):
+                            year = today.year + 1
+                        time_start_idx = 2
+                    
                     start_date = date(year, month, day)
                     
-                    # Parse start time
-                    start_hour = int(groups[3])
-                    start_min = int(groups[4])
-                    start_ampm = groups[5].lower()
+                    # Parse start time (index depends on whether year was present)
+                    start_hour = int(groups[time_start_idx])
+                    start_min = int(groups[time_start_idx + 1])
+                    start_ampm = groups[time_start_idx + 2].lower()
                     if start_ampm == 'p' and start_hour != 12:
                         start_hour += 12
                     elif start_ampm == 'a' and start_hour == 12:
@@ -1607,10 +1889,10 @@ Important:
                     start_time = time(start_hour, start_min)
                     
                     # Parse end time
-                    if len(groups) >= 9:
-                        end_hour = int(groups[6])
-                        end_min = int(groups[7])
-                        end_ampm = groups[8].lower()
+                    if len(groups) >= time_start_idx + 6:
+                        end_hour = int(groups[time_start_idx + 3])
+                        end_min = int(groups[time_start_idx + 4])
+                        end_ampm = groups[time_start_idx + 5].lower()
                         if end_ampm == 'p' and end_hour != 12:
                             end_hour += 12
                         elif end_ampm == 'a' and end_hour == 12:
@@ -1785,10 +2067,49 @@ Important:
                     end_str = parts[1].strip()
                     
                     try:
+                        # Parse dates - if year is missing, infer it intelligently
                         start_date = self._parse_single_date_string(start_str)
                         end_date = self._parse_single_date_string(end_str)
                         
                         if start_date and end_date:
+                            # If start_date is after end_date, it means we inferred wrong years
+                            # This happens with ranges like "Nov 28 – Dec 31" where both should be same year
+                            if start_date > end_date:
+                                # Check if both dates are missing years (both parsed with inferred years)
+                                # If so, they should be in the same year
+                                from datetime import date
+                                today = date.today()
+                                
+                                # Re-parse with smarter year inference for ranges
+                                # If start month > end month (e.g., Nov > Dec), they're in same year
+                                # Otherwise, end is in next year
+                                start_month = start_date.month
+                                end_month = end_date.month
+                                
+                                # Extract just month and day from strings
+                                import re
+                                start_match = re.search(r'([A-Z][a-z]+)\s+(\d{1,2})', start_str)
+                                end_match = re.search(r'([A-Z][a-z]+)\s+(\d{1,2})', end_str)
+                                
+                                if start_match and end_match and not any(c.isdigit() and len(c) == 4 for c in [start_str, end_str]):
+                                    # Both dates missing years - infer same year
+                                    year = today.year
+                                    # If both months have passed, use next year
+                                    if start_month < today.month and end_month < today.month:
+                                        year = today.year + 1
+                                    # If start month has passed but end hasn't, use current year
+                                    elif start_month < today.month <= end_month:
+                                        year = today.year
+                                    
+                                    start_day = int(start_match.group(2))
+                                    end_day = int(end_match.group(2))
+                                    start_date = date(year, start_month, start_day)
+                                    end_date = date(year, end_month, end_day)
+                                    
+                                    # If end month is before start month (e.g., Dec to Jan), end is next year
+                                    if end_month < start_month:
+                                        end_date = date(year + 1, end_month, end_day)
+                            
                             return {
                                 'start_date': start_date,
                                 'end_date': end_date
@@ -1851,6 +2172,25 @@ Important:
                 
                 month = self._month_name_to_num(month_str)
                 if month:
+                    return date(year, month, day)
+            except (ValueError, IndexError):
+                pass
+        
+        # Pattern: "Month Day" (without year - assume current year or next year if month has passed)
+        pattern2 = rf'{month_pattern}\s+{day_pattern}$'
+        match = re.search(pattern2, date_string, re.IGNORECASE)
+        if match:
+            try:
+                month_str = match.group(1)
+                day = int(match.group(2))
+                month = self._month_name_to_num(month_str)
+                if month:
+                    # Use current year, or next year if the month has already passed
+                    today = date.today()
+                    year = today.year
+                    # If the month is in the past (and we're past that day), use next year
+                    if month < today.month or (month == today.month and day < today.day):
+                        year = today.year + 1
                     return date(year, month, day)
             except (ValueError, IndexError):
                 pass
@@ -2412,22 +2752,256 @@ Important:
                                  venue_name: str = None, event_type: str = None,
                                  time_range: str = 'this_month') -> List[Dict]:
         """Extract museum programs (talks, lectures, workshops, tours) from listing pages"""
-        events = []
+        from urllib.parse import urljoin
+        import re
         
+        events = []
+        logger.debug(f"   🔍 _extract_museum_programs: Starting extraction from {base_url}")
+
         try:
+            # Special handling for view/listing containers (e.g., Drupal Views, WordPress event lists)
+            # Look for containers with classes like 'view-events', 'events-list', etc.
+            view_containers = soup.select('.view-events, .events-list, .programs-list, [class*="view-events"], [class*="events-list"]')
+            logger.info(f"   Found {len(view_containers)} view containers")
+            for container in view_containers:
+                # Find all links to individual event pages inside the container
+                event_links = container.find_all('a', href=True)
+                logger.debug(f"   Found {len(event_links)} links in view container")
+                for link in event_links:
+                    try:
+                        href = link.get('href', '')
+                        link_text = link.get_text(strip=True)
+                        
+                        # Skip if text is too short or empty
+                        if not link_text or len(link_text) < 3:
+                            logger.debug(f"   ⏭️  Skipping link: text too short or empty (href: {href[:50]})")
+                            continue
+                        
+                        # Check if this looks like an event page link OR if it has meaningful text (might be a listing link)
+                        # For view containers, we want to process links that have dates in the text, even if href doesn't match patterns
+                        has_event_pattern = any(pattern in href.lower() for pattern in ['/events/', '/event/', '/programs/', '/program/'])
+                        has_date_in_text = bool(re.search(r'[A-Z][a-z]+\s+\d{1,2}', link_text))  # Check for date pattern in text
+                        
+                        if has_event_pattern or has_date_in_text:
+                            logger.debug(f"   🔍 Processing link: {link_text[:80]} (href: {href[:60]})")
+                            
+                            # Extract title and date from link text (handle messy formats like "ToursCollections Highlights TourDecember 8, 2025")
+                            # Try to extract date from the end of the text
+                            title = link_text
+                            start_date = None
+                            end_date = None
+                            
+                            # First, try to extract date range (e.g., "Nov 28 – Dec 31" or "November 28 – December 31")
+                            # Look for date ranges anywhere in the string (not just at the end)
+                            date_range_pattern = r'([A-Z][a-z]+\s+\d{1,2}(?:,\s+\d{4})?)\s*[–—\-]\s*([A-Z][a-z]+\s+\d{1,2}(?:,\s+\d{4})?)(?:\s*\|.*)?'
+                            date_range_match = re.search(date_range_pattern, link_text)
+                            
+                            if date_range_match:
+                                # Found a date range
+                                start_str = date_range_match.group(1).strip()
+                                end_str = date_range_match.group(2).strip()
+                                start_date = self._parse_single_date_string(start_str)
+                                end_date = self._parse_single_date_string(end_str)
+                                # Remove date range and anything after it (like time) from title
+                                title = re.sub(date_range_pattern + r'.*', '', title).strip()
+                                if start_date and end_date:
+                                    logger.debug(f"   📅 Extracted date range from link text: {start_date} to {end_date}")
+                            else:
+                                # Try single date patterns - handle dates anywhere in the string (not just at end)
+                                # Dates can be followed by time info like "| 3–5 p.m."
+                                date_patterns = [
+                                # Date with year, possibly followed by time: "December 11, 2025 | 3–5 p.m."
+                                r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})(?:\s*\|.*)?',
+                                # Concatenated date with year: "TourDecember 8, 2025 | ..."
+                                r'([A-Z][a-z]+)([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})(?:\s*\|.*)?',
+                                # Date without year: "December 8 | ..."
+                                r'([A-Z][a-z]+\s+\d{1,2})(?:\s*\|.*)?',
+                                # Concatenated date without year: "TourDecember 8 | ..."
+                                r'([A-Z][a-z]+)([A-Z][a-z]+\s+\d{1,2})(?:\s*\|.*)?',
+                            ]
+                            
+                            date_match = None
+                            for pattern in date_patterns:
+                                date_match = re.search(pattern, link_text)
+                                if date_match:
+                                    # If pattern has 2 groups, the date is in group 2
+                                    if len(date_match.groups()) == 2:
+                                        date_str = date_match.group(2).replace(',', '').strip()
+                                        # Remove the date and everything after it from title
+                                        title = re.sub(pattern, r'\1', title).strip()
+                                    else:
+                                        date_str = date_match.group(1).replace(',', '').strip()
+                                        # Remove date and everything after it from title
+                                        title = re.sub(pattern, '', title).strip()
+                                    break
+                            
+                            if date_match:
+                                start_date = self._parse_single_date_string(date_str)
+                                if start_date:
+                                    logger.debug(f"   📅 Extracted date from link text: {start_date}")
+                            
+                            # Clean up title - remove event type prefixes like "Tours", "Talks", "Family", "Art Making", etc.
+                            title = re.sub(r'^(Tours|Talks|Workshops|Lectures|Programs|Events|Family|Art Making|Members)\s*', '', title, flags=re.IGNORECASE).strip()
+                            
+                            # Remove date/time suffixes that got concatenated (e.g., "TitleDecember 13, 2025 | 10 a.m.–1 p.m.")
+                            # Pattern: Month Day, Year | Time
+                            title = re.sub(r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*\|\s*[\d\s:apm–-]+$', '', title, flags=re.IGNORECASE).strip()
+                            # Pattern: Just date at end
+                            title = re.sub(r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})$', '', title, flags=re.IGNORECASE).strip()
+                            
+                            # Validate title
+                            full_url = urljoin(base_url, href)
+                            if not self._is_valid_event_title(title, full_url):
+                                logger.debug(f"   ⏭️  Skipping: invalid title '{title[:50]}'")
+                                continue
+                            
+                            # Check time range filter
+                            if start_date and not self._is_in_time_range(start_date, time_range):
+                                logger.debug(f"   ⏭️  Skipping: date {start_date} not in {time_range}")
+                                continue
+                            
+                            # Detect if family/kid-friendly
+                            is_family_friendly = self._detect_family_friendly(title, '', link)
+                            
+                            # Extract image from listing page - search thoroughly
+                            image_url = None
+                            
+                            # Strategy 1: Look in the link element itself
+                            image_url = self._extract_image(link, base_url)
+                            
+                            # Strategy 2: Look in parent container
+                            if not image_url and link.parent:
+                                image_url = self._extract_image(link.parent, base_url)
+                            
+                            # Strategy 3: Look at siblings (common pattern: image and event info are siblings)
+                            if not image_url and link.parent:
+                                # Check previous sibling
+                                prev_sibling = link.parent.previous_sibling
+                                count = 0
+                                while prev_sibling and not image_url and count < 5:  # Limit to 5 siblings
+                                    if hasattr(prev_sibling, 'find'):
+                                        image_url = self._extract_image(prev_sibling, base_url)
+                                    prev_sibling = prev_sibling.previous_sibling if hasattr(prev_sibling, 'previous_sibling') else None
+                                    count += 1
+                                
+                                # Check next sibling
+                                if not image_url:
+                                    next_sibling = link.parent.next_sibling
+                                    count = 0
+                                    while next_sibling and not image_url and count < 5:  # Limit to 5 siblings
+                                        if hasattr(next_sibling, 'find'):
+                                            image_url = self._extract_image(next_sibling, base_url)
+                                        next_sibling = next_sibling.next_sibling if hasattr(next_sibling, 'next_sibling') else None
+                                        count += 1
+                            
+                            # Strategy 3b: Look in grandparent and other ancestors (sometimes image is in a wrapper)
+                            if not image_url and link.parent and hasattr(link.parent, 'parent'):
+                                grandparent = link.parent.parent
+                                if grandparent:
+                                    image_url = self._extract_image(grandparent, base_url)
+                            
+                            # Strategy 4: Look in the container itself (view container)
+                            if not image_url and container:
+                                image_url = self._extract_image(container, base_url)
+                            
+                            # Strategy 4b: Look for images in the same row/item as the link (common in grid layouts)
+                            if not image_url and link.parent:
+                                # Try to find a common ancestor that might contain both link and image
+                                ancestor = link.parent
+                                for _ in range(3):  # Check up to 3 levels up
+                                    if ancestor and hasattr(ancestor, 'find_all'):
+                                        # Look for images in this ancestor that aren't in nav/footer
+                                        imgs = ancestor.find_all('img')
+                                        for img in imgs:
+                                            img_src = (img.get('src') or img.get('data-src') or 
+                                                      img.get('data-lazy-src') or img.get('data-original'))
+                                            if img_src:
+                                                src_lower = img_src.lower()
+                                                # Skip icons/logos
+                                                if any(skip in src_lower for skip in ['icon', 'logo', 'favicon', 'avatar', 'social']):
+                                                    continue
+                                                # Check if it's a real image
+                                                if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                                                    image_url = urljoin(base_url, img_src)
+                                                    break
+                                    if image_url:
+                                        break
+                                    if ancestor and hasattr(ancestor, 'parent'):
+                                        ancestor = ancestor.parent
+                                    else:
+                                        break
+                            
+                            if image_url:
+                                logger.info(f"   🖼️  Found image from listing page: {image_url[:80]}")
+                            else:
+                                logger.debug(f"   ⚠️  No image found on listing page for: {title[:50]}")
+                            
+                            # Strategy 5: If no image found on listing page, try event page as fallback
+                            if not image_url and full_url and full_url != base_url:
+                                try:
+                                    logger.debug(f"   🖼️  No image on listing page, trying event page: {full_url}")
+                                    event_response = self._fetch_with_retry(full_url, base_url=base_url)
+                                    if event_response and event_response.status_code == 200:
+                                        event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                                        image_url = self._extract_image(event_soup, base_url)
+                                        if image_url:
+                                            logger.info(f"   ✅ Found image from event page: {image_url[:80]}")
+                                        else:
+                                            logger.debug(f"   ⚠️  No image found on event page either: {full_url[:60]}")
+                                except Exception as e:
+                                    logger.debug(f"   ⚠️  Error fetching event page for image: {e}")
+                            
+                            # Create event dict
+                            event = {
+                                'title': title,
+                                'url': full_url,
+                                'start_date': start_date.isoformat() if start_date else None,
+                                'end_date': end_date.isoformat() if end_date else None,
+                                'event_type': self._detect_museum_event_type(title, '', link),
+                                'is_family_friendly': is_family_friendly,
+                                'image_url': image_url  # Add image URL
+                            }
+                            
+                            if is_family_friendly:
+                                logger.debug(f"   👶 Family-friendly event detected: {title[:50]}")
+                            
+                            events.append(event)
+                            logger.info(f"   ✅ Extracted event from view container: '{title[:50]}' (date: {start_date}, url: {full_url[:60]})")
+                        else:
+                            logger.debug(f"   ⏭️  Skipping link: no event pattern in href and no date in text (href: {href[:50]}, text: {link_text[:50]})")
+                            continue
+                    except Exception as link_error:
+                        logger.debug(f"   ⚠️  Error processing link: {link_error}")
+                        continue  # Continue with next link
+            
+            logger.info(f"   📊 _extract_museum_programs: Extracted {len(events)} events from view containers")
+
             # Use museum-specific selectors first
             for selector in self.museum_event_selectors:
                 try:
                     elements = soup.select(selector)
                     if elements:
                         logger.debug(f"Found {len(elements)} elements with museum selector: {selector}")
-                        
+
                         for element in elements:
+                            # Skip if this is a view container (already processed above)
+                            if any(cls in ' '.join(element.get('class', [])).lower() for cls in ['view-events', 'events-list', 'programs-list']):
+                                continue
+                                
                             if self._should_skip_element(element):
                                 continue
-                            
+
                             event = self._parse_event_element(element, base_url, venue_name, event_type, time_range)
                             if event:
+                                # Skip shopping events
+                                if self._is_shopping_event(
+                                    event.get('title', ''),
+                                    event.get('description', ''),
+                                    event.get('url', '')
+                                ):
+                                    logger.debug(f"   🛍️  Skipping shopping event: {event.get('title', 'N/A')[:50]}")
+                                    continue
+                                
                                 # Enhance event type detection for museum programs
                                 if not event.get('event_type'):
                                     event['event_type'] = self._detect_museum_event_type(
@@ -2435,25 +3009,48 @@ Important:
                                         event.get('description', ''),
                                         element
                                     )
+                                # Detect if family/kid-friendly
+                                event['is_family_friendly'] = self._detect_family_friendly(
+                                    event.get('title', ''),
+                                    event.get('description', ''),
+                                    element
+                                )
+                                if event.get('is_family_friendly'):
+                                    logger.debug(f"   👶 Family-friendly event detected: {event.get('title', 'N/A')[:50]}")
                                 events.append(event)
                 except Exception as e:
                     logger.debug(f"Error with museum selector {selector}: {e}")
                     continue
-            
+
             # Also extract from JSON-LD for museum events
             json_ld_events = self._extract_json_ld_events(soup, base_url)
             for event in json_ld_events:
+                # Skip shopping events
+                if self._is_shopping_event(
+                    event.get('title', ''),
+                    event.get('description', ''),
+                    event.get('url', '')
+                ):
+                    logger.debug(f"   🛍️  Skipping shopping event from JSON-LD: {event.get('title', 'N/A')[:50]}")
+                    continue
+                
                 if not event.get('event_type'):
                     event['event_type'] = self._detect_museum_event_type(
                         event.get('title', ''),
                         event.get('description', ''),
                         None
                     )
+                # Detect if family/kid-friendly
+                event['is_family_friendly'] = self._detect_family_friendly(
+                    event.get('title', ''),
+                    event.get('description', ''),
+                    None
+                )
             events.extend(json_ld_events)
-            
+
         except Exception as e:
             logger.debug(f"Error extracting museum programs: {e}")
-        
+
         return events
     
     def _detect_museum_event_type(self, title: str, description: str, element=None) -> str:
@@ -2491,6 +3088,64 @@ Important:
                 return 'workshop'
         
         return 'event'  # Default fallback
+    
+    def _is_shopping_event(self, title: str, description: str = '', url: str = '') -> bool:
+        """Detect if an event is shopping-related and should be excluded"""
+        combined_text = f"{title.lower()} {description.lower()} {url.lower()}"
+        
+        # Keywords that indicate shopping events
+        shopping_keywords = [
+            'pop-up', 'popup', 'pop up',
+            'shopping', 'retail', 'store', 'boutique',
+            'sale', 'discount', 'clearance',
+            'lingerie', 'fashion', 'clothing', 'apparel',
+            'holiday shopping', 'shopping event', 'shopping day',
+            'market', 'vendor', 'merchant',
+            'exclusive shopping', 'private shopping',
+            'trunk show', 'sample sale'
+        ]
+        
+        if any(keyword in combined_text for keyword in shopping_keywords):
+            return True
+        
+        return False
+    
+    def _detect_family_friendly(self, title: str, description: str = '', element=None) -> bool:
+        """Detect if an event is family/kid/baby-friendly"""
+        combined_text = f"{title.lower()} {description.lower()}"
+        
+        # Keywords that indicate family/kid/baby-friendly events
+        family_keywords = [
+            # Baby/toddler specific
+            'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
+            'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
+            'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
+            'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
+            'stroller', 'strollers', 'nursing', 'breastfeeding',
+            # Family general
+            'family', 'families', 'family program', 'family day', 'family-friendly', 'family friendly',
+            'for families', 'with families', 'family event', 'family activities',
+            # Kids/children
+            'kids', 'children', 'child', 'little ones', 'young families',
+            'kids program', 'children\'s program', 'children program',
+            'art & play', 'art and play', 'play time', 'playtime',
+            'story time', 'storytime', 'story hour',
+            # Age ranges that include young children
+            'ages 2-5', 'ages 3-5', 'ages 4-8', 'ages 5-10', 'all ages',
+            'preschool', 'pre-school', 'elementary', 'young children'
+        ]
+        
+        if any(keyword in combined_text for keyword in family_keywords):
+            return True
+        
+        # Check element classes if available
+        if element:
+            classes = ' '.join(element.get('class', []))
+            class_lower = classes.lower()
+            if any(keyword in class_lower for keyword in ['family', 'kids', 'children', 'baby', 'toddler']):
+                return True
+        
+        return False
 
 
 
