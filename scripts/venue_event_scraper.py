@@ -296,10 +296,28 @@ class VenueEventScraper:
         if not venue.website_url:
             return events
         
-        # For San Francisco venues (city_id == 4), use generic scraper first
-        # since we don't have tailored scrapers for SF venues
-        if venue.city_id == 4:
-            logger.info(f"🌉 San Francisco venue detected ({venue.name}), using generic scraper...")
+        # Check if this venue has a specialized scraper
+        # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
+        has_specialized_scraper = False
+        venue_url_lower = venue.website_url.lower() if venue.website_url else ''
+        
+        specialized_venues = [
+            'hirshhorn.si.edu',
+            'ocma.art',
+            'nga.gov',
+            'metmuseum.org',
+            'si.edu',  # Smithsonian (has specialized scrapers)
+        ]
+        
+        for specialized_venue in specialized_venues:
+            if specialized_venue in venue_url_lower:
+                has_specialized_scraper = True
+                logger.debug(f"   🎯 Venue has specialized scraper: {specialized_venue}")
+                break
+        
+        # For venues WITHOUT specialized scrapers, use generic scraper first
+        if not has_specialized_scraper:
+            logger.info(f"🔍 No specialized scraper for {venue.name}, using generic scraper...")
             logger.info(f"   URL: {venue.website_url}")
             
             # Validate URL before attempting to scrape
@@ -307,9 +325,10 @@ class VenueEventScraper:
                 logger.warning(f"   ⚠️  Invalid URL for {venue.name}, skipping...")
                 return events
             
-            # Use 'this_month' for SF venues to be less restrictive (instead of 'today')
-            sf_time_range = 'this_month' if time_range == 'today' else time_range
-            logger.info(f"   Using time_range: {sf_time_range} (original: {time_range})")
+            # Use 'this_month' for generic scraper to be less restrictive (instead of 'today' or 'this_week')
+            # This ensures we get more events, especially for recurring events
+            adjusted_time_range = 'this_month' if time_range in ['today', 'this_week'] else time_range
+            logger.info(f"   Using time_range: {adjusted_time_range} (original: {time_range})")
             try:
                 from scripts.generic_venue_scraper import GenericVenueScraper
                 generic_scraper = GenericVenueScraper()
@@ -317,7 +336,7 @@ class VenueEventScraper:
                     venue_url=venue.website_url,
                     venue_name=venue.name,
                     event_type=event_type,
-                    time_range=sf_time_range
+                    time_range=adjusted_time_range
                 )
                 logger.info(f"   Generic scraper returned {len(generic_events)} raw events")
                 # Convert generic events to our format and validate them

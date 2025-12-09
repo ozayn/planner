@@ -44,7 +44,7 @@ except ImportError:
 
 # Import Flask components
 try:
-    from flask import Flask, render_template, request, jsonify, session, redirect
+    from flask import Flask, render_template, request, jsonify, session, redirect, Response, stream_with_context
     from flask_cors import CORS
     from flask_sqlalchemy import SQLAlchemy
     from flask_wtf.csrf import CSRFProtect
@@ -1532,6 +1532,546 @@ def get_scraping_progress():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_event_counts, max_exhibitions_per_venue, max_events_per_venue):
+    """
+    Helper function to save a single event to the database with all validation logic.
+    Returns (saved_event, was_created) tuple, or (None, False) if skipped.
+    """
+    from datetime import datetime as dt
+    from datetime import date
+    
+    try:
+        title = event_data.get('title', 'Untitled Event')
+        venue_id = event_data.get('venue_id')
+        city_id_event = event_data.get('city_id', city_id)
+        start_date_str = event_data.get('start_date')
+        event_type = event_data.get('event_type', 'tour')
+        
+        # CRITICAL: For exhibitions, check if we've already saved max_exhibitions_per_venue for this venue
+        if event_type == 'exhibition' and venue_id:
+            venue = Venue.query.get(venue_id)
+            if venue and venue.website_url:
+                website = venue.website_url.lower().strip()
+                current_count = 0
+                for vid, count in venue_exhibition_counts.items():
+                    v = Venue.query.get(vid)
+                    if v and v.website_url and v.website_url.lower().strip() == website:
+                        current_count += count
+            else:
+                current_count = venue_exhibition_counts.get(venue_id, 0)
+            
+            if current_count >= max_exhibitions_per_venue:
+                app_logger.info(f"⚠️ Skipped exhibition '{title}' - already saved {current_count} exhibitions for venue {venue_id} (limit: {max_exhibitions_per_venue})")
+                return None, False
+        
+        # Detect if event is baby-friendly
+        is_baby_friendly = False
+        title_lower = title.lower()
+        description_lower = (event_data.get('description', '') or '').lower()
+        combined_text = f"{title_lower} {description_lower}"
+        
+        baby_keywords = [
+            'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
+            'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
+            'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
+            'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
+            'stroller', 'strollers', 'nursing', 'breastfeeding',
+            'family program', 'family-friendly', 'family friendly',
+            'art & play', 'art and play', 'play time', 'playtime',
+            'children', 'kids', 'little ones', 'young families'
+        ]
+        
+        if any(keyword in combined_text for keyword in baby_keywords):
+            is_baby_friendly = True
+            app_logger.info(f"   👶 Detected baby-friendly event: '{title}'")
+        
+        # Parse start date
+        if start_date_str:
+            start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
+        else:
+            start_date = date.today()
+        
+        # Check for existing event
+        event_url = event_data.get('url', '')
+        existing_event = None
+        
+        if event_type == 'tour' and event_url:
+            normalized_url = event_url.rstrip('/')
+            existing_event = Event.query.filter(
+                ((Event.url == event_url) | (Event.url == normalized_url)),
+                Event.event_type == 'tour',
+                Event.city_id == city_id_event,
+                Event.start_date == start_date
+            ).first()
+        
+        if not existing_event:
+            if event_type == 'exhibition' and venue_id:
+                venue = Venue.query.get(venue_id)
+                if venue and venue.website_url:
+                    existing_event = db.session.query(Event).join(Venue).filter(
+                        Event.title == title,
+                        Event.event_type == 'exhibition',
+                        Venue.website_url == venue.website_url,
+                        Event.city_id == city_id_event,
+                        Event.start_date == start_date
+                    ).first()
+                else:
+                    existing_event = Event.query.filter_by(
+                        title=title,
+                        venue_id=venue_id,
+                        city_id=city_id_event,
+                        start_date=start_date
+                    ).first()
+            else:
+                if event_url:
+                    normalized_url = event_url.rstrip('/')
+                    existing_event = Event.query.filter(
+                        (((Event.url == event_url) | (Event.url == normalized_url)) & (Event.start_date == start_date)) |
+                        ((Event.title == title) & (Event.venue_id == venue_id) & (Event.city_id == city_id_event) & (Event.start_date == start_date)),
+                        Event.event_type == event_type
+                    ).first()
+                else:
+                    existing_event = Event.query.filter_by(
+                        title=title,
+                        venue_id=venue_id,
+                        city_id=city_id_event,
+                        start_date=start_date
+                    ).first()
+        
+        start_time_str = event_data.get('start_time')
+        end_time_str = event_data.get('end_time')
+        
+        # Update existing event
+        if existing_event:
+            app_logger.info(f"🔄 Updating existing event: '{title}' (venue_id: {venue_id}, date: {start_date})")
+            event = existing_event
+            updated_fields = []
+            
+            # Update description if new one is longer
+            new_description = event_data.get('description', '')
+            if new_description and (not event.description or len(new_description) > len(event.description)):
+                event.description = new_description
+                updated_fields.append('description')
+            
+            # Update event_type if more specific
+            new_event_type = event_data.get('event_type')
+            if new_event_type and new_event_type != 'event' and event.event_type == 'event':
+                event.event_type = new_event_type
+                updated_fields.append('event_type')
+            
+            if event_data.get('url') and event_data.get('url') != event.url:
+                event.url = event_data.get('url')
+                updated_fields.append('url')
+            
+            if event_data.get('image_url') and event_data.get('image_url') != event.image_url:
+                event.image_url = event_data.get('image_url')
+                updated_fields.append('image_url')
+            
+            # Update times
+            if start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                try:
+                    new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                except ValueError:
+                    try:
+                        new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
+                    except ValueError:
+                        new_start_time = None
+                
+                if new_start_time and (not event.start_time or event.start_time != new_start_time):
+                    event.start_time = new_start_time
+                    updated_fields.append('start_time')
+            
+            if end_time_str and end_time_str != 'None' and str(end_time_str).strip():
+                try:
+                    new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
+                except ValueError:
+                    try:
+                        new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
+                    except ValueError:
+                        new_end_time = None
+                
+                if new_end_time and (not event.end_time or event.end_time != new_end_time):
+                    event.end_time = new_end_time
+                    updated_fields.append('end_time')
+            
+            if event_data.get('start_location') and event_data.get('start_location') != event.start_location:
+                event.start_location = event_data.get('start_location')
+                updated_fields.append('start_location')
+            
+            if hasattr(Event, 'is_registration_required'):
+                new_reg_required = event_data.get('is_registration_required', False)
+                if event.is_registration_required != new_reg_required:
+                    event.is_registration_required = new_reg_required
+                    updated_fields.append('is_registration_required')
+            
+            if hasattr(Event, 'registration_url') and event_data.get('registration_url'):
+                if event.registration_url != event_data.get('registration_url'):
+                    event.registration_url = event_data.get('registration_url')
+                    updated_fields.append('registration_url')
+            
+            if hasattr(Event, 'registration_info') and event_data.get('registration_info'):
+                new_reg_info = event_data.get('registration_info')
+                if not event.registration_info or event.registration_info != new_reg_info:
+                    event.registration_info = new_reg_info
+                    updated_fields.append('registration_info')
+            
+            if hasattr(Event, 'is_baby_friendly') and is_baby_friendly and not event.is_baby_friendly:
+                event.is_baby_friendly = True
+                updated_fields.append('is_baby_friendly')
+            
+            if updated_fields:
+                app_logger.info(f"   ✅ Updated fields: {', '.join(updated_fields)}")
+                db.session.commit()
+                return event, False
+            else:
+                return event, False
+        
+        # Limit events per venue for non-exhibition event types
+        if event_type and event_type != 'exhibition' and venue_id:
+            current_count = venue_event_counts.get(venue_id, 0)
+            if current_count >= max_events_per_venue:
+                app_logger.info(f"⚠️ Skipped {event_type} event '{title}' - already saved {current_count} {event_type} events for venue {venue_id} (limit: {max_events_per_venue})")
+                return None, False
+            venue_event_counts[venue_id] = current_count + 1
+        
+        # Create new event
+        event = Event()
+        event.title = title
+        event.description = event_data.get('description', '')
+        event.event_type = event_type
+        event.url = event_data.get('url', '')
+        event.image_url = event_data.get('image_url', '')
+        event.start_date = start_date
+        
+        end_date_str = event_data.get('end_date')
+        if end_date_str:
+            event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        if start_time_str and start_time_str != 'None':
+            try:
+                event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    event.start_time = dt.strptime(start_time_str, '%H:%M').time()
+                except ValueError:
+                    event.start_time = None
+        
+        if end_time_str and end_time_str != 'None':
+            try:
+                event.end_time = dt.strptime(end_time_str, '%H:%M:%S').time()
+            except ValueError:
+                try:
+                    event.end_time = dt.strptime(end_time_str, '%H:%M').time()
+                except ValueError:
+                    event.end_time = None
+        
+        event.start_location = event_data.get('start_location', '')
+        event.venue_id = venue_id
+        event.city_id = city_id_event
+        event.source = 'website'
+        event.source_url = event_data.get('source_url', '')
+        event.organizer = event_data.get('organizer', '')
+        
+        if hasattr(Event, 'is_registration_required'):
+            event.is_registration_required = event_data.get('is_registration_required', False)
+        if hasattr(Event, 'registration_url'):
+            event.registration_url = event_data.get('registration_url')
+        if hasattr(Event, 'registration_info'):
+            event.registration_info = event_data.get('registration_info')
+        if hasattr(Event, 'is_baby_friendly'):
+            event.is_baby_friendly = is_baby_friendly
+        
+        db.session.add(event)
+        db.session.commit()
+        
+        # Track exhibition count
+        if event_type == 'exhibition' and venue_id:
+            venue_exhibition_counts[venue_id] = venue_exhibition_counts.get(venue_id, 0) + 1
+        
+        app_logger.info(f"✅ Saved new event to database: '{title}'")
+        return event, True
+        
+    except Exception as e:
+        app_logger.error(f"Error saving event to database: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        db.session.rollback()
+        return None, False
+
+@app.route('/api/scrape-stream', methods=['POST'])
+def trigger_scraping_stream():
+    """Trigger scraping with Server-Sent Events (SSE) streaming for real-time event updates"""
+    def generate():
+        """Generator function that yields events as they are scraped"""
+        # Ensure we're in app context
+        with app.app_context():
+            try:
+                import json
+                from datetime import datetime
+                from scripts.venue_event_scraper import VenueEventScraper
+                from scripts.source_event_scraper import SourceEventScraper
+                
+                # Get parameters from request
+                data = request.get_json() or {}
+                city_id = data.get('city_id')
+                event_type = data.get('event_type', '')
+                time_range = data.get('time_range', 'this_week')
+                venue_ids = data.get('venue_ids', [])
+                source_ids = data.get('source_ids', [])
+                
+                # Get city information
+                if city_id:
+                    city = db.session.get(City, city_id)
+                    if not city:
+                        yield f"data: {json.dumps({'type': 'error', 'message': 'City not found'})}\n\n"
+                        return
+                    city_name = city.name
+                else:
+                    city_name = 'Washington DC'
+                
+                # Validate that at least one venue or source is selected
+                if not venue_ids and not source_ids:
+                    yield f"data: {json.dumps({'type': 'error', 'message': 'Please select at least one venue or source to scrape'})}\n\n"
+                    return
+                
+                # Send initial progress
+                scraping_summary = []
+                if venue_ids:
+                    scraping_summary.append(f'{len(venue_ids)} venues')
+                if source_ids:
+                    scraping_summary.append(f'{len(source_ids)} sources')
+                
+                yield f"data: {json.dumps({'type': 'progress', 'percentage': 10, 'message': f'Starting scraping for {city_name} ({", ".join(scraping_summary)})...'})}\n\n"
+                
+                events_saved = 0
+                # Track exhibitions and events per venue for limits
+                venue_exhibition_counts = {}
+                venue_event_counts = {}
+                max_events_per_venue = data.get('max_events_per_venue') or data.get('max_exhibitions_per_venue', 10)
+                max_exhibitions_per_venue = data.get('max_exhibitions_per_venue', 5)
+                
+                # Scrape venues if any selected
+                if venue_ids:
+                    yield f"data: {json.dumps({'type': 'progress', 'percentage': 20, 'message': f'Scraping events from {len(venue_ids)} venues...'})}\n\n"
+                
+                try:
+                    venue_scraper = VenueEventScraper()
+                    max_events_per_venue = data.get('max_events_per_venue') or data.get('max_exhibitions_per_venue', 10)
+                    max_exhibitions_per_venue = max_events_per_venue if event_type == 'exhibition' or not event_type else max_events_per_venue
+                    
+                    # Get venues
+                    if venue_ids:
+                        venues = Venue.query.filter(Venue.id.in_(venue_ids)).all()
+                    else:
+                        venues = Venue.query.filter_by(city_id=city_id).all()
+                    
+                    # Filter active venues
+                    active_venues = []
+                    for venue in venues:
+                        if 'newseum' in venue.name.lower():
+                            continue
+                        if not venue.website_url or 'example.com' in venue.website_url:
+                            continue
+                        active_venues.append(venue)
+                    
+                    venues = active_venues
+                    total_venues = len(venues)
+                    
+                    for idx, venue in enumerate(venues):
+                        try:
+                            # Update progress
+                            progress = 20 + int((idx / total_venues) * 30)
+                            yield f"data: {json.dumps({'type': 'progress', 'percentage': progress, 'message': f'Scraping {venue.name}...', 'venue_name': venue.name})}\n\n"
+                            
+                            # Scrape venue
+                            events = venue_scraper._scrape_venue_website(
+                                venue, 
+                                event_type=event_type, 
+                                time_range=time_range, 
+                                max_exhibitions_per_venue=max_exhibitions_per_venue,
+                                max_events_per_venue=max_events_per_venue
+                            )
+                            
+                            # Filter by event_type if specified
+                            if event_type:
+                                events = [e for e in events if e.get('event_type', '').lower() == event_type.lower()]
+                            
+                            # Filter by time_range
+                            events = venue_scraper._filter_by_time_range(events, time_range)
+                            
+                            # Limit events per venue
+                            if event_type and event_type.lower() == 'exhibition':
+                                exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
+                                other_events = [e for e in events if e.get('event_type') != 'exhibition']
+                                if len(exhibition_events) > max_exhibitions_per_venue:
+                                    events = exhibition_events[:max_exhibitions_per_venue] + other_events
+                            else:
+                                if len(events) > max_events_per_venue:
+                                    events = events[:max_events_per_venue]
+                            
+                            # Save events to database and stream them
+                            for event_data in events:
+                                try:
+                                    # Ensure city_id is set
+                                    event_data['city_id'] = city_id
+                                    event_data['venue_id'] = venue.id
+                                    event_data['organizer'] = venue.name
+                                    event_data['source_url'] = venue.website_url or ''
+                                    
+                                    # Save event to database using helper function
+                                    saved_event, was_created = save_event_to_database(
+                                        event_data,
+                                        city_id,
+                                        venue_exhibition_counts,
+                                        venue_event_counts,
+                                        max_exhibitions_per_venue,
+                                        max_events_per_venue
+                                    )
+                                    
+                                    # Skip if event was not saved (duplicate or limit reached)
+                                    if not saved_event:
+                                        continue
+                                    
+                                    # Convert saved event to dict for streaming
+                                    event_dict = {
+                                        'id': saved_event.id,
+                                        'title': saved_event.title,
+                                        'description': saved_event.description or '',
+                                        'start_date': saved_event.start_date.isoformat() if saved_event.start_date else None,
+                                        'end_date': saved_event.end_date.isoformat() if saved_event.end_date else None,
+                                        'start_time': saved_event.start_time.strftime('%H:%M:%S') if saved_event.start_time else None,
+                                        'end_time': saved_event.end_time.strftime('%H:%M:%S') if saved_event.end_time else None,
+                                        'url': saved_event.url or '',
+                                        'event_type': saved_event.event_type,
+                                        'venue_id': saved_event.venue_id,
+                                        'venue_name': venue.name,
+                                        'image_url': saved_event.image_url or '',
+                                        'is_baby_friendly': getattr(saved_event, 'is_baby_friendly', False),
+                                        'start_location': saved_event.start_location or ''
+                                    }
+                                    
+                                    # Stream the event
+                                    yield f"data: {json.dumps({'type': 'event', 'event': event_dict})}\n\n"
+                                    events_saved += 1
+                                    
+                                except Exception as e:
+                                    app_logger.error(f"Error processing event: {e}")
+                                    import traceback
+                                    app_logger.error(traceback.format_exc())
+                                    continue
+                            
+                        except Exception as e:
+                            app_logger.error(f"Error scraping venue {venue.name}: {e}")
+                            yield f"data: {json.dumps({'type': 'error', 'message': f'Error scraping {venue.name}: {str(e)}'})}\n\n"
+                            continue
+                    
+                except Exception as e:
+                    app_logger.error(f"Error in venue scraping: {e}")
+                    yield f"data: {json.dumps({'type': 'error', 'message': f'Error scraping venues: {str(e)}'})}\n\n"
+                
+                # Scrape sources if any selected
+                if source_ids:
+                    yield f"data: {json.dumps({'type': 'progress', 'percentage': 60, 'message': f'Scraping events from {len(source_ids)} sources...'})}\n\n"
+                    
+                    try:
+                        source_scraper = SourceEventScraper()
+                        sources = Source.query.filter(Source.id.in_(source_ids)).all()
+                        total_sources = len(sources)
+                        
+                        for idx, source in enumerate(sources):
+                            try:
+                                # Update progress
+                                progress = 60 + int((idx / total_sources) * 30)
+                                yield f"data: {json.dumps({'type': 'progress', 'percentage': progress, 'message': f'Scraping {source.name}...', 'source_name': source.name})}\n\n"
+                                
+                                # Scrape source
+                                source_events = source_scraper.scrape_source_events(
+                                    source_ids=[source.id],
+                                    city_id=city_id,
+                                    event_type=event_type,
+                                    time_range=time_range
+                                )
+                                
+                                # Filter by event_type if specified
+                                if event_type:
+                                    source_events = [e for e in source_events if e.get('event_type', '').lower() == event_type.lower()]
+                                
+                                # Filter by time_range
+                                source_events = source_scraper._filter_by_time_range(source_events, time_range) if hasattr(source_scraper, '_filter_by_time_range') else source_events
+                                
+                                # Save and stream source events
+                                for event_data in source_events:
+                                    try:
+                                        # Ensure city_id is set
+                                        event_data['city_id'] = city_id
+                                        event_data['source'] = 'source'
+                                        event_data['source_url'] = source.url or ''
+                                        event_data['organizer'] = source.name
+                                        
+                                        # Save event to database
+                                        saved_event, was_created = save_event_to_database(
+                                            event_data,
+                                            city_id,
+                                            venue_exhibition_counts,
+                                            venue_event_counts,
+                                            max_exhibitions_per_venue,
+                                            max_events_per_venue
+                                        )
+                                        
+                                        if not saved_event:
+                                            continue
+                                        
+                                        # Convert to dict for streaming
+                                        event_dict = {
+                                            'id': saved_event.id,
+                                            'title': saved_event.title,
+                                            'description': saved_event.description or '',
+                                            'start_date': saved_event.start_date.isoformat() if saved_event.start_date else None,
+                                            'end_date': saved_event.end_date.isoformat() if saved_event.end_date else None,
+                                            'start_time': saved_event.start_time.strftime('%H:%M:%S') if saved_event.start_time else None,
+                                            'end_time': saved_event.end_time.strftime('%H:%M:%S') if saved_event.end_time else None,
+                                            'url': saved_event.url or '',
+                                            'event_type': saved_event.event_type,
+                                            'venue_id': saved_event.venue_id,
+                                            'venue_name': saved_event.venue.name if saved_event.venue else '',
+                                            'image_url': saved_event.image_url or '',
+                                            'is_baby_friendly': getattr(saved_event, 'is_baby_friendly', False),
+                                            'start_location': saved_event.start_location or ''
+                                        }
+                                        
+                                        # Stream the event
+                                        yield f"data: {json.dumps({'type': 'event', 'event': event_dict})}\n\n"
+                                        events_saved += 1
+                                        
+                                    except Exception as e:
+                                        app_logger.error(f"Error processing source event: {e}")
+                                        import traceback
+                                        app_logger.error(traceback.format_exc())
+                                        continue
+                                
+                            except Exception as e:
+                                app_logger.error(f"Error scraping source {source.name}: {e}")
+                                yield f"data: {json.dumps({'type': 'error', 'message': f'Error scraping {source.name}: {str(e)}'})}\n\n"
+                                continue
+                    
+                    except Exception as e:
+                        app_logger.error(f"Error in source scraping: {e}")
+                        yield f"data: {json.dumps({'type': 'error', 'message': f'Error scraping sources: {str(e)}'})}\n\n"
+                
+                # Send completion message
+                yield f"data: {json.dumps({'type': 'complete', 'total_events': events_saved, 'message': f'Scraping complete! Found {events_saved} events.'})}\n\n"
+                
+            except Exception as e:
+                app_logger.error(f"Error in streaming scraper: {e}")
+                import traceback
+                app_logger.error(traceback.format_exc())
+                yield f"data: {json.dumps({'type': 'error', 'message': f'Scraping error: {str(e)}'})}\n\n"
+    
+    return Response(stream_with_context(generate()), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'  # Disable buffering in nginx
+    })
+
 @app.route('/api/clear-database', methods=['POST'])
 def clear_database():
     """Clear all data from database"""
@@ -2073,18 +2613,19 @@ def trigger_scraping():
                 existing_event = None
                 
                 if event_type == 'tour' and event_url:
-                    # For tours, try to match by URL first (most reliable)
+                    # For tours, match by URL AND date (same tour can happen on multiple dates)
                     # Normalize URL for matching (remove trailing slashes, etc.)
                     normalized_url = event_url.rstrip('/')
                     existing_event = Event.query.filter(
-                        (Event.url == event_url) | (Event.url == normalized_url),
+                        ((Event.url == event_url) | (Event.url == normalized_url)),
                         Event.event_type == 'tour',
-                        Event.city_id == city_id_event
+                        Event.city_id == city_id_event,
+                        Event.start_date == start_date  # Include date in matching
                     ).first()
                     if existing_event:
-                        app_logger.info(f"   ✅ Found existing tour by URL: {event_url}")
+                        app_logger.info(f"   ✅ Found existing tour by URL+date: {event_url} on {start_date}")
                     else:
-                        app_logger.info(f"   🔍 No tour found by URL: {event_url}")
+                        app_logger.info(f"   🔍 No tour found by URL+date: {event_url} on {start_date}")
                 
                 # If not found by URL, try title + venue + date matching
                 if not existing_event:
@@ -2110,11 +2651,11 @@ def trigger_scraping():
                             ).first()
                     else:
                         # For non-exhibitions (tours, talks, etc.), use title + venue + date
-                        # Also try matching by URL if available (in case URL wasn't checked above)
+                        # Also try matching by URL+date if available (in case URL wasn't checked above)
                         if event_url and not existing_event:
                             normalized_url = event_url.rstrip('/')
                             existing_event = Event.query.filter(
-                                ((Event.url == event_url) | (Event.url == normalized_url)) |
+                                (((Event.url == event_url) | (Event.url == normalized_url)) & (Event.start_date == start_date)) |
                                 ((Event.title == title) & (Event.venue_id == venue_id) & (Event.city_id == city_id_event) & (Event.start_date == start_date)),
                                 Event.event_type == event_type
                             ).first()

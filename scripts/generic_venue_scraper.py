@@ -411,8 +411,10 @@ class GenericVenueScraper:
             for path in common_paths:
                 test_url = base_domain + path
                 if test_url not in seen_urls:
-                    seen_urls.add(test_url)
-                    event_pages.append(test_url)
+                    # Filter out non-event paths (like /learn/family-programs)
+                    if self._is_likely_event_page(test_url, ''):
+                        seen_urls.add(test_url)
+                        event_pages.append(test_url)
             
             # Then fetch the main page and discover links
             response = self._fetch_with_retry(base_url, base_url=base_url)
@@ -459,9 +461,12 @@ class GenericVenueScraper:
                         # Clean up URL (remove fragments, query params that are just tracking)
                         parsed = urlparse(full_url)
                         clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-                        if clean_url not in seen_urls and clean_url != base_url:
-                            seen_urls.add(clean_url)
-                            event_pages.append(clean_url)
+                        
+                        # Skip if URL is clearly not an event page (filter out common non-event paths)
+                        if self._is_likely_event_page(clean_url, text):
+                            if clean_url not in seen_urls and clean_url != base_url:
+                                seen_urls.add(clean_url)
+                                event_pages.append(clean_url)
             
             # Then check all other links
             for link in all_links:
@@ -472,9 +477,12 @@ class GenericVenueScraper:
                     full_url = urljoin(base_url, href)
                     parsed = urlparse(full_url)
                     clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-                    if clean_url not in seen_urls and clean_url != base_url:
-                        seen_urls.add(clean_url)
-                        event_pages.append(clean_url)
+                    
+                    # Skip if URL is clearly not an event page
+                    if self._is_likely_event_page(clean_url, text):
+                        if clean_url not in seen_urls and clean_url != base_url:
+                            seen_urls.add(clean_url)
+                            event_pages.append(clean_url)
             
             # Try to find sitemap and extract exhibition/event URLs
             try:
@@ -513,6 +521,124 @@ class GenericVenueScraper:
             logger.debug(f"Error discovering event pages: {e}")
         
         return event_pages[:10]  # Increased limit to 10 pages
+    
+    def _is_likely_event_page(self, url: str, link_text: str = '') -> bool:
+        """Check if a URL is likely to be an event/exhibition page (not a general info page)"""
+        url_lower = url.lower()
+        text_lower = link_text.lower()
+        
+        # Filter out URLs that are clearly not event pages
+        # These are often navigation links that don't lead to actual event listings
+        
+        # Skip URLs that are just category/info pages (not actual event listings)
+        non_event_patterns = [
+            '/learn/',  # Learning/education pages (like /learn/family-programs)
+            '/about/',  # About pages
+            '/contact',  # Contact pages
+            '/tickets',  # Ticket pages
+            '/membership',  # Membership pages
+            '/shop',  # Shop pages
+            '/store',  # Store pages
+            '/donate',  # Donation pages
+            '/support',  # Support pages
+            '/press',  # Press pages
+            '/news',  # News pages (unless it's news/events)
+            '/blog',  # Blog pages
+            '/search',  # Search pages
+            '/login',  # Login pages
+            '/register',  # Registration pages
+            '/account',  # Account pages
+            '/cart',  # Shopping cart
+            '/checkout',  # Checkout pages
+            '/visiting-',  # Visiting info pages (like /visiting-louvre, /visiting-museum)
+            '/plan-your-visit',  # Visit planning pages
+            '/plan-a-visit',  # Visit planning pages
+        ]
+        
+        # Check if URL matches non-event patterns
+        for pattern in non_event_patterns:
+            if pattern in url_lower:
+                # Exception: some museums have /learn/programs or /learn/events which ARE event pages
+                if '/learn/programs' in url_lower or '/learn/events' in url_lower:
+                    continue  # These are OK
+                logger.debug(f"   ⏭️  Skipping non-event URL pattern: {url}")
+                return False
+        
+        # Special handling for /visit/ paths - only allow event-related ones
+        if '/visit/' in url_lower:
+            # Allow event-related visit pages
+            if '/visit/events' in url_lower or '/visit/exhibitions' in url_lower:
+                return True  # These are OK
+            # Filter out all other /visit/ pages (hours, admission, directions, etc.)
+            visit_info_pages = [
+                '/visit/hours', '/visit/admission', '/visit/directions',
+                '/visit/parking', '/visit/accessibility', '/visit/access',
+                '/visit/map', '/visit/transportation', '/visit/getting-here',
+                '/visit/faq', '/visit/information', '/visit/info',
+                '/visit/plan', '/visit/plan-your-visit', '/visit/guide'
+            ]
+            for info_page in visit_info_pages:
+                if info_page in url_lower:
+                    logger.debug(f"   ⏭️  Skipping visit info page: {url}")
+                    return False
+            # If it's /visit/ but not in our allow list, skip it to be safe
+            logger.debug(f"   ⏭️  Skipping unknown /visit/ page: {url}")
+            return False
+        
+        # Skip URLs that end with common non-event paths
+        non_event_endings = [
+            '/contact',
+            '/about',
+            '/tickets',
+            '/membership',
+            '/donate',
+            '/shop',
+            '/store',
+            '/visiting',  # Visiting pages
+        ]
+        
+        for ending in non_event_endings:
+            if url_lower.endswith(ending) or url_lower.endswith(ending + '/'):
+                logger.debug(f"   ⏭️  Skipping non-event URL ending: {url}")
+                return False
+        
+        # Filter out URLs that contain visiting-related keywords (but aren't event pages)
+        visiting_keywords = [
+            '/visiting-',  # /visiting-louvre, /visiting-museum, etc.
+            '/plan-your-visit',
+            '/plan-a-visit',
+            '/prepare-your-visit',
+            '/before-you-visit',
+        ]
+        
+        for keyword in visiting_keywords:
+            if keyword in url_lower:
+                logger.debug(f"   ⏭️  Skipping visiting info page: {url}")
+                return False
+        
+        # URLs with event/exhibition keywords are likely event pages
+        event_indicators = [
+            '/exhibitions', '/exhibition', '/events', '/event',
+            '/programs', '/program', '/calendar', '/tours',
+            '/talks', '/lectures', '/workshops', '/shows',
+            '/whats-on', '/on-view', '/current', '/upcoming'
+        ]
+        
+        has_event_indicator = any(indicator in url_lower for indicator in event_indicators)
+        
+        # If link text has event keywords, it's more likely to be an event page
+        text_has_event_keywords = any(keyword in text_lower for keyword in [
+            'exhibition', 'event', 'program', 'calendar', 'tour',
+            'talk', 'lecture', 'workshop', 'show', 'on view'
+        ])
+        
+        # Accept if URL has event indicators OR link text has event keywords
+        if has_event_indicator or text_has_event_keywords:
+            return True
+        
+        # If neither, it's probably not an event page
+        logger.debug(f"   ⏭️  Skipping URL without event indicators: {url}")
+        return False
     
     def _is_javascript_rendered(self, soup: BeautifulSoup) -> bool:
         """Detect if a page is JavaScript-rendered (SPA) with minimal HTML content"""
@@ -2316,8 +2442,26 @@ Important:
                 'javascript:', 'mailto:', 'tel:',
                 '#',  # Anchor links only
             ]
-            # Reject if URL matches invalid patterns
-            if any(pattern in url_lower for pattern in invalid_url_patterns):
+            
+            # Check if URL is just an anchor or invalid protocol
+            for pattern in invalid_url_patterns:
+                if url_lower.startswith(pattern):
+                    logger.debug(f"   ⏭️  Skipping event with invalid URL pattern: {url}")
+                    return False
+            
+            # If URL is just the base domain or homepage, it's probably not a real event page
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            path = parsed.path.strip('/')
+            if not path or path in ['', 'index', 'home', 'index.html', 'home.html']:
+                # Allow if it's an exhibition/event listing page (no specific event)
+                if not any(keyword in url_lower for keyword in ['/exhibitions', '/events', '/programs', '/calendar']):
+                    logger.debug(f"   ⏭️  Skipping event with homepage URL: {url}")
+                    return False
+            
+            # Validate URL is likely an event page (not a general info page)
+            if not self._is_likely_event_page(url, title):
+                logger.debug(f"   ⏭️  Skipping event with non-event page URL: {url}")
                 return False
             
             # Reject calendar listing pages without specific event identifiers
@@ -2326,7 +2470,14 @@ Important:
                 if not re.search(r'/events?/[^/]+$', url_lower) and not re.search(r'event[_-]?id=', url_lower):
                     # Might be a listing page, but allow if it has a date
                     if not has_date:
+                        logger.debug(f"   ⏭️  Skipping calendar listing page without date: {url}")
                         return False
+        
+        # Additional validation: Events should have meaningful content
+        # If it's just a title with no other info, it's probably not a real event
+        if not has_date and not has_description and not has_url:
+            logger.debug(f"   ⏭️  Skipping event with only title, no other info: {title[:50]}")
+            return False
         
         return True
     
@@ -2423,27 +2574,67 @@ Important:
                     title = match.group(1).strip()
                     date_text = f"{match.group(2).strip()} – {match.group(3).strip()}"
                 else:
-                    # Pattern 2: Title on one line, date range on next line or nearby
-                    # Look for date range pattern anywhere in parent
-                    date_match = re.search(
-                        r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*[–—\-]\s*([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
-                        parent_text
+                    # Pattern 2: MoPOP-style "Open now through [Date]" or "Opens [Date]"
+                    # Look for "Open now through" or "Open through" patterns
+                    open_through_match = re.search(
+                        r'(?:Open\s+now\s+through|Open\s+through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                        parent_text,
+                        re.IGNORECASE
                     )
-                    if date_match:
-                        date_text = date_match.group(0)
-                        # Title might be the link text or text before the date
+                    if open_through_match:
+                        date_text = open_through_match.group(0)  # "Open now through November 10, 2025"
+                        # Title might be the link text or heading before this
                         title = link_text if link_text and len(link_text) > 5 else None
                         if not title:
-                            # Try to extract title from text before the date
-                            text_before_date = parent_text[:date_match.start()].strip()
-                            # Take the last meaningful phrase (likely the title)
+                            # Look for heading before the date text
+                            text_before_date = parent_text[:open_through_match.start()].strip()
                             title_parts = text_before_date.split('\n')
                             for part in reversed(title_parts):
                                 part = part.strip()
-                                # URL not available yet at this point, so pass None
                                 if part and len(part) > 5 and self._is_valid_event_title(part, None):
                                     title = part
                                     break
+                    
+                    # Pattern 3: "Opens [Date]" (start date only)
+                    if not date_text:
+                        opens_match = re.search(
+                            r'Opens\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                            parent_text,
+                            re.IGNORECASE
+                        )
+                        if opens_match:
+                            date_text = opens_match.group(0)  # "Opens March 4, 2017"
+                            title = link_text if link_text and len(link_text) > 5 else None
+                            if not title:
+                                text_before_date = parent_text[:opens_match.start()].strip()
+                                title_parts = text_before_date.split('\n')
+                                for part in reversed(title_parts):
+                                    part = part.strip()
+                                    if part and len(part) > 5 and self._is_valid_event_title(part, None):
+                                        title = part
+                                        break
+                    
+                    # Pattern 4: Title on one line, date range on next line or nearby
+                    if not date_text:
+                        date_match = re.search(
+                            r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*[–—\-]\s*([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                            parent_text
+                        )
+                        if date_match:
+                            date_text = date_match.group(0)
+                            # Title might be the link text or text before the date
+                            title = link_text if link_text and len(link_text) > 5 else None
+                            if not title:
+                                # Try to extract title from text before the date
+                                text_before_date = parent_text[:date_match.start()].strip()
+                                # Take the last meaningful phrase (likely the title)
+                                title_parts = text_before_date.split('\n')
+                                for part in reversed(title_parts):
+                                    part = part.strip()
+                                    # URL not available yet at this point, so pass None
+                                    if part and len(part) > 5 and self._is_valid_event_title(part, None):
+                                        title = part
+                                        break
                 
                 # Fallback: use link text as title if we have a date
                 if not title and link_text and len(link_text) > 5:
@@ -2471,11 +2662,37 @@ Important:
                 start_date = None
                 end_date = None
                 if date_text:
-                    # Use the date range parser
-                    date_range = self._parse_date_range_string(date_text)
-                    if date_range:
-                        start_date = date_range.get('start_date')
-                        end_date = date_range.get('end_date')
+                    # Handle MoPOP-style "Open now through [Date]" pattern
+                    open_through_match = re.search(
+                        r'(?:Open\s+now\s+through|Open\s+through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                        date_text,
+                        re.IGNORECASE
+                    )
+                    if open_through_match:
+                        end_date_str = open_through_match.group(1)
+                        end_date = self._parse_single_date_string(end_date_str)
+                        # For "Open now through", set start_date to today (ongoing exhibition)
+                        if end_date:
+                            from datetime import date
+                            start_date = date.today()
+                            logger.debug(f"   📅 Extracted 'Open now through' date: {end_date}, set start_date to {start_date}")
+                    else:
+                        # Handle "Opens [Date]" pattern
+                        opens_match = re.search(
+                            r'Opens\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                            date_text,
+                            re.IGNORECASE
+                        )
+                        if opens_match:
+                            start_date_str = opens_match.group(1)
+                            start_date = self._parse_single_date_string(start_date_str)
+                            logger.debug(f"   📅 Extracted 'Opens' date: {start_date}")
+                        else:
+                            # Use the date range parser for standard date ranges
+                            date_range = self._parse_date_range_string(date_text)
+                            if date_range:
+                                start_date = date_range.get('start_date')
+                                end_date = date_range.get('end_date')
                 
                 # Also try to extract dates from title if we don't have them yet
                 # Pattern: "TitleThrough Month Day, Year" or "Title Through Month Day, Year"
@@ -2593,21 +2810,144 @@ Important:
                             break
                         container = container.parent if hasattr(container, 'parent') else None
                 
-                # Only fetch individual page as last resort if no image found on listing page
-                if not image_url and full_url and full_url != base_url:
+                # Fetch individual exhibition page to get better dates, description, and image
+                # This is important for museums like MoPOP that have dates on the detail page
+                if full_url and full_url != base_url:
                     try:
-                        logger.debug(f"   🖼️  No image on listing page, fetching individual exhibition page: {full_url}")
+                        logger.debug(f"   🔍 Fetching individual exhibition page for better data: {full_url}")
                         event_response = self._fetch_with_retry(full_url, base_url=base_url)
-                        if event_response and event_response.status_code == 200:
+                        
+                        # Validate that the page actually exists (not 404)
+                        if not event_response:
+                            logger.debug(f"   ⏭️  Skipping: Could not fetch exhibition page (no response): {full_url}")
+                            continue
+                        
+                        if event_response.status_code == 404:
+                            logger.debug(f"   ⏭️  Skipping: Exhibition page does not exist (404): {full_url}")
+                            continue
+                        
+                        if event_response.status_code != 200:
+                            logger.debug(f"   ⏭️  Skipping: Exhibition page returned status {event_response.status_code}: {full_url}")
+                            continue
+                        
+                        if event_response.status_code == 200:
                             event_soup = BeautifulSoup(event_response.content, 'html.parser')
-                            # Use enhanced image extraction on the full page
-                            image_url = self._extract_image(event_soup, base_url)
-                            if image_url:
-                                logger.debug(f"   ✅ Found image from exhibition page: {image_url[:80]}")
+                            
+                            # Extract dates from the exhibition detail page (MoPOP format)
+                            # Look for patterns like "Open now through November 10, 2025" or "Opens March 4, 2017"
+                            page_text = event_soup.get_text()
+                            
+                            # Pattern 1: "Open now through [Date]" or "Open through [Date]"
+                            open_through_pattern = r'(?:Open\s+now\s+through|Open\s+through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+                            open_through_match = re.search(open_through_pattern, page_text, re.IGNORECASE)
+                            if open_through_match:
+                                end_date_str = open_through_match.group(1)
+                                parsed_end_date = self._parse_single_date_string(end_date_str)
+                                if parsed_end_date:
+                                    end_date = parsed_end_date
+                                    # If we don't have a start date, set it to today (ongoing exhibition)
+                                    if not start_date:
+                                        from datetime import date
+                                        start_date = date.today()
+                                    logger.debug(f"   📅 Extracted end date from 'Open now through' pattern: {end_date}")
+                            
+                            # Pattern 2: "Opens [Date]" (start date)
+                            opens_pattern = r'Opens\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+                            opens_match = re.search(opens_pattern, page_text, re.IGNORECASE)
+                            if opens_match:
+                                start_date_str = opens_match.group(1)
+                                parsed_start_date = self._parse_single_date_string(start_date_str)
+                                if parsed_start_date:
+                                    start_date = parsed_start_date
+                                    logger.debug(f"   📅 Extracted start date from 'Opens' pattern: {start_date}")
+                            
+                            # Pattern 3: Date range in various formats on the page
+                            # Look for date ranges in the page text
+                            if not start_date or not end_date:
+                                # Try to find date elements with common selectors
+                                date_elements = event_soup.find_all(['time', 'span', 'div', 'p'], 
+                                                                    class_=re.compile(r'date|duration|period|on-view', re.I))
+                                for date_elem in date_elements:
+                                    date_text = date_elem.get_text(strip=True)
+                                    if date_text:
+                                        # Try "through" pattern
+                                        through_match = re.search(r'through\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})', date_text, re.I)
+                                        if through_match and not end_date:
+                                            end_date_str = through_match.group(1)
+                                            parsed_end_date = self._parse_single_date_string(end_date_str)
+                                            if parsed_end_date:
+                                                end_date = parsed_end_date
+                                                if not start_date:
+                                                    from datetime import date
+                                                    start_date = date.today()
+                                                logger.debug(f"   📅 Extracted end date from date element: {end_date}")
+                                                break
+                                        
+                                        # Try date range
+                                        date_range = self._parse_date_range_string(date_text)
+                                        if date_range:
+                                            if not start_date:
+                                                start_date = date_range.get('start_date')
+                                            if not end_date:
+                                                end_date = date_range.get('end_date')
+                                            if start_date or end_date:
+                                                logger.debug(f"   📅 Extracted date range from date element: {start_date} to {end_date}")
+                                                break
+                                
+                                # Also check for dates in structured data (JSON-LD)
+                                if not start_date or not end_date:
+                                    json_ld_scripts = event_soup.find_all('script', type='application/ld+json')
+                                    for script in json_ld_scripts:
+                                        try:
+                                            script_content = script.string if script.string else script.get_text()
+                                            data = json.loads(script_content)
+                                            items = data if isinstance(data, list) else [data]
+                                            for item in items:
+                                                if item.get('@type') in ['Event', 'ExhibitionEvent']:
+                                                    if 'startDate' in item and not start_date:
+                                                        start_datetime = self._parse_iso_datetime(item['startDate'])
+                                                        if start_datetime:
+                                                            start_date = start_datetime.date()
+                                                    if 'endDate' in item and not end_date:
+                                                        end_datetime = self._parse_iso_datetime(item['endDate'])
+                                                        if end_datetime:
+                                                            end_date = end_datetime.date()
+                                                    if start_date or end_date:
+                                                        logger.debug(f"   📅 Extracted dates from JSON-LD: {start_date} to {end_date}")
+                                                        break
+                                        except (json.JSONDecodeError, KeyError):
+                                            continue
+                            
+                            # Extract better description from detail page
+                            if not description or len(description) < 100:
+                                # Look for main content area
+                                main_content = event_soup.find('main') or event_soup.find('article') or event_soup.find('div', class_=re.compile(r'content|main|exhibition', re.I))
+                                if main_content:
+                                    # Get first substantial paragraph
+                                    paragraphs = main_content.find_all('p')
+                                    for p in paragraphs:
+                                        p_text = p.get_text(strip=True)
+                                        # Skip if it's just a date or very short
+                                        if len(p_text) > 100 and not re.match(r'^[A-Z][a-z]+\s+\d{1,2}', p_text):
+                                            description = p_text[:500]
+                                            break
+                            
+                            # Extract image from detail page if not found on listing
+                            if not image_url:
+                                image_url = self._extract_image(event_soup, base_url)
+                                if image_url:
+                                    logger.debug(f"   ✅ Found image from exhibition page: {image_url[:80]}")
                     except Exception as e:
-                        logger.debug(f"   ⚠️  Error fetching exhibition page for image: {e}")
+                        logger.debug(f"   ⚠️  Error fetching exhibition page: {e}")
                 
-                events.append({
+                # Final validation: Only create event if we have valid data
+                # Skip if URL doesn't exist (we should have checked above, but double-check)
+                if not title or len(title.strip()) < 3:
+                    logger.debug(f"   ⏭️  Skipping: Invalid title: {title}")
+                    continue
+                
+                # Validate the event before adding
+                event_dict = {
                     'title': title,
                     'description': description or '',
                     'start_date': start_date.isoformat() if start_date else None,
@@ -2618,7 +2958,13 @@ Important:
                     'url': full_url,
                     'image_url': image_url,
                     'event_type': 'exhibition'
-                })
+                }
+                
+                # Validate event before adding
+                if self._is_valid_generic_event(event_dict):
+                    events.append(event_dict)
+                else:
+                    logger.debug(f"   ⏭️  Skipping: Event failed validation: {title[:50]}")
             
             # Method 2: Extract from text patterns (for OCMA-style listings)
             # Look for patterns like "Title Title Date Range"
@@ -2717,7 +3063,15 @@ Important:
                     try:
                         logger.debug(f"   🖼️  No image on listing page, fetching exhibition page: {exhibition_url}")
                         event_response = self._fetch_with_retry(exhibition_url, base_url=base_url)
-                        if event_response and event_response.status_code == 200:
+                        
+                        # Validate that the page actually exists
+                        if not event_response or event_response.status_code != 200:
+                            if event_response and event_response.status_code == 404:
+                                logger.debug(f"   ⏭️  Skipping: Exhibition page does not exist (404): {exhibition_url}")
+                            # Don't create event if page doesn't exist
+                            continue
+                        
+                        if event_response.status_code == 200:
                             event_soup = BeautifulSoup(event_response.content, 'html.parser')
                             # Use enhanced image extraction on the full page
                             image_url = self._extract_image(event_soup, base_url)
@@ -2726,7 +3080,12 @@ Important:
                     except Exception as e:
                         logger.debug(f"   ⚠️  Error fetching exhibition page for image: {e}")
                 
-                events.append({
+                # Final validation before creating event
+                if not title or len(title.strip()) < 3:
+                    logger.debug(f"   ⏭️  Skipping: Invalid title: {title}")
+                    continue
+                
+                event_dict = {
                     'title': title,
                     'description': '',
                     'start_date': start_date.isoformat() if start_date else None,
@@ -2737,7 +3096,13 @@ Important:
                     'url': exhibition_url,
                     'image_url': image_url,
                     'event_type': 'exhibition'
-                })
+                }
+                
+                # Validate event before adding
+                if self._is_valid_generic_event(event_dict):
+                    events.append(event_dict)
+                else:
+                    logger.debug(f"   ⏭️  Skipping: Event failed validation: {title[:50]}"))
             
             logger.info(f"📦 Extracted {len(events)} exhibitions from listing page")
 
