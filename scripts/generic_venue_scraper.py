@@ -265,6 +265,9 @@ class GenericVenueScraper:
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',  # "December 5, 2025, 5:00–6:00 PM"
             # Full dates with time (pipe-separated format: "December 5, 2025 | 11:30 am–12:00 pm")
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?',  # "December 5, 2025 | 11:30 am–12:00 pm"
+            # Art Institute format: "Wed, Dec 17 | 12:00–12:30" (24-hour time, no AM/PM)
+            r'(\w+day),?\s+(\w{3})\.?\s+(\d{1,2})\s*\|\s*(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})',  # "Wed, Dec 17 | 12:00–12:30"
+            r'(\w+day),?\s+(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})',  # "Wed, Dec 17, 2025 | 12:00–12:30"
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
             # Abbreviated month formats
             r'(\w+day,?\s+)?(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "Dec. 5, 2025" or "Dec 5, 2025"
@@ -946,7 +949,7 @@ Important:
                 url = urljoin(base_url, url)
             
             # Determine event type
-            event_type = self._determine_event_type(title, description, data.get('@type', ''))
+            event_type = self._determine_event_type(title, description, data.get('@type', ''), url)
             
             return {
                 'title': title,
@@ -1023,8 +1026,13 @@ Important:
                                     event['event_type'] = self._detect_museum_event_type(
                                         event.get('title', ''),
                                         event.get('description', ''),
-                                        element
+                                        element,
+                                        event.get('url', '')
                                     )
+                                # Filter out events that are actually articles/videos (returned None)
+                                if event.get('event_type') is None:
+                                    logger.debug(f"   ⏭️  Skipping non-event content: {event.get('title', 'N/A')[:50]} (URL: {event.get('url', 'N/A')[:60]})")
+                                    continue
                                 events.append(event)
                                 logger.debug(f"   ✅ Extracted event: {event.get('title', 'N/A')[:50]}")
                         except Exception as e:
@@ -1359,9 +1367,10 @@ Important:
                         from datetime import date
                         end_date = parsed_end_date
                         # For exhibitions ending in the future, assume they started recently or are ongoing
+                        # Set start_date to today if not already set
                         if not start_date:
                             start_date = date.today()
-                        logger.debug(f"   📅 Extracted end date from description: {end_date}")
+                        logger.debug(f"   📅 Extracted end date from description: {end_date}, set start_date to {start_date}")
                 
                 # Look for date ranges in description
                 if not start_date or not end_date:
@@ -1628,7 +1637,7 @@ Important:
             
             # Determine event type
             if not event_type:
-                event_type = self._determine_event_type(title, description)
+                event_type = self._determine_event_type(title, description, '', url)
             
             # Filter by time range (only if we have a date)
             # For events without dates (ongoing exhibitions), include them
@@ -1966,6 +1975,11 @@ Important:
         # Parse combined date+time patterns first (e.g., "December 5, 2025, 5:00–6:00 PM")
         # These patterns extract both date and time together
         combined_patterns = [
+            # Art Institute format: "Wed, Dec 17 | 12:00–12:30" (24-hour format, no AM/PM)
+            # Handles both abbreviated (Wed, Mon, Tue) and full (Wednesday, Monday) day names
+            r'(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(\w{3})\.?\s+(\d{1,2}),?\s*(?:(\d{4}))?\s*\|\s*(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})',
+            # Art Institute format without day of week: "Dec 17 | 12:00–12:30"
+            r'(\w{3})\.?\s+(\d{1,2}),?\s*(?:(\d{4}))?\s*\|\s*(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})',
             # "Dec 13 @ 1:00 pm – 3:00 pm" (at-symbol format, abbreviated month, no year)
             r'(\w+)\s+(\d{1,2})\s*@\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
             # "December 13 @ 1:00 pm – 3:00 pm" (at-symbol format, full month, no year)
@@ -1974,59 +1988,120 @@ Important:
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*@\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
             # "December 5, 2025, 5:00–6:00 PM" (comma-separated)
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
-            # "December 5, 2025 | 5:00–6:00 PM" (pipe-separated)
+            # "December 5, 2025 | 5:00–6:00 PM" (pipe-separated with AM/PM)
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
         ]
         
-        for pattern in combined_patterns:
+        for pattern_idx, pattern in enumerate(combined_patterns):
             match = re.search(pattern, search_text, re.IGNORECASE)
             if match:
                 groups = match.groups()
                 try:
-                    # Parse date - handle patterns with and without year
-                    month = self._month_name_to_num(groups[0])
-                    day = int(groups[1])
-                    
-                    # Check if year is in groups (patterns with year have it in position 2)
-                    # Patterns without year: groups[0]=month, groups[1]=day, groups[2]=hour
-                    # Patterns with year: groups[0]=month, groups[1]=day, groups[2]=year, groups[3]=hour
-                    if len(groups) >= 8 and groups[2].isdigit() and len(groups[2]) == 4:
-                        # Has year in position 2
-                        year = int(groups[2])
-                        time_start_idx = 3
-                    else:
-                        # No year - use current year or next year if month has passed
-                        today = date.today()
-                        year = today.year
-                        if month < today.month or (month == today.month and day < today.day):
-                            year = today.year + 1
-                        time_start_idx = 2
-                    
-                    start_date = date(year, month, day)
-                    
-                    # Parse start time (index depends on whether year was present)
-                    start_hour = int(groups[time_start_idx])
-                    start_min = int(groups[time_start_idx + 1])
-                    start_ampm = groups[time_start_idx + 2].lower()
-                    if start_ampm == 'p' and start_hour != 12:
-                        start_hour += 12
-                    elif start_ampm == 'a' and start_hour == 12:
-                        start_hour = 0
-                    start_time = time(start_hour, start_min)
-                    
-                    # Parse end time
-                    if len(groups) >= time_start_idx + 6:
-                        end_hour = int(groups[time_start_idx + 3])
-                        end_min = int(groups[time_start_idx + 4])
-                        end_ampm = groups[time_start_idx + 5].lower()
-                        if end_ampm == 'p' and end_hour != 12:
-                            end_hour += 12
-                        elif end_ampm == 'a' and end_hour == 12:
-                            end_hour = 0
+                    # Handle Art Institute format: "Wed, Dec 17 | 12:00–12:30"
+                    # Pattern 0: groups[0]=month, groups[1]=day, groups[2]=year (optional), groups[3]=start_hour, groups[4]=start_min, groups[5]=end_hour, groups[6]=end_min
+                    # Pattern 1: groups[0]=month, groups[1]=day, groups[2]=year (optional), groups[3]=start_hour, groups[4]=start_min, groups[5]=end_hour, groups[6]=end_min
+                    if pattern_idx == 0:  # "Wed, Dec 17 | 12:00–12:30" (with day of week, no year)
+                        month = self._month_name_to_num(groups[0])
+                        day = int(groups[1])
+                        # Check if year is present (groups[2] if it exists and is 4 digits)
+                        if len(groups) >= 7 and groups[2] and groups[2].isdigit() and len(groups[2]) == 4:
+                            year = int(groups[2])
+                            time_start_idx = 3
+                        else:
+                            # No year - use current year or next year if month has passed
+                            today = date.today()
+                            year = today.year
+                            if month < today.month or (month == today.month and day < today.day):
+                                year = today.year + 1
+                            time_start_idx = 2
+                        
+                        start_date = date(year, month, day)
+                        
+                        # Parse 24-hour time
+                        start_hour = int(groups[time_start_idx])
+                        start_min = int(groups[time_start_idx + 1])
+                        start_time = time(start_hour, start_min)
+                        
+                        end_hour = int(groups[time_start_idx + 2])
+                        end_min = int(groups[time_start_idx + 3])
                         end_time = time(end_hour, end_min)
-                    
-                    logger.debug(f"   ✅ Extracted date+time from combined pattern: {start_date} {start_time}-{end_time}")
-                    break
+                        
+                        logger.debug(f"   ✅ Extracted date+time from Art Institute format (with day of week): {start_date} {start_time}-{end_time}")
+                        break
+                    elif pattern_idx == 1:  # "Dec 17 | 12:00–12:30" (no day of week)
+                        month = self._month_name_to_num(groups[0])
+                        day = int(groups[1])
+                        # Check if year is present
+                        if len(groups) >= 6 and groups[2] and groups[2].isdigit() and len(groups[2]) == 4:
+                            year = int(groups[2])
+                            time_start_idx = 3
+                        else:
+                            # No year - use current year or next year if month has passed
+                            today = date.today()
+                            year = today.year
+                            if month < today.month or (month == today.month and day < today.day):
+                                year = today.year + 1
+                            time_start_idx = 2
+                        
+                        start_date = date(year, month, day)
+                        
+                        # Parse 24-hour time
+                        start_hour = int(groups[time_start_idx])
+                        start_min = int(groups[time_start_idx + 1])
+                        start_time = time(start_hour, start_min)
+                        
+                        end_hour = int(groups[time_start_idx + 2])
+                        end_min = int(groups[time_start_idx + 3])
+                        end_time = time(end_hour, end_min)
+                        
+                        logger.debug(f"   ✅ Extracted date+time from Art Institute format (no day of week): {start_date} {start_time}-{end_time}")
+                        break
+                    else:
+                        # Original patterns (at-symbol and pipe-separated with AM/PM)
+                        # Parse date - handle patterns with and without year
+                        month = self._month_name_to_num(groups[0])
+                        day = int(groups[1])
+                        
+                        # Check if year is in groups (patterns with year have it in position 2)
+                        # Patterns without year: groups[0]=month, groups[1]=day, groups[2]=hour
+                        # Patterns with year: groups[0]=month, groups[1]=day, groups[2]=year, groups[3]=hour
+                        if len(groups) >= 8 and groups[2].isdigit() and len(groups[2]) == 4:
+                            # Has year in position 2
+                            year = int(groups[2])
+                            time_start_idx = 3
+                        else:
+                            # No year - use current year or next year if month has passed
+                            today = date.today()
+                            year = today.year
+                            if month < today.month or (month == today.month and day < today.day):
+                                year = today.year + 1
+                            time_start_idx = 2
+                        
+                        start_date = date(year, month, day)
+                        
+                        # Parse start time (index depends on whether year was present)
+                        start_hour = int(groups[time_start_idx])
+                        start_min = int(groups[time_start_idx + 1])
+                        start_ampm = groups[time_start_idx + 2].lower()
+                        if start_ampm == 'p' and start_hour != 12:
+                            start_hour += 12
+                        elif start_ampm == 'a' and start_hour == 12:
+                            start_hour = 0
+                        start_time = time(start_hour, start_min)
+                        
+                        # Parse end time
+                        if len(groups) >= time_start_idx + 6:
+                            end_hour = int(groups[time_start_idx + 3])
+                            end_min = int(groups[time_start_idx + 4])
+                            end_ampm = groups[time_start_idx + 5].lower()
+                            if end_ampm == 'p' and end_hour != 12:
+                                end_hour += 12
+                            elif end_ampm == 'a' and end_hour == 12:
+                                end_hour = 0
+                            end_time = time(end_hour, end_min)
+                        
+                        logger.debug(f"   ✅ Extracted date+time from combined pattern: {start_date} {start_time}-{end_time}")
+                        break
                 except (ValueError, IndexError) as e:
                     logger.debug(f"Error parsing combined date+time pattern: {e}")
                     continue
@@ -2261,12 +2336,14 @@ Important:
         
         date_string = date_string.strip()
         
-        # Try common date formats
+        # Try common date formats (including British format: "2 October 2025")
         date_formats = [
-            '%B %d, %Y',      # November 25, 2025
-            '%b %d, %Y',      # Nov 25, 2025
-            '%d %B %Y',       # 25 November 2025
-            '%d %b %Y',       # 25 Nov 2025
+            '%d %B %Y',       # 2 October 2025 (British format - try first for Tate)
+            '%d %b %Y',       # 2 Oct 2025 (British format abbreviated)
+            '%B %d, %Y',      # November 25, 2025 (American format)
+            '%b %d, %Y',      # Nov 25, 2025 (American format abbreviated)
+            '%B %d %Y',       # November 25 2025 (American format without comma)
+            '%b %d %Y',       # Nov 25 2025 (American format abbreviated without comma)
             '%Y-%m-%d',       # 2025-11-25
             '%m/%d/%Y',       # 11/25/2025
             '%d/%m/%Y',       # 25/11/2025
@@ -2287,7 +2364,21 @@ Important:
         day_pattern = r'(\d{1,2})'
         year_pattern = r'(\d{4})'
         
-        # Pattern: "Month Day, Year"
+        # Pattern 1: "Day Month Year" (British format: "2 October 2025")
+        pattern_british = rf'{day_pattern}\s+{month_pattern}\s+{year_pattern}'
+        match_british = re.search(pattern_british, date_string, re.IGNORECASE)
+        if match_british:
+            try:
+                day = int(match_british.group(1))
+                month_str = match_british.group(2)
+                year = int(match_british.group(3))
+                month = self._month_name_to_num(month_str)
+                if month:
+                    return date(year, month, day)
+            except (ValueError, IndexError):
+                pass
+        
+        # Pattern 2: "Month Day, Year" (American format: "October 2, 2025")
         pattern1 = rf'{month_pattern}\s+{day_pattern},?\s+{year_pattern}'
         match = re.search(pattern1, date_string, re.IGNORECASE)
         if match:
@@ -2381,14 +2472,57 @@ Important:
         
         return None, None
     
-    def _determine_event_type(self, title: str, description: str = '', json_type: str = '') -> str:
-        """Determine event type from title, description, and JSON-LD type"""
+    def _determine_event_type(self, title: str, description: str = '', json_type: str = '', url: str = '') -> str:
+        """Determine event type from title, description, JSON-LD type, and URL"""
         content = f"{title} {description}".lower()
+        url_lower = url.lower() if url else ''
+        
+        # Filter out non-event content based on URL patterns
+        non_event_url_patterns = [
+            '/article/', '/articles/',  # Articles (like /article/video-kerry-james-marshall)
+            '/video/', '/videos/',  # Videos
+            '/blog/', '/blogs/',  # Blog posts
+            '/news/', '/press/',  # News/press releases
+            '/magazine/', '/magazines/',  # Magazine articles
+            '/story/', '/stories/',  # Stories
+            '/feature/', '/features/',  # Features
+            '/essay/', '/essays/',  # Essays
+            '/interview/', '/interviews/',  # Interviews
+            '/podcast/', '/podcasts/',  # Podcasts
+            '/collection/', '/collections/',  # Collection items (not events)
+            '/artwork/', '/artworks/',  # Artwork pages
+            '/artist/', '/artists/',  # Artist pages (unless it's an artist talk event)
+        ]
+        
+        # If URL matches non-event patterns, don't classify as tour
+        for pattern in non_event_url_patterns:
+            if pattern in url_lower:
+                # These are content pages, not events - return None or 'event' but not 'tour'
+                # Check if it might still be an event (e.g., artist talk event page)
+                if 'talk' in content or 'lecture' in content or 'event' in content:
+                    # Might be an event page, but not a tour
+                    if 'tour' not in content:
+                        if 'talk' in content or 'lecture' in content:
+                            return 'talk'
+                        return 'event'
+                # Otherwise, it's probably not an event at all
+                return None  # Signal that this shouldn't be treated as an event
         
         if 'exhibition' in content or 'exhibit' in content or 'ExhibitionEvent' in json_type:
             return 'exhibition'
         elif 'tour' in content or 'guided' in content:
-            return 'tour'
+            # Only classify as tour if it's clearly a tour (not just containing the word "tour")
+            # Check for specific tour indicators
+            tour_indicators = ['guided tour', 'docent tour', 'highlights tour', 'collection tour', 
+                             'gallery tour', 'walking tour', 'tour of', 'tour at', 'tour on',
+                             'public tour', 'private tour', 'group tour']
+            if any(indicator in content for indicator in tour_indicators):
+                return 'tour'
+            # If URL has /tour/ or /tours/, it's likely a tour (but not /article/ or /video/)
+            if ('/tour/' in url_lower or '/tours/' in url_lower) and '/article/' not in url_lower and '/video/' not in url_lower:
+                return 'tour'
+            # Otherwise, don't assume it's a tour just because "tour" appears in the text
+            # Fall through to check other event types
         elif 'workshop' in content or 'class' in content:
             return 'workshop'
         elif 'talk' in content or 'lecture' in content or 'discussion' in content:
@@ -2449,6 +2583,25 @@ Important:
                     logger.debug(f"   ⏭️  Skipping event with invalid URL pattern: {url}")
                     return False
             
+            # Filter out non-event content URLs (articles, videos, blogs, etc.)
+            non_event_url_patterns = [
+                '/article/', '/articles/',  # Articles (like /article/video-kerry-james-marshall)
+                '/video/', '/videos/',  # Videos
+                '/blog/', '/blogs/',  # Blog posts
+                '/news/', '/press/',  # News/press releases
+                '/magazine/', '/magazines/',  # Magazine articles
+                '/story/', '/stories/',  # Stories
+                '/feature/', '/features/',  # Features
+                '/essay/', '/essays/',  # Essays
+                '/interview/', '/interviews/',  # Interviews
+                '/podcast/', '/podcasts/',  # Podcasts
+            ]
+            
+            for pattern in non_event_url_patterns:
+                if pattern in url_lower:
+                    logger.debug(f"   ⏭️  Skipping non-event content URL: {url}")
+                    return False
+            
             # If URL is just the base domain or homepage, it's probably not a real event page
             from urllib.parse import urlparse
             parsed = urlparse(url)
@@ -2477,6 +2630,19 @@ Important:
         # If it's just a title with no other info, it's probably not a real event
         if not has_date and not has_description and not has_url:
             logger.debug(f"   ⏭️  Skipping event with only title, no other info: {title[:50]}")
+            return False
+        
+        # CRITICAL: Tours and talks must have a start time - if they don't, they're probably not actually tours/talks
+        event_type = event.get('event_type', '').lower()
+        if event_type in ['tour', 'talk']:
+            start_time = event.get('start_time')
+            if not start_time or start_time == 'None' or (isinstance(start_time, str) and start_time.strip() == ''):
+                logger.debug(f"   ⏭️  Skipping {event_type} without start time: {title[:50]}")
+                return False
+        
+        # Filter out non-event content (articles, videos, etc.) - these return None as event_type
+        if event.get('event_type') is None:
+            logger.debug(f"   ⏭️  Skipping non-event content: {title[:50]} (URL: {url[:60] if url else 'N/A'})")
             return False
         
         return True
@@ -2662,20 +2828,20 @@ Important:
                 start_date = None
                 end_date = None
                 if date_text:
-                    # Handle MoPOP-style "Open now through [Date]" pattern
+                    # Handle "Open now through [Date]" or just "Through [Date]" pattern
                     open_through_match = re.search(
-                        r'(?:Open\s+now\s+through|Open\s+through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
+                        r'(?:Open\s+now\s+through|Open\s+through|Through|through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})',
                         date_text,
                         re.IGNORECASE
                     )
                     if open_through_match:
                         end_date_str = open_through_match.group(1)
                         end_date = self._parse_single_date_string(end_date_str)
-                        # For "Open now through", set start_date to today (ongoing exhibition)
-                        if end_date:
+                        # For "through" patterns, set start_date to today if not already set (ongoing exhibition)
+                        if end_date and not start_date:
                             from datetime import date
                             start_date = date.today()
-                            logger.debug(f"   📅 Extracted 'Open now through' date: {end_date}, set start_date to {start_date}")
+                            logger.debug(f"   📅 Extracted 'through' date: {end_date}, set start_date to {start_date}")
                     else:
                         # Handle "Opens [Date]" pattern
                         opens_match = re.search(
@@ -2837,8 +3003,8 @@ Important:
                             # Look for patterns like "Open now through November 10, 2025" or "Opens March 4, 2017"
                             page_text = event_soup.get_text()
                             
-                            # Pattern 1: "Open now through [Date]" or "Open through [Date]"
-                            open_through_pattern = r'(?:Open\s+now\s+through|Open\s+through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+                            # Pattern 1: "Open now through [Date]" or "Open through [Date]" or just "Through [Date]"
+                            open_through_pattern = r'(?:Open\s+now\s+through|Open\s+through|Through|through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
                             open_through_match = re.search(open_through_pattern, page_text, re.IGNORECASE)
                             if open_through_match:
                                 end_date_str = open_through_match.group(1)
@@ -2849,7 +3015,7 @@ Important:
                                     if not start_date:
                                         from datetime import date
                                         start_date = date.today()
-                                    logger.debug(f"   📅 Extracted end date from 'Open now through' pattern: {end_date}")
+                                    logger.debug(f"   📅 Extracted end date from 'through' pattern: {end_date}, set start_date to {start_date}")
                             
                             # Pattern 2: "Opens [Date]" (start date)
                             opens_pattern = r'Opens\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
@@ -2864,35 +3030,138 @@ Important:
                             # Pattern 3: Date range in various formats on the page
                             # Look for date ranges in the page text
                             if not start_date or not end_date:
-                                # Try to find date elements with common selectors
-                                date_elements = event_soup.find_all(['time', 'span', 'div', 'p'], 
-                                                                    class_=re.compile(r'date|duration|period|on-view', re.I))
-                                for date_elem in date_elements:
-                                    date_text = date_elem.get_text(strip=True)
-                                    if date_text:
-                                        # Try "through" pattern
-                                        through_match = re.search(r'through\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})', date_text, re.I)
-                                        if through_match and not end_date:
-                                            end_date_str = through_match.group(1)
-                                            parsed_end_date = self._parse_single_date_string(end_date_str)
-                                            if parsed_end_date:
-                                                end_date = parsed_end_date
+                                # First, try to find dates in common HTML structures (Tate format)
+                                # Look for "Dates" heading followed by date range
+                                dates_heading = event_soup.find(['h2', 'h3', 'dt'], string=re.compile(r'^Dates?$', re.I))
+                                if dates_heading:
+                                    # Check next sibling (dd, div, p, etc.)
+                                    next_sibling = dates_heading.find_next_sibling()
+                                    if next_sibling:
+                                        date_text = next_sibling.get_text(strip=True)
+                                        if date_text:
+                                            date_range = self._parse_date_range_string(date_text)
+                                            if date_range:
                                                 if not start_date:
-                                                    from datetime import date
-                                                    start_date = date.today()
-                                                logger.debug(f"   📅 Extracted end date from date element: {end_date}")
-                                                break
-                                        
-                                        # Try date range
-                                        date_range = self._parse_date_range_string(date_text)
-                                        if date_range:
+                                                    start_date = date_range.get('start_date')
+                                                if not end_date:
+                                                    end_date = date_range.get('end_date')
+                                                if start_date or end_date:
+                                                    logger.debug(f"   📅 Extracted date range from 'Dates' section: {start_date} to {end_date}")
+                                    
+                                    # Also check parent's children (for dt/dd structure)
+                                    if (not start_date or not end_date) and dates_heading.parent:
+                                        for sibling in dates_heading.parent.find_all(['dd', 'div', 'p', 'span']):
+                                            date_text = sibling.get_text(strip=True)
+                                            if date_text and re.search(r'\d{1,2}\s+[A-Z][a-z]+\s+\d{4}', date_text):
+                                                date_range = self._parse_date_range_string(date_text)
+                                                if date_range:
+                                                    if not start_date:
+                                                        start_date = date_range.get('start_date')
+                                                    if not end_date:
+                                                        end_date = date_range.get('end_date')
+                                                    if start_date or end_date:
+                                                        logger.debug(f"   📅 Extracted date range from 'Dates' sibling: {start_date} to {end_date}")
+                                                        break
+                                
+                                # Try to find date elements with common selectors
+                                if not start_date or not end_date:
+                                    date_elements = event_soup.find_all(['time', 'span', 'div', 'p'], 
+                                                                        class_=re.compile(r'date|duration|period|on-view', re.I))
+                                    for date_elem in date_elements:
+                                        date_text = date_elem.get_text(strip=True)
+                                        if date_text:
+                                            # Try "through" pattern (handles "Through January 10, 2027" or "through January 10, 2027")
+                                            through_match = re.search(r'(?:through|Through|until|Until)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})', date_text, re.I)
+                                            if through_match and not end_date:
+                                                end_date_str = through_match.group(1)
+                                                parsed_end_date = self._parse_single_date_string(end_date_str)
+                                                if parsed_end_date:
+                                                    end_date = parsed_end_date
+                                                    # If we don't have a start date, set it to today (ongoing exhibition)
+                                                    if not start_date:
+                                                        from datetime import date
+                                                        start_date = date.today()
+                                                    logger.debug(f"   📅 Extracted end date from 'through' pattern in date element: {end_date}, set start_date to {start_date}")
+                                                    break
+                                            
+                                            # Try date range (handles both "Month Day, Year" and "Day Month Year" formats)
+                                            if not start_date or not end_date:
+                                                date_range = self._parse_date_range_string(date_text)
+                                                if date_range:
+                                                    if not start_date:
+                                                        start_date = date_range.get('start_date')
+                                                    if not end_date:
+                                                        end_date = date_range.get('end_date')
+                                                    if start_date or end_date:
+                                                        logger.debug(f"   📅 Extracted date range from date element: {start_date} to {end_date}")
+                                                        break
+                                
+                                # Also search the full page text for date ranges and "through" patterns
+                                if not start_date or not end_date:
+                                    # First, try standalone "Through [Date]" pattern (e.g., "Through January 10, 2027")
+                                    standalone_through_pattern = r'(?:^|\s)(?:Through|through)\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})'
+                                    standalone_through_match = re.search(standalone_through_pattern, page_text, re.IGNORECASE | re.MULTILINE)
+                                    if standalone_through_match and not end_date:
+                                        end_date_str = standalone_through_match.group(1)
+                                        parsed_end_date = self._parse_single_date_string(end_date_str)
+                                        if parsed_end_date:
+                                            end_date = parsed_end_date
                                             if not start_date:
-                                                start_date = date_range.get('start_date')
-                                            if not end_date:
-                                                end_date = date_range.get('end_date')
-                                            if start_date or end_date:
-                                                logger.debug(f"   📅 Extracted date range from date element: {start_date} to {end_date}")
-                                                break
+                                                from datetime import date
+                                                start_date = date.today()
+                                            logger.debug(f"   📅 Extracted end date from standalone 'Through' pattern: {end_date}, set start_date to {start_date}")
+                                    
+                                    # Look for British format: "Day Month Year – Day Month Year"
+                                    if not start_date or not end_date:
+                                        british_date_range_pattern = r'(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4})\s*[–—\-]\s*(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4})'
+                                        british_match = re.search(british_date_range_pattern, page_text, re.IGNORECASE)
+                                        if british_match:
+                                            try:
+                                                start_day = int(british_match.group(1))
+                                                start_month_name = british_match.group(2).lower()
+                                                start_year = int(british_match.group(3))
+                                                end_day = int(british_match.group(4))
+                                                end_month_name = british_match.group(5).lower()
+                                                end_year = int(british_match.group(6))
+                                                
+                                                start_month = self._month_name_to_num(start_month_name)
+                                                end_month = self._month_name_to_num(end_month_name)
+                                                
+                                                if start_month and end_month:
+                                                    from datetime import date
+                                                    parsed_start = date(start_year, start_month, start_day)
+                                                    parsed_end = date(end_year, end_month, end_day)
+                                                    
+                                                    if not start_date:
+                                                        start_date = parsed_start
+                                                    if not end_date:
+                                                        end_date = parsed_end
+                                                    logger.debug(f"   📅 Extracted British format date range: {start_date} to {end_date}")
+                                            except (ValueError, IndexError) as e:
+                                                logger.debug(f"Error parsing British date format: {e}")
+                                        try:
+                                            start_day = int(british_match.group(1))
+                                            start_month_name = british_match.group(2).lower()
+                                            start_year = int(british_match.group(3))
+                                            end_day = int(british_match.group(4))
+                                            end_month_name = british_match.group(5).lower()
+                                            end_year = int(british_match.group(6))
+                                            
+                                            start_month = self._month_name_to_num(start_month_name)
+                                            end_month = self._month_name_to_num(end_month_name)
+                                            
+                                            if start_month and end_month:
+                                                from datetime import date
+                                                parsed_start = date(start_year, start_month, start_day)
+                                                parsed_end = date(end_year, end_month, end_day)
+                                                
+                                                if not start_date:
+                                                    start_date = parsed_start
+                                                if not end_date:
+                                                    end_date = parsed_end
+                                                logger.debug(f"   📅 Extracted British format date range: {start_date} to {end_date}")
+                                        except (ValueError, IndexError) as e:
+                                            logger.debug(f"Error parsing British date format: {e}")
                                 
                                 # Also check for dates in structured data (JSON-LD)
                                 if not start_date or not end_date:
@@ -3102,7 +3371,7 @@ Important:
                 if self._is_valid_generic_event(event_dict):
                     events.append(event_dict)
                 else:
-                    logger.debug(f"   ⏭️  Skipping: Event failed validation: {title[:50]}"))
+                    logger.debug(f"   ⏭️  Skipping: Event failed validation: {title[:50]}")
             
             logger.info(f"📦 Extracted {len(events)} exhibitions from listing page")
 
@@ -3322,7 +3591,7 @@ Important:
                                 'url': full_url,
                                 'start_date': start_date.isoformat() if start_date else None,
                                 'end_date': end_date.isoformat() if end_date else None,
-                                'event_type': self._detect_museum_event_type(title, '', link),
+                                'event_type': self._detect_museum_event_type(title, '', link, full_url),
                                 'is_family_friendly': is_family_friendly,
                                 'image_url': image_url  # Add image URL
                             }
@@ -3372,8 +3641,13 @@ Important:
                                     event['event_type'] = self._detect_museum_event_type(
                                         event.get('title', ''),
                                         event.get('description', ''),
-                                        element
+                                        element,
+                                        event.get('url', '')
                                     )
+                                    # Filter out events that are actually articles/videos
+                                    if event.get('event_type') is None:
+                                        logger.debug(f"   ⏭️  Skipping non-event content: {event.get('title', 'N/A')[:50]}")
+                                        continue
                                 # Detect if family/kid-friendly
                                 event['is_family_friendly'] = self._detect_family_friendly(
                                     event.get('title', ''),
@@ -3403,8 +3677,13 @@ Important:
                     event['event_type'] = self._detect_museum_event_type(
                         event.get('title', ''),
                         event.get('description', ''),
-                        None
+                        None,
+                        event.get('url', '')
                     )
+                    # Filter out events that are actually articles/videos
+                    if event.get('event_type') is None:
+                        logger.debug(f"   ⏭️  Skipping non-event content from JSON-LD: {event.get('title', 'N/A')[:50]}")
+                        continue
                 # Detect if family/kid-friendly
                 event['is_family_friendly'] = self._detect_family_friendly(
                     event.get('title', ''),
@@ -3418,9 +3697,39 @@ Important:
 
         return events
     
-    def _detect_museum_event_type(self, title: str, description: str, element=None) -> str:
+    def _detect_museum_event_type(self, title: str, description: str, element=None, url: str = '') -> str:
         """Detect museum-specific event types"""
         content = (title + ' ' + description).lower()
+        url_lower = url.lower() if url else ''
+        
+        # Filter out non-event content based on URL patterns
+        non_event_url_patterns = [
+            '/article/', '/articles/',  # Articles (like /article/video-kerry-james-marshall)
+            '/video/', '/videos/',  # Videos
+            '/blog/', '/blogs/',  # Blog posts
+            '/news/', '/press/',  # News/press releases
+            '/magazine/', '/magazines/',  # Magazine articles
+            '/story/', '/stories/',  # Stories
+            '/feature/', '/features/',  # Features
+            '/essay/', '/essays/',  # Essays
+            '/interview/', '/interviews/',  # Interviews
+            '/podcast/', '/podcasts/',  # Podcasts
+            '/collection/', '/collections/',  # Collection items (not events)
+            '/artwork/', '/artworks/',  # Artwork pages
+            '/artist/', '/artists/',  # Artist pages (unless it's an artist talk event)
+        ]
+        
+        # If URL matches non-event patterns, don't classify as tour or any event type
+        for pattern in non_event_url_patterns:
+            if pattern in url_lower:
+                # These are content pages, not events
+                # Only allow if it's clearly an event (e.g., artist talk event page)
+                if 'talk' in content or 'lecture' in content or 'event' in content:
+                    if 'talk' in content or 'lecture' in content:
+                        return 'talk'
+                    return 'event'
+                # Otherwise, return None to signal this shouldn't be an event
+                return None
         
         # Museum-specific patterns
         if any(keyword in content for keyword in ['gallery talk', 'curator talk', 'curator\'s talk']):
@@ -3429,7 +3738,7 @@ Important:
             return 'talk'
         elif any(keyword in content for keyword in ['panel discussion', 'symposium', 'conference']):
             return 'talk'
-        elif any(keyword in content for keyword in ['docent tour', 'guided tour', 'highlights tour']):
+        elif any(keyword in content for keyword in ['docent tour', 'guided tour', 'highlights tour', 'collection tour']):
             return 'tour'
         elif any(keyword in content for keyword in ['workshop', 'studio class', 'art class']):
             return 'workshop'

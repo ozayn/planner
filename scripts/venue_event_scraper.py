@@ -5297,6 +5297,28 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
         # Check event type
         event_type = event_data.get('event_type', '').lower()
         
+        # Filter out non-event content URLs (articles, videos, blogs, etc.)
+        url = event_data.get('url', '')
+        if url:
+            url_lower = url.lower()
+            non_event_url_patterns = [
+                '/article/', '/articles/',  # Articles (like /article/video-kerry-james-marshall)
+                '/video/', '/videos/',  # Videos
+                '/blog/', '/blogs/',  # Blog posts
+                '/news/', '/press/',  # News/press releases
+                '/magazine/', '/magazines/',  # Magazine articles
+                '/story/', '/stories/',  # Stories
+                '/feature/', '/features/',  # Features
+                '/essay/', '/essays/',  # Essays
+                '/interview/', '/interviews/',  # Interviews
+                '/podcast/', '/podcasts/',  # Podcasts
+            ]
+            
+            for pattern in non_event_url_patterns:
+                if pattern in url_lower:
+                    logger.debug(f"⚠️ Filtered out non-event content URL: '{url}'")
+                    return False
+        
         # RELAXED VALIDATION: Accept events from known venues/sources
         # If we have a venue_id, we trust it's a real event from a real venue
         has_venue = event_data.get('venue_id') is not None
@@ -5316,10 +5338,16 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
             else:
                 return False
         
-        # Allow events without times to pass through - app.py will handle them
-        # Previously rejected tours/talks/workshops without times, but now we let them through
+        # CRITICAL: Tours and talks must have a start time - if they don't, they're probably not actually tours/talks
+        if event_type in ['tour', 'talk']:
+            if not has_specific_time:
+                logger.debug(f"⚠️  Rejecting {event_type} without start time: '{event_data.get('title')}'")
+                return False
+        
+        # Allow other event types (workshops) without times to pass through - app.py will handle them
+        # Previously rejected workshops without times, but now we let them through
         # so app.py can save them (it has better logic for handling missing times)
-        if event_type in ['tour', 'talk', 'workshop']:
+        if event_type in ['workshop']:
             # Allow through if it has time, URL, description, or is from a known venue
             if not has_specific_time:
                 if has_venue:
