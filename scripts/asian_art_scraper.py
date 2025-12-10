@@ -111,13 +111,37 @@ def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
     return None
 
 
-def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
-    """Scrape details from an individual exhibition page"""
+def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
+    """Scrape details from an individual exhibition page with retry logic"""
+    import time
+    
+    for attempt in range(max_retries):
+        try:
+            logger.debug(f"   📄 Scraping exhibition page: {url} (attempt {attempt + 1}/{max_retries})")
+            # Use longer timeout: (connect timeout, read timeout) - increased for slow connections
+            response = scraper.get(url, timeout=(5, 10))
+            response.raise_for_status()
+            break  # Success, exit retry loop
+        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 * (attempt + 1)  # Exponential backoff: 2s, 4s
+                logger.debug(f"   ⏳ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                logger.warning(f"   ⚠️ Timeout scraping exhibition detail {url} after {max_retries} attempts: {type(e).__name__}")
+                return None
+        except (ConnectionError, RequestException) as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 * (attempt + 1)
+                logger.debug(f"   ⏳ Connection error on attempt {attempt + 1}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                logger.warning(f"   ⚠️ Connection error scraping exhibition detail {url} after {max_retries} attempts: {type(e).__name__}")
+                return None
+    
     try:
-        logger.debug(f"   📄 Scraping exhibition page: {url}")
-        # Use shorter timeout: (connect timeout, read timeout)
-        response = scraper.get(url, timeout=(3, 5))
-        response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -251,12 +275,6 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         
         return event
         
-    except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
-        logger.warning(f"   ⚠️ Timeout scraping exhibition detail {url}: {type(e).__name__}")
-        return None
-    except (ConnectionError, RequestException) as e:
-        logger.warning(f"   ⚠️ Connection error scraping exhibition detail {url}: {type(e).__name__}")
-        return None
     except Exception as e:
         logger.warning(f"   ⚠️ Error scraping exhibition detail {url}: {type(e).__name__} - {str(e)[:100]}")
         return None
@@ -274,7 +292,7 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping Asian Art Museum exhibitions from: {ASIAN_ART_EXHIBITIONS_URL}")
-        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(3, 8))
+        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(5, 10))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -507,13 +525,37 @@ def parse_single_date(date_string: str) -> Optional[date]:
     return None
 
 
-def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
-    """Scrape details from an individual event page"""
+def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
+    """Scrape details from an individual event page with retry logic"""
+    import time
+    
+    for attempt in range(max_retries):
+        try:
+            logger.debug(f"   📄 Scraping event page: {url} (attempt {attempt + 1}/{max_retries})")
+            # Use longer timeout: (connect timeout, read timeout) - increased for slow connections
+            response = scraper.get(url, timeout=(5, 10))
+            response.raise_for_status()
+            break  # Success, exit retry loop
+        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 * (attempt + 1)  # Exponential backoff: 2s, 4s
+                logger.debug(f"   ⏳ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                logger.warning(f"   ⚠️ Timeout scraping event detail {url} after {max_retries} attempts: {type(e).__name__}")
+                return None
+        except (ConnectionError, RequestException) as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 * (attempt + 1)
+                logger.debug(f"   ⏳ Connection error on attempt {attempt + 1}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                logger.warning(f"   ⚠️ Connection error scraping event detail {url} after {max_retries} attempts: {type(e).__name__}")
+                return None
+    
     try:
-        logger.debug(f"   📄 Scraping event page: {url}")
-        # Use shorter timeout: (connect timeout, read timeout)
-        response = scraper.get(url, timeout=(3, 5))
-        response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -831,12 +873,6 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
         
         return event
         
-    except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
-        logger.warning(f"   ⚠️ Timeout scraping event detail {url}: {type(e).__name__}")
-        return None
-    except (ConnectionError, RequestException) as e:
-        logger.warning(f"   ⚠️ Connection error scraping event detail {url}: {type(e).__name__}")
-        return None
     except Exception as e:
         logger.warning(f"   ⚠️ Error scraping event detail {url}: {type(e).__name__} - {str(e)[:100]}")
         return None
@@ -855,7 +891,7 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     try:
         events_search_url = 'https://asia.si.edu/whats-on/events/search/'
         logger.info(f"🔍 Scraping Asian Art Museum events from: {events_search_url}")
-        response = scraper.get(events_search_url, timeout=(3, 8))
+        response = scraper.get(events_search_url, timeout=(5, 10))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1030,7 +1066,7 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
-        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(3, 8))
+        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(5, 10))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1201,22 +1237,53 @@ def scrape_all_asian_art_events() -> List[Dict]:
     Scrape all events from Asian Art Museum
     Returns combined list of all event dictionaries
     """
-    scraper = create_scraper()
     all_events = []
     
-    # Scrape exhibitions
-    exhibitions = scrape_asian_art_exhibitions(scraper)
-    all_events.extend(exhibitions)
-    
-    # Scrape events (talks, tours, programs)
-    events = scrape_asian_art_events(scraper)
-    all_events.extend(events)
-    
-    # Scrape films
-    films = scrape_asian_art_films(scraper)
-    all_events.extend(films)
-    
-    logger.info(f"✅ Total Asian Art Museum events scraped: {len(all_events)}")
+    try:
+        scraper = create_scraper()
+        
+        # Scrape exhibitions
+        try:
+            logger.info("🔍 Scraping exhibitions...")
+            exhibitions = scrape_asian_art_exhibitions(scraper)
+            all_events.extend(exhibitions)
+            logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping exhibitions: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue with other event types even if exhibitions fail
+        
+        # Scrape events (talks, tours, programs)
+        try:
+            logger.info("🔍 Scraping events...")
+            events = scrape_asian_art_events(scraper)
+            all_events.extend(events)
+            logger.info(f"   ✅ Found {len(events)} events")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping events: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue even if events fail
+        
+        # Scrape films
+        try:
+            logger.info("🔍 Scraping films...")
+            films = scrape_asian_art_films(scraper)
+            all_events.extend(films)
+            logger.info(f"   ✅ Found {len(films)} films")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping films: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue even if films fail
+        
+        logger.info(f"✅ Total Asian Art Museum events scraped: {len(all_events)}")
+        
+    except Exception as e:
+        logger.error(f"Error scraping Asian Art Museum events: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
     
     return all_events
 

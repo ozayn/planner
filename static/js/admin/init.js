@@ -1948,6 +1948,29 @@ async function startNGAScraping() {
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -1963,7 +1986,12 @@ async function startNGAScraping() {
         }
     } catch (error) {
         console.error('NGA scraping error:', error);
-        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
         closeScrapingProgressModal();
     }
 }
@@ -2015,7 +2043,7 @@ async function startNPGScraping() {
 }
 
 async function startAsianArtScraping() {
-    updateScrapingStatus('🖼️ Starting Asian Art Museum scraping (exhibitions, events, tours)...', 'info');
+    showScrapingProgressModal('Smithsonian National Museum of Asian Art');
     
     try {
         const response = await fetch('/api/admin/scrape-asian-art', {
@@ -2023,17 +2051,51 @@ async function startAsianArtScraping() {
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            updateScrapingStatus(`✅ Asian Art Museum scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
-            // Reload events table
-            await loadEvents();
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingStatus(`❌ Asian Art Museum scraping failed: ${result.error}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        updateScrapingStatus(`❌ Asian Art Museum scraping error: ${error.message}`, 'error');
+        console.error('Asian Art scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
@@ -2134,8 +2196,16 @@ function updateScrapingStatus(message, type = 'info') {
 
 // Progress modal functions
 let progressPollInterval = null;
+// Track last events_saved count to detect new events
+let lastEventsSavedCount = 0;
+let lastTableRefreshTime = 0;
+const TABLE_REFRESH_INTERVAL = 5000; // Refresh table every 5 seconds during scraping
 
 function showScrapingProgressModal(sourceName = 'Scraping') {
+    // Reset tracking variables when starting new scraping
+    lastEventsSavedCount = 0;
+    lastTableRefreshTime = 0;
+    
     // Create modal if it doesn't exist
     let modal = document.getElementById('scrapingProgressModal');
     if (!modal) {
@@ -2224,6 +2294,7 @@ async function pollScrapingProgress() {
             clearInterval(progressPollInterval);
             progressPollInterval = null;
         }
+        lastEventsSavedCount = 0;
         return;
     }
     
@@ -2251,12 +2322,32 @@ async function pollScrapingProgress() {
         
         updateScrapingProgress(progress);
         
+        // Refresh events table if events are being saved
+        const currentEventsSaved = progress.events_saved || 0;
+        const currentTime = Date.now();
+        
+        // Refresh table if:
+        // 1. New events have been saved since last check, OR
+        // 2. It's been more than TABLE_REFRESH_INTERVAL since last refresh (periodic update)
+        if (currentEventsSaved > lastEventsSavedCount || 
+            (currentTime - lastTableRefreshTime > TABLE_REFRESH_INTERVAL && currentEventsSaved > 0)) {
+            // Only refresh if we're actively saving events (percentage > 50 means we're past scraping phase)
+            if (progress.percentage >= 50 && progress.percentage < 100) {
+                loadEvents();
+                lastTableRefreshTime = currentTime;
+            }
+            lastEventsSavedCount = currentEventsSaved;
+        }
+        
         // Stop polling if scraping is complete
         if (progress.percentage >= 100 || (progress.message && progress.message.toLowerCase().includes('complete'))) {
             if (progressPollInterval) {
                 clearInterval(progressPollInterval);
                 progressPollInterval = null;
             }
+            // Refresh table one final time when complete
+            loadEvents();
+            lastEventsSavedCount = 0;
             // Auto-close modal after 3 seconds
             setTimeout(() => {
                 closeScrapingProgressModal();

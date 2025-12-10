@@ -74,6 +74,10 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
     """Fetch URL with retry logic and exponential backoff"""
     import time
     
+    if not scraper:
+        logger.error(f"   ❌ Scraper is None, cannot fetch {url}")
+        return None
+    
     for attempt in range(max_retries):
         try:
             if attempt > 0:
@@ -121,15 +125,27 @@ def scrape_all_nga_events():
         
         # 2. Scrape exhibitions
         logger.info("🔍 Scraping exhibitions...")
-        exhibitions = scrape_nga_exhibitions(scraper)
-        all_events.extend(exhibitions)
-        logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
+        try:
+            exhibitions = scrape_nga_exhibitions(scraper)
+            all_events.extend(exhibitions)
+            logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping exhibitions: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue with other event types even if exhibitions fail
         
         # 3. Scrape tours
         logger.info("🔍 Scraping tours...")
-        tours = scrape_nga_tours(scraper)
-        all_events.extend(tours)
-        logger.info(f"   ✅ Found {len(tours)} tours")
+        try:
+            tours = scrape_nga_tours(scraper)
+            all_events.extend(tours)
+            logger.info(f"   ✅ Found {len(tours)} tours")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping tours: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue even if tours fail
         
         # 4. Scrape talks/lectures (DISABLED FOR NOW - focusing on tours)
         # logger.info("🔍 Scraping talks and lectures...")
@@ -156,6 +172,10 @@ def scrape_all_nga_events():
 def scrape_nga_exhibitions(scraper):
     """Scrape NGA exhibitions from the calendar page with pagination"""
     events = []
+    
+    if not scraper:
+        logger.error("   ❌ Scraper is None, cannot scrape exhibitions")
+        return events
     
     try:
         # Get all exhibition links from paginated calendar page
@@ -1460,6 +1480,27 @@ def create_events_in_database(events):
                         db.session.commit()
                         updated_count += 1
                         logger.info(f"   ✅ Updated: {event_data['title']}")
+                        
+                        # Update progress file every 5 events for real-time table updates
+                        if (created_count + updated_count) % 5 == 0:
+                            try:
+                                import json
+                                from datetime import datetime
+                                progress_file = os.path.join(project_root, 'scraping_progress.json')
+                                if os.path.exists(progress_file):
+                                    with open(progress_file, 'r') as f:
+                                        progress_data = json.load(f)
+                                    progress_data.update({
+                                        'events_saved': created_count,
+                                        'events_updated': updated_count,
+                                        'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
+                                        'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
+                                        'timestamp': datetime.now().isoformat()
+                                    })
+                                    with open(progress_file, 'w') as f:
+                                        json.dump(progress_data, f)
+                            except Exception as e:
+                                logger.debug(f"Could not update progress file: {e}")
                     else:
                         logger.info(f"   ⚠️  Event already exists (no updates needed): {event_data['title']}")
                 else:
@@ -1490,6 +1531,27 @@ def create_events_in_database(events):
                     db.session.commit()
                     created_count += 1
                     logger.info(f"   ✅ Created: {event_data['title']}")
+                    
+                        # Update progress file every 5 events for real-time table updates
+                        if (created_count + updated_count) % 5 == 0:
+                            try:
+                                import json
+                                from datetime import datetime
+                                progress_file = os.path.join(project_root, 'scraping_progress.json')
+                                if os.path.exists(progress_file):
+                                    with open(progress_file, 'r') as f:
+                                        progress_data = json.load(f)
+                                    progress_data.update({
+                                        'events_saved': created_count,
+                                        'events_updated': updated_count,
+                                        'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
+                                        'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
+                                        'timestamp': datetime.now().isoformat()
+                                    })
+                                    with open(progress_file, 'w') as f:
+                                        json.dump(progress_data, f)
+                            except Exception as e:
+                                logger.debug(f"Could not update progress file: {e}")
                 
             except Exception as e:
                 logger.error(f"   ❌ Error processing event {event_data.get('title')}: {e}")

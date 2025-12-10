@@ -106,19 +106,51 @@ curl -X POST http://localhost:5001/api/admin/extract-event-from-url \
 - **Meeting Point Detection**: Extracts specific locations like "Gallery 534, Vélez Blanco Patio"
 
 ### **🌐 Generic Venue Scraper (Universal Fallback)**
+- **🚨 CRITICAL RULE**: **Unless we have made a tailored scraper, the generic scraper should be used**
+  - Any venue without a specialized/tailored scraper MUST use the generic scraper
+  - The generic scraper is the default for all venues
+  - Only venues with explicitly implemented tailored scrapers should bypass the generic scraper
 - **Universal Compatibility**: A generic scraper (`scripts/generic_venue_scraper.py`) that works for any venue/location by using common patterns learned from specialized scrapers
 - **Two-Tier Architecture**: 
   - **Specialized Scrapers** (Priority): Custom scrapers for specific venues (Hirshhorn, NGA, etc.) with venue-specific logic
-  - **Generic Scraper** (Fallback): Universal scraper that uses common HTML patterns, CSS selectors, and extraction methods
-- **Automatic Fallback**: When standard scraping methods find no events, the system automatically tries the generic scraper
+  - **Generic Scraper** (Default): Universal scraper that uses common HTML patterns, CSS selectors, and extraction methods - used for ALL venues unless a tailored scraper exists
+- **Automatic Usage**: The system automatically uses the generic scraper for any venue that doesn't have a tailored scraper implementation
 - **Pattern-Based Extraction**: Uses patterns learned from specialized scrapers:
   - Common CSS selectors (`.event`, `.event-item`, `.program`, `.tour`, etc.)
   - JSON-LD structured data extraction
   - Multiple date/time format parsing
   - Automatic event type detection
+  - Image extraction from listing pages
 - **Continuous Improvement**: The generic scraper is designed to evolve - as we create new specialized scrapers or discover new patterns, we extract reusable patterns and add them to the generic scraper, making it work better for more venues over time
 - **Error Handling**: Includes bot protection bypass (cloudscraper), SSL error handling, and retry logic
 - **Documentation**: See `docs/GENERIC_SCRAPER_GUIDE.md` for detailed usage and integration examples
+
+### **🔄 Scraping Workflow & Architecture Goals**
+- **Development Phase (Current)**: Individual scraper buttons in admin interface for testing specific venues/museums
+  - Used for development and debugging individual scrapers
+  - Each scraper (NGA, SAAM, Asian Art, etc.) has its own button for quick testing
+  - **Note**: These are temporary development tools, not the final production workflow
+  
+- **Production Phase (Manual)**: Unified scraping interface via main page
+  - **Workflow**: Main page → Select city → Select filters (venues/sources) → Click "Scrape" button
+  - The unified scraping system (`/api/scrape`) handles all selected venues/sources automatically
+  - Uses progress tracking with real-time updates in the UI
+  - Supports filtering by city, event type, time range, and specific venues/sources
+  
+- **Production Phase (Automated)**: Cronjob-based scheduled scraping
+  - Scrapers will run automatically on a schedule (e.g., daily, hourly)
+  - All scrapers must be callable programmatically (not just from UI)
+  - Comprehensive logging for monitoring and debugging
+  - Error handling that works without UI dependencies
+  - Progress tracking is optional for cronjobs (no UI needed)
+  
+- **Standard Pattern for All Scrapers**:
+  - **Backend**: Progress tracking via `scraping_progress.json`, error handling, always return JSON
+  - **Frontend**: Progress modal with real-time updates, table refreshes during scraping
+  - **Database Saving**: Update progress every 5 events for real-time feedback
+  - **Error Handling**: Graceful degradation - continue with other events if one fails
+  - **Timeout Handling**: Retry logic with exponential backoff, increased timeout values
+  - **Standalone Operation**: All scrapers work both from UI and programmatically (for cronjobs)
 
 ### **🌐 Deployment Configuration**
 - **Platform**: Railway with custom domain `planner.ozayn.com`
