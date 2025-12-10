@@ -44,6 +44,40 @@
     {% include 'admin/modals/url_scraper.html' %}
     {% include 'admin/modals/create_from_venue.html' %}
 
+    <!-- Global error handlers to suppress browser extension errors -->
+    <script>
+        // Suppress errors from browser extensions that interfere with the console
+        window.addEventListener('error', function(event) {
+            // Suppress errors from browser extensions
+            if (event.message && (
+                event.message.includes('message channel') ||
+                event.message.includes('message port closed') ||
+                event.message.includes('runtime/sendMessage')
+            )) {
+                event.preventDefault();
+                return false;
+            }
+        }, true);
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            // Suppress promise rejections from browser extensions
+            if (event.reason) {
+                const reasonStr = typeof event.reason === 'string' 
+                    ? event.reason 
+                    : (event.reason?.message || String(event.reason));
+                
+                if (reasonStr && (
+                    reasonStr.includes('message channel') ||
+                    reasonStr.includes('message port closed') ||
+                    reasonStr.includes('runtime/sendMessage')
+                )) {
+                    event.preventDefault();
+                    return;
+                }
+            }
+        });
+    </script>
+
     <!-- Unified Calendar Export Module -->
     <script src="/static/js/calendar-export.js"></script>
     <!-- Admin JavaScript Modules -->
