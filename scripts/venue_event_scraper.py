@@ -3357,9 +3357,23 @@ class VenueEventScraper:
                     start_location = f"{venue.name} - {meeting_location}"
                 
                 # Validate required fields before adding to events list
+                # Handle missing start_date - check if it might be ongoing/permanent
                 if not start_date:
-                    logger.warning(f"   ⚠️ Skipping event '{title}' - missing start_date")
-                    continue
+                    from scripts.utils import get_ongoing_exhibition_dates, detect_ongoing_exhibition
+                    # Check if event might be ongoing/permanent
+                    description_text = description or ''
+                    title_text = title or ''
+                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title_text)
+                    
+                    if is_ongoing:
+                        # Set dates for ongoing exhibition
+                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
+                        start_date = start_date_obj
+                        end_date = end_date_obj
+                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
+                    else:
+                        logger.warning(f"   ⚠️ Skipping event '{title}' - missing start_date")
+                        continue
                 
                 # Final title cleaning to ensure it's always clean (in case title was modified elsewhere)
                 if title:

@@ -119,7 +119,7 @@ def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optiona
         try:
             logger.debug(f"   📄 Scraping exhibition page: {url} (attempt {attempt + 1}/{max_retries})")
             # Use longer timeout: (connect timeout, read timeout) - increased for slow connections
-            response = scraper.get(url, timeout=(5, 10))
+            response = scraper.get(url, timeout=(15, 45))
             response.raise_for_status()
             break  # Success, exit retry loop
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
@@ -297,7 +297,7 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping Asian Art Museum exhibitions from: {ASIAN_ART_EXHIBITIONS_URL}")
-        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(5, 10))
+        response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -538,7 +538,7 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
         try:
             logger.debug(f"   📄 Scraping event page: {url} (attempt {attempt + 1}/{max_retries})")
             # Use longer timeout: (connect timeout, read timeout) - increased for slow connections
-            response = scraper.get(url, timeout=(5, 10))
+            response = scraper.get(url, timeout=(15, 45))
             response.raise_for_status()
             break  # Success, exit retry loop
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
@@ -901,7 +901,7 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     try:
         events_search_url = 'https://asia.si.edu/whats-on/events/search/'
         logger.info(f"🔍 Scraping Asian Art Museum events from: {events_search_url}")
-        response = scraper.get(events_search_url, timeout=(5, 10))
+        response = scraper.get(events_search_url, timeout=(15, 45))
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1076,8 +1076,18 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
-        response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(5, 10))
-        response.raise_for_status()
+        try:
+            response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(15, 45))
+            response.raise_for_status()
+        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
+            logger.error(f"❌ Timeout error scraping Asian Art Museum films: {timeout_error}")
+            logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
+            logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
+            return events
+        except (ConnectionError, RequestException) as conn_error:
+            logger.error(f"❌ Connection error scraping Asian Art Museum films: {conn_error}")
+            logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
+            return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -1234,6 +1244,13 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
         
         logger.info(f"   ✅ Found {len(events)} film events")
         
+    except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
+        logger.error(f"❌ Timeout error scraping Asian Art Museum films: {timeout_error}")
+        logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
+        logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
+    except (ConnectionError, RequestException) as conn_error:
+        logger.error(f"❌ Connection error scraping Asian Art Museum films: {conn_error}")
+        logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
     except Exception as e:
         logger.error(f"❌ Error scraping Asian Art Museum films: {e}")
         import traceback
@@ -1337,10 +1354,26 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     continue
                 
                 # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                from scripts.utils import is_category_heading
+                from scripts.utils import is_category_heading, get_ongoing_exhibition_dates, detect_ongoing_exhibition
                 if is_category_heading(title):
                     logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
                     continue
+                
+                # Handle missing start_date - check if it might be ongoing/permanent
+                if not event_data.get('start_date'):
+                    # Check if event might be ongoing/permanent
+                    description_text = event_data.get('description', '') or ''
+                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title)
+                    
+                    if is_ongoing:
+                        # Set dates for ongoing exhibition
+                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
+                        event_data['start_date'] = start_date_obj
+                        event_data['end_date'] = end_date_obj
+                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
+                    else:
+                        logger.warning(f"   ⚠️  Skipping event '{title}': no start_date")
+                        continue
                 
                 # Parse date
                 if isinstance(event_data.get('start_date'), date):

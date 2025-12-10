@@ -2556,9 +2556,23 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     logger.warning(f"   ⚠️  Skipping event: missing title")
                     continue
                 
+                # Handle missing start_date - check if it might be ongoing/permanent
                 if not event_data.get('start_date'):
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': missing start_date")
-                    continue
+                    from scripts.utils import get_ongoing_exhibition_dates, detect_ongoing_exhibition
+                    # Check if event might be ongoing/permanent
+                    description_text = event_data.get('description', '') or ''
+                    title_text = event_data.get('title', '') or ''
+                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title_text)
+                    
+                    if is_ongoing:
+                        # Set dates for ongoing exhibition
+                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
+                        event_data['start_date'] = start_date_obj
+                        event_data['end_date'] = end_date_obj
+                        logger.info(f"   🔄 Treating '{event_data.get('title')}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
+                    else:
+                        logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': missing start_date")
+                        continue
                 
                 # Parse date
                 if isinstance(event_data['start_date'], date):

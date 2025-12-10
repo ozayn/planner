@@ -1387,16 +1387,33 @@ def create_events_in_database(events):
                     continue
                 
                 # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                from scripts.utils import is_category_heading
+                from scripts.utils import is_category_heading, get_ongoing_exhibition_dates, detect_ongoing_exhibition
                 if is_category_heading(title):
                     logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
                     skipped_count += 1
                     continue
                 
+                # Handle missing start_date - check if it might be ongoing/permanent
                 if not event_data.get('start_date'):
-                    logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
-                    skipped_count += 1
-                    continue
+                    # Check if event might be ongoing/permanent
+                    description_text = event_data.get('description', '') or ''
+                    event_type = event_data.get('event_type', '').lower()
+                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title)
+                    
+                    # If it's an exhibition without dates, treat as ongoing
+                    if event_type == 'exhibition' or 'exhibition' in title.lower():
+                        is_ongoing = True
+                    
+                    if is_ongoing:
+                        # Set dates for ongoing exhibition
+                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
+                        event_data['start_date'] = start_date_obj
+                        event_data['end_date'] = end_date_obj
+                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
+                    else:
+                        logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
+                        skipped_count += 1
+                        continue
                 
                 # Parse date
                 try:
