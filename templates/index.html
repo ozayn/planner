@@ -2248,7 +2248,7 @@
                         <div class="venue-type-tab" data-value="embassy" data-id="venueTypeEmbassy">
                             Embassies
                         </div>
-                        <div class="venue-type-tab" data-value="landmark,observation,government,library,market,religious_site,shopping,stadium,arts_district,waterfront" data-id="venueTypeOther">
+                        <div class="venue-type-tab" data-value="landmark,observation,government,library,market,religious_site,shopping,stadium,arts_district,waterfront,cafe,bookstore" data-id="venueTypeOther">
                             Other
                         </div>
                     </div>
@@ -2363,13 +2363,6 @@
                             <option value="film">Films</option>
                             <option value="talk">Talks</option>
                         </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="babyFriendlyFilter" style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="babyFriendlyFilter" style="width: 18px; height: 18px; cursor: pointer;">
-                            <span>👶 Baby/Toddler Friendly</span>
-                        </label>
                     </div>
 
                     <div class="form-group">
@@ -2515,6 +2508,7 @@
                     <button class="time-btn" data-period="next_week">Next Week</button>
                     <button class="time-btn" data-period="this_month">This Month</button>
                     <button class="time-btn" data-period="custom">Custom Range</button>
+                    <button class="time-btn" data-period="all">All</button>
                 </div>
                 <div class="event-type-filter" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; margin-bottom: 16px;">
                     <button class="event-type-filter-btn active" data-event-type="" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.87); font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">All</button>
@@ -2524,6 +2518,7 @@
                     <button class="event-type-filter-btn" data-event-type="photowalk" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Photowalks</button>
                     <button class="event-type-filter-btn" data-event-type="film" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Films</button>
                     <button class="event-type-filter-btn" data-event-type="talk" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Talks</button>
+                    <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">👶 Baby-Friendly</button>
                 </div>
                 <div id="discoveredCustomDateGroup" style="display: none; margin-top: 12px;">
                     <div style="display: flex; gap: 8px;">
@@ -2609,6 +2604,7 @@
         let currentPanel = 'venues'; // Track which panel is active
         let statusSectionCollapsed = true; // Track status section state (default: collapsed)
         let selectedEventTypeFilters = new Set(); // Track selected event type filters (can be multiple)
+        let babyFriendlyFilterActive = false; // Track baby-friendly filter state
 
         // Toggle status section
         function toggleStatusSection() {
@@ -3075,20 +3071,8 @@
             eventTypeSelect.addEventListener('change', updateStatus);
             eventTypeSelectStep2.addEventListener('change', updateStatus);
             
-            // Add baby-friendly filter listener
-            const babyFriendlyFilter = document.getElementById('babyFriendlyFilter');
-            if (babyFriendlyFilter) {
-                babyFriendlyFilter.addEventListener('change', () => {
-                    // Re-filter and display events when checkbox changes
-                    if (allEvents && allEvents.length > 0) {
-                        let filtered = [...allEvents];
-                        if (babyFriendlyFilter.checked) {
-                            filtered = filtered.filter(event => event.is_baby_friendly === true);
-                        }
-                        displayEvents(filtered);
-                    }
-                });
-            }
+            // Baby-friendly filter is now handled as a button in the event type filter section
+            // The filtering logic is integrated into displayUnifiedEvents()
             
             // Add enhanced filter event listeners
             setupEnhancedFilterListeners();
@@ -3193,7 +3177,8 @@
                 'next_week': 'Next Week',
                 'this_month': 'This Month',
                 'next_month': 'Next Month',
-                'custom': 'Custom Range'
+                'custom': 'Custom Range',
+                'all': 'All'
             };
             statusDateRange.textContent = dateRangeText[dateRange] || '';
             
@@ -4482,10 +4467,10 @@
             try {
                 let venues = [];
                 
-                // Load venues only if venue types are selected
+                // Load venues - if venue types are selected, filter by them; otherwise load all
+                updateProgress(50, 'Loading venues...');
+                
                 if (hasVenueTypes) {
-                    updateProgress(50, 'Loading venues...');
-                    
                     // Build API URL with selected venue types
                     const venueTypesParam = selectedVenueTypes.join(',');
                     const response = await fetch(`/api/venues?city_id=${cityId}&venue_types=${venueTypesParam}`);
@@ -4495,10 +4480,18 @@
                     }
 
                     venues = await response.json();
-                    updateProgress(80, 'Processing venues...');
                 } else {
-                    updateProgress(80, 'Skipping venues - focusing on sources...');
+                    // Load all venues if no specific types are selected
+                    const response = await fetch(`/api/venues?city_id=${cityId}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to load venues');
+                    }
+
+                    venues = await response.json();
                 }
+                
+                updateProgress(80, 'Processing venues...');
 
                 // Store all venues and update counts
                 allVenues = venues || [];
@@ -4890,26 +4883,11 @@
             scrapeButton.innerHTML = '<span class="loading-spinner"></span> Scraping events...';
             updateProgress(10, 'Scraping events from selected venues...');
 
-            // Start progress polling
-            const progressInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/api/scrape-progress');
-                    if (response.ok) {
-                        const progress = await response.json();
-                        updateProgress(progress.percentage, progress.message);
-                        
-                        // Stop polling when complete
-                        if (progress.percentage >= 100) {
-                            clearInterval(progressInterval);
-                        }
-                    }
-                } catch (error) {
-                    console.log('Progress polling error:', error);
-                }
-            }, 1000); // Poll every second
+            // Declare progressInterval outside try block so it can be cleared in finally
+            let progressInterval = null;
 
             try {
-                // Step 1: Scrape events from selected venues
+                // Step 1: Scrape events from selected venues using streaming
                 updateProgress(30, 'Scraping events from ' + selectedVenues.size + ' venues...');
                 
                 const requestBody = {
@@ -4947,8 +4925,10 @@
                     requestBody.max_events_per_venue = 9999;
                 }
                 
-                console.log('📤 Frontend: Sending request body:', JSON.stringify(requestBody, null, 2));
-                const response = await fetch('/api/scrape', {
+                console.log('📤 Frontend: Starting streaming scrape...');
+                
+                // Use fetch with streaming for real-time event updates
+                const response = await fetch('/api/scrape-stream', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -4960,35 +4940,82 @@
                     throw new Error('Event scraping failed');
                 }
 
-                const result = await response.json();
-                updateProgress(70, 'Processing scraped events...');
-
-                // Step 2: Load events
-                await loadEvents(cityId, timeRange, eventType);
+                // Clear existing events for fresh start
+                discoveredEvents = [];
+                let eventsReceived = 0;
                 
-                // Force refresh the events display
-                console.log(`Scraping complete. Loaded ${allEvents.length} events.`);
-                console.log('Events:', allEvents);
+                // Read the stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
                 
-                // Force a manual refresh of the events display
-                setTimeout(() => {
-                    displayEvents(allEvents);
-                    console.log('Manually refreshed events display');
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
                     
-                    // Also try to reload events from API
-                    loadEvents(cityId, timeRange, eventType);
-                }, 500);
-                
-                updateProgress(100, 'Complete! Found ' + allEvents.length + ' events');
-                showNotification(`Successfully scraped ${allEvents.length} events!`, 'success');
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                
+                                if (data.type === 'progress') {
+                                    updateProgress(data.percentage, data.message);
+                                } else if (data.type === 'event') {
+                                    // Add event to discoveredEvents and display immediately
+                                    const newEvent = data.event;
+                                    // Generate a temporary ID if not present
+                                    if (!newEvent.id) {
+                                        newEvent.id = 'temp_' + Date.now() + '_' + eventsReceived;
+                                    }
+                                    
+                                    // Check if event already exists (avoid duplicates)
+                                    const exists = discoveredEvents.some(e => 
+                                        e.title === newEvent.title && 
+                                        e.start_date === newEvent.start_date &&
+                                        e.venue_id === newEvent.venue_id
+                                    );
+                                    
+                                    if (!exists) {
+                                        discoveredEvents.push(newEvent);
+                                        eventsReceived++;
+                                        
+                                        // Sort and display events in real-time
+                                        displayUnifiedEvents();
+                                        
+                                        console.log(`✅ Received event ${eventsReceived}: ${newEvent.title}`);
+                                    }
+                                } else if (data.type === 'complete') {
+                                    updateProgress(100, data.message);
+                                    showNotification(`Successfully scraped ${data.total_events} events!`, 'success');
+                                    
+                                    // Final load to ensure all events are in database
+                                    setTimeout(() => {
+                                        loadEvents(cityId, timeRange, eventType);
+                                    }, 500);
+                                } else if (data.type === 'error') {
+                                    console.error('Scraping error:', data.message);
+                                    showNotification('Scraping error: ' + data.message, 'error');
+                                }
+                            } catch (error) {
+                                console.error('Error parsing SSE message:', error);
+                            }
+                        }
+                    }
+                }
 
             } catch (error) {
                 console.error('Event scraping error:', error);
                 showNotification('Event scraping failed: ' + error.message, 'error');
                 updateProgress(0, 'Event scraping failed');
             } finally {
-                // Stop progress polling
-                clearInterval(progressInterval);
+                // Stop progress polling if it was started
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
                 scrapeButton.disabled = false;
                 scrapeButton.innerHTML = 'Scrape';
             }
@@ -5014,6 +5041,9 @@
                         params.append('custom_end_date', customEndDate);
                     }
                 }
+                
+                // For "all" time range, don't send time_range parameter (or send 'all')
+                // The backend should handle 'all' to return all events
 
                 const apiUrl = `/api/events?${params}`;
                 const response = await fetch(apiUrl);
@@ -5098,52 +5128,68 @@
             }
             // If selectedEventTypeFilters is empty, show all events (no filtering)
             
-            // Filter out past events, but keep current exhibitions
-            const todayForFilter = new Date();
-            todayForFilter.setHours(0, 0, 0, 0); // Reset to start of day for date comparison
+            // Filter by baby-friendly if filter is active
+            if (babyFriendlyFilterActive) {
+                filteredEvents = filteredEvents.filter(event => {
+                    return event.is_baby_friendly === true;
+                });
+            }
             
-            // Get today's date string in YYYY-MM-DD format for reliable comparison
-            const todayDateStr = todayForFilter.toISOString().split('T')[0];
+            // Get current time range filter (if any)
+            const currentTimeRange = document.getElementById('dateRangeSelect')?.value || 
+                                    document.querySelector('.time-btn.active')?.dataset.period || 
+                                    'this_week';
             
-            filteredEvents = filteredEvents.filter(event => {
-                if (!event.start_date) return false; // Exclude events without dates
+            // Only filter by date if not "all"
+            if (currentTimeRange !== 'all') {
+                // Filter out past events, but keep current exhibitions
+                const todayForFilter = new Date();
+                todayForFilter.setHours(0, 0, 0, 0); // Reset to start of day for date comparison
                 
-                // Parse date string (YYYY-MM-DD) directly to avoid timezone issues
-                const eventDateStr = event.start_date;
-                if (!eventDateStr) return false;
+                // Get today's date string in YYYY-MM-DD format for reliable comparison
+                const todayDateStr = todayForFilter.toISOString().split('T')[0];
                 
-                // Compare date strings directly - more reliable than Date objects
-                const startDate = new Date(eventDateStr + 'T00:00:00');
-                startDate.setHours(0, 0, 0, 0);
-                
-                // For exhibitions: keep if currently running (started but not ended)
-                if (event.event_type === 'exhibition') {
-                    if (event.end_date) {
-                        const endDate = new Date(event.end_date + 'T23:59:59');
-                        endDate.setHours(23, 59, 59, 999); // End of day
-                        // Keep if it hasn't ended yet
-                        return endDate >= todayForFilter;
-                    } else {
-                        // No end date - keep if it has started
-                        return startDate <= todayForFilter;
-                    }
-                } else {
-                    // For other events: only show if start date is today or in the future
-                    // Compare date strings to avoid timezone issues
-                    if (eventDateStr >= todayDateStr) {
-                        // If it's today, check if the event time has passed
-                        if (eventDateStr === todayDateStr && event.start_time) {
-                            const [hours, minutes] = event.start_time.split(':').map(Number);
-                            const eventDateTime = new Date(todayForFilter);
-                            eventDateTime.setHours(hours, minutes, 0, 0);
-                            return eventDateTime >= new Date();
+                filteredEvents = filteredEvents.filter(event => {
+                    if (!event.start_date) return false; // Exclude events without dates
+                    
+                    // Parse date string (YYYY-MM-DD) directly to avoid timezone issues
+                    const eventDateStr = event.start_date;
+                    if (!eventDateStr) return false;
+                    
+                    // Compare date strings directly - more reliable than Date objects
+                    const startDate = new Date(eventDateStr + 'T00:00:00');
+                    startDate.setHours(0, 0, 0, 0);
+                    
+                    // For exhibitions: keep if currently running (started but not ended)
+                    if (event.event_type === 'exhibition') {
+                        if (event.end_date) {
+                            const endDate = new Date(event.end_date + 'T23:59:59');
+                            endDate.setHours(23, 59, 59, 999); // End of day
+                            // Keep if it hasn't ended yet
+                            return endDate >= todayForFilter;
+                        } else {
+                            // No end date - keep if it has started
+                            return startDate <= todayForFilter;
                         }
-                        // For future dates or today without time, show it
-                        return true;
+                    } else {
+                        // For other events: only show if start date is today or in the future
+                        // Compare date strings to avoid timezone issues
+                        if (eventDateStr >= todayDateStr) {
+                            // If it's today, check if the event time has passed
+                            if (eventDateStr === todayDateStr && event.start_time) {
+                                const [hours, minutes] = event.start_time.split(':').map(Number);
+                                const eventDateTime = new Date(todayForFilter);
+                                eventDateTime.setHours(hours, minutes, 0, 0);
+                                return eventDateTime >= new Date();
+                            }
+                            // For future dates or today without time, show it
+                            return true;
+                        }
+                        return false;
                     }
-                    return false;
-                }
-            });
+                });
+            }
+            // If timeRange is 'all', don't filter by date - show all events
             
             if (filteredEvents.length === 0) {
                 container.innerHTML = `
@@ -5155,42 +5201,61 @@
                 return;
             }
 
-            // Separate current exhibitions from upcoming events
+            // Separate exhibitions from other events
             const todayForGrouping = new Date();
             todayForGrouping.setHours(0, 0, 0, 0);
             
-            const currentExhibitions = [];
+            const allExhibitions = [];
             const upcomingEvents = [];
             
             filteredEvents.forEach(event => {
-                if (!event.start_date) {
-                    upcomingEvents.push(event);
-                    return;
-                }
-                
-                const startDate = new Date(event.start_date);
-                startDate.setHours(0, 0, 0, 0);
-                
-                // Check if it's a current exhibition (started in the past, still running)
-                const isCurrentExhibition = event.event_type === 'exhibition' && 
-                    startDate < todayForGrouping && 
-                    (!event.end_date || new Date(event.end_date) >= todayForGrouping);
-                
-                if (isCurrentExhibition) {
-                    currentExhibitions.push(event);
+                // All exhibitions go to exhibitions section (current and upcoming)
+                if (event.event_type === 'exhibition') {
+                    allExhibitions.push(event);
                 } else {
+                    // All other events go to upcoming events
                     upcomingEvents.push(event);
                 }
             });
             
-            // Sort current exhibitions by end date (soonest ending first) or alphabetically
-            currentExhibitions.sort((a, b) => {
-                if (a.end_date && b.end_date) {
-                    return new Date(a.end_date) - new Date(b.end_date);
+            // Sort exhibitions: current first (by end date), then upcoming (by start date)
+            allExhibitions.sort((a, b) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const aStart = a.start_date ? new Date(a.start_date) : null;
+                const bStart = b.start_date ? new Date(b.start_date) : null;
+                const aEnd = a.end_date ? new Date(a.end_date) : null;
+                const bEnd = b.end_date ? new Date(b.end_date) : null;
+                
+                // Check if exhibition is currently running
+                const aIsCurrent = aStart && aStart <= today && (!aEnd || aEnd >= today);
+                const bIsCurrent = bStart && bStart <= today && (!bEnd || bEnd >= today);
+                
+                // Current exhibitions first
+                if (aIsCurrent && !bIsCurrent) return -1;
+                if (!aIsCurrent && bIsCurrent) return 1;
+                
+                // Within current exhibitions, sort by end date (soonest ending first)
+                if (aIsCurrent && bIsCurrent) {
+                    if (aEnd && bEnd) {
+                        return aEnd - bEnd;
+                    }
+                    if (aEnd) return -1;
+                    if (bEnd) return 1;
                 }
-                if (a.end_date) return -1;
-                if (b.end_date) return 1;
-                return a.title.localeCompare(b.title);
+                
+                // Within upcoming exhibitions, sort by start date
+                if (!aIsCurrent && !bIsCurrent) {
+                    if (aStart && bStart) {
+                        return aStart - bStart;
+                    }
+                    if (aStart) return -1;
+                    if (bStart) return 1;
+                }
+                
+                // Fallback to alphabetical
+                return (a.title || '').localeCompare(b.title || '');
             });
             
             // Sort upcoming events by date
@@ -5200,25 +5265,83 @@
                 return dateA - dateB;
             });
             
+            // Helper function to detect generic/repetitive tour titles
+            function isGenericTourTitle(title) {
+                if (!title) return false;
+                const genericPatterns = [
+                    /^docent[- ]led walk[- ]in tour$/i,
+                    /^walk[- ]in tour$/i,
+                    /^docent[- ]led tour$/i,
+                    /^guided tour$/i,
+                    /^public tour$/i,
+                    /^drop[- ]in tour$/i,
+                    /^self[- ]guided tour$/i
+                ];
+                return genericPatterns.some(pattern => pattern.test(title.trim()));
+            }
+            
+            // Separate generic tour events from regular events
+            const genericTourGroups = {};
+            const regularEvents = [];
+            
+            upcomingEvents.forEach(event => {
+                // Only group if it's a tour type AND matches generic patterns
+                if (event.event_type === 'tour' && isGenericTourTitle(event.title)) {
+                    const titleKey = event.title.trim();
+                    if (!genericTourGroups[titleKey]) {
+                        genericTourGroups[titleKey] = [];
+                    }
+                    genericTourGroups[titleKey].push(event);
+                } else {
+                    // All other events (including non-tour events and tours with specific titles) go to regular events
+                    regularEvents.push(event);
+                }
+            });
+            
+            // Debug: log counts (can be removed later)
+            if (Object.keys(genericTourGroups).length > 0 || regularEvents.length > 0) {
+                console.log(`Event display: ${Object.keys(genericTourGroups).length} grouped tour types, ${regularEvents.length} regular events`);
+            }
+            
             // Build HTML
             let html = '';
             
-            // Show current exhibitions first
-            if (currentExhibitions.length > 0) {
+            // Show all exhibitions first
+            if (allExhibitions.length > 0) {
                 html += `
                     <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
+                        Exhibitions
                     </div>
                 `;
                 html += '<div class="events-list">';
-                currentExhibitions.forEach(event => {
+                allExhibitions.forEach(event => {
                     html += createDiscoveredEventCard(event);
                 });
                 html += '</div>';
             }
             
-            // Group upcoming events by date
+            // Show grouped generic tours at the top (before date-grouped events)
+            if (Object.keys(genericTourGroups).length > 0) {
+                html += `
+                    <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
+                        Recurring Tours
+                    </div>
+                `;
+                Object.keys(genericTourGroups).forEach(tourTitle => {
+                    const tourEvents = genericTourGroups[tourTitle];
+                    // Sort by date/time
+                    tourEvents.sort((a, b) => {
+                        const dateA = new Date(a.start_date + ' ' + (a.start_time || '00:00'));
+                        const dateB = new Date(b.start_date + ' ' + (b.start_time || '00:00'));
+                        return dateA - dateB;
+                    });
+                    html += createGroupedTourCard(tourTitle, tourEvents);
+                });
+            }
+            
+            // Group regular upcoming events by date
             const eventsByDate = {};
-            upcomingEvents.forEach(event => {
+            regularEvents.forEach(event => {
                 const dateKey = event.start_date || 'No Date';
                 if (!eventsByDate[dateKey]) {
                     eventsByDate[dateKey] = [];
@@ -5226,8 +5349,9 @@
                 eventsByDate[dateKey].push(event);
             });
             
-            // Show upcoming events grouped by date
-            Object.keys(eventsByDate).sort().forEach(dateKey => {
+            // Show upcoming events grouped by date (only if there are regular events)
+            if (Object.keys(eventsByDate).length > 0) {
+                Object.keys(eventsByDate).sort().forEach(dateKey => {
                 const dateEvents = eventsByDate[dateKey];
                 const dateHeader = dateKey !== 'No Date' ? `
                     <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
@@ -5235,13 +5359,14 @@
                     </div>
                 ` : '';
                 
-                html += dateHeader;
-                html += '<div class="events-list">';
-                dateEvents.forEach(event => {
-                    html += createDiscoveredEventCard(event);
+                    html += dateHeader;
+                    html += '<div class="events-list">';
+                    dateEvents.forEach(event => {
+                        html += createDiscoveredEventCard(event);
+                    });
+                    html += '</div>';
                 });
-                html += '</div>';
-            });
+            }
 
             container.innerHTML = html;
             
@@ -5259,11 +5384,31 @@
             filterButtons.forEach(btn => {
                 btn.addEventListener('click', function() {
                     const eventType = this.dataset.eventType || '';
+                    const filterType = this.dataset.filterType || '';
+                    
+                    // Handle baby-friendly filter separately
+                    if (filterType === 'baby-friendly') {
+                        babyFriendlyFilterActive = !babyFriendlyFilterActive;
+                        if (babyFriendlyFilterActive) {
+                            this.classList.add('active');
+                            this.style.background = 'rgba(0,0,0,0.08)';
+                            this.style.color = 'rgba(0,0,0,0.87)';
+                            this.style.fontWeight = '500';
+                        } else {
+                            this.classList.remove('active');
+                            this.style.background = 'rgba(255,255,255,0.6)';
+                            this.style.color = 'rgba(0,0,0,0.6)';
+                            this.style.fontWeight = '400';
+                        }
+                        displayUnifiedEvents();
+                        return;
+                    }
                     
                     // Toggle selection
                     if (eventType === '') {
                         // "All" button - clear all other selections
                         selectedEventTypeFilters.clear();
+                        babyFriendlyFilterActive = false;
                         filterButtons.forEach(b => {
                             b.classList.remove('active');
                             b.style.background = 'rgba(255,255,255,0.6)';
@@ -5291,7 +5436,7 @@
                         }
                         
                         // If any specific type is selected, deselect "All"
-                        if (selectedEventTypeFilters.size > 0) {
+                        if (selectedEventTypeFilters.size > 0 || babyFriendlyFilterActive) {
                             const allBtn = document.querySelector('.event-type-filter-btn[data-event-type=""]');
                             if (allBtn) {
                                 allBtn.classList.remove('active');
@@ -5886,6 +6031,141 @@
         }
 
         // Create a card for discovered events
+        // Create grouped tour card for generic/repetitive tour titles
+        function createGroupedTourCard(tourTitle, events) {
+            if (!events || events.length === 0) return '';
+            
+            // Get venue/location from first event (they should all be the same)
+            const firstEvent = events[0];
+            const isOnline = firstEvent.is_online || false;
+            const locationDisplay = isOnline ? '🌐 Online Event' : (firstEvent.venue_name || firstEvent.start_location || 'Location TBD');
+            
+            // Format dates and times - create a compact summary
+            const dateTimeItems = events.map(event => {
+                const dateStr = formatDate(event.start_date);
+                const timeStr = event.start_time || 'TBD';
+                return { date: dateStr, time: timeStr, eventId: event.id, isSelected: selectedEvents.has(event.id), dateObj: new Date(event.start_date + ' ' + (event.start_time || '00:00')) };
+            });
+            
+            // Sort by date/time
+            dateTimeItems.sort((a, b) => a.dateObj - b.dateObj);
+            
+            // Count selected events in this group
+            const selectedCount = dateTimeItems.filter(item => item.isSelected).length;
+            const allSelected = selectedCount === events.length;
+            
+            // Create a compact summary of dates/times
+            const uniqueDates = [...new Set(dateTimeItems.map(item => item.date))];
+            const dateRange = uniqueDates.length > 0 ? 
+                (uniqueDates.length === 1 ? uniqueDates[0] : `${uniqueDates[0]} - ${uniqueDates[uniqueDates.length - 1]}`) : 
+                'Various dates';
+            
+            // Get unique times
+            const uniqueTimes = [...new Set(dateTimeItems.map(item => item.time).filter(t => t !== 'TBD'))];
+            const timeSummary = uniqueTimes.length > 0 ? 
+                (uniqueTimes.length <= 2 ? uniqueTimes.join(', ') : `${uniqueTimes[0]}, ${uniqueTimes[1]}, +${uniqueTimes.length - 2} more`) : 
+                'Times vary';
+            
+            // Create unique ID for this card
+            const cardId = `grouped-tour-${tourTitle.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            
+            return `
+                <div class="grouped-tour-card" id="${cardId}" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                    <div class="grouped-tour-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleGroupedTourExpansion('${cardId}')">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; flex: 1; min-width: 0;">${tourTitle}</div>
+                                <input type="checkbox" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''} 
+                                       onchange="toggleGroupedTourSelection('${tourTitle}', ${allSelected}); event.stopPropagation();"
+                                       onclick="event.stopPropagation();"
+                                       style="width: 16px; height: 16px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0;">
+                            </div>
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 2px;">${locationDisplay}</div>
+                            <div style="font-size: 0.75rem; color: #6b7280;">
+                                <span>${dateRange}</span> • <span>${timeSummary}</span> • <span>${events.length} ${events.length === 1 ? 'session' : 'sessions'}</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleGroupedTourExpansion('${cardId}'); event.stopPropagation();" 
+                                style="background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; font-size: 0.875rem; flex-shrink: 0; margin-left: 8px;">
+                            <span class="expand-icon">▼</span>
+                        </button>
+                    </div>
+                    <div class="grouped-tour-sessions" id="${cardId}-sessions" style="display: none; margin-top: 12px; max-height: 300px; overflow-y: auto;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; margin-bottom: 10px;">
+                            ${dateTimeItems.map(item => `
+                                <div class="grouped-tour-session" data-event-id="${item.eventId}" 
+                                     style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: ${item.isSelected ? '#eff6ff' : '#f9fafb'}; border-radius: 6px; border: 1px solid ${item.isSelected ? '#3b82f6' : 'rgba(0,0,0,0.06)'}; font-size: 0.75rem;">
+                                    <div style="min-width: 0;">
+                                        <div style="font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.date}</div>
+                                        <div style="color: #6b7280; font-size: 0.7rem;">${item.time}</div>
+                                    </div>
+                                    <input type="checkbox" class="session-checkbox" ${item.isSelected ? 'checked' : ''} 
+                                           onchange="toggleEventSelection(${item.eventId})"
+                                           onclick="event.stopPropagation();"
+                                           style="width: 14px; height: 14px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0; margin-left: 6px;">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="grouped-tour-actions" style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.06);">
+                            ${firstEvent.url ? `
+                                <button class="action-btn" onclick="window.open('${firstEvent.url}', '_blank')" style="padding: 4px 10px; font-size: 0.7rem; background: #f3f4f6; border: none; border-radius: 6px; cursor: pointer;">🔗 Details</button>
+                            ` : ''}
+                            <button class="action-btn calendar-btn" onclick="addGroupedTourToCalendar('${tourTitle}')" style="padding: 4px 10px; font-size: 0.7rem; background: #f3f4f6; border: none; border-radius: 6px; cursor: pointer;">🗓️ Add All</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Toggle expansion of grouped tour card
+        function toggleGroupedTourExpansion(cardId) {
+            const sessionsDiv = document.getElementById(cardId + '-sessions');
+            const expandIcon = document.querySelector(`#${cardId} .expand-icon`);
+            if (sessionsDiv) {
+                const isExpanded = sessionsDiv.style.display !== 'none';
+                sessionsDiv.style.display = isExpanded ? 'none' : 'block';
+                if (expandIcon) {
+                    expandIcon.textContent = isExpanded ? '▼' : '▲';
+                }
+            }
+        }
+        
+        // Toggle selection for all events in a grouped tour
+        function toggleGroupedTourSelection(tourTitle, currentlyAllSelected) {
+            // Find all events with this title
+            const allEventsWithTitle = [...allEvents, ...discoveredEvents].filter(e => 
+                e.title && e.title.trim() === tourTitle && e.event_type === 'tour'
+            );
+            
+            if (currentlyAllSelected) {
+                // Deselect all
+                allEventsWithTitle.forEach(event => {
+                    selectedEvents.delete(event.id);
+                });
+            } else {
+                // Select all
+                allEventsWithTitle.forEach(event => {
+                    selectedEvents.add(event.id);
+                });
+            }
+            
+            // Refresh display
+            displayUnifiedEvents();
+        }
+        
+        // Add all sessions of a grouped tour to calendar
+        function addGroupedTourToCalendar(tourTitle) {
+            const allEventsWithTitle = [...allEvents, ...discoveredEvents].filter(e => 
+                e.title && e.title.trim() === tourTitle && e.event_type === 'tour'
+            );
+            
+            allEventsWithTitle.forEach(event => {
+                addToCalendar(event.id);
+            });
+            
+            showNotification(`Added ${allEventsWithTitle.length} ${tourTitle} sessions to calendar`, 'success');
+        }
+        
         function createDiscoveredEventCard(event) {
             let timeStr = '';
             if (event.start_time) {
