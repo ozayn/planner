@@ -1,10 +1,10 @@
 {
-  "metadata": {
+    "metadata": {
     "version": "1.0",
     "created": "2025-12-03",
     "description": "Cities exported from database - always most updated version",
-    "total_cities": 26,
-    "last_updated": "2025-12-03 16:57:16"
+    "total_cities": 27,
+    "last_updated": "2025-12-10"
   },
   "cities": {
     "1": {
@@ -162,6 +162,12 @@
       "state": "California",
       "country": "United States",
       "timezone": "America/Los_Angeles"
+    },
+    "28": {
+      "name": "Coimbra",
+      "state": "",
+      "country": "Portugal",
+      "timezone": "Europe/Lisbon"
     }
   }
 }
