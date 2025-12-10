@@ -1843,34 +1843,51 @@ async function startHirshhornScraping() {
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            updateScrapingProgress({
-                percentage: 100,
-                message: `✅ Scraping completed! Found ${result.events_found} exhibitions, saved ${result.events_saved} events`,
-                events_saved: result.events_saved,
-                events_found: result.events_found
-            });
-            // Reload events table
-            await loadEvents();
-            // Close modal after 3 seconds
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
             setTimeout(() => {
                 closeScrapingProgressModal();
-            }, 3000);
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingProgress({
-                percentage: 0,
-                message: `❌ Scraping failed: ${result.error}`,
-                error: true
-            });
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        updateScrapingProgress({
-            percentage: 0,
-            message: `❌ Scraping error: ${error.message}`,
-            error: true
-        });
+        console.error('Hirshhorn scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
@@ -1910,32 +1927,59 @@ async function startAllVenuesScraping() {
 }
 
 async function startWebstersScraping() {
-    updateScrapingStatus('🔄 Scraping Webster\'s Bookstore Cafe events...', 'info');
+    showScrapingProgressModal('Webster\'s Bookstore Cafe');
+    
     try {
         const response = await fetch('/api/admin/scrape-websters', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            let statusMsg = `✅ Webster's scraping completed! Found ${result.events_found} events`;
-            if (result.events_saved > 0) {
-                statusMsg += `, created ${result.events_saved} new events`;
-            }
-            if (result.events_skipped > 0) {
-                statusMsg += `, ${result.events_skipped} already existed`;
-            }
-            updateScrapingStatus(statusMsg, 'success');
-            // Reload events table
-            await loadEvents();
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingStatus(`❌ Webster's scraping failed: ${result.error}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        console.error('Error scraping Webster\'s events:', error);
-        updateScrapingStatus(`❌ Webster's scraping error: ${error.message}`, 'error');
+        console.error('Webster\'s scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
@@ -1997,7 +2041,7 @@ async function startNGAScraping() {
 }
 
 async function startSAAMScraping() {
-    updateScrapingStatus('🎨 Starting SAAM scraping (exhibitions, tours, talks)...', 'info');
+    showScrapingProgressModal('Smithsonian American Art Museum');
     
     try {
         const response = await fetch('/api/admin/scrape-saam', {
@@ -2005,22 +2049,56 @@ async function startSAAMScraping() {
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            updateScrapingStatus(`✅ SAAM scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
-            // Reload events table
-            await loadEvents();
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingStatus(`❌ SAAM scraping failed: ${result.error}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        updateScrapingStatus(`❌ SAAM scraping error: ${error.message}`, 'error');
+        console.error('SAAM scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
 async function startNPGScraping() {
-    updateScrapingStatus('🖼️ Starting NPG scraping (exhibitions, tours, talks, programs)...', 'info');
+    showScrapingProgressModal('National Portrait Gallery');
     
     try {
         const response = await fetch('/api/admin/scrape-npg', {
@@ -2028,17 +2106,51 @@ async function startNPGScraping() {
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            updateScrapingStatus(`✅ NPG scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
-            // Reload events table
-            await loadEvents();
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingStatus(`❌ NPG scraping failed: ${result.error}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        updateScrapingStatus(`❌ NPG scraping failed: ${error.message}`, 'error');
+        console.error('NPG scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
@@ -2100,7 +2212,7 @@ async function startAsianArtScraping() {
 }
 
 async function startAfricanArtScraping() {
-    updateScrapingStatus('🎨 Starting African Art Museum scraping (exhibitions, events, tours)...', 'info');
+    showScrapingProgressModal('Smithsonian National Museum of African Art');
     
     try {
         const response = await fetch('/api/admin/scrape-african-art', {
@@ -2108,46 +2220,108 @@ async function startAfricanArtScraping() {
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            updateScrapingStatus(`✅ African Art Museum scraping completed! Found ${result.events_found} events, saved ${result.events_saved} new, updated ${result.events_updated} existing`, 'success');
-            // Reload events table
-            await loadEvents();
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingStatus(`❌ African Art Museum scraping failed: ${result.error}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        updateScrapingStatus(`❌ African Art Museum scraping error: ${error.message}`, 'error');
+        console.error('African Art scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
 async function startFindingAweScraping() {
-    updateScrapingStatus('🔄 Scraping Finding Awe events from NGA...', 'info');
+    showScrapingProgressModal('Finding Awe (NGA)');
+    
     try {
         const response = await fetch('/api/admin/scrape-finding-awe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
         
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            let statusMsg = `✅ Finding Awe scraping completed! Found ${result.events_found} events`;
-            if (result.events_saved > 0) {
-                statusMsg += `, created ${result.events_saved} new events`;
-            }
-            if (result.events_skipped > 0) {
-                statusMsg += `, ${result.events_skipped} already existed`;
-            }
-            updateScrapingStatus(statusMsg, 'success');
-            // Reload events table
-            await loadEvents();
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
         } else {
-            updateScrapingStatus(`❌ Finding Awe scraping failed: ${result.error}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
         }
     } catch (error) {
-        updateScrapingStatus(`❌ Finding Awe scraping error: ${error.message}`, 'error');
+        console.error('Finding Awe scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
     }
 }
 
@@ -2213,56 +2387,98 @@ function showScrapingProgressModal(sourceName = 'Scraping') {
         modal.id = 'scrapingProgressModal';
         modal.className = 'modal';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>🔄 ${sourceName} Progress</h2>
-                    <button onclick="closeScrapingProgressModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+                    <h2 style="margin: 0; font-size: 1.5rem; color: #1f2937;">🔄 ${sourceName} Progress</h2>
+                    <button onclick="closeScrapingProgressModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6b7280; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">&times;</button>
                 </div>
                 <div id="progressBarContainer" style="margin-bottom: 20px;">
                     <div style="background: #e5e7eb; border-radius: 10px; height: 30px; overflow: hidden; position: relative;">
                         <div id="progressBar" style="background: linear-gradient(90deg, #3b82f6, #8b5cf6); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;"></div>
                     </div>
-                    <div id="progressPercentage" style="text-align: center; margin-top: 8px; font-weight: bold; color: #4a5568;">0%</div>
+                    <div id="progressPercentage" style="text-align: center; margin-top: 8px; font-weight: bold; color: #4a5568; font-size: 1.125rem;">0%</div>
                 </div>
-                <div id="progressMessage" style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div id="progressMessage" style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6; font-size: 0.9375rem; line-height: 1.5; color: #1e40af;">
                     Starting...
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 10px; color: #4a5568;">📊 Statistics</h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
-                        <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
-                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Events Found</div>
-                            <div id="eventsFound" style="font-size: 28px; font-weight: bold; color: #3b82f6;">0</div>
+                    <h3 style="margin-bottom: 12px; color: #4a5568; font-size: 1.125rem; font-weight: 600;">📊 Statistics</h3>
+                    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
+                        <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Events Found</div>
+                            <div id="eventsFound" style="font-size: 28px; font-weight: bold; color: #3b82f6; line-height: 1.2;">0</div>
                         </div>
-                        <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
-                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Events Saved</div>
-                            <div id="eventsSaved" style="font-size: 28px; font-weight: bold; color: #10b981;">0</div>
-                        </div>
-                    </div>
-                    <div id="additionalStats" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                        <div id="venuesProcessedContainer" style="padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb; display: none;">
-                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Venues Processed</div>
-                            <div id="venuesProcessed" style="font-size: 20px; font-weight: bold; color: #8b5cf6;">0/0</div>
-                        </div>
-                        <div id="sourcesProcessedContainer" style="padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb; display: none;">
-                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Sources Processed</div>
-                            <div id="sourcesProcessed" style="font-size: 20px; font-weight: bold; color: #f59e0b;">0/0</div>
+                        <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Events Saved</div>
+                            <div id="eventsSaved" style="font-size: 28px; font-weight: bold; color: #10b981; line-height: 1.2;">0</div>
                         </div>
                     </div>
-                    <div id="currentVenueContainer" style="margin-top: 10px; padding: 10px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6; display: none;">
-                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Currently Processing</div>
-                        <div id="currentVenue" style="font-size: 14px; font-weight: 600; color: #1e40af;"></div>
+                    <div id="additionalStats" class="stats-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                        <div id="venuesProcessedContainer" style="padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb; display: none;">
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Venues Processed</div>
+                            <div id="venuesProcessed" style="font-size: 20px; font-weight: bold; color: #8b5cf6; line-height: 1.2;">0/0</div>
+                        </div>
+                        <div id="sourcesProcessedContainer" style="padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb; display: none;">
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Sources Processed</div>
+                            <div id="sourcesProcessed" style="font-size: 20px; font-weight: bold; color: #f59e0b; line-height: 1.2;">0/0</div>
+                        </div>
+                    </div>
+                    <div id="currentVenueContainer" style="margin-top: 12px; padding: 12px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6; display: none;">
+                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Currently Processing</div>
+                        <div id="currentVenue" style="font-size: 14px; font-weight: 600; color: #1e40af; line-height: 1.4;"></div>
                     </div>
                 </div>
                 <div>
-                    <h3 style="margin-bottom: 10px; color: #4a5568;">📝 Recent Events</h3>
-                    <div id="recentEvents" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 10px;">
-                        <div style="color: #6b7280; text-align: center; padding: 20px;">No events extracted yet...</div>
+                    <h3 style="margin-bottom: 12px; color: #4a5568; font-size: 1.125rem; font-weight: 600;">📝 Recent Events</h3>
+                    <div id="recentEvents" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 12px; -webkit-overflow-scrolling: touch;">
+                        <div style="color: #6b7280; text-align: center; padding: 20px; font-size: 0.9375rem;">No events extracted yet...</div>
                     </div>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
+    } else {
+        // Modal exists - update the title if source name changed
+        const titleElement = modal.querySelector('h2');
+        if (titleElement) {
+            titleElement.textContent = `🔄 ${sourceName} Progress`;
+        }
+        // Reset progress display when starting new scraping
+        const progressBar = document.getElementById('progressBar');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const progressMessage = document.getElementById('progressMessage');
+        const eventsFound = document.getElementById('eventsFound');
+        const eventsSaved = document.getElementById('eventsSaved');
+        const recentEvents = document.getElementById('recentEvents');
+        
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            progressBar.textContent = '';
+        }
+        if (progressPercentage) {
+            progressPercentage.textContent = '0%';
+        }
+        if (progressMessage) {
+            progressMessage.textContent = 'Starting...';
+            progressMessage.style.borderLeftColor = '#3b82f6';
+            progressMessage.style.background = '#f0f9ff';
+        }
+        if (eventsFound) {
+            eventsFound.textContent = '0';
+        }
+        if (eventsSaved) {
+            eventsSaved.textContent = '0';
+        }
+        if (recentEvents) {
+            recentEvents.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px; font-size: 0.9375rem;">No events extracted yet...</div>';
+        }
+        // Hide additional stats containers
+        const venuesContainer = document.getElementById('venuesProcessedContainer');
+        const sourcesContainer = document.getElementById('sourcesProcessedContainer');
+        const currentVenueContainer = document.getElementById('currentVenueContainer');
+        if (venuesContainer) venuesContainer.style.display = 'none';
+        if (sourcesContainer) sourcesContainer.style.display = 'none';
+        if (currentVenueContainer) currentVenueContainer.style.display = 'none';
     }
     
     modal.style.display = 'block';
@@ -2279,10 +2495,14 @@ function closeScrapingProgressModal() {
     if (modal) {
         modal.style.display = 'none';
     }
+    // Stop polling when modal is closed
     if (progressPollInterval) {
         clearInterval(progressPollInterval);
         progressPollInterval = null;
     }
+    // Reset tracking variables
+    lastEventsSavedCount = 0;
+    lastTableRefreshTime = 0;
 }
 
 async function pollScrapingProgress() {
@@ -2372,10 +2592,13 @@ function updateScrapingProgress(progress) {
     
     if (!progressBar) return;
     
-    const percentage = progress.percentage || progress.progress || 0;
+    // Clamp percentage between 0 and 100
+    const percentage = Math.min(100, Math.max(0, progress.percentage || progress.progress || 0));
     progressBar.style.width = percentage + '%';
-    progressBar.textContent = percentage + '%';
-    progressPercentage.textContent = percentage + '%';
+    progressBar.textContent = percentage >= 5 ? percentage + '%' : ''; // Only show text if bar is wide enough
+    if (progressPercentage) {
+        progressPercentage.textContent = percentage + '%';
+    }
     
     // Build a more detailed message
     let message = progress.message || 'Processing...';
@@ -2419,12 +2642,14 @@ function updateScrapingProgress(progress) {
     }
     
     // Show/hide current venue
-    if (progress.current_venue) {
-        const container = document.getElementById('currentVenueContainer');
-        const currentVenueEl = document.getElementById('currentVenue');
-        if (container && currentVenueEl) {
-            container.style.display = 'block';
+    const currentVenueContainer = document.getElementById('currentVenueContainer');
+    const currentVenueEl = document.getElementById('currentVenue');
+    if (currentVenueContainer && currentVenueEl) {
+        if (progress.current_venue) {
+            currentVenueContainer.style.display = 'block';
             currentVenueEl.textContent = progress.current_venue;
+        } else {
+            currentVenueContainer.style.display = 'none';
         }
     }
     

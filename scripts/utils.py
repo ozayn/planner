@@ -10,7 +10,7 @@ import re
 import sqlite3
 import requests
 from typing import Optional, Dict, List, Tuple, Any
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from urllib.parse import quote
 # Import centralized environment configuration
@@ -221,6 +221,224 @@ def check_venue_duplicate(name, city_id, exclude_id=None):
         return None, None
 
 # Field cleaning utilities
+def clean_event_title(title: str) -> str:
+    """
+    Clean event title by removing venue name suffixes.
+    Removes patterns like "| National Gallery of Art", "- Museum Name", etc.
+    
+    Args:
+        title: The event title to clean
+        
+    Returns:
+        Cleaned title with venue name suffixes removed
+    """
+    if not title:
+        return title
+    
+    title = title.strip()
+    
+    # Split on pipe character and take first part
+    if '|' in title:
+        title = title.split('|')[0].strip()
+    
+    # Remove common venue name suffix patterns (case-insensitive)
+    # Pattern: | Venue Name or - Venue Name at the end
+    patterns = [
+        r'\s*\|\s*National Gallery of Art\s*$',
+        r'\s*-\s*National Gallery of Art\s*$',
+        r'\s*\|\s*Smithsonian.*?Museum\s*$',
+        r'\s*-\s*Smithsonian.*?Museum\s*$',
+        r'\s*\|\s*.*?Museum\s*$',  # Generic | Museum Name
+        r'\s*-\s*.*?Museum\s*$',   # Generic - Museum Name
+    ]
+    
+    for pattern in patterns:
+        title = re.sub(pattern, '', title, flags=re.IGNORECASE)
+    
+    return title.strip()
+
+
+def detect_ongoing_exhibition(text: str) -> bool:
+    """
+    Detect if an exhibition is ongoing/permanent based on text content.
+    
+    Args:
+        text: Text content to analyze (can be description, date text, etc.)
+        
+    Returns:
+        True if the text indicates an ongoing/permanent exhibition, False otherwise
+    """
+    if not text:
+        return False
+    
+    text_lower = text.lower()
+    
+    # Patterns that indicate ongoing/permanent exhibitions
+    ongoing_patterns = [
+        r'\bongoing\b',
+        r'\bpermanent(?:ly)?\b',
+        r'\bindefinitely\b',
+        r'\bon\s+view\s+(?:indefinitely|permanently|ongoing)',
+        r'permanent(?:ly)?\s+(?:on\s+view|exhibition|collection)',
+        r'always\s+on\s+view',
+        r'always\s+on\s+display',
+    ]
+    
+    for pattern in ongoing_patterns:
+        if re.search(pattern, text_lower, re.IGNORECASE):
+            return True
+    
+    return False
+
+
+def get_ongoing_exhibition_dates(start_date=None):
+    """
+    Get standardized dates for ongoing/permanent exhibitions.
+    
+    Rule: Set start_date to today (or provided start_date) and end_date to 2 years from today.
+    This allows ongoing exhibitions to naturally expire and be re-scraped to check if still ongoing.
+    
+    Args:
+        start_date: Optional start date (date object). If None, uses today's date.
+        
+    Returns:
+        Tuple of (start_date, end_date) as date objects
+    """
+    from datetime import date, timedelta
+    
+    if start_date is None:
+        start_date = date.today()
+    
+    # Set end_date to 2 years from today (approximately 730 days)
+    end_date = date.today() + timedelta(days=730)
+    
+    return start_date, end_date
+
+
+def process_ongoing_exhibition_dates(date_range: Optional[Dict], text: str = None, 
+                                     start_date: Optional[date] = None) -> Optional[Dict]:
+    """
+    Process dates for exhibitions, handling ongoing/permanent exhibitions.
+    
+    This function:
+    1. Checks if the exhibition is marked as ongoing/permanent
+    2. If ongoing and no end_date, sets end_date to 2 years from today
+    3. If ongoing and no dates at all, sets both start and end dates
+    4. If end_date is very far in the future (>2 years), treats as ongoing
+    
+    Args:
+        date_range: Dictionary with 'start_date' and/or 'end_date' keys (date objects)
+        text: Optional text content to check for ongoing indicators
+        start_date: Optional start_date if date_range is None
+        
+    Returns:
+        Updated date_range dictionary, or None if no dates can be determined
+    """
+    from datetime import date, timedelta
+    
+    if date_range is None:
+        date_range = {}
+    
+    # Check if text indicates ongoing
+    is_ongoing = False
+    if text:
+        is_ongoing = detect_ongoing_exhibition(text)
+    
+    # Check if end_date is very far in the future (indicates ongoing)
+    # BUT: Don't override valid end dates! Only treat as ongoing if:
+    # 1. Text explicitly says "ongoing" OR
+    # 2. End date is unreasonably far (10+ years) - likely a placeholder
+    # For dates 2-10 years out, keep them as-is (they're valid exhibition end dates)
+    if date_range.get('end_date'):
+        ten_years_from_now = date.today() + timedelta(days=3650)  # 10 years
+        # Only treat as ongoing if end_date is unreasonably far (10+ years)
+        # This prevents legitimate 2-5 year exhibitions from being treated as "ongoing"
+        if date_range['end_date'] > ten_years_from_now:
+            is_ongoing = True
+            # For very far future dates, treat as ongoing and set to 2 years
+            if date_range.get('start_date'):
+                _, end_date = get_ongoing_exhibition_dates(date_range['start_date'])
+            else:
+                start_date_obj = start_date if start_date else date.today()
+                start_date_obj, end_date = get_ongoing_exhibition_dates(start_date_obj)
+                date_range['start_date'] = start_date_obj
+            date_range['end_date'] = end_date
+    
+    # Handle ongoing exhibitions
+    if is_ongoing:
+        if not date_range.get('end_date'):
+            # No end_date but marked as ongoing - set to 2 years from today
+            if date_range.get('start_date'):
+                _, end_date = get_ongoing_exhibition_dates(date_range['start_date'])
+            else:
+                start_date_obj = start_date if start_date else date.today()
+                start_date_obj, end_date = get_ongoing_exhibition_dates(start_date_obj)
+                date_range['start_date'] = start_date_obj
+            date_range['end_date'] = end_date
+        elif not date_range.get('start_date'):
+            # Has end_date but no start_date - set start_date to today
+            date_range['start_date'] = date.today()
+    
+    # If no dates at all and marked as ongoing, set both
+    if is_ongoing and not date_range.get('start_date') and not date_range.get('end_date'):
+        start_date_obj, end_date = get_ongoing_exhibition_dates(start_date)
+        date_range['start_date'] = start_date_obj
+        date_range['end_date'] = end_date
+    
+    return date_range if date_range.get('start_date') or date_range.get('end_date') else None
+
+def is_category_heading(title: str) -> bool:
+    """
+    Check if a title is a category heading (like "Past Exhibitions", "Upcoming Exhibitions")
+    rather than an actual exhibition title.
+    
+    Args:
+        title: The title to check
+        
+    Returns:
+        True if the title is a category heading, False otherwise
+    """
+    if not title:
+        return False
+    
+    title_lower = title.lower().strip()
+    
+    # Exact matches for common category headings
+    category_headings = [
+        'past exhibitions',
+        'traveling exhibitions',
+        'upcoming exhibitions',
+        'current exhibitions',
+        'past exhibition',
+        'traveling exhibition',
+        'upcoming exhibition',
+        'current exhibition',
+        'browse exhibitions',
+        'view all exhibitions',
+        'all exhibitions',
+        'exhibitions',
+        'exhibition'
+    ]
+    
+    if title_lower in category_headings:
+        return True
+    
+    # Pattern matches for category headings
+    import re
+    category_patterns = [
+        r'^(past|traveling|upcoming|current)\s+exhibitions?$',
+        r'^browse\s+exhibitions?$',
+        r'^view\s+all\s+exhibitions?$',
+        r'^all\s+exhibitions?$',
+    ]
+    
+    for pattern in category_patterns:
+        if re.match(pattern, title_lower):
+            return True
+    
+    return False
+
+
 def clean_text_field(value):
     """Clean text fields by removing markdown formatting and extra whitespace"""
     if not value:

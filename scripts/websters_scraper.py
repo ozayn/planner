@@ -493,20 +493,32 @@ def create_events_in_database(events):
         
         for event_data in events:
             try:
+                # Validate title
+                title = event_data.get('title', '').strip()
+                if not title:
+                    logger.warning(f"   ⚠️  Skipping event: missing title")
+                    continue
+                
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
+                
                 # Check if event already exists
                 existing = Event.query.filter_by(
-                    title=event_data['title'],
+                    title=title,
                     start_date=datetime.fromisoformat(event_data['start_date']).date(),
                     venue_id=venue.id
                 ).first()
                 
                 if existing:
-                    logger.debug(f"   ⏭️  Event already exists: {event_data['title']}")
+                    logger.debug(f"   ⏭️  Event already exists: {title}")
                     continue
                 
                 # Create new event
                 event = Event(
-                    title=event_data['title'],
+                    title=title,
                     description=event_data.get('description', ''),
                     start_date=datetime.fromisoformat(event_data['start_date']).date(),
                     end_date=datetime.fromisoformat(event_data.get('end_date', event_data['start_date'])).date(),

@@ -1581,10 +1581,12 @@ class VenueEventScraper:
             range_start = today
             range_end = today + timedelta(days=7)
         
-        # For exhibitions, default to the full time range (they're ongoing)
-        # For tours, default to today (they're specific events)
+        # Default dates based on event type, but be flexible
+        # Exhibitions can be single-day, date ranges, or ongoing
+        # Tours are typically specific events on specific dates
         if event_type == 'exhibition':
-            # Exhibitions are ongoing, so use the full range
+            # For exhibitions, default to the full range (they might be ongoing)
+            # But actual dates will be extracted from the page if available
             start_date = range_start
             end_date = range_end
         else:
@@ -1853,9 +1855,9 @@ class VenueEventScraper:
             og_title = soup.find('meta', property='og:title')
             if og_title and og_title.get('content'):
                 title = og_title.get('content')
-                # Remove site name suffix (e.g., " | National Gallery of Art")
-                if '|' in title:
-                    title = title.split('|')[0].strip()
+                # Clean title: remove venue name suffix
+                from scripts.utils import clean_event_title
+                title = clean_event_title(title)
             
             # If no meta title, try structured selectors
             if not title:
@@ -1884,9 +1886,9 @@ class VenueEventScraper:
                 title_tag = soup.find('title')
                 if title_tag:
                     title = title_tag.get_text(strip=True)
-                    # Remove site name suffix
-                    if '|' in title:
-                        title = title.split('|')[0].strip()
+                    # Clean title: remove venue name suffix
+                    from scripts.utils import clean_event_title
+                    title = clean_event_title(title)
             
             # If no title found, try to extract from URL
             if not title:
@@ -2599,7 +2601,9 @@ class VenueEventScraper:
                         title = self._clean_title(title)
                     
                     # Filter out section headings
-                    if not title or title.lower() in ['current exhibitions', 'upcoming exhibitions', 'past exhibitions', 'exhibitions']:
+                    # Use utility function to check for category headings
+                    from scripts.utils import is_category_heading
+                    if not title or is_category_heading(title):
                         continue
                     
                     if title.lower() in seen_titles:

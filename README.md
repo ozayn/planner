@@ -167,6 +167,109 @@ curl -X POST http://localhost:5001/api/admin/extract-event-from-url \
 - **⚠️ CRITICAL**: Local SQLite and Railway PostgreSQL have **different city IDs**
   - Local: New York = city_id 2, Washington = city_id 1
   - Production: New York = city_id 452, Washington = city_id 451
+
+#### **➕ Adding New Cities (Complete Workflow)**
+- **🚨 IMPORTANT**: After adding a city to `data/cities.json`, you MUST reload it into the database
+- **Complete Workflow** (follow these exact steps):
+  1. **Add city to JSON**: Edit `data/cities.json` and add your new city entry
+     - Example format:
+     ```json
+     "28": {
+       "name": "Coimbra",
+       "state": "",
+       "country": "Portugal",
+       "timezone": "Europe/Lisbon"
+     }
+     ```
+  2. **Reload cities into local database**: 
+     ```bash
+     curl -X POST http://localhost:5001/api/admin/reload-cities
+     ```
+     - This updates existing cities and adds new ones from `cities.json` (preserves city IDs to avoid breaking events/venues/sources)
+     - Verify: Check admin interface or `curl http://localhost:5001/api/admin/cities`
+  3. **Commit and push JSON file**: 
+     ```bash
+     git add data/cities.json
+     git commit -m "Add new city: [City Name]"
+     git push
+     ```
+  4. **Wait for Railway deployment** (2-3 minutes)
+  5. **Reload cities in production**: 
+     ```bash
+     curl -X POST https://planner.ozayn.com/api/admin/reload-cities
+     ```
+  6. **Verify**: Check production admin interface or API endpoint
+- **Why reload is needed**: The JSON file is the source of truth, but cities must be loaded into the database to appear in the app
+- **Common mistake**: Adding to JSON but forgetting to reload → city won't appear in admin interface or dropdowns
+- **✅ Safe to reload**: The reload process preserves existing cities (updates them instead of deleting), so your events, venues, and sources remain linked correctly
+
+#### **🔄 Syncing Production Changes Back to JSON (Reverse Workflow)**
+- **When to use**: If you add/edit a city, venue, or source directly in production (via admin interface)
+- **Problem**: Changes are in production database but NOT in JSON files → will be lost on next reload
+- **Solution**: Update JSON files from production database, then commit to git
+
+**Complete Workflow** (follow these exact steps):
+
+1. **Update JSON files from production database**:
+   ```bash
+   # Update all JSON files at once (recommended)
+   curl -X POST https://planner.ozayn.com/api/admin/update-all-json
+   
+   # Or update individually:
+   curl -X POST https://planner.ozayn.com/api/admin/update-cities-json
+   curl -X POST https://planner.ozayn.com/api/admin/update-venues-json
+   curl -X POST https://planner.ozayn.com/api/admin/update-sources-json
+   ```
+   - This updates the JSON files directly in the `data/` directory on production
+
+2. **Pull updated JSON files from git** (after Railway auto-commits or manual commit):
+   ```bash
+   git pull origin master
+   ```
+   - **Note**: On Railway, file changes are ephemeral. You need to either:
+     - **Option A**: Download the updated files and commit manually (see Alternative below)
+     - **Option B**: Use Railway CLI to commit changes (if configured)
+
+3. **Verify JSON files are correct** (check structure matches expected format)
+
+4. **Commit and push** (if files were downloaded manually):
+   ```bash
+   git add data/*.json
+   git commit -m "Sync JSON files from production database"
+   git push
+   ```
+
+5. **Reload in local** (optional, to sync local database):
+   ```bash
+   curl -X POST http://localhost:5001/api/admin/reload-cities
+   curl -X POST http://localhost:5001/api/admin/reload-venues-from-json
+   curl -X POST http://localhost:5001/api/admin/reload-sources
+   ```
+
+**Alternative: Download and commit manually**:
+1. **Download updated JSON files** from production:
+   ```bash
+   # After running update-all-json, download the files
+   # (You may need to access Railway file system or use export endpoints)
+   curl -X POST https://planner.ozayn.com/api/admin/export-cities -o data/cities.json
+   curl -X POST https://planner.ozayn.com/api/admin/export-venues -o data/venues.json
+   curl -X POST https://planner.ozayn.com/api/admin/export-sources -o data/sources.json
+   ```
+
+2. **Commit and push**:
+   ```bash
+   git add data/*.json
+   git commit -m "Sync JSON files from production database"
+   git push
+   ```
+
+**⚠️ Important**: Always update JSON files from production and commit them after making changes in production, otherwise changes will be lost on next reload!
+
+**💡 Best Practice**: After adding/editing cities, venues, or sources in production:
+1. Immediately run `/api/admin/update-all-json` to sync JSON files
+2. Download and commit the updated JSON files to git
+3. This ensures consistency between production database and JSON files
+
 - **Syncing Workflow** (follow these exact steps):
   1. Make data changes locally (e.g., update venue URLs in local database)
   2. Export to JSON: `source venv/bin/activate && python scripts/update_venues_json.py` (or cities, sources)
@@ -175,16 +278,31 @@ curl -X POST http://localhost:5001/api/admin/extract-event-from-url \
   5. Call reload endpoint: `curl -X POST https://planner.ozayn.com/api/admin/reload-venues-from-json`
   6. Verify changes: Check production at `https://planner.ozayn.com/api/admin/venues`
 - **Available Reload Endpoints**:
-  - `/api/admin/reload-cities` - Reload all cities from `cities.json` (clears and reloads)
+  - `/api/admin/reload-cities` - Reload cities from `cities.json` (updates existing, adds new - preserves IDs)
+    - Updates existing cities by name (preserves city IDs to avoid breaking events/venues/sources)
+    - Adds new cities that don't exist
+    - Returns: `{cities_updated, cities_added, cities_skipped, total_cities}`
   - `/api/admin/reload-venues-from-json` - Sync venues from JSON to production DB
     - Matches venues by **name only** (handles city_id mismatch between environments)
+    - Updates existing venues (preserves venue IDs)
+    - Adds new venues that don't exist
     - Updates all venue fields (website_url, social media, contact info, etc.)
     - Returns stats: `{updated_count, venues_in_json, venues_matched}`
+  - `/api/admin/reload-sources` - Reload sources from `sources.json` (updates existing, adds new - preserves IDs)
+    - Updates existing sources by name (preserves source IDs)
+    - Adds new sources that don't exist
+    - Returns: `{sources_updated, sources_added, sources_skipped, total_sources}`
   - `/api/admin/load-all-data` - **Load all data** (cities, venues, sources) from JSON files
     - **Use this after deployment** if venues/sources are empty
-    - Clears existing data and reloads from JSON files
+    - Updates existing items and adds new ones (preserves IDs - safe for existing events)
     - Handles city matching automatically (case-insensitive)
-    - Returns: `{cities_loaded, venues_loaded, venues_skipped, sources_loaded}`
+    - Returns: `{cities_loaded, venues_loaded, venues_skipped, sources_loaded, total_items}`
+- **Available Update Endpoints** (for syncing production → JSON):
+  - `/api/admin/update-cities-json` - Update `data/cities.json` from production database
+  - `/api/admin/update-venues-json` - Update `data/venues.json` from production database
+  - `/api/admin/update-sources-json` - Update `data/sources.json` from production database
+  - `/api/admin/update-all-json` - Update all JSON files at once (recommended)
+  - **Use these** when you add/edit cities/venues/sources in production and need to sync back to JSON files
 - **Why Not `railway run`?**:
   - ❌ Can't run local scripts on Railway (connection to postgres.railway.internal fails)
   - ✅ Use API endpoints instead - they run in production environment with access to production DB
@@ -219,23 +337,15 @@ curl -X POST http://localhost:5001/api/admin/extract-event-from-url \
   - **Cause**: Missing dependencies or environment variables
   - **Solution**: Check requirements.txt and .env file are committed
 - **Venues/Sources Empty After Deployment**:
-  - **Cause**: Railway deployment clears database but may fail to reload data
+  - **Cause**: Railway deployment may clear database or fail to reload data
   - **Solution**: Call reload endpoint after deployment: `curl -X POST https://planner.ozayn.com/api/admin/load-all-data`
-  - **Note**: The `/api/admin/load-all-data` endpoint loads cities, venues, and sources from JSON files
+  - **Note**: The `/api/admin/load-all-data` endpoint updates/adds cities, venues, and sources from JSON files (preserves existing IDs)
   - **Structure**: `venues.json` has venues at top level with `city_name` field (not nested under cities)
   - **City Matching**: Uses case-insensitive matching to find cities by name
   - **Response**: Check `venues_loaded` and `venues_skipped` in response to debug issues
   - **Known Issue (Fixed)**: The `load-all-data` endpoint had a bug where it returned early after loading venues, preventing sources from loading. This has been fixed.
   - **If venues still don't load**: Check Railway logs for city matching errors - venues are skipped if their `city_name` doesn't match any city in the database
-- **Venues/Sources Empty After Deployment**:
-  - **Cause**: Railway deployment clears database but may fail to reload data
-  - **Solution**: Call reload endpoint after deployment: `curl -X POST https://planner.ozayn.com/api/admin/load-all-data`
-  - **Note**: The `/api/admin/load-all-data` endpoint loads cities, venues, and sources from JSON files
-  - **Structure**: `venues.json` has venues at top level with `city_name` field (not nested under cities)
-  - **City Matching**: Uses case-insensitive matching to find cities by name
-  - **Response**: Check `venues_loaded` and `venues_skipped` in response to debug issues
-  - **Known Issue (Fixed)**: The `load-all-data` endpoint had a bug where it returned early after loading venues, preventing sources from loading. This has been fixed.
-  - **If venues still don't load**: Check Railway logs for city matching errors - venues are skipped if their `city_name` doesn't match any city in the database
+  - **✅ Safe to use**: The endpoint now updates/adds instead of deleting, so existing events remain linked
 
 ### **⚠️ JavaScript Variable Scope - Admin Table Sorting**
 **CRITICAL LESSON LEARNED**: Never declare local variables that shadow window-scoped data arrays!

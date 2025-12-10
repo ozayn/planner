@@ -156,6 +156,11 @@ def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optiona
             if meta_title:
                 title = meta_title.get_text(strip=True)
         
+        # Clean title: remove venue name suffix
+        if title:
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
+        
         if not title:
             logger.debug(f"   ⚠️ Could not find title for {url}")
             return None
@@ -569,6 +574,11 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
             meta_title = soup.find('title')
             if meta_title:
                 title = meta_title.get_text(strip=True)
+        
+        # Clean title: remove venue name suffix
+        if title:
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
         
         if not title:
             logger.debug(f"   ⚠️ Could not find title for {url}")
@@ -1320,6 +1330,18 @@ def create_events_in_database(events: List[Dict]) -> tuple:
         
         for event_data in events:
             try:
+                # Validate title
+                title = event_data.get('title', '').strip()
+                if not title:
+                    logger.warning(f"   ⚠️  Skipping event: missing title")
+                    continue
+                
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
+                
                 # Parse date
                 if isinstance(event_data.get('start_date'), date):
                     event_date = event_data['start_date']
@@ -1327,10 +1349,10 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     try:
                         event_date = datetime.fromisoformat(str(event_data['start_date'])).date()
                     except (ValueError, TypeError):
-                        logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format")
+                        logger.warning(f"   ⚠️  Skipping event '{title}': invalid date format")
                         continue
                 else:
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': no start_date")
+                    logger.warning(f"   ⚠️  Skipping event '{title}': no start_date")
                     continue
                 
                 # Parse times

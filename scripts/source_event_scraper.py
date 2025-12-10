@@ -238,6 +238,10 @@ class SourceEventScraper:
         if not title:
             return title
         
+        # First remove venue name suffixes
+        from scripts.utils import clean_event_title
+        title = clean_event_title(title)
+        
         import re
         
         # Remove trailing commas and whitespace

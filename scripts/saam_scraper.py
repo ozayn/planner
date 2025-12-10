@@ -7,7 +7,7 @@ import os
 import sys
 import re
 import logging
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time as dt_time, timedelta
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -18,6 +18,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from app import app, db, Event, Venue, City
+from scripts.utils import detect_ongoing_exhibition, get_ongoing_exhibition_dates, process_ongoing_exhibition_dates, is_category_heading
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -339,6 +340,15 @@ def determine_venue_from_soup(soup: BeautifulSoup, default_venue: str = VENUE_NA
 
 
 def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
+    """
+    Scrape a single SAAM exhibition page.
+    
+    This function is used by:
+    - The main SAAM scraper (scrape_saam_exhibitions) for bulk scraping
+    - The URL scraper (extract_event_data_from_url) for "Quick Add from URL"
+    
+    Both use the same extraction logic, ensuring consistency.
+    """
     """Scrape details from an individual exhibition page"""
     try:
         logger.debug(f"   📄 Scraping exhibition page: {url}")
@@ -363,46 +373,454 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             logger.debug(f"   ⚠️ Could not find title for {url}")
             return None
         
-        # Extract description
+        # Extract description - avoid photo captions
         description = None
-        desc_elem = soup.find('div', class_=re.compile(r'description|summary|intro', re.I))
+        
+        # First, try to find main content area (exclude navigation, headers, footers)
+        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|body', re.I))
+        if not main_content:
+            main_content = soup
+        
+        # Exclude image-related elements (captions, figure elements)
+        excluded_selectors = ['figcaption', 'img', 'picture', '[class*="caption"]', '[class*="image"]', '[class*="photo"]']
+        
+        # Method 1: Look for explicit description/summary/intro sections
+        desc_elem = main_content.find('div', class_=re.compile(r'description|summary|intro|excerpt', re.I))
         if desc_elem:
-            description = desc_elem.get_text(strip=True)
+            # Make sure it's not a caption
+            if not any(excluded in str(desc_elem.get('class', [])).lower() for excluded in ['caption', 'image', 'photo']):
+                description = desc_elem.get_text(separator=' ', strip=True)
+                # Clean up extra whitespace
+                description = ' '.join(description.split())
         
+        # Method 2: Look for paragraphs in main content, excluding captions
         if not description:
-            # Try first paragraph
-            first_p = soup.find('p')
-            if first_p:
-                description = first_p.get_text(strip=True)
+            # Find all paragraphs, but exclude those that are captions or near images
+            paragraphs = main_content.find_all('p')
+            for p in paragraphs:
+                # Skip if it's inside a figure or caption element
+                if p.find_parent(['figure', 'figcaption']):
+                    continue
+                
+                # Skip if it's very short (likely a caption)
+                p_text = p.get_text(strip=True)
+                if len(p_text) < 50:
+                    continue
+                
+                # Skip if it contains caption-like text
+                if any(keyword in p_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
+                    continue
+                
+                # Skip if it's near an image (check siblings)
+                prev_sibling = p.find_previous_sibling()
+                next_sibling = p.find_next_sibling()
+                if (prev_sibling and prev_sibling.find('img')) or (next_sibling and next_sibling.find('img')):
+                    # Check if it's actually a caption (short text near image)
+                    if len(p_text) < 100:
+                        continue
+                
+                # This looks like a real description paragraph
+                description = p_text
+                # Try to get additional paragraphs if they're part of the description
+                # Look for consecutive paragraphs that aren't captions
+                desc_paragraphs = [p_text]
+                current = p.find_next_sibling('p')
+                while current and len(desc_paragraphs) < 3:  # Limit to 3 paragraphs
+                    current_text = current.get_text(strip=True)
+                    # Stop if we hit a caption or very short text
+                    if (len(current_text) < 50 or 
+                        current.find_parent(['figure', 'figcaption']) or
+                        any(keyword in current_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©'])):
+                        break
+                    desc_paragraphs.append(current_text)
+                    current = current.find_next_sibling('p')
+                
+                description = ' '.join(desc_paragraphs)
+                break
         
-        # Extract date range
+        # Method 3: Look for divs with substantial text content (not captions)
+        if not description:
+            content_divs = main_content.find_all('div', class_=re.compile(r'text|body|content|paragraph', re.I))
+            for div in content_divs:
+                # Skip if it's a caption or image container
+                if any(excluded in str(div.get('class', [])).lower() for excluded in ['caption', 'image', 'photo', 'figure']):
+                    continue
+                
+                div_text = div.get_text(separator=' ', strip=True)
+                # Must be substantial text (at least 100 characters)
+                if len(div_text) > 100:
+                    # Check if it contains actual content (not just metadata)
+                    if not any(keyword in div_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
+                        description = ' '.join(div_text.split())
+                        break
+        
+        # Clean up description if found
+        if description:
+            # Remove extra whitespace
+            description = ' '.join(description.split())
+            # Remove very short descriptions that might be captions
+            if len(description) < 50:
+                description = None
+        
+        # Extract date range, meeting location, and ongoing status - prioritize "Visiting Information" section
         date_range = None
-        date_elem = soup.find(text=re.compile(r'\d{4}'))
-        if date_elem:
-            # Look for date patterns in the text
-            date_text = date_elem.parent.get_text() if hasattr(date_elem, 'parent') else str(date_elem)
-            date_range = parse_date_range(date_text)
+        location = VENUE_NAME  # Default
+        meeting_location = None  # Specific location like "Luce Foundation Center, 3rd Floor"
+        is_ongoing = False  # Whether the exhibition is ongoing
+        visiting_section_text = ""  # Initialize to ensure it's always defined
         
-        # Also look for date in specific elements
-        if not date_range:
+        # Find "Visiting Information" heading first (dates are usually here)
+        visiting_heading = None
+        for heading in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+            heading_text = heading.get_text(strip=True).lower()
+            if 'visiting' in heading_text and 'information' in heading_text:
+                visiting_heading = heading
+                break
+        
+        # Extract dates, meeting location, and ongoing status from "Visiting Information" section first (most reliable)
+        if visiting_heading:
+            # Get all text content after the heading (within the section)
+            # Find the next sibling or parent's next siblings
+            visiting_section_text = ""
+            visiting_elements = []
+            
+            # Try to get the section container - check multiple possible structures
+            visiting_container = None
+            
+            # Method 1: Check next sibling
+            visiting_container = visiting_heading.find_next_sibling(['div', 'section', 'dl', 'ul', 'ol'])
+            
+            # Method 2: Check parent container
+            if not visiting_container:
+                parent = visiting_heading.parent
+                if parent and parent.name in ['div', 'section', 'article']:
+                    visiting_container = parent
+            
+            # Method 3: Get all following siblings until next heading
+            if not visiting_container:
+                # Collect all siblings until we hit another heading
+                siblings = []
+                for sibling in visiting_heading.find_next_siblings():
+                    if sibling.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        break
+                    siblings.append(sibling)
+                if siblings:
+                    visiting_container = siblings[0] if len(siblings) == 1 else None
+            
+            # Get text from the container or following elements
+            if visiting_container:
+                # Get text from the container and its immediate children
+                for elem in [visiting_container] + list(visiting_container.find_all(['div', 'p', 'span', 'li', 'dt', 'dd', 'strong', 'em'], limit=20)):
+                    elem_text = elem.get_text(separator=' ', strip=True)
+                    if elem_text:
+                        visiting_section_text += " " + elem_text
+                        visiting_elements.append((elem, elem_text))
+            
+            # Also check direct next siblings (even if we found a container)
+            next_sibling = visiting_heading.find_next_sibling()
+            if next_sibling:
+                sibling_text = next_sibling.get_text(separator=' ', strip=True)
+                if sibling_text:
+                    visiting_section_text += " " + sibling_text
+                    visiting_elements.append((next_sibling, sibling_text))
+            
+            # Also get text from all following siblings until next heading (more comprehensive)
+            sibling_count = 0
+            for sibling in visiting_heading.find_next_siblings(['div', 'p', 'span', 'ul', 'ol', 'dl']):
+                # Stop if we hit another heading
+                if sibling.find(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                    break
+                sibling_text = sibling.get_text(separator=' ', strip=True)
+                if sibling_text:
+                    # Check if this text is already in visiting_section_text (avoid duplicates)
+                    if sibling_text not in visiting_section_text:
+                        visiting_section_text += " " + sibling_text
+                        visiting_elements.append((sibling, sibling_text))
+                sibling_count += 1
+                # Limit to first 15 siblings to avoid going too far
+                if sibling_count > 15:
+                    break
+            
+            # Also try getting text from the next few elements more directly
+            # Sometimes the date is in a <p> or <div> right after the heading
+            current = visiting_heading.next_sibling
+            direct_count = 0
+            while current and direct_count < 10:
+                if hasattr(current, 'get_text'):
+                    direct_text = current.get_text(separator=' ', strip=True)
+                    if direct_text and direct_text not in visiting_section_text:
+                        visiting_section_text += " " + direct_text
+                        visiting_elements.append((current, direct_text))
+                current = current.next_sibling
+                direct_count += 1
+            
+            # Clean up the text
+            visiting_section_text = ' '.join(visiting_section_text.split())
+            
+            # Additional method: Get all text from the section more directly
+            # Find the parent section or container and get all its text
+            # This is a fallback if the structured extraction didn't work
+            if not visiting_section_text or len(visiting_section_text) < 50:
+                # Try to get text from parent section
+                parent_section = visiting_heading.find_parent(['section', 'div', 'article'])
+                if parent_section:
+                    # Get all text from the section, but only after the heading
+                    section_text = parent_section.get_text(separator=' ', strip=True)
+                    # Find where the heading text appears and get text after it
+                    heading_text = visiting_heading.get_text(strip=True)
+                    heading_pos = section_text.find(heading_text)
+                    if heading_pos >= 0:
+                        text_after_heading = section_text[heading_pos + len(heading_text):]
+                        # Limit to first 500 characters to avoid getting too much
+                        text_after_heading = text_after_heading[:500]
+                        if text_after_heading:
+                            visiting_section_text = text_after_heading
+                            logger.debug(f"   📝 Extracted additional text from parent section: {len(visiting_section_text)} chars")
+            
+            # Final fallback: Get ALL text from everything after the heading until next heading
+            # This is the most comprehensive method - just grab everything
+            if not visiting_section_text or 'october' not in visiting_section_text.lower() and 'august' not in visiting_section_text.lower():
+                # Build text from all elements after the heading
+                all_text_parts = []
+                for elem in visiting_heading.find_all_next(['div', 'p', 'span', 'li', 'dt', 'dd', 'strong', 'em', 'a']):
+                    # Stop at next heading
+                    if elem.find_parent(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                        break
+                    # Stop if we hit another major heading
+                    if elem.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        break
+                    elem_text = elem.get_text(separator=' ', strip=True)
+                    if elem_text and len(elem_text) > 5:  # Only meaningful text
+                        all_text_parts.append(elem_text)
+                    # Limit to first 20 elements to avoid going too far
+                    if len(all_text_parts) > 20:
+                        break
+                
+                if all_text_parts:
+                    comprehensive_text = ' '.join(all_text_parts)
+                    # Check if this has the date range
+                    if re.search(r'[A-Za-z]+\s+\d{1,2},?\s+\d{4}\s*[–—-]\s*[A-Za-z]+\s+\d{1,2},?\s+\d{4}', comprehensive_text, re.IGNORECASE):
+                        visiting_section_text = comprehensive_text
+                        logger.debug(f"   📝 Found date range using comprehensive text extraction: {len(visiting_section_text)} chars")
+            
+            # Debug: Log what we extracted
+            if visiting_section_text:
+                logger.debug(f"   📝 Visiting section text ({len(visiting_section_text)} chars): {visiting_section_text[:300]}...")
+                # Check if date range is in the text
+                if re.search(r'[A-Za-z]+\s+\d{1,2},?\s+\d{4}\s*[–—-]\s*[A-Za-z]+\s+\d{1,2},?\s+\d{4}', visiting_section_text, re.IGNORECASE):
+                    logger.debug(f"   ✅ Date range pattern found in visiting section text!")
+                else:
+                    logger.warning(f"   ⚠️ Date range pattern NOT found in visiting section text")
+            else:
+                logger.warning(f"   ⚠️ No text extracted from Visiting Information section")
+            
+            # Check for "ongoing" status using utility function
+            is_ongoing = detect_ongoing_exhibition(visiting_section_text)
+            if is_ongoing:
+                logger.debug(f"   🔄 Exhibition marked as ongoing/permanent")
+            
+            # Extract meeting location (e.g., "Luce Foundation Center, 3rd Floor")
+            # Look for common location patterns
+            location_patterns = [
+                r'Luce Foundation Center[^,]*,\s*[^,]+',  # "Luce Foundation Center, 3rd Floor"
+                r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Center|Gallery|Room|Floor|Building|Lobby|Atrium)[^,]*,\s*[^,]+)',  # Generic location patterns
+            ]
+            
+            for pattern in location_patterns:
+                location_match = re.search(pattern, visiting_section_text, re.IGNORECASE)
+                if location_match:
+                    meeting_location = location_match.group(0).strip()
+                    # Clean up common prefixes
+                    meeting_location = re.sub(r'^(Location|Meet in|Located in|At)\s*:?\s*', '', meeting_location, flags=re.IGNORECASE)
+                    meeting_location = meeting_location.strip()
+                    if meeting_location:
+                        logger.debug(f"   📍 Found meeting location: {meeting_location}")
+                        break
+            
+            # Also check individual elements for location (more precise)
+            if not meeting_location:
+                for elem, elem_text in visiting_elements:
+                    # Look for location indicators
+                    if any(keyword in elem_text.lower() for keyword in ['luce foundation', 'center', 'floor', 'gallery', 'room']):
+                        # Try to extract location from this element
+                        for pattern in location_patterns:
+                            location_match = re.search(pattern, elem_text, re.IGNORECASE)
+                            if location_match:
+                                meeting_location = location_match.group(0).strip()
+                                meeting_location = re.sub(r'^(Location|Meet in|Located in|At)\s*:?\s*', '', meeting_location, flags=re.IGNORECASE)
+                                meeting_location = meeting_location.strip()
+                                if meeting_location:
+                                    logger.debug(f"   📍 Found meeting location in element: {meeting_location}")
+                                    break
+                        if meeting_location:
+                            break
+            
+            # Look for date range OR single date pattern in the combined text
+            # Pattern 1: Date range "October 1, 2021 – August 2, 2026" or "October 1, 2021 - August 2, 2026"
+            # Pattern 2: Single date "October 1, 2021" (exhibitions can be single-day events)
+            # BUT: Skip if we already detected "Ongoing" - ongoing exhibitions shouldn't have date ranges
+            if not is_ongoing:
+                # First try date range pattern
+                date_range_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–—-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})'
+                date_range_match = re.search(date_range_pattern, visiting_section_text, re.IGNORECASE)
+                
+                if date_range_match:
+                    full_match = date_range_match.group(0)
+                    logger.debug(f"   🔍 Found date range pattern: '{full_match}'")
+                    parsed_range = parse_date_range(full_match)
+                    if parsed_range:
+                        date_range = parsed_range
+                        logger.debug(f"   📅 Parsed date range: start={date_range.get('start_date')}, end={date_range.get('end_date')}")
+                    else:
+                        logger.warning(f"   ⚠️ Failed to parse date range from: '{full_match}'")
+                else:
+                    # Try single date pattern (exhibitions can be single-day events)
+                    single_date_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})'
+                    single_date_match = re.search(single_date_pattern, visiting_section_text, re.IGNORECASE)
+                    if single_date_match:
+                        full_match = single_date_match.group(0)
+                        logger.debug(f"   🔍 Found single date pattern: '{full_match}'")
+                        parsed_range = parse_date_range(full_match)  # parse_date_range handles single dates too
+                        if parsed_range:
+                            date_range = parsed_range
+                            logger.debug(f"   📅 Parsed single date: start={date_range.get('start_date')}, end={date_range.get('end_date')}")
+                    else:
+                        logger.debug(f"   🔍 No date pattern found in visiting section text")
+            
+            # If not found in combined text, check individual elements (but skip if ongoing)
+            if not date_range and not is_ongoing:
+                # First try date range pattern
+                date_range_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–—-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})'
+                # Then try single date pattern
+                single_date_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})'
+                
+                # First check the visiting_elements we already collected
+                for elem, elem_text in visiting_elements:
+                    if not elem_text:
+                        continue
+                    # Look for date range pattern first
+                    date_range_match = re.search(date_range_pattern, elem_text, re.IGNORECASE)
+                    if date_range_match:
+                        full_match = date_range_match.group(0)
+                        date_range = parse_date_range(full_match)
+                        if date_range:
+                            logger.debug(f"   📅 Found date range in Visiting Information element: {date_range} from text: '{full_match}'")
+                            break
+                    # If no range, try single date
+                    if not date_range:
+                        single_date_match = re.search(single_date_pattern, elem_text, re.IGNORECASE)
+                        if single_date_match:
+                            full_match = single_date_match.group(0)
+                            date_range = parse_date_range(full_match)  # parse_date_range handles single dates
+                            if date_range:
+                                logger.debug(f"   📅 Found single date in Visiting Information element: {date_range} from text: '{full_match}'")
+                                break
+                
+                # If still not found, check all following elements
+                if not date_range:
+                    elements_checked = 0
+                    for elem in visiting_heading.find_all_next(['div', 'p', 'span', 'li', 'dt', 'dd', 'strong', 'em']):
+                        # Stop if we hit another heading
+                        if elem.find(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                            break
+                        elem_text = elem.get_text(separator=' ', strip=True)
+                        if not elem_text:
+                            continue
+                        # Look for date range pattern first
+                        date_range_match = re.search(date_range_pattern, elem_text, re.IGNORECASE)
+                        if date_range_match:
+                            full_match = date_range_match.group(0)
+                            date_range = parse_date_range(full_match)
+                            if date_range:
+                                logger.debug(f"   📅 Found date range in Visiting Information element: {date_range} from text: '{full_match}'")
+                                break
+                        # If no range, try single date
+                        if not date_range:
+                            single_date_match = re.search(single_date_pattern, elem_text, re.IGNORECASE)
+                            if single_date_match:
+                                full_match = single_date_match.group(0)
+                                date_range = parse_date_range(full_match)  # parse_date_range handles single dates
+                                if date_range:
+                                    logger.debug(f"   📅 Found single date in Visiting Information element: {date_range} from text: '{full_match}'")
+                                    break
+                        
+                        elements_checked += 1
+                        # Limit search to first 30 elements after heading
+                        if elements_checked > 30:
+                            break
+        
+        # Fallback 1: Check schema.org JSON-LD for dates (very reliable)
+        # BUT: Skip if we already detected "Ongoing" - ongoing exhibitions shouldn't have date ranges
+        if not date_range and not is_ongoing:
+            schema_script = soup.find('script', type='application/ld+json')
+            if schema_script:
+                try:
+                    import json
+                    schema_data = json.loads(schema_script.string)
+                    if isinstance(schema_data, dict):
+                        if 'startDate' in schema_data and 'endDate' in schema_data:
+                            start_date_str = schema_data['startDate']
+                            end_date_str = schema_data['endDate']
+                            # Parse ISO format dates
+                            try:
+                                start_date = datetime.fromisoformat(start_date_str.split('T')[0]).date()
+                                end_date = datetime.fromisoformat(end_date_str.split('T')[0]).date()
+                                date_range = {'start_date': start_date, 'end_date': end_date}
+                                logger.debug(f"   📅 Found date range in schema.org: {date_range}")
+                            except (ValueError, AttributeError):
+                                pass
+                    elif isinstance(schema_data, list):
+                        for item in schema_data:
+                            if isinstance(item, dict) and 'startDate' in item and 'endDate' in item:
+                                start_date_str = item['startDate']
+                                end_date_str = item['endDate']
+                                try:
+                                    start_date = datetime.fromisoformat(start_date_str.split('T')[0]).date()
+                                    end_date = datetime.fromisoformat(end_date_str.split('T')[0]).date()
+                                    date_range = {'start_date': start_date, 'end_date': end_date}
+                                    logger.debug(f"   📅 Found date range in schema.org: {date_range}")
+                                    break
+                                except (ValueError, AttributeError):
+                                    pass
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+        
+        # Fallback 2: Look for dates elsewhere if not found in Visiting Information or schema
+        # BUT: Skip if we already detected "Ongoing" - ongoing exhibitions shouldn't have date ranges
+        if not date_range and not is_ongoing:
+            # Search entire page text for date range pattern first
+            page_text = soup.get_text()
+            date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–—-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', page_text, re.IGNORECASE)
+            if date_range_match:
+                full_match = date_range_match.group(0)
+                logger.debug(f"   🔍 Found date range pattern in page text: '{full_match}'")
+                parsed_range = parse_date_range(full_match)
+                if parsed_range:
+                    date_range = parsed_range
+                    logger.debug(f"   📅 Parsed date range from page text: start={date_range.get('start_date')}, end={date_range.get('end_date')}")
+                else:
+                    logger.warning(f"   ⚠️ Failed to parse date range from page text: '{full_match}'")
+            else:
+                # Try single date pattern (exhibitions can be single-day events)
+                single_date_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})', page_text, re.IGNORECASE)
+                if single_date_match:
+                    full_match = single_date_match.group(0)
+                    logger.debug(f"   🔍 Found single date pattern in page text: '{full_match}'")
+                    parsed_range = parse_date_range(full_match)  # parse_date_range handles single dates
+                    if parsed_range:
+                        date_range = parsed_range
+                        logger.debug(f"   📅 Parsed single date from page text: start={date_range.get('start_date')}, end={date_range.get('end_date')}")
+        
+        # Fallback 3: Look for date in specific elements (but skip if ongoing)
+        if not date_range and not is_ongoing:
             date_containers = soup.find_all(['div', 'span', 'p'], 
                                            class_=re.compile(r'date|time|duration', re.I))
             for container in date_containers:
                 date_text = container.get_text(strip=True)
                 date_range = parse_date_range(date_text)
                 if date_range:
+                    logger.debug(f"   📅 Found date range in date container: {date_range}")
                     break
-        
-        # Determine location - look for venue link in "Visiting Information" section
-        location = VENUE_NAME  # Default
-        
-        # Find "Visiting Information" heading and look for venue link after it
-        visiting_heading = None
-        for heading in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5']):
-            heading_text = heading.get_text(strip=True).lower()
-            if 'visiting' in heading_text and 'information' in heading_text:
-                visiting_heading = heading
-                break
         
         if visiting_heading:
             # Find all elements after this heading
@@ -447,6 +865,121 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             if img_src:
                 image_url = urljoin(SAAM_BASE_URL, img_src)
         
+        # Extract times (e.g., opening reception times, special event times)
+        # Look for time patterns in the page text
+        start_time = None
+        end_time = None
+        page_text = soup.get_text()
+        
+        # Look for opening reception times, special event times, etc.
+        # Pattern: "Opening Reception: Friday, January 23, 2026, 6-8pm" or "6:00 – 8:00 p.m."
+        # Try time range with colons first: "6:00 – 8:00 p.m." or "6:00-8:00pm"
+        time_range_colon = re.search(r'(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', page_text, re.IGNORECASE)
+        if time_range_colon:
+            try:
+                start_hour = int(time_range_colon.group(1))
+                start_min = int(time_range_colon.group(2))
+                end_hour = int(time_range_colon.group(3))
+                end_min = int(time_range_colon.group(4))
+                am_pm = time_range_colon.group(5).upper()
+                # Convert to 24-hour format
+                if am_pm == 'PM' and start_hour != 12:
+                    start_hour = (start_hour % 12) + 12
+                elif am_pm == 'AM' and start_hour == 12:
+                    start_hour = 0
+                if am_pm == 'PM' and end_hour != 12:
+                    end_hour = (end_hour % 12) + 12
+                elif am_pm == 'AM' and end_hour == 12:
+                    end_hour = 0
+                start_time = dt_time(start_hour, start_min)
+                end_time = dt_time(end_hour, end_min)
+            except (ValueError, IndexError):
+                pass
+        
+        # Try simple time range without colons: "6-8pm" or "6 – 8 p.m."
+        if not start_time:
+            time_range_simple = re.search(r'(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap])\.?m\.?', page_text, re.IGNORECASE)
+            if time_range_simple:
+                try:
+                    start_hour = int(time_range_simple.group(1))
+                    end_hour = int(time_range_simple.group(2))
+                    am_pm = time_range_simple.group(3).upper()
+                    # Convert to 24-hour format
+                    if am_pm == 'PM' and start_hour != 12:
+                        start_hour = (start_hour % 12) + 12
+                    elif am_pm == 'AM' and start_hour == 12:
+                        start_hour = 0
+                    if am_pm == 'PM' and end_hour != 12:
+                        end_hour = (end_hour % 12) + 12
+                    elif am_pm == 'AM' and end_hour == 12:
+                        end_hour = 0
+                    start_time = dt_time(start_hour, 0)
+                    end_time = dt_time(end_hour, 0)
+                except (ValueError, IndexError):
+                    pass
+        
+        # Try single time with colon: "6:00 p.m." or "6:00pm"
+        if not start_time:
+            time_single_colon = re.search(r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?', page_text, re.IGNORECASE)
+            if time_single_colon:
+                try:
+                    hour = int(time_single_colon.group(1))
+                    minute = int(time_single_colon.group(2))
+                    am_pm = time_single_colon.group(3).upper()
+                    # Convert to 24-hour format
+                    if am_pm == 'PM' and hour != 12:
+                        hour = (hour % 12) + 12
+                    elif am_pm == 'AM' and hour == 12:
+                        hour = 0
+                    start_time = dt_time(hour, minute)
+                except (ValueError, IndexError):
+                    pass
+        
+        # Try single time without colon: "6pm" or "6 p.m."
+        if not start_time:
+            time_single = re.search(r'(\d{1,2})\s*([ap])\.?m\.?', page_text, re.IGNORECASE)
+            if time_single:
+                try:
+                    hour = int(time_single.group(1))
+                    am_pm = time_single.group(2).upper()
+                    # Convert to 24-hour format
+                    if am_pm == 'PM' and hour != 12:
+                        hour = (hour % 12) + 12
+                    elif am_pm == 'AM' and hour == 12:
+                        hour = 0
+                    start_time = dt_time(hour, 0)
+                except (ValueError, IndexError):
+                    pass
+        
+        # Also check schema.org for times
+        if not start_time:
+            schema_script = soup.find('script', type='application/ld+json')
+            if schema_script:
+                try:
+                    import json
+                    schema_data = json.loads(schema_script.string)
+                    if isinstance(schema_data, dict):
+                        if 'startDate' in schema_data and 'T' in str(schema_data['startDate']):
+                            start_date_str = schema_data['startDate']
+                            time_part = start_date_str.split('T')[1].split('+')[0].split('-')[0]
+                            if ':' in time_part:
+                                hours, minutes = time_part.split(':')[:2]
+                                hour_int = int(hours)
+                                am_pm = 'PM' if hour_int >= 12 else 'AM'
+                                hour_12 = hour_int % 12 if hour_int % 12 != 0 else 12
+                                start_time = dt_time(hour_int, int(minutes))
+                        if 'endDate' in schema_data and 'T' in str(schema_data['endDate']):
+                            end_date_str = schema_data['endDate']
+                            time_part = end_date_str.split('T')[1].split('+')[0].split('-')[0]
+                            if ':' in time_part:
+                                hours, minutes = time_part.split(':')[:2]
+                                hour_int = int(hours)
+                                am_pm = 'PM' if hour_int >= 12 else 'AM'
+                                hour_12 = hour_int % 12 if hour_int % 12 != 0 else 12
+                                end_time = dt_time(hour_int, int(minutes))
+                except (json.JSONDecodeError, AttributeError, ValueError):
+                    pass
+        
         # Build event dictionary
         event = {
             'title': title,
@@ -458,12 +991,84 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             'social_media_url': url,
         }
         
+        # Add times if found
+        if start_time:
+            event['start_time'] = start_time
+        if end_time:
+            event['end_time'] = end_time
+        
+        # Process dates using utility function (handles ongoing exhibitions)
+        # Combine visiting section text with any other text for ongoing detection
+        # Use visiting_section_text if available, otherwise fall back to description
+        text_for_ongoing_check = visiting_section_text if visiting_section_text else None
+        if not text_for_ongoing_check and description:
+            text_for_ongoing_check = description
+        
+        # If we already detected ongoing, ensure it's passed to the processing function
+        if is_ongoing and not text_for_ongoing_check:
+            # If we detected ongoing but don't have text, use a minimal indicator
+            text_for_ongoing_check = "ongoing"
+        
+        # Debug: Log date_range before processing
         if date_range:
-            event['start_date'] = date_range['start_date']
-            event['end_date'] = date_range['end_date']
+            logger.debug(f"   📅 Date range BEFORE processing: start={date_range.get('start_date')}, end={date_range.get('end_date')}")
+        
+        date_range = process_ongoing_exhibition_dates(date_range, text_for_ongoing_check)
+        
+        # Debug: Log the date_range after processing
+        if date_range:
+            logger.debug(f"   📅 Date range AFTER processing: start={date_range.get('start_date')}, end={date_range.get('end_date')}")
+        else:
+            logger.warning(f"   ⚠️ No date_range after processing - dates will not be set")
+        
+        if date_range:
+            event['start_date'] = date_range.get('start_date')
+            event['end_date'] = date_range.get('end_date')
+            # Debug: Log what we're setting
+            logger.debug(f"   📅 Setting event dates: start={event.get('start_date')}, end={event.get('end_date')}")
+            
+            # Verify both dates are set
+            if not event.get('start_date'):
+                logger.warning(f"   ⚠️ start_date is None after setting from date_range")
+            if not event.get('end_date'):
+                logger.warning(f"   ⚠️ end_date is None after setting from date_range")
+            
+            # Update is_ongoing flag if dates indicate ongoing (but don't override valid dates)
+            # Only mark as ongoing if end_date is unreasonably far (10+ years)
+            if date_range.get('end_date'):
+                ten_years_from_now = date.today() + timedelta(days=3650)
+                if date_range['end_date'] > ten_years_from_now:
+                    is_ongoing = True
+            if is_ongoing:
+                logger.debug(f"   🔄 Set ongoing/permanent exhibition dates: {event['start_date']} to {event['end_date']} (2 years from today)")
+        elif is_ongoing:
+            # Fallback: if no date_range but marked as ongoing, set dates
+            start_date_obj, end_date = get_ongoing_exhibition_dates()
+            event['start_date'] = start_date_obj
+            event['end_date'] = end_date
+            logger.debug(f"   🔄 Set ongoing/permanent exhibition dates: {event['start_date']} to {event['end_date']} (2 years from today)")
+        
+        # Add ongoing status to description if applicable
+        if is_ongoing and 'ongoing' not in (event.get('description') or '').lower():
+            if event.get('description'):
+                event['description'] = f"{event['description']} (Ongoing exhibition)"
+            else:
+                event['description'] = f"Ongoing exhibition at {location}"
+        
+        if meeting_location:
+            event['meeting_point'] = meeting_location
+            # Also update description to include location if not already present
+            if meeting_location.lower() not in (description or "").lower():
+                if description:
+                    event['description'] = f"{description} Located at {meeting_location}."
+                else:
+                    event['description'] = f"Exhibition at {location}. Located at {meeting_location}."
         
         if image_url:
             event['image_url'] = image_url
+        
+        # Final debug: Log what we're returning
+        logger.debug(f"   ✅ Returning event with dates: start={event.get('start_date')}, end={event.get('end_date')}")
         
         return event
         
@@ -521,10 +1126,9 @@ def parse_exhibitions_from_page(soup: BeautifulSoup) -> List[Dict]:
                 continue
             processed_titles.add(title)
             
-            # Skip section headings and category pages
-            skip_titles = ['current', 'upcoming', 'past', 'traveling', 'exhibitions', 'exhibition', 
-                          'upcoming exhibitions', 'traveling exhibitions', 'past exhibitions']
-            if title.lower() in skip_titles or any(skip in title.lower() for skip in ['upcoming exhibitions', 'traveling exhibitions', 'past exhibitions']):
+            # Skip section headings and category pages using utility function
+            if is_category_heading(title):
+                logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
                 continue
             
             # Skip if URL indicates it's a category page, not a specific exhibition
@@ -693,8 +1297,8 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                         elif am_pm == 'A' and hour == 12:
                             hour = 0
                         
-                        start_time = time(hour, minute)
-                        end_time = time(hour + 1, minute)  # Tours last approximately one hour
+                        start_time = dt_time(hour, minute)
+                        end_time = dt_time(hour + 1, minute)  # Tours last approximately one hour
                         
                         event = {
                             'title': 'Docent-Led Walk-In Tour',
@@ -758,7 +1362,7 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                     
                     # Parse time
                     if 'noon' in time_str.lower():
-                        start_time = time(12, 0)
+                        start_time = dt_time(12, 0)
                     else:
                         time_match = re.search(r'(\d{1,2}):?(\d{2})?\s*([ap])\.?m\.?', time_str, re.IGNORECASE)
                         if time_match:
@@ -771,8 +1375,8 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                             elif am_pm == 'A' and hour == 12:
                                 hour = 0
                             
-                            start_time = time(hour, minute)
-                    end_time = time(start_time.hour + 1, start_time.minute)  # Tours last approximately one hour
+                            start_time = dt_time(hour, minute)
+                    end_time = dt_time(start_time.hour + 1, start_time.minute)  # Tours last approximately one hour
                     
                     event = {
                         'title': 'Docent-Led Walk-In Tour',
@@ -1067,8 +1671,9 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
             if meta_title:
                 title = meta_title.get_text(strip=True)
                 # Clean up meta title (remove site name)
-                if '|' in title:
-                    title = title.split('|')[0].strip()
+                # Clean title: remove venue name suffix
+                from scripts.utils import clean_event_title
+                title = clean_event_title(title)
                 if title.lower() in ['search events', 'search', 'events', 'event', 'redirecting']:
                     title = None
         
@@ -1077,8 +1682,9 @@ def scrape_event_detail(scraper, url: str, event_type: str = 'event') -> Optiona
             og_title = soup.find('meta', property='og:title')
             if og_title:
                 title = og_title.get('content', '').strip()
-                if '|' in title:
-                    title = title.split('|')[0].strip()
+                # Clean title: remove venue name suffix
+                from scripts.utils import clean_event_title
+                title = clean_event_title(title)
         
         # Skip generic titles
         if not title or title.lower() in ['search events', 'search', 'events', 'event', 'redirecting'] or 'find events including' in title.lower():
@@ -1885,15 +2491,31 @@ def scrape_all_saam_events() -> List[Dict]:
 
 def create_events_in_database(events: List[Dict]) -> tuple:
     """
+    Create or update events in the database.
+    Skips category headings and invalid titles.
+    """
+    from scripts.utils import is_category_heading
+    """
     Create scraped events in the database with update-or-create logic
     Returns (created_count, updated_count)
     """
     with app.app_context():
         created_count = 0
         updated_count = 0
+        skipped_count = 0
         
         for event_data in events:
             try:
+                title = event_data.get('title', '').strip()
+                if not title:
+                    continue
+                
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    skipped_count += 1
+                    continue
+                
                 # Determine which venue this event belongs to
                 # Even online events are hosted by SAAM, so we should still assign a venue
                 is_online_event = event_data.get('is_online', False)
@@ -1953,26 +2575,26 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                 end_time_obj = None
                 if event_data.get('start_time'):
                     try:
-                        if isinstance(event_data['start_time'], time):
+                        if isinstance(event_data['start_time'], dt_time):
                             start_time_obj = event_data['start_time']
                         else:
                             # Try parsing as HH:MM string
                             time_str = str(event_data['start_time'])
                             if ':' in time_str:
                                 parts = time_str.split(':')
-                                start_time_obj = time(int(parts[0]), int(parts[1]))
+                                start_time_obj = dt_time(int(parts[0]), int(parts[1]))
                     except (ValueError, TypeError):
                         pass
                 
                 if event_data.get('end_time'):
                     try:
-                        if isinstance(event_data['end_time'], time):
+                        if isinstance(event_data['end_time'], dt_time):
                             end_time_obj = event_data['end_time']
                         else:
                             time_str = str(event_data['end_time'])
                             if ':' in time_str:
                                 parts = time_str.split(':')
-                                end_time_obj = time(int(parts[0]), int(parts[1]))
+                                end_time_obj = dt_time(int(parts[0]), int(parts[1]))
                     except (ValueError, TypeError):
                         pass
                 
@@ -2094,6 +2716,41 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         existing.venue_id = venue.id
                         updated = True
                     
+                    # Update start_date and end_date (important for ongoing exhibitions)
+                    if event_data.get('start_date'):
+                        event_start_date = event_data['start_date']
+                        if isinstance(event_start_date, str):
+                            try:
+                                event_start_date = datetime.strptime(event_start_date, '%Y-%m-%d').date()
+                            except (ValueError, TypeError):
+                                try:
+                                    event_start_date = datetime.fromisoformat(event_start_date).date()
+                                except (ValueError, TypeError):
+                                    event_start_date = None
+                        
+                        if event_start_date and (not existing.start_date or existing.start_date != event_start_date):
+                            existing.start_date = event_start_date
+                            updated = True
+                            logger.debug(f"   📅 Updated start_date for existing event: {existing.title}")
+                    
+                    if event_data.get('end_date'):
+                        event_end_date = event_data['end_date']
+                        if isinstance(event_end_date, str):
+                            try:
+                                event_end_date = datetime.strptime(event_end_date, '%Y-%m-%d').date()
+                            except (ValueError, TypeError):
+                                try:
+                                    event_end_date = datetime.fromisoformat(event_end_date).date()
+                                except (ValueError, TypeError):
+                                    event_end_date = None
+                        
+                        if event_end_date:
+                            # Always update end_date if it's different (especially important for ongoing exhibitions)
+                            if not existing.end_date or existing.end_date != event_end_date:
+                                existing.end_date = event_end_date
+                                updated = True
+                                logger.debug(f"   📅 Updated end_date for existing event: {existing.title} (new: {event_end_date})")
+                    
                     if updated:
                         db.session.commit()
                         updated_count += 1
@@ -2156,6 +2813,10 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                 db.session.rollback()
                 continue
         
+        if skipped_count > 0:
+            logger.info(f"   ⏭️ Skipped {skipped_count} category heading(s)")
+        if skipped_count > 0:
+            logger.info(f"   ⏭️ Skipped {skipped_count} category heading(s)")
         return created_count, updated_count
 
 

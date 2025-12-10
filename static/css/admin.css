@@ -2309,6 +2309,44 @@ body {
         height: 44px;
         color: #666;
     }
+}
+
+/* Scraping Progress Modal - Specialized styles for all scrapers */
+#scrapingProgressModal .modal-content {
+    max-width: 600px;
+    width: calc(100% - 32px);
+    margin: 16px auto;
+    padding: 24px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    #scrapingProgressModal .modal-content {
+        width: calc(100% - 24px);
+        margin: 12px auto;
+        padding: 20px 16px;
+        max-height: calc(100vh - 24px);
+    }
+    #scrapingProgressModal .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+    #scrapingProgressModal h2 {
+        font-size: 1.25rem !important;
+    }
+    #scrapingProgressModal h3 {
+        font-size: 1rem !important;
+    }
+}
+
+@media (min-width: 769px) {
+    #scrapingProgressModal .modal-content {
+        margin: 5% auto;
+    }
+}
+
+@media (max-width: 480px) {
 
     #eventDetailsContent {
         padding: 12px;

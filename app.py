@@ -1240,6 +1240,11 @@ def get_events():
             end_date = datetime.strptime(custom_end, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': 'Invalid custom date format. Use YYYY-MM-DD'}), 400
+    elif time_range == 'all':
+        # For "all", don't filter by date - return all events
+        # Set a very wide date range (past and far future)
+        start_date = None
+        end_date = None
     else:
         return jsonify({'error': 'Invalid time range'}), 400
     
@@ -1260,12 +1265,19 @@ def get_events():
         else:
             tour_filter = tour_filter & (Event.city_id == city_id)
         
-        tour_events = Event.query.filter(
+        tour_query = Event.query.filter(
             tour_filter,
-            Event.start_date >= start_date,
-            Event.start_date <= end_date,
             Event.is_selected == True
-        ).options(db.joinedload(Event.city)).all()
+        )
+        
+        # Only filter by date if not "all"
+        if time_range != 'all':
+            tour_query = tour_query.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
+        
+        tour_events = tour_query.options(db.joinedload(Event.city)).all()
         events.extend([event.to_dict() for event in tour_events])
     
     if not event_type or event_type == 'exhibition':
@@ -1275,42 +1287,63 @@ def get_events():
         else:
             exhibition_filter = exhibition_filter & (Event.city_id == city_id)
         
-        if time_range == 'today':
+        exhibition_query = Event.query.filter(
+            exhibition_filter,
+            Event.is_selected == True
+        )
+        
+        # Only filter by date if not "all"
+        if time_range == 'all':
+            # For "all", show all exhibitions (no date filtering)
+            pass
+        elif time_range == 'today':
             # For today, only show exhibitions that are currently running
-            exhibition_events = Event.query.filter(
-                exhibition_filter,
+            exhibition_query = exhibition_query.filter(
                 Event.start_date <= start_date,
-                Event.end_date >= start_date,
-                Event.is_selected == True
-            ).all()
+                Event.end_date >= start_date
+            )
         else:
             # For other time ranges, show exhibitions that overlap with the range
-            exhibition_events = Event.query.filter(
-                exhibition_filter,
+            exhibition_query = exhibition_query.filter(
                 Event.start_date <= end_date,
-                Event.end_date >= start_date,
-                Event.is_selected == True
-            ).all()
+                Event.end_date >= start_date
+            )
+        
+        exhibition_events = exhibition_query.all()
         events.extend([event.to_dict() for event in exhibition_events])
     
     if not event_type or event_type == 'festival':
-        festival_events = Event.query.filter(
+        festival_query = Event.query.filter(
             Event.event_type == 'festival',
             Event.city_id == city_id,
-            Event.start_date <= end_date,
-            Event.end_date >= start_date,
             Event.is_selected == True
-        ).all()
+        )
+        
+        # Only filter by date if not "all"
+        if time_range != 'all':
+            festival_query = festival_query.filter(
+                Event.start_date <= end_date,
+                Event.end_date >= start_date
+            )
+        
+        festival_events = festival_query.all()
         events.extend([event.to_dict() for event in festival_events])
     
     if not event_type or event_type == 'photowalk':
-        photowalk_events = Event.query.filter(
+        photowalk_query = Event.query.filter(
             Event.event_type == 'photowalk',
             Event.city_id == city_id,
-            Event.start_date >= start_date,
-            Event.start_date <= end_date,
             Event.is_selected == True
-        ).all()
+        )
+        
+        # Only filter by date if not "all"
+        if time_range != 'all':
+            photowalk_query = photowalk_query.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
+        
+        photowalk_events = photowalk_query.all()
         events.extend([event.to_dict() for event in photowalk_events])
     
     # Handle other event types (talk, music, food, workshop, community_event, etc.)
@@ -1323,10 +1356,15 @@ def get_events():
         
         other_events = Event.query.filter(
             other_filter,
-            Event.start_date >= start_date,
-            Event.start_date <= end_date,
             Event.is_selected == True
         )
+        
+        # Only filter by date if not "all"
+        if time_range != 'all':
+            other_events = other_events.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
         
         # If a specific event_type was provided, filter by it
         if event_type:
@@ -1542,6 +1580,13 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
     
     try:
         title = event_data.get('title', 'Untitled Event')
+        
+        # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+        from scripts.utils import is_category_heading
+        if is_category_heading(title):
+            app_logger.debug(f"⚠️ Skipping category heading: '{title}'")
+            return None, False
+        
         venue_id = event_data.get('venue_id')
         city_id_event = event_data.get('city_id', city_id)
         start_date_str = event_data.get('start_date')
@@ -1549,12 +1594,12 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
         
         # CRITICAL: For exhibitions, check if we've already saved max_exhibitions_per_venue for this venue
         if event_type == 'exhibition' and venue_id:
-            venue = Venue.query.get(venue_id)
+            venue = db.session.get(Venue, venue_id)
             if venue and venue.website_url:
                 website = venue.website_url.lower().strip()
                 current_count = 0
                 for vid, count in venue_exhibition_counts.items():
-                    v = Venue.query.get(vid)
+                    v = db.session.get(Venue, vid)
                     if v and v.website_url and v.website_url.lower().strip() == website:
                         current_count += count
             else:
@@ -1606,7 +1651,7 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
         
         if not existing_event:
             if event_type == 'exhibition' and venue_id:
-                venue = Venue.query.get(venue_id)
+                venue = db.session.get(Venue, venue_id)
                 if venue and venue.website_url:
                     existing_event = db.session.query(Event).join(Venue).filter(
                         Event.title == title,
@@ -2237,7 +2282,7 @@ def load_data():
                         city_id = source_data.get('city_id')
                         if city_id:
                             # Try multiple lookup methods
-                            city = City.query.get(city_id)
+                            city = db.session.get(City, city_id)
                             if not city:
                                 # Try by name as fallback
                                 city_name = source_data.get('city_name', 'Washington')
@@ -2396,6 +2441,7 @@ def trigger_scraping():
         if venue_ids:
             progress_data.update({
                 'current_step': 2,
+                'total_steps': 3,  # Ensure total_steps is always included
                 'percentage': 20,
                 'message': f'Scraping events from {len(venue_ids)} venues...'
             })
@@ -2413,6 +2459,7 @@ def trigger_scraping():
                 # Update progress before scraping
                 progress_data.update({
                     'current_step': 2,
+                    'total_steps': 3,  # Ensure total_steps is always included
                     'percentage': 20,
                     'message': f'Scraping events from {len(venue_ids)} venues...',
                     'events_found': 0,
@@ -2433,7 +2480,10 @@ def trigger_scraping():
                 
                 # Update progress after scraping
                 progress_data.update({
+                    'current_step': 2,
+                    'total_steps': 3,  # Ensure total_steps is always included
                     'events_found': len(venue_events),
+                    'events_saved': 0,  # Reset saved count, will update during saving
                     'venues_processed': len(venue_ids),
                     'percentage': 50,
                     'message': f'Found {len(venue_events)} events from {len(venue_ids)} venues. Saving to database...'
@@ -2457,6 +2507,7 @@ def trigger_scraping():
         if source_ids:
             progress_data.update({
                 'current_step': 2,
+                'total_steps': 3,  # Ensure total_steps is always included
                 'percentage': 50,
                 'message': f'Scraping events from {len(source_ids)} sources...'
             })
@@ -2473,6 +2524,18 @@ def trigger_scraping():
             )
             all_events.extend(source_events)
             app_logger.info(f"Scraped {len(source_events)} events from sources")
+            
+            # Update progress after source scraping
+            progress_data.update({
+                'current_step': 2,
+                'total_steps': 3,  # Ensure total_steps is always included
+                'events_found': len(all_events),
+                'sources_processed': len(source_ids),
+                'percentage': 50,
+                'message': f'Found {len(all_events)} total events. Processing...'
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
         
         # Final deduplication across all scraped events
         # For exhibitions, use URL + title to deduplicate across venues with same website
@@ -2490,7 +2553,7 @@ def trigger_scraping():
             if event_type == 'exhibition' and venue_id and event_url:
                 # Get venue website (with caching)
                 if venue_id not in venue_websites:
-                    venue = Venue.query.get(venue_id)
+                    venue = db.session.get(Venue, venue_id)
                     venue_websites[venue_id] = venue.website_url.lower().strip() if venue and venue.website_url else ''
                 
                 website = venue_websites[venue_id]
@@ -2507,6 +2570,17 @@ def trigger_scraping():
         events_scraped = list(unique_events.values())
         app_logger.info(f"After deduplication: {len(events_scraped)} unique events (removed {len(all_events) - len(events_scraped)} duplicates)")
         app_logger.info(f"Total events scraped: {len(events_scraped)}")
+        
+        # Update progress after deduplication
+        progress_data.update({
+            'current_step': 2,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'events_found': len(events_scraped),
+            'percentage': 60,
+            'message': f'Found {len(events_scraped)} unique events after deduplication. Preparing to save...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         # Save scraped events to file for loading
         scraped_data = {
@@ -2528,9 +2602,11 @@ def trigger_scraping():
         # Step 2: Load events into database directly (already in app context)
         progress_data.update({
             'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 70,
             'message': f'Loading {len(events_scraped)} events into database...',
-            'events_found': len(events_scraped)
+            'events_found': len(events_scraped),
+            'events_saved': 0  # Reset saved count, will update during saving
         })
         
         with open('scraping_progress.json', 'w') as f:
@@ -2559,13 +2635,13 @@ def trigger_scraping():
                 # CRITICAL: For exhibitions, check if we've already saved max_exhibitions_per_venue for this venue
                 # Also check across venues with same website to prevent duplicates
                 if event_type == 'exhibition' and venue_id:
-                    venue = Venue.query.get(venue_id)
+                    venue = db.session.get(Venue, venue_id)
                     if venue and venue.website_url:
                         # Count exhibitions saved for ALL venues with same website in this batch
                         website = venue.website_url.lower().strip()
                         current_count = 0
                         for vid, count in venue_exhibition_counts.items():
-                            v = Venue.query.get(vid)
+                            v = db.session.get(Venue, vid)
                             if v and v.website_url and v.website_url.lower().strip() == website:
                                 current_count += count
                     else:
@@ -2630,7 +2706,7 @@ def trigger_scraping():
                 # If not found by URL, try title + venue + date matching
                 if not existing_event:
                     if event_type == 'exhibition' and venue_id:
-                        venue = Venue.query.get(venue_id)
+                        venue = db.session.get(Venue, venue_id)
                         if venue and venue.website_url:
                             # For exhibitions, check by title + venue + start_date
                             # Don't check URL since multiple exhibitions from listing pages share the same URL
@@ -2859,7 +2935,7 @@ def trigger_scraping():
                     # Get venue if available for opening hours check
                     venue = None
                     if venue_id:
-                        venue = Venue.query.get(venue_id)
+                        venue = db.session.get(Venue, venue_id)
                     # For museum events, try to use opening hours as fallback
                     if venue and venue.opening_hours:
                         app_logger.info(f"ℹ️  {event_type} event '{title}' has no start time, but will be saved (venue has opening hours: {venue.opening_hours})")
@@ -2968,6 +3044,9 @@ def trigger_scraping():
                 # Update progress every 5 events
                 if events_loaded % 5 == 0:
                     progress_data.update({
+                        'current_step': 3,
+                        'total_steps': 3,  # Ensure total_steps is always included
+                        'events_found': len(events_scraped),
                         'events_saved': events_loaded,
                         'percentage': min(70 + int((events_loaded / len(events_scraped)) * 20), 90),
                         'message': f'Saving events to database... ({events_loaded}/{len(events_scraped)})'
@@ -2999,8 +3078,11 @@ def trigger_scraping():
         # Step 3: Complete
         progress_data.update({
             'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 100,
-            'message': f'Scraping complete! Found {events_loaded} events.'
+            'message': f'Scraping complete! Found {len(events_scraped)} events, saved {events_loaded} to database.',
+            'events_found': len(events_scraped),
+            'events_saved': events_loaded
         })
         
         with open('scraping_progress.json', 'w') as f:
@@ -3844,6 +3926,11 @@ def add_event():
         if not title or not event_type or not start_date:
             return jsonify({'error': 'Title, event type, and start date are required'}), 400
         
+        # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+        from scripts.utils import is_category_heading
+        if is_category_heading(title):
+            return jsonify({'error': f'Invalid title: "{title}" is a category heading, not an event title'}), 400
+        
         # Parse dates
         try:
             start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -3879,6 +3966,10 @@ def add_event():
                 return jsonify({'error': f'Event "{title}" already exists on {start_date} (ID: {duplicate_event.id})'}), 400
             else:
                 return jsonify({'error': f'Similar event already exists on {start_date}: "{duplicate_event.title}" (ID: {duplicate_event.id})'}), 400
+        
+        # Skip category headings (already validated above, but double-check)
+        if is_category_heading(title):
+            return jsonify({'error': f'Invalid title: "{title}" is a category heading, not an event title'}), 400
         
         # Create event with all unified fields
         event = Event(
@@ -4170,6 +4261,89 @@ def export_cities_to_json():
         print(f"❌ Error exporting cities: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/update-cities-json', methods=['POST'])
+def update_cities_json_from_db():
+    """Update cities.json file directly from database (for syncing production changes)"""
+    try:
+        from scripts.update_cities_json import update_cities_json
+        
+        success = update_cities_json()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Successfully updated data/cities.json from database'
+            })
+        else:
+            return jsonify({'error': 'Failed to update cities.json'}), 500
+            
+    except Exception as e:
+        app_logger.error(f"Error updating cities.json: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/update-venues-json', methods=['POST'])
+def update_venues_json_from_db():
+    """Update venues.json file directly from database (for syncing production changes)"""
+    try:
+        from scripts.update_venues_json import update_venues_json
+        
+        success = update_venues_json()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Successfully updated data/venues.json from database'
+            })
+        else:
+            return jsonify({'error': 'Failed to update venues.json'}), 500
+            
+    except Exception as e:
+        app_logger.error(f"Error updating venues.json: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/update-sources-json', methods=['POST'])
+def update_sources_json_from_db():
+    """Update sources.json file directly from database (for syncing production changes)"""
+    try:
+        from scripts.update_sources_json import update_sources_json
+        
+        success = update_sources_json()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Successfully updated data/sources.json from database'
+            })
+        else:
+            return jsonify({'error': 'Failed to update sources.json'}), 500
+            
+    except Exception as e:
+        app_logger.error(f"Error updating sources.json: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/update-all-json', methods=['POST'])
+def update_all_json_from_db():
+    """Update all JSON files (cities, venues, sources) from database"""
+    try:
+        from scripts.update_cities_json import update_cities_json
+        from scripts.update_venues_json import update_venues_json
+        from scripts.update_sources_json import update_sources_json
+        
+        results = {
+            'cities': update_cities_json(),
+            'venues': update_venues_json(),
+            'sources': update_sources_json()
+        }
+        
+        all_success = all(results.values())
+        
+        return jsonify({
+            'success': all_success,
+            'message': 'Updated JSON files from database',
+            'results': results
+        })
+            
+    except Exception as e:
+        app_logger.error(f"Error updating JSON files: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/clean-duplicates', methods=['POST'])
 def clean_duplicate_events():
     """Remove duplicate events from database"""
@@ -4230,7 +4404,7 @@ def clean_duplicate_events():
 
 @app.route('/api/admin/reload-cities', methods=['POST'])
 def reload_cities_from_json():
-    """Reload cities from cities.json into database"""
+    """Reload cities from cities.json into database - preserves existing cities to avoid breaking events/venues/sources"""
     try:
         import json
         from pathlib import Path
@@ -4251,33 +4425,72 @@ def reload_cities_from_json():
         
         app_logger.info(f"📊 Found {total_cities} cities in JSON")
         
-        # Clear existing cities
-        app_logger.info("🧹 Clearing existing cities...")
-        City.query.delete()
-        db.session.commit()
+        # Get existing cities by name (case-insensitive) to preserve IDs
+        existing_cities = {}
+        for city in City.query.all():
+            # Use lowercase name as key for case-insensitive matching
+            key = f"{city.name.lower()}|{city.state or ''}|{city.country or ''}"
+            existing_cities[key] = city
         
-        # Load new cities
-        cities_loaded = 0
+        app_logger.info(f"📍 Found {len(existing_cities)} existing cities in database")
+        
+        # Process cities from JSON
+        cities_updated = 0
+        cities_added = 0
+        cities_skipped = 0
+        
         for city_id, city_info in cities_data.items():
             try:
-                city = City(
-                    name=city_info.get('name'),
-                    country=city_info.get('country'),
-                    state=city_info.get('state'),
-                    timezone=city_info.get('timezone')
-                )
-                db.session.add(city)
-                cities_loaded += 1
+                city_name = city_info.get('name', '').strip()
+                city_state = city_info.get('state', '').strip()
+                city_country = city_info.get('country', '').strip()
+                city_timezone = city_info.get('timezone', 'UTC')
+                
+                if not city_name:
+                    app_logger.warning(f"Skipping city with no name: {city_info}")
+                    cities_skipped += 1
+                    continue
+                
+                # Create key for matching (case-insensitive)
+                key = f"{city_name.lower()}|{city_state}|{city_country}"
+                
+                # Check if city already exists
+                existing_city = existing_cities.get(key)
+                
+                if existing_city:
+                    # Update existing city (preserve ID to keep events/venues/sources linked)
+                    existing_city.name = city_name
+                    existing_city.state = city_state
+                    existing_city.country = city_country
+                    existing_city.timezone = city_timezone
+                    cities_updated += 1
+                    app_logger.debug(f"Updated city: {city_name} (ID: {existing_city.id})")
+                else:
+                    # Add new city
+                    new_city = City(
+                        name=city_name,
+                        country=city_country,
+                        state=city_state,
+                        timezone=city_timezone
+                    )
+                    db.session.add(new_city)
+                    cities_added += 1
+                    app_logger.debug(f"Added new city: {city_name}")
+                    
             except Exception as e:
-                app_logger.error(f"Error loading city {city_info.get('name')}: {e}")
+                app_logger.error(f"Error processing city {city_info.get('name')}: {e}")
+                cities_skipped += 1
                 continue
         
         db.session.commit()
-        app_logger.info(f"✅ Successfully loaded {cities_loaded} cities")
+        app_logger.info(f"✅ Successfully processed cities: {cities_updated} updated, {cities_added} added, {cities_skipped} skipped")
         
         return jsonify({
-            'message': f'Successfully reloaded {cities_loaded} cities',
-            'total_cities': cities_loaded
+            'message': f'Successfully reloaded cities',
+            'cities_updated': cities_updated,
+            'cities_added': cities_added,
+            'cities_skipped': cities_skipped,
+            'total_cities': cities_updated + cities_added
         })
         
     except Exception as e:
@@ -4357,26 +4570,64 @@ def load_all_data_to_database():
         cities_json = cities_data.get('cities', {})
         app_logger.info(f"📊 Found {len(cities_json)} cities in JSON")
         
-        # Clear and reload cities
-        City.query.delete()
-        db.session.commit()  # Commit the delete before adding new cities
-        cities_loaded = 0
+        # Get existing cities by name (case-insensitive) to preserve IDs and avoid breaking events/venues/sources
+        existing_cities = {}
+        for city in City.query.all():
+            # Use lowercase name as key for case-insensitive matching
+            key = f"{city.name.lower()}|{city.state or ''}|{city.country or ''}"
+            existing_cities[key] = city
+        
+        app_logger.info(f"📍 Found {len(existing_cities)} existing cities in database")
+        
+        # Process cities from JSON (update existing, add new)
+        cities_updated = 0
+        cities_added = 0
+        cities_skipped = 0
+        
         for city_id, city_info in cities_json.items():
             try:
-                city = City(
-                    name=city_info.get('name'),
-                    country=city_info.get('country'),
-                    state=city_info.get('state'),
-                    timezone=city_info.get('timezone', 'UTC')
-                )
-                db.session.add(city)
-                cities_loaded += 1
+                city_name = city_info.get('name', '').strip()
+                city_state = city_info.get('state', '').strip()
+                city_country = city_info.get('country', '').strip()
+                city_timezone = city_info.get('timezone', 'UTC')
+                
+                if not city_name:
+                    app_logger.warning(f"Skipping city with no name: {city_info}")
+                    cities_skipped += 1
+                    continue
+                
+                # Create key for matching (case-insensitive)
+                key = f"{city_name.lower()}|{city_state}|{city_country}"
+                
+                # Check if city already exists
+                existing_city = existing_cities.get(key)
+                
+                if existing_city:
+                    # Update existing city (preserve ID to keep events/venues/sources linked)
+                    existing_city.name = city_name
+                    existing_city.state = city_state
+                    existing_city.country = city_country
+                    existing_city.timezone = city_timezone
+                    cities_updated += 1
+                else:
+                    # Add new city
+                    new_city = City(
+                        name=city_name,
+                        country=city_country,
+                        state=city_state,
+                        timezone=city_timezone
+                    )
+                    db.session.add(new_city)
+                    cities_added += 1
+                    
             except Exception as e:
-                app_logger.error(f"Error loading city {city_info.get('name')}: {e}")
+                app_logger.error(f"Error processing city {city_info.get('name')}: {e}")
+                cities_skipped += 1
                 continue
         
         db.session.commit()
-        app_logger.info(f"✅ Loaded {cities_loaded} cities")
+        cities_loaded = cities_updated + cities_added
+        app_logger.info(f"✅ Processed cities: {cities_updated} updated, {cities_added} added, {cities_skipped} skipped (total: {cities_loaded})")
         
         # Step 3: Load venues
         venues_file = Path("data/venues.json")
@@ -4389,14 +4640,20 @@ def load_all_data_to_database():
         venues_json = venues_data.get('venues', {})
         app_logger.info(f"📊 Found {len(venues_json)} venues in JSON")
         
-        # Clear and reload venues
-        Venue.query.delete()
-        db.session.commit()  # Commit the delete before adding new venues
-        venues_loaded = 0
-        venues_skipped = 0
+        # Get existing venues by name to preserve IDs and avoid breaking events
+        existing_venues = {}
+        for venue in Venue.query.all():
+            key = venue.name.lower().strip()
+            existing_venues[key] = venue
+        
+        app_logger.info(f"📍 Found {len(existing_venues)} existing venues in database")
         
         # Create city name mapping for faster lookups
         cities_by_name = {city.name: city for city in City.query.all()}
+        
+        venues_updated = 0
+        venues_added = 0
+        venues_skipped = 0
         
         for venue_id, venue_data in venues_json.items():
             # Skip metadata entries
@@ -4404,10 +4661,15 @@ def load_all_data_to_database():
                 continue
             
             try:
+                venue_name = venue_data.get('name', '').strip()
+                if not venue_name:
+                    venues_skipped += 1
+                    continue
+                
                 # Get city name from venue data
                 city_name = venue_data.get('city_name', '').strip()
                 if not city_name:
-                    app_logger.warning(f"Venue {venue_data.get('name')} has no city_name, skipping")
+                    app_logger.warning(f"Venue {venue_name} has no city_name, skipping")
                     venues_skipped += 1
                     continue
                 
@@ -4424,42 +4686,70 @@ def load_all_data_to_database():
                             break
                 
                 if not city:
-                    app_logger.warning(f"City not found for venue {venue_data.get('name')}: {city_name} (available cities: {list(cities_by_name.keys())[:5]})")
+                    app_logger.warning(f"City not found for venue {venue_name}: {city_name} (available cities: {list(cities_by_name.keys())[:5]})")
                     venues_skipped += 1
                     continue
                 
-                # Create venue
-                venue = Venue(
-                    name=venue_data.get('name'),
-                    venue_type=venue_data.get('venue_type', 'museum'),
-                    address=venue_data.get('address', ''),
-                    latitude=venue_data.get('latitude'),
-                    longitude=venue_data.get('longitude'),
-                    image_url=venue_data.get('image_url', ''),
-                    instagram_url=venue_data.get('instagram_url', ''),
-                    facebook_url=venue_data.get('facebook_url', ''),
-                    twitter_url=venue_data.get('twitter_url', ''),
-                    youtube_url=venue_data.get('youtube_url', ''),
-                    tiktok_url=venue_data.get('tiktok_url', ''),
-                    website_url=venue_data.get('website_url', ''),
-                    description=venue_data.get('description', ''),
-                    city_id=city.id,
-                    opening_hours=venue_data.get('opening_hours', ''),
-                    holiday_hours=venue_data.get('holiday_hours', ''),
-                    phone_number=venue_data.get('phone_number', ''),
-                    email=venue_data.get('email', ''),
-                    tour_info=venue_data.get('tour_info', ''),
-                    admission_fee=venue_data.get('admission_fee', '')
-                )
-                db.session.add(venue)
-                venues_loaded += 1
+                # Check if venue already exists
+                key = venue_name.lower()
+                existing_venue = existing_venues.get(key)
+                
+                if existing_venue:
+                    # Update existing venue (preserve ID to keep events linked)
+                    existing_venue.venue_type = venue_data.get('venue_type', existing_venue.venue_type or 'museum')
+                    existing_venue.address = venue_data.get('address', existing_venue.address)
+                    existing_venue.latitude = venue_data.get('latitude', existing_venue.latitude)
+                    existing_venue.longitude = venue_data.get('longitude', existing_venue.longitude)
+                    existing_venue.image_url = venue_data.get('image_url', existing_venue.image_url)
+                    existing_venue.instagram_url = venue_data.get('instagram_url', existing_venue.instagram_url)
+                    existing_venue.facebook_url = venue_data.get('facebook_url', existing_venue.facebook_url)
+                    existing_venue.twitter_url = venue_data.get('twitter_url', existing_venue.twitter_url)
+                    existing_venue.youtube_url = venue_data.get('youtube_url', existing_venue.youtube_url)
+                    existing_venue.tiktok_url = venue_data.get('tiktok_url', existing_venue.tiktok_url)
+                    existing_venue.website_url = venue_data.get('website_url', existing_venue.website_url)
+                    existing_venue.description = venue_data.get('description', existing_venue.description)
+                    existing_venue.city_id = city.id
+                    existing_venue.opening_hours = venue_data.get('opening_hours', existing_venue.opening_hours)
+                    existing_venue.holiday_hours = venue_data.get('holiday_hours', existing_venue.holiday_hours)
+                    existing_venue.phone_number = venue_data.get('phone_number', existing_venue.phone_number)
+                    existing_venue.email = venue_data.get('email', existing_venue.email)
+                    existing_venue.tour_info = venue_data.get('tour_info', existing_venue.tour_info)
+                    existing_venue.admission_fee = venue_data.get('admission_fee', existing_venue.admission_fee)
+                    venues_updated += 1
+                else:
+                    # Create new venue
+                    venue = Venue(
+                        name=venue_name,
+                        venue_type=venue_data.get('venue_type', 'museum'),
+                        address=venue_data.get('address', ''),
+                        latitude=venue_data.get('latitude'),
+                        longitude=venue_data.get('longitude'),
+                        image_url=venue_data.get('image_url', ''),
+                        instagram_url=venue_data.get('instagram_url', ''),
+                        facebook_url=venue_data.get('facebook_url', ''),
+                        twitter_url=venue_data.get('twitter_url', ''),
+                        youtube_url=venue_data.get('youtube_url', ''),
+                        tiktok_url=venue_data.get('tiktok_url', ''),
+                        website_url=venue_data.get('website_url', ''),
+                        description=venue_data.get('description', ''),
+                        city_id=city.id,
+                        opening_hours=venue_data.get('opening_hours', ''),
+                        holiday_hours=venue_data.get('holiday_hours', ''),
+                        phone_number=venue_data.get('phone_number', ''),
+                        email=venue_data.get('email', ''),
+                        tour_info=venue_data.get('tour_info', ''),
+                        admission_fee=venue_data.get('admission_fee', '')
+                    )
+                    db.session.add(venue)
+                    venues_added += 1
             except Exception as e:
-                app_logger.error(f"Error loading venue {venue_data.get('name', 'Unknown')}: {e}")
+                app_logger.error(f"Error processing venue {venue_data.get('name', 'Unknown')}: {e}")
                 venues_skipped += 1
                 continue
         
         db.session.commit()
-        app_logger.info(f"✅ Loaded {venues_loaded} venues")
+        venues_loaded = venues_updated + venues_added
+        app_logger.info(f"✅ Processed venues: {venues_updated} updated, {venues_added} added, {venues_skipped} skipped (total: {venues_loaded})")
         if venues_skipped > 0:
             app_logger.warning(f"⚠️  Skipped {venues_skipped} venues (missing city or invalid data)")
         
@@ -4474,9 +4764,13 @@ def load_all_data_to_database():
         sources_json = sources_data.get('sources', {})
         app_logger.info(f"📊 Found {len(sources_json)} sources in JSON")
         
-        # Clear and reload sources
-        Source.query.delete()
-        db.session.commit()  # Commit the delete before adding new sources
+        # Get existing sources by name to preserve IDs and avoid breaking events
+        existing_sources = {}
+        for source in Source.query.all():
+            key = source.name.lower().strip()
+            existing_sources[key] = source
+        
+        app_logger.info(f"📍 Found {len(existing_sources)} existing sources in database")
         
         # Create a mapping of JSON city IDs to actual database city IDs
         city_id_mapping = {}
@@ -4485,9 +4779,11 @@ def load_all_data_to_database():
             if city:
                 city_id_mapping[int(json_city_id)] = city.id
         
-        app_logger.info(f"📍 City ID mapping created: {city_id_mapping}")
+        app_logger.info(f"📍 City ID mapping created: {len(city_id_mapping)} cities mapped")
         
-        sources_loaded = 0
+        sources_updated = 0
+        sources_added = 0
+        sources_skipped = 0
         for source_id, source_info in sources_json.items():
             try:
                 # Map JSON city_id to actual database city_id
@@ -4496,32 +4792,63 @@ def load_all_data_to_database():
                 
                 if not actual_city_id:
                     app_logger.warning(f"Skipping source {source_info.get('name')} - city_id {json_city_id} not found")
+                    sources_skipped += 1
                     continue
                 
-                source = Source(
-                    name=source_info.get('name'),
-                    handle=source_info.get('handle'),
-                    source_type=source_info.get('source_type'),
-                    url=source_info.get('url'),
-                    description=source_info.get('description'),
-                    city_id=actual_city_id,  # Use actual database city_id
-                    covers_multiple_cities=source_info.get('covers_multiple_cities', False),
-                    covered_cities=source_info.get('covered_cities', ''),
-                    event_types=source_info.get('event_types', '[]'),
-                    is_active=source_info.get('is_active', True),
-                    reliability_score=source_info.get('reliability_score', 3.0),
-                    posting_frequency=source_info.get('posting_frequency', ''),
-                    notes=source_info.get('notes', ''),
-                    scraping_pattern=source_info.get('scraping_pattern', '')
-                )
-                db.session.add(source)
-                sources_loaded += 1
+                source_name = source_info.get('name', '').strip()
+                if not source_name:
+                    sources_skipped += 1
+                    continue
+                
+                # Check if source already exists
+                key = source_name.lower()
+                existing_source = existing_sources.get(key)
+                
+                if existing_source:
+                    # Update existing source (preserve ID to keep events linked)
+                    existing_source.name = source_name
+                    existing_source.handle = source_info.get('handle', existing_source.handle)
+                    existing_source.source_type = source_info.get('source_type', existing_source.source_type)
+                    existing_source.url = source_info.get('url', existing_source.url)
+                    existing_source.description = source_info.get('description', existing_source.description)
+                    existing_source.city_id = actual_city_id
+                    existing_source.covers_multiple_cities = source_info.get('covers_multiple_cities', False)
+                    existing_source.covered_cities = source_info.get('covered_cities', '')
+                    existing_source.event_types = source_info.get('event_types', '[]')
+                    existing_source.is_active = source_info.get('is_active', True)
+                    existing_source.reliability_score = source_info.get('reliability_score', 3.0)
+                    existing_source.posting_frequency = source_info.get('posting_frequency', '')
+                    existing_source.notes = source_info.get('notes', '')
+                    existing_source.scraping_pattern = source_info.get('scraping_pattern', '')
+                    sources_updated += 1
+                else:
+                    # Add new source
+                    source = Source(
+                        name=source_name,
+                        handle=source_info.get('handle'),
+                        source_type=source_info.get('source_type'),
+                        url=source_info.get('url'),
+                        description=source_info.get('description'),
+                        city_id=actual_city_id,  # Use actual database city_id
+                        covers_multiple_cities=source_info.get('covers_multiple_cities', False),
+                        covered_cities=source_info.get('covered_cities', ''),
+                        event_types=source_info.get('event_types', '[]'),
+                        is_active=source_info.get('is_active', True),
+                        reliability_score=source_info.get('reliability_score', 3.0),
+                        posting_frequency=source_info.get('posting_frequency', ''),
+                        notes=source_info.get('notes', ''),
+                        scraping_pattern=source_info.get('scraping_pattern', '')
+                    )
+                    db.session.add(source)
+                    sources_added += 1
             except Exception as e:
-                app_logger.error(f"Error loading source {source_info.get('name')}: {e}")
+                app_logger.error(f"Error processing source {source_info.get('name')}: {e}")
+                sources_skipped += 1
                 continue
         
         db.session.commit()
-        app_logger.info(f"✅ Loaded {sources_loaded} sources")
+        sources_loaded = sources_updated + sources_added
+        app_logger.info(f"✅ Processed sources: {sources_updated} updated, {sources_added} added, {sources_skipped} skipped (total: {sources_loaded})")
         
         return jsonify({
             'message': f'Successfully loaded all data',
@@ -4575,13 +4902,18 @@ def reload_sources_from_json():
         
         app_logger.info(f"📍 City ID mapping created: {len(city_id_mapping)} cities mapped")
         
-        # Clear existing sources
-        app_logger.info("🧹 Clearing existing sources...")
-        Source.query.delete()
-        db.session.commit()
+        # Get existing sources by name to preserve IDs and avoid breaking events
+        existing_sources = {}
+        for source in Source.query.all():
+            # Use name as key for matching
+            key = source.name.lower().strip()
+            existing_sources[key] = source
         
-        # Load new sources
-        sources_loaded = 0
+        app_logger.info(f"📍 Found {len(existing_sources)} existing sources in database")
+        
+        # Process sources from JSON (update existing, add new)
+        sources_updated = 0
+        sources_added = 0
         sources_skipped = 0
         for source_id, source_info in sources_data.items():
             try:
@@ -4594,36 +4926,67 @@ def reload_sources_from_json():
                     sources_skipped += 1
                     continue
                 
-                source = Source(
-                    name=source_info.get('name'),
-                    handle=source_info.get('handle'),
-                    source_type=source_info.get('source_type'),
-                    url=source_info.get('url'),
-                    description=source_info.get('description'),
-                    city_id=actual_city_id,  # Use production city_id
-                    covers_multiple_cities=source_info.get('covers_multiple_cities', False),
-                    covered_cities=source_info.get('covered_cities', ''),
-                    event_types=source_info.get('event_types', '[]'),
-                    is_active=source_info.get('is_active', True),
-                    reliability_score=source_info.get('reliability_score', 3.0),
-                    posting_frequency=source_info.get('posting_frequency', ''),
-                    notes=source_info.get('notes', ''),
-                    scraping_pattern=source_info.get('scraping_pattern', '')
-                )
-                db.session.add(source)
-                sources_loaded += 1
+                source_name = source_info.get('name', '').strip()
+                if not source_name:
+                    sources_skipped += 1
+                    continue
+                
+                # Check if source already exists
+                key = source_name.lower()
+                existing_source = existing_sources.get(key)
+                
+                if existing_source:
+                    # Update existing source (preserve ID to keep events linked)
+                    existing_source.name = source_name
+                    existing_source.handle = source_info.get('handle', existing_source.handle)
+                    existing_source.source_type = source_info.get('source_type', existing_source.source_type)
+                    existing_source.url = source_info.get('url', existing_source.url)
+                    existing_source.description = source_info.get('description', existing_source.description)
+                    existing_source.city_id = actual_city_id
+                    existing_source.covers_multiple_cities = source_info.get('covers_multiple_cities', False)
+                    existing_source.covered_cities = source_info.get('covered_cities', '')
+                    existing_source.event_types = source_info.get('event_types', '[]')
+                    existing_source.is_active = source_info.get('is_active', True)
+                    existing_source.reliability_score = source_info.get('reliability_score', 3.0)
+                    existing_source.posting_frequency = source_info.get('posting_frequency', '')
+                    existing_source.notes = source_info.get('notes', '')
+                    existing_source.scraping_pattern = source_info.get('scraping_pattern', '')
+                    sources_updated += 1
+                else:
+                    # Add new source
+                    source = Source(
+                        name=source_name,
+                        handle=source_info.get('handle'),
+                        source_type=source_info.get('source_type'),
+                        url=source_info.get('url'),
+                        description=source_info.get('description'),
+                        city_id=actual_city_id,  # Use production city_id
+                        covers_multiple_cities=source_info.get('covers_multiple_cities', False),
+                        covered_cities=source_info.get('covered_cities', ''),
+                        event_types=source_info.get('event_types', '[]'),
+                        is_active=source_info.get('is_active', True),
+                        reliability_score=source_info.get('reliability_score', 3.0),
+                        posting_frequency=source_info.get('posting_frequency', ''),
+                        notes=source_info.get('notes', ''),
+                        scraping_pattern=source_info.get('scraping_pattern', '')
+                    )
+                    db.session.add(source)
+                    sources_added += 1
             except Exception as e:
                 app_logger.error(f"Error loading source {source_info.get('name')}: {e}")
                 sources_skipped += 1
                 continue
         
         db.session.commit()
-        app_logger.info(f"✅ Successfully loaded {sources_loaded} sources (skipped {sources_skipped})")
+        sources_loaded = sources_updated + sources_added
+        app_logger.info(f"✅ Successfully processed sources: {sources_updated} updated, {sources_added} added, {sources_skipped} skipped (total: {sources_loaded})")
         
         return jsonify({
-            'message': f'Successfully reloaded {sources_loaded} sources',
-            'total_sources': sources_loaded,
-            'sources_skipped': sources_skipped
+            'message': f'Successfully reloaded sources',
+            'sources_updated': sources_updated,
+            'sources_added': sources_added,
+            'sources_skipped': sources_skipped,
+            'total_sources': sources_loaded
         })
         
     except Exception as e:
@@ -6125,7 +6488,7 @@ def upload_event_image():
         app_logger.info(f"🌍 Getting timezone - city_id: {extracted_data.city_id}, city: {extracted_data.city}")
         
         if extracted_data.city_id:
-            city = City.query.get(extracted_data.city_id)
+            city = db.session.get(City, extracted_data.city_id)
             if city and city.timezone:
                 city_timezone = city.timezone
                 app_logger.info(f"✅ Found timezone from city_id: {city_timezone}")
@@ -6298,7 +6661,7 @@ def create_event_from_data():
                     app_logger.info(f"🏛️ Auto-detected NGA venue: {nga_venue.name} (ID: {venue_id})")
         
         event = Event(
-            title=data['title'],
+            title=title,
             description=data.get('description', ''),
             start_date=start_date,
             end_date=end_date,
@@ -6366,14 +6729,14 @@ def create_event_from_data():
                 # Get venue data if venue_id provided
                 venue_data = None
                 if event.venue_id:
-                    venue = Venue.query.get(event.venue_id)
+                    venue = db.session.get(Venue, event.venue_id)
                     if venue:
                         venue_data = venue.to_dict()
                 
                 # Get city data if city_id provided
                 city_data = None
                 if event.city_id:
-                    city = City.query.get(event.city_id)
+                    city = db.session.get(City, event.city_id)
                     if city:
                         city_data = city.to_dict()
                 
@@ -6536,12 +6899,12 @@ def scrape_event_from_url():
         # Get venue if provided
         venue = None
         if venue_id:
-            venue = Venue.query.get(venue_id)
+            venue = db.session.get(Venue, venue_id)
             if not venue:
                 return jsonify({'error': 'Venue not found'}), 404
         
         # Get city
-        city = City.query.get(city_id)
+        city = db.session.get(City, city_id)
         if not city:
             return jsonify({'error': 'City not found'}), 404
         
@@ -6965,7 +7328,7 @@ def create_event_from_venue():
         if not venue_id:
             return jsonify({'error': 'Venue ID is required'}), 400
         
-        venue = Venue.query.get(venue_id)
+        venue = db.session.get(Venue, venue_id)
         if not venue:
             return jsonify({'error': 'Venue not found'}), 404
         
@@ -7008,7 +7371,7 @@ def create_event_from_venue():
         
         # Create event
         event = Event(
-            title=data['title'],
+            title=title,
             description=data.get('description', ''),
             start_date=start_date,
             end_date=end_date,
@@ -7197,13 +7560,58 @@ def scrape_finding_awe():
     try:
         app_logger.info("Starting Finding Awe scraping...")
         
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting Finding Awe scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'National Gallery of Art - Finding Awe',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Import the Finding Awe scraper
         from scripts.nga_finding_awe_scraper import scrape_all_finding_awe_events, create_events_in_database
         
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 20,
+            'message': 'Scraping Finding Awe events...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Scrape all Finding Awe events
-        events = scrape_all_finding_awe_events()
+        try:
+            events = scrape_all_finding_awe_events()
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_all_finding_awe_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            # Return empty list to continue with error handling
+            events = []
         
         if not events:
+            progress_data.update({
+                'current_step': 3,
+                'total_steps': 3,  # Ensure total_steps is always included
+                'percentage': 100,
+                'message': '❌ No Finding Awe events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': 'No events found or scraping failed',
@@ -7211,9 +7619,31 @@ def scrape_finding_awe():
                 'events_saved': 0
             }), 404
         
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 80,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Create events in database
         created_count = create_events_in_database(events)
         skipped_count = len(events) - created_count
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 100,
+            'message': f'✅ Finding Awe scraping completed! Found {len(events)} events, created {created_count} new, {skipped_count} already existed',
+            'events_saved': created_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         app_logger.info(f"Finding Awe scraping completed: found {len(events)} events, created {created_count} new events, skipped {skipped_count} duplicates")
         
@@ -7235,6 +7665,20 @@ def scrape_finding_awe():
         app_logger.error(f"Error scraping Finding Awe events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
         return jsonify({
             'success': False,
             'error': str(e)
@@ -7271,6 +7715,7 @@ def scrape_nga():
         # Update progress - scraping Finding Awe
         progress_data.update({
             'current_step': 1,
+            'total_steps': 5,  # Ensure total_steps is always included
             'percentage': 10,
             'message': 'Scraping Finding Awe events...'
         })
@@ -7305,7 +7750,8 @@ def scrape_nga():
         
         # Update progress - saving events
         progress_data.update({
-            'current_step': 5,
+            'current_step': 4,
+            'total_steps': 5,  # Ensure total_steps is always included
             'percentage': 80,
             'message': f'Saving {len(events)} events to database...',
             'events_found': len(events)
@@ -7318,11 +7764,13 @@ def scrape_nga():
         
         # Update progress - complete
         progress_data.update({
+            'current_step': 5,
+            'total_steps': 5,  # Ensure total_steps is always included
             'percentage': 100,
             'message': f'✅ NGA scraping completed! Found {len(events)} events, created {created_count} new, updated {updated_count} existing',
             'events_saved': created_count,
             'events_updated': updated_count,
-            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': e.get('start_date'), 'time': e.get('start_time'), 'location': e.get('location')} for e in events[:10]]
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location')} for e in events[:10]]
         })
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
@@ -7372,13 +7820,58 @@ def scrape_saam():
     try:
         app_logger.info("Starting comprehensive SAAM scraping...")
         
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting SAAM scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'Smithsonian American Art Museum',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Import the comprehensive SAAM scraper
         from scripts.saam_scraper import scrape_all_saam_events, create_events_in_database
         
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 20,
+            'message': 'Scraping SAAM events (exhibitions, tours, talks)...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Scrape all SAAM events
-        events = scrape_all_saam_events()
+        try:
+            events = scrape_all_saam_events()
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_all_saam_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            # Return empty list to continue with error handling
+            events = []
         
         if not events:
+            progress_data.update({
+                'current_step': 3,
+                'total_steps': 3,  # Ensure total_steps is always included
+                'percentage': 100,
+                'message': '❌ No SAAM events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': 'No events found or scraping failed',
@@ -7387,8 +7880,31 @@ def scrape_saam():
                 'events_updated': 0
             }), 404
         
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 80,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Create/update events in database
         created_count, updated_count = create_events_in_database(events)
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 100,
+            'message': f'✅ SAAM scraping completed! Found {len(events)} events, created {created_count} new, updated {updated_count} existing',
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         app_logger.info(f"SAAM scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
         
@@ -7410,6 +7926,20 @@ def scrape_saam():
         app_logger.error(f"Error scraping SAAM events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
         return jsonify({
             'success': False,
             'error': str(e),
@@ -7708,13 +8238,56 @@ def scrape_npg():
     try:
         app_logger.info("Starting comprehensive NPG scraping...")
         
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting NPG scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'National Portrait Gallery',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Import the comprehensive NPG scraper
         from scripts.npg_scraper import scrape_all_npg_events, create_events_in_database
         
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 20,
+            'message': 'Scraping NPG events (exhibitions, tours, talks, programs)...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Scrape all NPG events
-        events = scrape_all_npg_events()
+        try:
+            events = scrape_all_npg_events()
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_all_npg_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            # Return empty list to continue with error handling
+            events = []
         
         if not events:
+            progress_data.update({
+                'percentage': 100,
+                'message': '❌ No NPG events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': 'No events found or scraping failed',
@@ -7723,8 +8296,31 @@ def scrape_npg():
                 'events_updated': 0
             }), 404
         
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 2,
+            'percentage': 60,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Create/update events in database
         created_count, updated_count = create_events_in_database(events)
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 100,
+            'message': f'✅ NPG scraping completed! Found {len(events)} events, created {created_count} new, updated {updated_count} existing',
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         app_logger.info(f"NPG scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
         
@@ -7746,6 +8342,20 @@ def scrape_npg():
         app_logger.error(f"Error scraping NPG events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
         return jsonify({
             'success': False,
             'error': str(e),
@@ -7785,6 +8395,7 @@ def scrape_asian_art():
         # Update progress - scraping events
         progress_data.update({
             'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 10,
             'message': 'Scraping exhibitions, events, and films...'
         })
@@ -7803,6 +8414,8 @@ def scrape_asian_art():
         
         if not events:
             progress_data.update({
+                'current_step': 3,
+                'total_steps': 3,  # Ensure total_steps is always included
                 'percentage': 100,
                 'message': '❌ No Asian Art Museum events found or scraping failed',
                 'error': True
@@ -7820,6 +8433,7 @@ def scrape_asian_art():
         # Update progress - saving events
         progress_data.update({
             'current_step': 2,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 60,
             'message': f'Saving {len(events)} events to database...',
             'events_found': len(events)
@@ -7832,6 +8446,8 @@ def scrape_asian_art():
         
         # Update progress - complete
         progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 100,
             'message': f'✅ Asian Art Museum scraping completed! Found {len(events)} events, created {created_count} new, updated {updated_count} existing',
             'events_saved': created_count,
@@ -7890,13 +8506,58 @@ def scrape_african_art():
     try:
         app_logger.info("🎨 Starting comprehensive African Art Museum scraping...")
         
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting African Art Museum scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'Smithsonian National Museum of African Art',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Import the comprehensive African Art scraper
         from scripts.african_art_scraper import scrape_all_african_art_events, create_events_in_database
         
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 20,
+            'message': 'Scraping exhibitions, events, and tours...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Scrape all African Art Museum events
-        events = scrape_all_african_art_events()
+        try:
+            events = scrape_all_african_art_events()
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_all_african_art_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            # Return empty list to continue with error handling
+            events = []
         
         if not events:
+            progress_data.update({
+                'current_step': 3,
+                'total_steps': 3,  # Ensure total_steps is always included
+                'percentage': 100,
+                'message': '❌ No African Art Museum events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': 'No events found or scraping failed',
@@ -7905,8 +8566,31 @@ def scrape_african_art():
                 'events_updated': 0
             }), 200  # Return 200 so frontend can handle the error message
         
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 80,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Create/update events in database
         created_count, updated_count = create_events_in_database(events)
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 100,
+            'message': f'✅ African Art Museum scraping completed! Found {len(events)} events, created {created_count} new, updated {updated_count} existing',
+            'events_saved': created_count,
+            'events_updated': updated_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         app_logger.info(f"African Art Museum scraping completed: found {len(events)} events, created {created_count} new events, updated {updated_count} existing events")
         
@@ -7928,6 +8612,20 @@ def scrape_african_art():
         app_logger.error(f"Error scraping African Art Museum: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
         return jsonify({
             'success': False,
             'error': str(e),
@@ -7984,6 +8682,7 @@ def scrape_hirshhorn():
         
         progress_data.update({
             'current_step': 2,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 20,
             'message': f'Scraping exhibitions and tours from {hirshhorn.name}...',
             'current_venue': hirshhorn.name
@@ -8037,6 +8736,7 @@ def scrape_hirshhorn():
         # Update progress - events found
         progress_data.update({
             'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 60,
             'message': f'Found {len(scraped_events)} events. Saving to database...',
             'events_found': len(scraped_events),
@@ -8058,6 +8758,7 @@ def scrape_hirshhorn():
         # Update progress - events found
         progress_data.update({
             'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 60,
             'message': f'Found {len(scraped_events)} events. Saving to database...',
             'events_found': len(scraped_events),
@@ -8215,6 +8916,8 @@ def scrape_hirshhorn():
                         # Update progress every 5 events
                         if events_saved % 5 == 0:
                             progress_data.update({
+                                'current_step': 3,
+                                'total_steps': 3,  # Ensure total_steps is always included
                                 'percentage': 60 + int((events_saved / len(scraped_events)) * 30) if scraped_events else 90,
                                 'events_saved': events_saved,
                                 'recent_events': recent_events_list[-10:]  # Keep last 10
@@ -8298,6 +9001,8 @@ def scrape_hirshhorn():
                 # Update progress every 5 events
                 if events_saved % 5 == 0:
                     progress_data.update({
+                        'current_step': 3,
+                        'total_steps': 3,  # Ensure total_steps is always included
                         'percentage': 60 + int((events_saved / len(scraped_events)) * 30),
                         'events_saved': events_saved,
                         'recent_events': recent_events_list[-10:]  # Keep last 10
@@ -8357,13 +9062,58 @@ def scrape_websters():
     try:
         app_logger.info("Starting Webster's Bookstore Cafe scraping...")
         
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting Webster\'s Bookstore Cafe scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'Webster\'s Bookstore Cafe',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Import the Webster's scraper
         from scripts.websters_scraper import scrape_websters_events, create_events_in_database
         
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 20,
+            'message': 'Scraping Webster\'s events...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Scrape all Webster's events
-        events = scrape_websters_events()
+        try:
+            events = scrape_websters_events()
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_websters_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            # Return empty list to continue with error handling
+            events = []
         
         if not events:
+            progress_data.update({
+                'current_step': 3,
+                'total_steps': 3,  # Ensure total_steps is always included
+                'percentage': 100,
+                'message': '❌ No Webster\'s events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': 'No events found or scraping failed',
@@ -8371,9 +9121,31 @@ def scrape_websters():
                 'events_saved': 0
             }), 404
         
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 80,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
         # Create events in database
         created_count = create_events_in_database(events)
         skipped_count = len(events) - created_count
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 100,
+            'message': f'✅ Webster\'s scraping completed! Found {len(events)} events, created {created_count} new, {skipped_count} already existed',
+            'events_saved': created_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
         
         app_logger.info(f"Webster's scraping completed: found {len(events)} events, created {created_count} new events, skipped {skipped_count} duplicates")
         
@@ -8395,6 +9167,20 @@ def scrape_websters():
         app_logger.error(f"Error scraping Webster's events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
         return jsonify({
             'success': False,
             'error': str(e)

@@ -152,6 +152,9 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         # Extract title
         title_elem = soup.find('h1') or soup.find('title')
         title = title_elem.get_text(strip=True) if title_elem else "Exhibition"
+        # Clean title: remove venue name suffix
+        from scripts.utils import clean_event_title
+        title = clean_event_title(title)
         
         # Extract description - look for common description patterns
         description = None
@@ -643,9 +646,21 @@ def create_events_in_database(events: List[Dict]) -> tuple:
         
         for event_data in events:
             try:
+                # Validate title
+                title = event_data.get('title', '').strip()
+                if not title:
+                    logger.warning(f"   ⚠️  Skipping event: missing title")
+                    continue
+                
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
+                
                 # Find existing event by title and venue
                 existing = Event.query.filter_by(
-                    title=event_data.get('title'),
+                    title=title,
                     venue_id=venue.id
                 ).first()
                 

@@ -2776,9 +2776,37 @@
             }
         };
 
+        // Global error handlers to catch and suppress extension-related errors
+        window.addEventListener('error', function(event) {
+            // Suppress errors from browser extensions
+            if (event.message && event.message.includes('message channel')) {
+                event.preventDefault();
+                return false;
+            }
+        }, true);
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            // Suppress promise rejections from browser extensions
+            if (event.reason && typeof event.reason === 'object' && event.reason.message) {
+                if (event.reason.message.includes('message channel')) {
+                    event.preventDefault();
+                    return;
+                }
+            }
+            if (typeof event.reason === 'string' && event.reason.includes('message channel')) {
+                event.preventDefault();
+                return;
+            }
+        });
+        
         document.addEventListener('DOMContentLoaded', function() {
-            loadCities();
-            loadRealTimeStats();
+            // Load cities - wrap in try-catch to prevent errors from blocking page load
+            loadCities().catch(error => {
+                // Silently handle errors - cities will still be available for manual selection
+            });
+            loadRealTimeStats().catch(error => {
+                // Silently handle errors - stats are non-critical
+            });
             loadStatusSectionState();
             loadFilterSectionStates();
             setupEventListeners();
@@ -2821,9 +2849,15 @@
                     {
                         headers: {
                             'User-Agent': 'Planner App'
-                        }
+                        },
+                        signal: AbortSignal.timeout(5000) // 5 second timeout
                     }
                 );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data && data.length > 0) {
@@ -2833,33 +2867,43 @@
                     };
                 }
             } catch (error) {
-                console.error('Error geocoding city:', error);
+                // Silently fail - network errors are common and expected
+                // Don't log any errors to avoid console spam when API is unavailable
             }
             return null;
         }
         
         async function getCurrentLocation() {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
-                    console.log('Geolocation not supported');
                     resolve(null);
                     return;
                 }
                 
+                // Set a timeout to prevent hanging
+                const timeoutId = setTimeout(() => {
+                    resolve(null);
+                }, 5000);
+                
                 navigator.geolocation.getCurrentPosition(
-                    async (position) => {
+                    (position) => {
+                        clearTimeout(timeoutId);
                         try {
                             const { latitude, longitude } = position.coords;
                             resolve({ latitude, longitude });
                         } catch (error) {
-                            console.error('Error getting location:', error);
                             resolve(null);
                         }
                     },
                     (error) => {
+                        clearTimeout(timeoutId);
                         resolve(null);
                     },
-                    { timeout: 5000, enableHighAccuracy: false }
+                    { 
+                        timeout: 5000, 
+                        enableHighAccuracy: false,
+                        maximumAge: 300000 // Accept cached location up to 5 minutes old
+                    }
                 );
             });
         }
@@ -2868,81 +2912,36 @@
         async function loadCities() {
             try {
                 const response = await fetch('/api/cities');
+                if (!response.ok) {
+                    throw new Error(`Failed to load cities: ${response.status}`);
+                }
                 const cities = await response.json();
                 
-                // Try to get current location coordinates
-                const userLocation = await getCurrentLocation();
+                if (!cities || cities.length === 0) {
+                    console.error('No cities returned from API');
+                    return;
+                }
                 
-                // Find matching city by distance
-                let matchedCity = null;
-                if (userLocation) {
-                    // First, try to find exact match by name (faster)
-                    // Get reverse geocoded city name for exact matching
-                    try {
-                        const reverseResponse = await fetch(
-                            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.latitude}&lon=${userLocation.longitude}&addressdetails=1`,
-                            {
-                                headers: {
-                                    'User-Agent': 'Planner App'
-                                }
-                            }
-                        );
-                        const reverseData = await reverseResponse.json();
-                        
-                        if (reverseData && reverseData.address) {
-                            const cityName = reverseData.address.city || reverseData.address.town || reverseData.address.village || reverseData.address.municipality;
-                            const stateName = reverseData.address.state || reverseData.address.region;
-                            const countryName = reverseData.address.country;
-                            
-                            matchedCity = cities.find(city => {
-                                const nameMatch = city.name.toLowerCase() === cityName?.toLowerCase() ||
-                                                 city.name.toLowerCase().includes(cityName?.toLowerCase() || '') ||
-                                                 cityName?.toLowerCase().includes(city.name.toLowerCase() || '');
-                                
-                                const stateMatch = !city.state || !stateName || 
-                                                 city.state.toLowerCase() === stateName.toLowerCase() ||
-                                                 city.state.toLowerCase().includes(stateName.toLowerCase());
-                                
-                                const countryMatch = city.country.toLowerCase() === countryName?.toLowerCase() ||
-                                                   city.country === 'United States' && (countryName === 'United States' || countryName === 'USA');
-                                
-                                return nameMatch && (stateMatch || countryMatch);
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error in reverse geocoding:', error);
-                    }
-                    
-                    // If no exact match, find closest city by distance (within 50 miles)
-                    if (!matchedCity) {
-                        let closestDistance = Infinity;
-                        let closestCity = null;
-                        
-                        for (const city of cities) {
-                            const cityCoords = await getCityCoordinates(city.name, city.state, city.country);
-                            if (cityCoords) {
-                                const distance = calculateDistance(
-                                    userLocation.latitude,
-                                    userLocation.longitude,
-                                    cityCoords.lat,
-                                    cityCoords.lon
-                                );
-                                
-                                if (distance < closestDistance && distance <= 50) {
-                                    closestDistance = distance;
-                                    closestCity = city;
-                                }
-                            }
-                        }
-                        
-                        if (closestCity) {
-                            matchedCity = closestCity;
+                // Skip geocoding entirely - it's optional and causes issues when API is unavailable
+                // User can manually select a city from the dropdown
+                // This prevents console errors and unnecessary network requests
+                
+                // If no city was matched via geocoding, try to use the last selected city from localStorage
+                if (!currentCityId) {
+                    const lastSelectedCityId = localStorage.getItem('lastSelectedCityId');
+                    if (lastSelectedCityId) {
+                        const lastCity = cities.find(c => c.id == lastSelectedCityId);
+                        if (lastCity) {
+                            currentCityId = lastSelectedCityId;
                         }
                     }
-                    
-                    if (matchedCity) {
-                        currentCityId = matchedCity.id;
-                    }
+                }
+                
+                // Get city select element
+                const citySelect = document.getElementById('citySelect');
+                if (!citySelect) {
+                    console.error('City select element not found');
+                    return;
                 }
                 
                 // Sort cities: current city first, then US cities (by state, then by name), then others alphabetically
@@ -2993,7 +2992,11 @@
                 }
             } catch (error) {
                 console.error('Error loading cities:', error);
-                showNotification('Error loading cities', 'error');
+                const citySelect = document.getElementById('citySelect');
+                if (citySelect) {
+                    citySelect.innerHTML = '<option value="">Error loading cities. Please refresh the page.</option>';
+                }
+                // Don't show notification as it might not be defined yet
             }
         }
 
@@ -3065,6 +3068,10 @@
             
             // Update status when selections change
             citySelect.addEventListener('change', function() {
+                // Save selected city to localStorage for future sessions
+                if (citySelect.value) {
+                    localStorage.setItem('lastSelectedCityId', citySelect.value);
+                }
                 updateStatus();
                 handleCitySelection();
             });

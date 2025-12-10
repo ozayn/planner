@@ -1,0 +1,183 @@
+{
+  "timestamp": "2025-12-08T15:47:11.717390",
+  "city": "Princeton",
+  "summary": {
+    "total_venues": 6,
+    "venues_with_events": 4,
+    "total_events": 12
+  },
+  "results": [
+    {
+      "venue_name": "Morven Museum & Garden",
+      "venue_type": "historic_site",
+      "venue_url": "https://www.morven.org/",
+      "events_found": 3,
+      "events": [
+        {
+          "title": "Visit",
+          "event_type": "event",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://www.morven.org/exhibitions/upcoming",
+          "description": "Visit"
+        },
+        {
+          "title": "Visit Plan Your Visit Buy Tickets Get Directions Explore Princeton Group Tours & Lunches Library Pass Program About Our History Our Garden Slavery at Morven Our Mission & Values Frequently Asked QuestionsADA & Accessibility Staff & Board Directory Work With Us Online Bookstore Support Ways to Support Morven Become a Member Campaign for 2026 & Beyond Become a Volunteer Business & Corporate Sponsorship Planned Giving Exhibitions Currently On Display Upcoming Exhibitions Past Exhibitions Online Exhibitions Events & Programs Calendar of Events Festival of Trees Signature Events250th at Morven Weddings at Morven Private & Corporate Rentals Virtual Program Archive",
+          "event_type": "exhibition",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://www.morven.org/",
+          "description": "VisitPlan Your VisitBuy TicketsGet DirectionsExplore PrincetonGroup Tours & LunchesLibrary Pass ProgramAboutOur HistoryOur GardenSlavery at MorvenOur Mission & ValuesFrequently Asked QuestionsADA & Ac"
+        },
+        {
+          "title": "Northern Family, Southern Ties",
+          "event_type": "exhibition",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://www.morven.org/exhibitions/northern-family-southern-ties",
+          "description": "Curators are researching the complex connections between northern and southern families, and the interstate movement of enslaved people unveiling a story stretching from the late eighteenth century th"
+        }
+      ],
+      "error": null
+    },
+    {
+      "venue_name": "Palmer Square",
+      "venue_type": "shopping",
+      "venue_url": "https://palmersquare.com/",
+      "events_found": 0,
+      "events": [],
+      "error": null
+    },
+    {
+      "venue_name": "Princeton Battlefield State Park",
+      "venue_type": "historic_site",
+      "venue_url": "https://www.nj.gov/dep/parksandforests/parks/princeton.html",
+      "events_found": 3,
+      "events": [
+        {
+          "title": "Battle of Princeton Anniversary Reenactment",
+          "event_type": "event",
+          "start_date": "2024-01-03",
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://www.nj.gov/dep/parksandforests/parks/princeton-battlefield.html",
+          "description": "Annual reenactment of the Battle of Princeton"
+        },
+        {
+          "title": "Princeton Battlefield Society Museum Exhibits",
+          "event_type": "exhibition",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://www.nj.gov/dep/parksandforests/parks/princeton-battlefield.html",
+          "description": "Ongoing exhibits showcasing the history of the Battle of Princeton"
+        },
+        {
+          "title": "Living History Day",
+          "event_type": "event",
+          "start_date": "2024-05-18",
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://www.nj.gov/dep/parksandforests/parks/princeton-battlefield.html",
+          "description": "Annual event featuring historical reenactments and demonstrations"
+        }
+      ],
+      "error": null
+    },
+    {
+      "venue_name": "Princeton Public Library",
+      "venue_type": "arts_center",
+      "venue_url": "https://princetonlibrary.org/",
+      "events_found": 1,
+      "events": [
+        {
+          "title": "The Current Economy and Future Projections",
+          "event_type": "event",
+          "start_date": "2025-12-17",
+          "start_time": "18:30:00",
+          "end_time": "19:30:00",
+          "location": null,
+          "url": "https://princetonlibrary.libnet.info/event/14393341",
+          "description": "Nicol Nicola explores current economic trends and data-driven forecasts to help businesses, job seekers and others make informed strategic decisions in a rapidly evolving economy."
+        }
+      ],
+      "error": null
+    },
+    {
+      "venue_name": "Princeton University Art Museum",
+      "venue_type": "museum",
+      "venue_url": "https://artmuseum.princeton.edu",
+      "events_found": 5,
+      "events": [
+        {
+          "title": "Collections Highlights Tour",
+          "event_type": "tour",
+          "start_date": "2025-12-08",
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://artmuseum.princeton.edu/exhibitions-events/events/2025/collections-highlights-tour-2025-11-02-0",
+          "description": null
+        },
+        {
+          "title": "Conservation Studios Visiting HoursDecember 11, 2025 | 3\u20135 p.m.",
+          "event_type": "event",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://artmuseum.princeton.edu/exhibitions-events/events/2025/conservation-studios-visiting-hours-2025-12-11",
+          "description": null
+        },
+        {
+          "title": "FamilyArt for Families: Pop Art PortraitsDecember 13, 2025 | 10 a.m.\u20131 p.m.",
+          "event_type": "event",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://artmuseum.princeton.edu/exhibitions-events/events/2025/art-families-pop-art-portraits-2025-12-13",
+          "description": null
+        },
+        {
+          "title": "MembersMembers Highlights ToursDecember 13, 2025 | 11 a.m.\u201312 p.m.",
+          "event_type": "tour",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://artmuseum.princeton.edu/exhibitions-events/events/2025/members-highlights-tours-2025-11-08",
+          "description": null
+        },
+        {
+          "title": "Art MakingEmbossed Bookmark WorkshopDecember 13, 2025 | 2\u20133:30 p.m.",
+          "event_type": "workshop",
+          "start_date": null,
+          "start_time": null,
+          "end_time": null,
+          "location": null,
+          "url": "https://artmuseum.princeton.edu/exhibitions-events/events/2025/embossed-bookmark-workshop-2025-12-13",
+          "description": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "venue_name": "Princeton University Chapel",
+      "venue_type": "historic_site",
+      "venue_url": "https://chapel.princeton.edu",
+      "events_found": 0,
+      "events": [],
+      "error": null
+    }
+  ]
+}

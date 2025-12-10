@@ -1,0 +1,16 @@
+INFO: 🔍 Generic scraper: Starting scrape for https://www.morven.org/
+INFO:    Venue: Morven Museum & Garden
+INFO:    Event type filter: None
+INFO:    Time range: this_month
+INFO: 📄 Discovered 57 potential event pages
+INFO:    Discovered 10 event pages
+INFO:    Scraping event page 1/10: https://www.morven.org/exhibitions
+INFO:    ⚠️  Final attempt with cloudscraper for https://www.morven.org/exhibitions
+INFO:       Found 0 events on this page
+INFO:    Scraping event page 2/10: https://www.morven.org/exhibition
+INFO:    ⚠️  Final attempt with cloudscraper for https://www.morven.org/exhibition
+INFO:       Found 0 events on this page
+INFO:    Scraping event page 3/10: https://www.morven.org/exhibitions/current
+INFO:    ⚠️  Final attempt with cloudscraper for https://www.morven.org/exhibitions/current
+INFO:       Found 0 events on this page
+INFO:    Scraping event page 4/10: https://www.morven.org/exhibitions/on-view

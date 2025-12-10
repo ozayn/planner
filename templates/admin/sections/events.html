@@ -40,22 +40,30 @@
         </div>
         <!-- Event Scraping Section -->
         <div style="padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(0, 123, 255, 0.1);">
-            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">🕷️ Event Scraping</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
-                <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">🎨 Hirshhorn</button>
-                <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">🖼️ NGA</button>
-                <button onclick="startSAAMScraping()" class="add-button" style="background: #8b5cf6;">🎨 SAAM</button>
-                <button onclick="startNPGScraping()" class="add-button" style="background: #ffc1d9;">🖼️ NPG</button>
-                <button onclick="startAsianArtScraping()" class="add-button" style="background: #d4a5f7;">🖼️ Asian Art</button>
-                <!-- DISABLED: African Art Museum scraper not working - see FUTURE_FIXES.md -->
-                <button onclick="startAfricanArtScraping()" class="add-button" style="background: #ff9f43; opacity: 0.5; cursor: not-allowed;" disabled title="Temporarily disabled - see FUTURE_FIXES.md">🎨 African Art (Disabled)</button>
-                <button onclick="startSmithsonianScraping()" class="add-button" style="background: #dc3545;">🏛️ Smithsonian</button>
-                <button onclick="startMuseumScraping()" class="add-button" style="background: #6f42c1;">🏛️ Museums</button>
-                <button onclick="startAllVenuesScraping()" class="add-button" style="background: #20c997;">🌐 All Venues</button>
-                <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">☕ Webster's</button>
-                <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">🔍 Discover Venues</button>
+            <h4 style="margin: 0 0 16px 0; color: #374151; font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">🕷️ Event Scraping</h4>
+            
+            <!-- DC Museums Section -->
+            <div style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">📍 Washington, DC Museums</h5>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                    <button onclick="startHirshhornScraping()" class="add-button" style="background: #e91e63;">Hirshhorn</button>
+                    <button onclick="startNGAScraping()" class="add-button" style="background: #17a2b8;">NGA</button>
+                    <button onclick="startSAAMScraping()" class="add-button" style="background: #8b5cf6;">SAAM</button>
+                    <button onclick="startNPGScraping()" class="add-button" style="background: #ffc1d9;">NPG</button>
+                    <button onclick="startAsianArtScraping()" class="add-button" style="background: #d4a5f7;">Asian Art</button>
+                </div>
             </div>
-            <div id="scrapingStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;"></div>
+            
+            <!-- Other Venues Section -->
+            <div>
+                <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">🌍 Other Venues</h5>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                    <button onclick="startWebstersScraping()" class="add-button" style="background: #6f42c1;">Webster's</button>
+                    <button onclick="discoverNewVenues()" class="add-button" style="background: #fd7e14;">Discover Venues</button>
+                </div>
+            </div>
+            
+            <div id="scrapingStatus" style="margin-top: 16px; font-size: 0.9rem; color: #666;"></div>
         </div>
         <!-- Quick URL Event Creator -->
         <div style="margin-top: 0; padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.1);">

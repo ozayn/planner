@@ -470,6 +470,11 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             if meta_title:
                 title = meta_title.get_text(strip=True)
         
+        # Clean title: remove venue name suffix
+        if title:
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
+        
         if not title:
             logger.debug(f"   ⚠️ Could not find title for {url}")
             return None
@@ -814,6 +819,11 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
             meta_title = soup.find('title')
             if meta_title:
                 title = meta_title.get_text(strip=True)
+        
+        # Clean title: remove venue name suffix
+        if title:
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
         
         if not title:
             logger.debug(f"   ⚠️ Could not find title for {url}")
@@ -1284,12 +1294,19 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     continue
                 
                 # Validate required fields
-                if not event_data.get('title'):
+                title = event_data.get('title', '').strip()
+                if not title:
                     logger.warning(f"   ⚠️  Skipping event: missing title")
                     continue
                 
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
+                
                 if not event_data.get('start_date'):
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': missing start_date")
+                    logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
                     continue
                 
                 # Parse date

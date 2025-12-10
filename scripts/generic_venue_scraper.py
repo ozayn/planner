@@ -1164,6 +1164,10 @@ Important:
         if not title:
             return title
         
+        # First remove venue name suffixes
+        from scripts.utils import clean_event_title
+        title = clean_event_title(title)
+        
         # Remove HTML entities
         title = title.replace('&nbsp;', ' ').replace('&amp;', '&')
         title = title.replace('&quot;', '"').replace('&#39;', "'")

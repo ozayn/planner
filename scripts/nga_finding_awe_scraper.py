@@ -130,8 +130,6 @@ def scrape_individual_event(event_url, scraper=None):
         title_elem = soup.find('h1') or soup.find('title')
         if title_elem:
             title = title_elem.get_text(strip=True)
-            if '|' in title:
-                title = title.split('|')[0].strip()
         
         if not title or 'finding awe' not in title.lower():
             # Try to find title in meta tags
@@ -142,6 +140,10 @@ def scrape_individual_event(event_url, scraper=None):
         if not title:
             logger.warning(f"   ⚠️  No title found for {event_url}")
             return None
+        
+        # Clean title: remove venue name suffix
+        from scripts.utils import clean_event_title
+        title = clean_event_title(title)
         
         # Extract description - improved extraction
         description = None
@@ -591,12 +593,19 @@ def create_events_in_database(events):
         for event_data in events:
             try:
                 # Validate required fields
-                if not event_data.get('title'):
+                title = event_data.get('title', '').strip()
+                if not title:
                     logger.warning(f"   ⚠️  Skipping event: missing title")
                     continue
                 
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
+                
                 if not event_data.get('start_date'):
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': missing start_date")
+                    logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
                     continue
                 
                 # Parse date

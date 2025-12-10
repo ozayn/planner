@@ -81,67 +81,115 @@ def extract_event_data_from_url(url):
     Returns:
         dict with extracted event data
     """
-    # Check if this is a SAAM event page - use direct scraping similar to OCMA
-    if 'americanart.si.edu' in url.lower() and '/events/' in url.lower():
-        try:
-            logger.info(f"🎯 Detected SAAM event page - using direct scraping")
-            import cloudscraper
-            from bs4 import BeautifulSoup
-            from datetime import datetime
-            
-            scraper = cloudscraper.create_scraper()
-            response = scraper.get(url, timeout=15)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Extract title from h1
-            title = None
-            h1 = soup.find('h1')
-            if h1:
-                title = h1.get_text(strip=True)
-            
-            # Extract date/time from page text (format: "Wednesday, December 17, 2025, 10:30am EST")
-            # Also check schema.org structured data for more reliable extraction
-            page_text = soup.get_text()
-            start_date = None
-            start_time = None
-            end_time = None
-            
-            # For SAAM events, prioritize page text over schema.org (schema.org can be incorrect)
-            # First try page text patterns, then fall back to schema.org if needed
-            schema_script = soup.find('script', type='application/ld+json')
-            schema_extracted = False
-            
-            # Try page text first for SAAM events
-            page_text_extracted = False
-            
-            # Pattern 1: Full date with time range "Wednesday, December 17, 2025, 1 – 2pm EST"
-            date_time_range_simple = re.compile(
-                r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap]m)',
-                re.IGNORECASE
-            )
-            match = date_time_range_simple.search(page_text)
-            if match:
-                date_str = match.group(2).strip()
-                try:
-                    parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                    if not start_date:
-                        start_date = parsed_date
+    # Check if this is a SAAM event or exhibition page - use SAAM scraper
+    if 'americanart.si.edu' in url.lower():
+        # Handle SAAM exhibitions
+        # Uses the same scrape_exhibition_detail function as the main SAAM scraper
+        # This ensures consistency between bulk scraping and "Quick Add from URL"
+        if '/exhibitions/' in url.lower():
+            try:
+                logger.info(f"🎯 Detected SAAM exhibition page - using SAAM scraper")
+                from scripts.saam_scraper import scrape_exhibition_detail, create_scraper
+                
+                scraper = create_scraper()
+                event_data = scrape_exhibition_detail(scraper, url)
+                
+                if event_data:
+                    # Convert SAAM scraper format to URL scraper format
+                    # Extract times if available (exhibitions can have opening receptions, special events, etc.)
+                    start_time_str = None
+                    end_time_str = None
+                    if event_data.get('start_time'):
+                        start_time_obj = event_data.get('start_time')
+                        # Check if it's a time object using duck typing (avoid isinstance with time to prevent conflicts)
+                        if hasattr(start_time_obj, 'strftime') and hasattr(start_time_obj, 'hour') and hasattr(start_time_obj, 'minute'):
+                            start_time_str = start_time_obj.strftime('%H:%M')
+                        elif isinstance(start_time_obj, str):
+                            start_time_str = start_time_obj
+                    if event_data.get('end_time'):
+                        end_time_obj = event_data.get('end_time')
+                        # Check if it's a time object using duck typing (avoid isinstance with time to prevent conflicts)
+                        if hasattr(end_time_obj, 'strftime') and hasattr(end_time_obj, 'hour') and hasattr(end_time_obj, 'minute'):
+                            end_time_str = end_time_obj.strftime('%H:%M')
+                        elif isinstance(end_time_obj, str):
+                            end_time_str = end_time_obj
                     
-                    if not start_time:
-                        start_hour = int(match.group(3))
-                        end_hour = int(match.group(4))
-                        am_pm = match.group(5).upper()
-                        start_time = f"{start_hour}:00 {am_pm}"
-                        end_time = f"{end_hour}:00 {am_pm}"
-                        page_text_extracted = True
-                except ValueError:
+                    result = {
+                        'title': event_data.get('title'),
+                        'description': event_data.get('description'),
+                        'start_date': event_data.get('start_date').isoformat() if event_data.get('start_date') else None,
+                        'end_date': event_data.get('end_date').isoformat() if event_data.get('end_date') else None,
+                        'start_time': start_time_str,  # Exhibitions can have times (opening receptions, etc.)
+                        'end_time': end_time_str,
+                        'location': event_data.get('meeting_point') or event_data.get('organizer'),
+                        'venue': event_data.get('organizer'),
+                        'event_type': 'exhibition',
+                        'url': url,
+                        'image_url': event_data.get('image_url'),
+                        'is_online': False,
+                        'price': None,
+                        'is_registration_required': False,
+                        'registration_info': None,
+                        'language': 'English',
+                    }
+                    logger.info(f"✅ Successfully extracted SAAM exhibition data: {result.get('title')} - Dates: {result.get('start_date')} to {result.get('end_date')}")
+                    return result
+            except Exception as e:
+                logger.error(f"❌ Error scraping SAAM exhibition: {e}")
+                import traceback
+                logger.error(f"Full traceback: {traceback.format_exc()}")
+                # Don't fall through - SAAM scraper should work, so this is a real error
+                # Re-raise to prevent fallback to LLM
+                raise
+        
+        # Handle SAAM events
+        elif '/events/' in url.lower():
+            try:
+                logger.info(f"🎯 Detected SAAM event page - using direct scraping")
+                import cloudscraper
+                from bs4 import BeautifulSoup
+                from datetime import datetime
+                
+                scraper = cloudscraper.create_scraper()
+                response = scraper.get(url, timeout=15)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Extract title from h1
+                title = None
+                h1 = soup.find('h1')
+                if h1:
+                    title = h1.get_text(strip=True)
+                
+                # Extract date/time from page text (format: "Wednesday, December 17, 2025, 10:30am EST")
+                # Also check schema.org structured data for more reliable extraction
+                page_text = soup.get_text()
+                start_date = None
+                start_time = None
+                end_time = None
+                
+                # For SAAM events, prioritize page text over schema.org (schema.org can be incorrect)
+                # First try page text patterns, then fall back to schema.org if needed
+                schema_script = soup.find('script', type='application/ld+json')
+                schema_extracted = False
+                
+                # Try page text first for SAAM events
+                page_text_extracted = False
+                
+                # Pattern 1: Full date with time range "Wednesday, December 17, 2025, 1 – 2pm EST"
+                date_time_range_simple = re.compile(
+                    r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap]m)',
+                    re.IGNORECASE
+                )
+                match = date_time_range_simple.search(page_text)
+                if match:
+                    date_str = match.group(2).strip()
                     try:
-                        parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
+                        parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
                         if not start_date:
                             start_date = parsed_date
-                        
+                    
                         if not start_time:
                             start_hour = int(match.group(3))
                             end_hour = int(match.group(4))
@@ -150,35 +198,35 @@ def extract_event_data_from_url(url):
                             end_time = f"{end_hour}:00 {am_pm}"
                             page_text_extracted = True
                     except ValueError:
-                        pass
-            
-            # Pattern 2: Full date with time range with colons "Wednesday, December 17, 2025, 10:30 – 11:30am EST"
-            if not page_text_extracted:
-                date_time_range = re.compile(
-                    r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*([ap]m)',
-                    re.IGNORECASE
-                )
-                match = date_time_range.search(page_text)
-                if match:
-                    date_str = match.group(2).strip()
-                    try:
-                        parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                        if not start_date:
-                            start_date = parsed_date
-                        
-                        if not start_time:
-                            start_time_str = match.group(3)
-                            end_time_str = match.group(4)
-                            am_pm = match.group(5).upper()
-                            start_time = f"{start_time_str} {am_pm}"
-                            end_time = f"{end_time_str} {am_pm}"
-                            page_text_extracted = True
-                    except ValueError:
                         try:
                             parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
                             if not start_date:
                                 start_date = parsed_date
-                            
+                        
+                            if not start_time:
+                                start_hour = int(match.group(3))
+                                end_hour = int(match.group(4))
+                                am_pm = match.group(5).upper()
+                                start_time = f"{start_hour}:00 {am_pm}"
+                                end_time = f"{end_hour}:00 {am_pm}"
+                                page_text_extracted = True
+                        except ValueError:
+                            pass
+            
+                # Pattern 2: Full date with time range with colons "Wednesday, December 17, 2025, 10:30 – 11:30am EST"
+                if not page_text_extracted:
+                    date_time_range = re.compile(
+                        r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*([ap]m)',
+                        re.IGNORECASE
+                    )
+                    match = date_time_range.search(page_text)
+                    if match:
+                        date_str = match.group(2).strip()
+                        try:
+                            parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
+                            if not start_date:
+                                start_date = parsed_date
+                        
                             if not start_time:
                                 start_time_str = match.group(3)
                                 end_time_str = match.group(4)
@@ -187,48 +235,35 @@ def extract_event_data_from_url(url):
                                 end_time = f"{end_time_str} {am_pm}"
                                 page_text_extracted = True
                         except ValueError:
-                            pass
+                            try:
+                                parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
+                                if not start_date:
+                                    start_date = parsed_date
+                            
+                                if not start_time:
+                                    start_time_str = match.group(3)
+                                    end_time_str = match.group(4)
+                                    am_pm = match.group(5).upper()
+                                    start_time = f"{start_time_str} {am_pm}"
+                                    end_time = f"{end_time_str} {am_pm}"
+                                    page_text_extracted = True
+                            except ValueError:
+                                pass
             
-            # Pattern 3: Single time "Wednesday, December 17, 2025, 10:30am EST"
-            if not page_text_extracted:
-                date_time_single = re.compile(
-                    r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})([ap]m)',
-                    re.IGNORECASE
-                )
-                match = date_time_single.search(page_text)
-                if match:
-                    date_str = match.group(2).strip()
-                    try:
-                        parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                        if not start_date:
-                            start_date = parsed_date
-                        
-                        if not start_time:
-                            start_time_str = match.group(3)
-                            am_pm = match.group(4).upper()
-                            start_time = f"{start_time_str} {am_pm}"
-                            # Calculate end time as 1 hour later
-                            hour, minute = map(int, start_time_str.split(':'))
-                            if am_pm == 'PM' and hour != 12:
-                                hour += 12
-                            elif am_pm == 'AM' and hour == 12:
-                                hour = 0
-                            end_hour = (hour + 1) % 24
-                            if end_hour == 0:
-                                end_time = "12:00 AM"
-                            elif end_hour == 12:
-                                end_time = "12:00 PM"
-                            elif end_hour > 12:
-                                end_time = f"{end_hour - 12}:{minute:02d} PM"
-                            else:
-                                end_time = f"{end_hour}:{minute:02d} AM"
-                            page_text_extracted = True
-                    except ValueError:
+                # Pattern 3: Single time "Wednesday, December 17, 2025, 10:30am EST"
+                if not page_text_extracted:
+                    date_time_single = re.compile(
+                        r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2}:\d{2})([ap]m)',
+                        re.IGNORECASE
+                    )
+                    match = date_time_single.search(page_text)
+                    if match:
+                        date_str = match.group(2).strip()
                         try:
-                            parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
+                            parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
                             if not start_date:
                                 start_date = parsed_date
-                            
+                        
                             if not start_time:
                                 start_time_str = match.group(3)
                                 am_pm = match.group(4).upper()
@@ -250,30 +285,77 @@ def extract_event_data_from_url(url):
                                     end_time = f"{end_hour}:{minute:02d} AM"
                                 page_text_extracted = True
                         except ValueError:
-                            pass
+                            try:
+                                parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
+                                if not start_date:
+                                    start_date = parsed_date
+                            
+                                if not start_time:
+                                    start_time_str = match.group(3)
+                                    am_pm = match.group(4).upper()
+                                    start_time = f"{start_time_str} {am_pm}"
+                                    # Calculate end time as 1 hour later
+                                    hour, minute = map(int, start_time_str.split(':'))
+                                    if am_pm == 'PM' and hour != 12:
+                                        hour += 12
+                                    elif am_pm == 'AM' and hour == 12:
+                                        hour = 0
+                                    end_hour = (hour + 1) % 24
+                                    if end_hour == 0:
+                                        end_time = "12:00 AM"
+                                    elif end_hour == 12:
+                                        end_time = "12:00 PM"
+                                    elif end_hour > 12:
+                                        end_time = f"{end_hour - 12}:{minute:02d} PM"
+                                    else:
+                                        end_time = f"{end_hour}:{minute:02d} AM"
+                                    page_text_extracted = True
+                            except ValueError:
+                                pass
             
-            # Fallback to schema.org if page text extraction didn't work
-            if not page_text_extracted and schema_script:
-                try:
-                    import json
-                    schema_data = json.loads(schema_script.string)
-                    if isinstance(schema_data, dict):
-                        schema_data = [schema_data]
+                # Fallback to schema.org if page text extraction didn't work
+                if not page_text_extracted and schema_script:
+                    try:
+                        import json
+                        schema_data = json.loads(schema_script.string)
+                        if isinstance(schema_data, dict):
+                            schema_data = [schema_data]
                     
-                    for item in schema_data:
-                        if isinstance(item, dict) and item.get('@type') in ['Event', 'EventSeries']:
-                            # Extract startDate
-                            if 'startDate' in item:
-                                start_date_str = item['startDate']
-                                if 'T' in start_date_str:
-                                    # ISO format: "2025-12-17T10:30:00-05:00"
-                                    date_part, time_part = start_date_str.split('T')
-                                    try:
-                                        parsed_start_date = datetime.strptime(date_part, "%Y-%m-%d").date()
-                                        if not start_date:
-                                            start_date = parsed_start_date
+                        for item in schema_data:
+                            if isinstance(item, dict) and item.get('@type') in ['Event', 'EventSeries']:
+                                # Extract startDate
+                                if 'startDate' in item:
+                                    start_date_str = item['startDate']
+                                    if 'T' in start_date_str:
+                                        # ISO format: "2025-12-17T10:30:00-05:00"
+                                        date_part, time_part = start_date_str.split('T')
+                                        try:
+                                            parsed_start_date = datetime.strptime(date_part, "%Y-%m-%d").date()
+                                            if not start_date:
+                                                start_date = parsed_start_date
                                         
-                                        if not start_time:
+                                            if not start_time:
+                                                time_clean = time_part.split('+')[0].split('-')[0].split('Z')[0]
+                                                if ':' in time_clean:
+                                                    hours, minutes = time_clean.split(':')[:2]
+                                                    hour_int = int(hours)
+                                                    minute_int = int(minutes)
+                                                    am_pm = 'AM' if hour_int < 12 else 'PM'
+                                                    if hour_int == 0:
+                                                        hour_int = 12
+                                                    elif hour_int > 12:
+                                                        hour_int -= 12
+                                                    start_time = f"{hour_int}:{minute_int:02d} {am_pm}"
+                                                    schema_extracted = True
+                                        except (ValueError, IndexError):
+                                            pass
+                            
+                                # Extract endDate
+                                if 'endDate' in item:
+                                    end_date_str = item['endDate']
+                                    if 'T' in end_date_str:
+                                        time_part = end_date_str.split('T')[1]
+                                        try:
                                             time_clean = time_part.split('+')[0].split('-')[0].split('Z')[0]
                                             if ':' in time_clean:
                                                 hours, minutes = time_clean.split(':')[:2]
@@ -284,181 +366,160 @@ def extract_event_data_from_url(url):
                                                     hour_int = 12
                                                 elif hour_int > 12:
                                                     hour_int -= 12
-                                                start_time = f"{hour_int}:{minute_int:02d} {am_pm}"
-                                                schema_extracted = True
-                                    except (ValueError, IndexError):
-                                        pass
-                            
-                            # Extract endDate
-                            if 'endDate' in item:
-                                end_date_str = item['endDate']
-                                if 'T' in end_date_str:
-                                    time_part = end_date_str.split('T')[1]
-                                    try:
-                                        time_clean = time_part.split('+')[0].split('-')[0].split('Z')[0]
-                                        if ':' in time_clean:
-                                            hours, minutes = time_clean.split(':')[:2]
-                                            hour_int = int(hours)
-                                            minute_int = int(minutes)
-                                            am_pm = 'AM' if hour_int < 12 else 'PM'
-                                            if hour_int == 0:
-                                                hour_int = 12
-                                            elif hour_int > 12:
-                                                hour_int -= 12
-                                            end_time = f"{hour_int}:{minute_int:02d} {am_pm}"
-                                    except (ValueError, IndexError):
-                                        pass
-                except (json.JSONDecodeError, AttributeError, KeyError):
-                    pass
+                                                end_time = f"{hour_int}:{minute_int:02d} {am_pm}"
+                                        except (ValueError, IndexError):
+                                            pass
+                    except (json.JSONDecodeError, AttributeError, KeyError):
+                        pass
             
-            # If we got start time from schema.org but no end time, calculate it
-            if schema_extracted and start_time and not end_time:
-                # Calculate end time as 1 hour later
-                time_match = re.match(r'(\d{1,2}):(\d{2})\s+(AM|PM)', start_time)
-                if time_match:
-                    hour = int(time_match.group(1))
-                    minute = int(time_match.group(2))
-                    am_pm = time_match.group(3)
+                # If we got start time from schema.org but no end time, calculate it
+                if schema_extracted and start_time and not end_time:
+                    # Calculate end time as 1 hour later
+                    time_match = re.match(r'(\d{1,2}):(\d{2})\s+(AM|PM)', start_time)
+                    if time_match:
+                        hour = int(time_match.group(1))
+                        minute = int(time_match.group(2))
+                        am_pm = time_match.group(3)
                     
-                    # Convert to 24-hour for calculation
-                    hour_24 = hour
-                    if am_pm == 'PM' and hour != 12:
-                        hour_24 = hour + 12
-                    elif am_pm == 'AM' and hour == 12:
-                        hour_24 = 0
+                        # Convert to 24-hour for calculation
+                        hour_24 = hour
+                        if am_pm == 'PM' and hour != 12:
+                            hour_24 = hour + 12
+                        elif am_pm == 'AM' and hour == 12:
+                            hour_24 = 0
                     
-                    # Add 1 hour
-                    end_hour_24 = (hour_24 + 1) % 24
+                        # Add 1 hour
+                        end_hour_24 = (hour_24 + 1) % 24
                     
-                    # Convert back to 12-hour
-                    if end_hour_24 == 0:
-                        end_time = "12:00 AM"
-                    elif end_hour_24 == 12:
-                        end_time = "12:00 PM"
-                    elif end_hour_24 > 12:
-                        end_time = f"{end_hour_24 - 12}:{minute:02d} PM"
-                    else:
-                        end_time = f"{end_hour_24}:{minute:02d} AM"
-            
-            
-            # Extract description
-            description = None
-            desc_parts = []
-            for p in soup.find_all('p'):
-                text = p.get_text(strip=True)
-                if len(text) > 50 and not any(skip in text.lower() for skip in ['subscribe', 'newsletter', 'follow us', 'legal', 'privacy']):
-                    desc_parts.append(text)
-            if desc_parts:
-                description = ' '.join(desc_parts)
-            
-            # Extract location/meeting point
-            location = None
-            venue = None
-            meeting_point = None
-            
-            # Check Building field
-            for dt in soup.find_all('dt'):
-                if dt.get_text(strip=True).lower() == 'building':
-                    building_dd = dt.find_next_sibling('dd')
-                    if building_dd:
-                        venue = building_dd.get_text(strip=True)
-                        break
-            
-            # Check Event Location field
-            for dt in soup.find_all('dt'):
-                if dt.get_text(strip=True).lower() in ['event location', 'location']:
-                    location_dd = dt.find_next_sibling('dd')
-                    if location_dd:
-                        location_text = location_dd.get_text(strip=True)
-                        # Extract meeting point if it says "Meet in"
-                        meet_match = re.search(r'Meet\s+in\s+(.+?)(?:\s*\||$)', location_text, re.I)
-                        if meet_match:
-                            meeting_point = meet_match.group(1).strip()
+                        # Convert back to 12-hour
+                        if end_hour_24 == 0:
+                            end_time = "12:00 AM"
+                        elif end_hour_24 == 12:
+                            end_time = "12:00 PM"
+                        elif end_hour_24 > 12:
+                            end_time = f"{end_hour_24 - 12}:{minute:02d} PM"
                         else:
-                            meeting_point = location_text.split('|')[0].strip() if '|' in location_text else location_text
-                        break
+                            end_time = f"{end_hour_24}:{minute:02d} AM"
             
-            # Extract image URL
-            image_url = None
-            og_image = soup.find('meta', property='og:image')
-            if og_image and og_image.get('content'):
-                image_url = og_image.get('content')
             
-            # Determine if online
-            is_online = False
-            if 'virtual' in title.lower() if title else False:
-                is_online = True
-            if location_text and 'online' in location_text.lower():
-                is_online = True
+                # Extract description
+                description = None
+                desc_parts = []
+                for p in soup.find_all('p'):
+                    text = p.get_text(strip=True)
+                    if len(text) > 50 and not any(skip in text.lower() for skip in ['subscribe', 'newsletter', 'follow us', 'legal', 'privacy']):
+                        desc_parts.append(text)
+                if desc_parts:
+                    description = ' '.join(desc_parts)
             
-            # Extract price and registration requirement
-            price = None
-            is_registration_required = False
-            registration_info = None
-            for dt in soup.find_all('dt'):
-                if dt.get_text(strip=True).lower() == 'cost':
-                    cost_dd = dt.find_next_sibling('dd')
-                    if cost_dd:
-                        cost_text = cost_dd.get_text(strip=True)
-                        # Extract price
-                        if 'free' in cost_text.lower():
-                            price = 'Free'
-                        else:
-                            price_match = re.search(r'\$(\d+)', cost_text)
-                            if price_match:
-                                price = f"${price_match.group(1)}"
-                        
-                        # Extract registration requirement
-                        if 'registration required' in cost_text.lower() or 'registration' in cost_text.lower():
-                            is_registration_required = True
-                            # Extract the full registration info (e.g., "Free | Registration required")
-                            if '|' in cost_text:
-                                parts = cost_text.split('|')
-                                registration_info = parts[1].strip() if len(parts) > 1 else None
+                # Extract location/meeting point
+                location = None
+                venue = None
+                meeting_point = None
+            
+                # Check Building field
+                for dt in soup.find_all('dt'):
+                    if dt.get_text(strip=True).lower() == 'building':
+                        building_dd = dt.find_next_sibling('dd')
+                        if building_dd:
+                            venue = building_dd.get_text(strip=True)
+                            break
+            
+                # Check Event Location field
+                for dt in soup.find_all('dt'):
+                    if dt.get_text(strip=True).lower() in ['event location', 'location']:
+                        location_dd = dt.find_next_sibling('dd')
+                        if location_dd:
+                            location_text = location_dd.get_text(strip=True)
+                            # Extract meeting point if it says "Meet in"
+                            meet_match = re.search(r'Meet\s+in\s+(.+?)(?:\s*\||$)', location_text, re.I)
+                            if meet_match:
+                                meeting_point = meet_match.group(1).strip()
                             else:
-                                registration_info = cost_text.strip()
-                        break
+                                meeting_point = location_text.split('|')[0].strip() if '|' in location_text else location_text
+                            break
             
-            # Determine event type
-            event_type = 'event'
-            if title:
-                title_lower = title.lower()
-                if 'tour' in title_lower:
-                    event_type = 'tour'
-                elif 'workshop' in title_lower:
-                    event_type = 'workshop'
-                elif 'talk' in title_lower or 'gallery talk' in title_lower:
-                    event_type = 'talk'
-                elif 'exhibition' in title_lower:
-                    event_type = 'exhibition'
+                # Extract image URL
+                image_url = None
+                og_image = soup.find('meta', property='og:image')
+                if og_image and og_image.get('content'):
+                    image_url = og_image.get('content')
             
-            if title and start_date:
-                result = {
-                    'title': title,
-                    'description': description,
-                    'start_date': start_date.isoformat() if start_date else None,
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'location': meeting_point or location or venue,
-                    'venue': venue,
-                    'event_type': event_type,
-                    'url': url,
-                    'image_url': image_url,
-                    'is_online': is_online,
-                    'price': price,
-                    'is_registration_required': is_registration_required,
-                    'registration_info': registration_info,
-                    'language': 'English',
-                }
-                logger.info(f"✅ Successfully extracted SAAM event data: {result.get('title')}")
-                return result
-            else:
-                logger.warning(f"⚠️ Missing required fields (title: {bool(title)}, date: {bool(start_date)})")
-        except Exception as e:
-            logger.warning(f"⚠️ Error scraping SAAM event: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
-            # Fall through to generic scraping
+                # Determine if online
+                is_online = False
+                if 'virtual' in title.lower() if title else False:
+                    is_online = True
+                if location_text and 'online' in location_text.lower():
+                    is_online = True
+            
+                # Extract price and registration requirement
+                price = None
+                is_registration_required = False
+                registration_info = None
+                for dt in soup.find_all('dt'):
+                    if dt.get_text(strip=True).lower() == 'cost':
+                        cost_dd = dt.find_next_sibling('dd')
+                        if cost_dd:
+                            cost_text = cost_dd.get_text(strip=True)
+                            # Extract price
+                            if 'free' in cost_text.lower():
+                                price = 'Free'
+                            else:
+                                price_match = re.search(r'\$(\d+)', cost_text)
+                                if price_match:
+                                    price = f"${price_match.group(1)}"
+                        
+                            # Extract registration requirement
+                            if 'registration required' in cost_text.lower() or 'registration' in cost_text.lower():
+                                is_registration_required = True
+                                # Extract the full registration info (e.g., "Free | Registration required")
+                                if '|' in cost_text:
+                                    parts = cost_text.split('|')
+                                    registration_info = parts[1].strip() if len(parts) > 1 else None
+                                else:
+                                    registration_info = cost_text.strip()
+                            break
+            
+                # Determine event type
+                event_type = 'event'
+                if title:
+                    title_lower = title.lower()
+                    if 'tour' in title_lower:
+                        event_type = 'tour'
+                    elif 'workshop' in title_lower:
+                        event_type = 'workshop'
+                    elif 'talk' in title_lower or 'gallery talk' in title_lower:
+                        event_type = 'talk'
+                    elif 'exhibition' in title_lower:
+                        event_type = 'exhibition'
+            
+                if title and start_date:
+                    result = {
+                        'title': title,
+                        'description': description,
+                        'start_date': start_date.isoformat() if start_date else None,
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'location': meeting_point or location or venue,
+                        'venue': venue,
+                        'event_type': event_type,
+                        'url': url,
+                        'image_url': image_url,
+                        'is_online': is_online,
+                        'price': price,
+                        'is_registration_required': is_registration_required,
+                        'registration_info': registration_info,
+                        'language': 'English',
+                    }
+                    logger.info(f"✅ Successfully extracted SAAM event data: {result.get('title')}")
+                    return result
+                else:
+                    logger.warning(f"⚠️ Missing required fields (title: {bool(title)}, date: {bool(start_date)})")
+            except Exception as e:
+                logger.warning(f"⚠️ Error scraping SAAM event: {e}")
+                import traceback
+                logger.debug(traceback.format_exc())
+                # Fall through to generic scraping
     
     # Check if this is an NPG event page - use NPG scraper function
     if 'npg.si.edu' in url.lower() and '/event/' in url.lower():
@@ -871,13 +932,29 @@ def extract_event_data_from_url(url):
                         except:
                             language = 'English'
                     
+                    # Extract times if available (exhibitions can have opening receptions, special events, etc.)
+                    start_time_str = None
+                    end_time_str = None
+                    if event_data.get('start_time'):
+                        start_time_obj = event_data.get('start_time')
+                        if isinstance(start_time_obj, time):
+                            start_time_str = start_time_obj.strftime('%H:%M')
+                        elif isinstance(start_time_obj, str):
+                            start_time_str = start_time_obj
+                    if event_data.get('end_time'):
+                        end_time_obj = event_data.get('end_time')
+                        if isinstance(end_time_obj, time):
+                            end_time_str = end_time_obj.strftime('%H:%M')
+                        elif isinstance(end_time_obj, str):
+                            end_time_str = end_time_obj
+                    
                     return {
                         'title': event_data.get('title'),
                         'description': event_data.get('description'),
                         'start_date': start_date_str,
                         'end_date': end_date_str,
-                        'start_time': None,  # Exhibitions don't have times
-                        'end_time': None,
+                        'start_time': start_time_str,  # Exhibitions can have times
+                        'end_time': end_time_str,
                         'location': event_data.get('location'),
                         'image_url': event_data.get('image_url'),
                         'event_type': event_data.get('event_type', 'exhibition'),
@@ -1095,7 +1172,15 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 if event_data:
                     # Use scraped data, but allow override_data to override specific fields
                     title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
-                    description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+                    if title:
+                        title = title.strip()
+                        # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                        from scripts.utils import is_category_heading
+                        if is_category_heading(title):
+                            logger.warning(f"   ⏭️ Skipping category heading: '{title}'")
+                            event_data = None  # Skip this event
+                    if event_data:  # Only proceed if not skipped
+                        description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
                     image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
                     meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
                     
@@ -1148,47 +1233,80 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         if event_data and '/exhibitions/' in url.lower():
             # Use scraped data, but allow override_data to override specific fields
             title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
-            description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
-            image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
-            meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
-            
-            # Parse dates
-            start_date = None
-            end_date = None
-            if override_data and override_data.get('start_date'):
-                try:
-                    start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
-                except:
-                    pass
-            if not start_date and event_data.get('start_date'):
-                try:
-                    if isinstance(event_data['start_date'], str):
-                        start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
-                    else:
-                        start_date = event_data['start_date']
-                except:
-                    pass
-            
-            if override_data and override_data.get('end_date'):
-                try:
-                    end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
-                except:
-                    pass
-            if not end_date and event_data.get('end_date'):
-                try:
-                    if isinstance(event_data['end_date'], str):
-                        end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
-                    else:
-                        end_date = event_data['end_date']
-                except:
-                    pass
-            
-            # Exhibitions don't have times
-            start_time = None
-            end_time = None
-            schedule_info = None
-            days_of_week = []
-            event_type = event_data.get('event_type', 'exhibition')
+            if title:
+                title = title.strip()
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.warning(f"   ⏭️ Skipping category heading: '{title}'")
+                    event_data = None  # Skip this event
+            if event_data:  # Only proceed if not skipped
+                description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+                image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
+                meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
+                
+                # Parse dates
+                start_date = None
+                end_date = None
+                if override_data and override_data.get('start_date'):
+                    try:
+                        start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
+                    except:
+                        pass
+                if not start_date and event_data.get('start_date'):
+                    try:
+                        if isinstance(event_data['start_date'], str):
+                            start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                        else:
+                            start_date = event_data['start_date']
+                    except:
+                        pass
+                
+                if override_data and override_data.get('end_date'):
+                    try:
+                        end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
+                    except:
+                        pass
+                if not end_date and event_data.get('end_date'):
+                    try:
+                        if isinstance(event_data['end_date'], str):
+                            end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+                        else:
+                            end_date = event_data['end_date']
+                    except:
+                        pass
+                
+                # Extract times if available (exhibitions can have opening receptions, special events, etc.)
+                start_time = None
+                end_time = None
+                if event_data.get('start_time'):
+                    start_time_str = event_data.get('start_time')
+                    if isinstance(start_time_str, str):
+                        # Try to parse time string
+                        try:
+                            if ':' in start_time_str:
+                                parts = start_time_str.split(':')
+                                start_time = time(int(parts[0]), int(parts[1]))
+                            else:
+                                start_time = time(int(start_time_str), 0)
+                        except (ValueError, IndexError):
+                            pass
+                if event_data.get('end_time'):
+                    end_time_str = event_data.get('end_time')
+                    if isinstance(end_time_str, str):
+                        # Try to parse time string
+                        try:
+                            if ':' in end_time_str:
+                                parts = end_time_str.split(':')
+                                end_time = time(int(parts[0]), int(parts[1]))
+                            else:
+                                end_time = time(int(end_time_str), 0)
+                        except (ValueError, IndexError):
+                            pass
+                
+                schedule_info = None
+                days_of_week = []
+                event_type = event_data.get('event_type', 'exhibition')
         
         # Check if this is an NPG event - use extract_event_data_from_url which has NPG-specific logic
         if not event_data and 'npg.si.edu' in url.lower() and '/event/' in url.lower():
@@ -1199,84 +1317,92 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     logger.info(f"✅ Successfully extracted NPG event data")
                     # Process NPG event_data to extract dates and times
                     title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
-                    description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
-                    image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
-                    meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
-                    
-                    # Parse dates from event_data
-                    start_date = None
-                    end_date = None
-                    if override_data and override_data.get('start_date'):
-                        try:
-                            start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
-                        except:
-                            pass
-                    if not start_date and event_data.get('start_date'):
-                        try:
-                            if isinstance(event_data['start_date'], str):
-                                start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
-                            else:
-                                start_date = event_data['start_date']
-                        except:
-                            pass
-                    
-                    if override_data and override_data.get('end_date'):
-                        try:
-                            end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
-                        except:
-                            pass
-                    if not end_date and event_data.get('end_date'):
-                        try:
-                            if isinstance(event_data['end_date'], str):
-                                end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
-                            else:
-                                end_date = event_data['end_date']
-                        except:
-                            pass
-                    elif start_date:
-                        end_date = start_date
-                    
-                    # Parse times from event_data
-                    from datetime import time as dt_time
-                    start_time = None
-                    end_time = None
-                    
-                    # Parse start_time from string like "5:30 p.m." or "5:30pm"
-                    if override_data and override_data.get('start_time'):
-                        start_time_str = override_data['start_time']
-                        start_time = _parse_time_string_npg(start_time_str)
-                    elif event_data.get('start_time'):
-                        start_time_str = event_data['start_time']
-                        start_time = _parse_time_string_npg(start_time_str)
-                    
-                    # Parse end_time
-                    if override_data and override_data.get('end_time'):
-                        end_time_str = override_data['end_time']
-                        end_time = _parse_time_string_npg(end_time_str)
-                    elif event_data.get('end_time'):
-                        end_time_str = event_data['end_time']
-                        end_time = _parse_time_string_npg(end_time_str)
-                    
-                    schedule_info = None
-                    days_of_week = []
-                    event_type = event_data.get('event_type', 'event')
-                    
-                    # Store extracted values back in event_data dict so they're accessible later
-                    # when creating/updating events. Keep the original event_data dict intact
-                    # with all fields (registration_info, price, etc.) for later use.
-                    # The local variables (title, description, etc.) are already set above
-                    # and will be used directly in event creation.
-                    event_data['processed'] = True  # Flag to indicate this is already processed
-                    # Ensure all extracted fields are in event_data dict
-                    event_data['title'] = title
-                    event_data['description'] = description
-                    event_data['start_date'] = start_date
-                    event_data['end_date'] = end_date
-                    event_data['start_time'] = start_time
-                    event_data['end_time'] = end_time
-                    event_data['location'] = meeting_point
-                    event_data['image_url'] = image_url
-                    event_data['event_type'] = event_type
+                    if title:
+                        title = title.strip()
+                        # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                        from scripts.utils import is_category_heading
+                        if is_category_heading(title):
+                            logger.warning(f"   ⏭️ Skipping category heading: '{title}'")
+                            event_data = None  # Skip this event
+                    if event_data:  # Only proceed if not skipped
+                        description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+                        image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
+                        meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
+                        
+                        # Parse dates from event_data
+                        start_date = None
+                        end_date = None
+                        if override_data and override_data.get('start_date'):
+                            try:
+                                start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
+                            except:
+                                pass
+                        if not start_date and event_data.get('start_date'):
+                            try:
+                                if isinstance(event_data['start_date'], str):
+                                    start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                                else:
+                                    start_date = event_data['start_date']
+                            except:
+                                pass
+                        
+                        if override_data and override_data.get('end_date'):
+                            try:
+                                end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
+                            except:
+                                pass
+                        if not end_date and event_data.get('end_date'):
+                            try:
+                                if isinstance(event_data['end_date'], str):
+                                    end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+                                else:
+                                    end_date = event_data['end_date']
+                            except:
+                                pass
+                        elif start_date:
+                            end_date = start_date
+                        
+                        # Parse times from event_data
+                        from datetime import time as dt_time
+                        start_time = None
+                        end_time = None
+                        
+                        # Parse start_time from string like "5:30 p.m." or "5:30pm"
+                        if override_data and override_data.get('start_time'):
+                            start_time_str = override_data['start_time']
+                            start_time = _parse_time_string_npg(start_time_str)
+                        elif event_data.get('start_time'):
+                            start_time_str = event_data['start_time']
+                            start_time = _parse_time_string_npg(start_time_str)
+                        
+                        # Parse end_time
+                        if override_data and override_data.get('end_time'):
+                            end_time_str = override_data['end_time']
+                            end_time = _parse_time_string_npg(end_time_str)
+                        elif event_data.get('end_time'):
+                            end_time_str = event_data['end_time']
+                            end_time = _parse_time_string_npg(end_time_str)
+                        
+                        schedule_info = None
+                        days_of_week = []
+                        event_type = event_data.get('event_type', 'event')
+                        
+                        # Store extracted values back in event_data dict so they're accessible later
+                        # when creating/updating events. Keep the original event_data dict intact
+                        # with all fields (registration_info, price, etc.) for later use.
+                        # The local variables (title, description, etc.) are already set above
+                        # and will be used directly in event creation.
+                        event_data['processed'] = True  # Flag to indicate this is already processed
+                        # Ensure all extracted fields are in event_data dict
+                        event_data['title'] = title
+                        event_data['description'] = description
+                        event_data['start_date'] = start_date
+                        event_data['end_date'] = end_date
+                        event_data['start_time'] = start_time
+                        event_data['end_time'] = end_time
+                        event_data['location'] = meeting_point
+                        event_data['image_url'] = image_url
+                        event_data['event_type'] = event_type
             except Exception as e:
                 logger.warning(f"NPG extraction failed in scrape_event_from_url: {e}")
                 import traceback
@@ -1292,45 +1418,53 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     logger.info(f"✅ Successfully extracted OCMA event data")
                     # Process OCMA event_data to extract dates and times
                     title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
-                    description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
-                    image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
-                    meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
-                    
-                    # Parse dates from event_data
-                    start_date = None
-                    end_date = None
-                    if override_data and override_data.get('start_date'):
-                        try:
-                            start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
-                        except:
-                            pass
-                    if not start_date and event_data.get('start_date'):
-                        try:
-                            if isinstance(event_data['start_date'], str):
-                                start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
-                            else:
-                                start_date = event_data['start_date']
-                        except:
-                            pass
-                    
-                    if override_data and override_data.get('end_date'):
-                        try:
-                            end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
-                        except:
-                            pass
-                    if not end_date and event_data.get('end_date'):
-                        try:
-                            if isinstance(event_data['end_date'], str):
-                                end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
-                            else:
-                                end_date = event_data['end_date']
-                        except:
-                            pass
-                    
-                    # Parse times from event_data
-                    from datetime import time as dt_time
-                    start_time = None
-                    end_time = None
+                    if title:
+                        title = title.strip()
+                        # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                        from scripts.utils import is_category_heading
+                        if is_category_heading(title):
+                            logger.warning(f"   ⏭️ Skipping category heading: '{title}'")
+                            event_data = None  # Skip this event
+                    if event_data:  # Only proceed if not skipped
+                        description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+                        image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
+                        meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
+                        
+                        # Parse dates from event_data
+                        start_date = None
+                        end_date = None
+                        if override_data and override_data.get('start_date'):
+                            try:
+                                start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
+                            except:
+                                pass
+                        if not start_date and event_data.get('start_date'):
+                            try:
+                                if isinstance(event_data['start_date'], str):
+                                    start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                                else:
+                                    start_date = event_data['start_date']
+                            except:
+                                pass
+                        
+                        if override_data and override_data.get('end_date'):
+                            try:
+                                end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
+                            except:
+                                pass
+                        if not end_date and event_data.get('end_date'):
+                            try:
+                                if isinstance(event_data['end_date'], str):
+                                    end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+                                else:
+                                    end_date = event_data['end_date']
+                            except:
+                                pass
+                        
+                        # Parse times from event_data
+                        from datetime import time as dt_time
+                        start_time = None
+                        end_time = None
                     if override_data and override_data.get('start_time'):
                         try:
                             parts = override_data['start_time'].split(':')
@@ -1373,7 +1507,18 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         # Use override data if provided, otherwise scrape
         # Skip if NPG data was already extracted (event_data will have 'processed' flag)
         if override_data and any(override_data.values()) and not (event_data and event_data.get('processed')):
-            title = override_data.get('title')
+            title = override_data.get('title', '').strip() if override_data.get('title') else None
+            if title:
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.warning(f"   ⏭️ Skipping category heading: '{title}'")
+                    return {
+                        'success': False,
+                        'events_created': 0,
+                        'events': [],
+                        'error': f'Invalid title: "{title}" is a category heading, not an event title'
+                    }
             description = override_data.get('description')
             image_url = override_data.get('image_url')
             meeting_point = override_data.get('location')
@@ -1483,6 +1628,18 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         else:
             # Single event - use period start date
             event_dates = [period_start]
+        
+        # Validate title before creating events
+        if title:
+            from scripts.utils import is_category_heading
+            if is_category_heading(title):
+                logger.warning(f"   ⏭️ Skipping category heading: '{title}'")
+                return {
+                    'success': False,
+                    'events_created': 0,
+                    'events': [],
+                    'error': f'Invalid title: "{title}" is a category heading, not an event title'
+                }
         
         # Create events in database
         events_created = 0
@@ -1806,6 +1963,12 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 # Set defaults if still None
                 if is_registration_required is None:
                     is_registration_required = False
+                
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
                 
                 event = Event(
                     title=title,

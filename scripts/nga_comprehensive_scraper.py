@@ -273,16 +273,17 @@ def scrape_nga_exhibition_page(exhibition_url, scraper):
         og_title = soup.find('meta', property='og:title')
         if og_title:
             title = og_title.get('content', '').strip()
-            if '|' in title:
-                title = title.split('|')[0].strip()
         
         # Try title tag if OG title not found
         if not title:
             title_tag = soup.find('title')
             if title_tag:
                 title = title_tag.get_text(strip=True)
-                if '|' in title:
-                    title = title.split('|')[0].strip()
+        
+        # Clean title: remove venue name suffix
+        if title:
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
         
         # Try H1, but skip generic ones like "Global Search"
         if not title:
@@ -735,12 +736,10 @@ def scrape_nga_tour_page(tour_url, scraper):
                 if h1_text.lower() not in ['global search', 'menu', 'directions']:
                     title = h1_text
         
-        # Clean up title - remove site name suffix
+        # Clean title: remove venue name suffix
         if title:
-            if '|' in title:
-                title = title.split('|')[0].strip()
-            # Remove common suffixes
-            title = title.replace('| National Gallery of Art', '').strip()
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
         
         if not title:
             logger.warning(f"   ⚠️  No title found for {tour_url}")
@@ -921,8 +920,9 @@ def scrape_nga_talk_page(talk_url, scraper):
         title_elem = soup.find('h1') or soup.find('title')
         if title_elem:
             title = title_elem.get_text(strip=True)
-            if '|' in title:
-                title = title.split('|')[0].strip()
+            # Clean title: remove venue name suffix
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
         
         if not title:
             return None
@@ -1033,8 +1033,9 @@ def scrape_nga_generic_event_page(event_url, scraper):
         title_elem = soup.find('h1') or soup.find('title')
         if title_elem:
             title = title_elem.get_text(strip=True)
-            if '|' in title:
-                title = title.split('|')[0].strip()
+            # Clean title: remove venue name suffix
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
         
         if not title:
             return None
@@ -1343,7 +1344,11 @@ def extract_registration_info(page_text, soup):
 
 
 def create_events_in_database(events):
-    """Create scraped events in the database with update-or-create logic"""
+    """Create scraped events in the database with update-or-create logic
+    Returns (created_count, updated_count)
+    """
+    # Always use app.app_context() to ensure db is properly bound
+    # This works even when called from Flask routes (Flask handles nested contexts)
     with app.app_context():
         # Find venue and city
         venue = Venue.query.filter(
@@ -1354,6 +1359,8 @@ def create_events_in_database(events):
             logger.error(f"❌ Venue '{VENUE_NAME}' not found")
             return 0, 0
         
+        logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
+        
         city = City.query.filter(
             db.func.lower(City.name).like(f'%{CITY_NAME.lower().split(",")[0]}%')
         ).first()
@@ -1362,18 +1369,33 @@ def create_events_in_database(events):
             logger.error(f"❌ City '{CITY_NAME}' not found")
             return 0, 0
         
+        logger.info(f"✅ Found city: {city.name} (ID: {city.id})")
+        logger.info(f"📊 Processing {len(events)} events...")
+        
         created_count = 0
         updated_count = 0
+        skipped_count = 0
+        error_count = 0
         
         for event_data in events:
             try:
                 # Validate required fields
-                if not event_data.get('title'):
+                title = event_data.get('title', '').strip()
+                if not title:
                     logger.warning(f"   ⚠️  Skipping event: missing title")
+                    skipped_count += 1
+                    continue
+                
+                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
+                from scripts.utils import is_category_heading
+                if is_category_heading(title):
+                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    skipped_count += 1
                     continue
                 
                 if not event_data.get('start_date'):
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': missing start_date")
+                    logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
+                    skipped_count += 1
                     continue
                 
                 # Parse date
@@ -1381,6 +1403,7 @@ def create_events_in_database(events):
                     event_date = datetime.fromisoformat(event_data['start_date']).date()
                 except (ValueError, TypeError) as e:
                     logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format: {e}")
+                    skipped_count += 1
                     continue
                 
                 # Check if event already exists (by URL or title+venue+date)
@@ -1390,14 +1413,20 @@ def create_events_in_database(events):
                         url=event_data.get('url'),
                         city_id=city.id
                     ).first()
+                    if existing:
+                        logger.debug(f"   Found existing event by URL: {event_data.get('title')}")
                 
                 if not existing:
+                    # Check by title+venue+date (more flexible matching)
+                    venue_id_for_check = venue.id if not event_data.get('is_online') else None
                     existing = Event.query.filter_by(
                         title=event_data.get('title'),
-                        venue_id=venue.id if not event_data.get('is_online') else None,
+                        venue_id=venue_id_for_check,
                         start_date=event_date,
                         city_id=city.id
                     ).first()
+                    if existing:
+                        logger.debug(f"   Found existing event by title+venue+date: {event_data.get('title')}")
                 
                 # Parse times
                 start_time_obj = None
@@ -1485,7 +1514,6 @@ def create_events_in_database(events):
                         if (created_count + updated_count) % 5 == 0:
                             try:
                                 import json
-                                from datetime import datetime
                                 progress_file = os.path.join(project_root, 'scraping_progress.json')
                                 if os.path.exists(progress_file):
                                     with open(progress_file, 'r') as f:
@@ -1502,7 +1530,9 @@ def create_events_in_database(events):
                             except Exception as e:
                                 logger.debug(f"Could not update progress file: {e}")
                     else:
-                        logger.info(f"   ⚠️  Event already exists (no updates needed): {event_data['title']}")
+                        # Event exists but no updates needed - this is fine, just log at debug level
+                        logger.debug(f"   ℹ️  Event already exists (no updates needed): {event_data['title']} on {event_date}")
+                        # Don't count as skipped - it's a valid duplicate
                 else:
                     # Create new event
                     event = Event(
@@ -1527,38 +1557,57 @@ def create_events_in_database(events):
                         registration_info=event_data.get('registration_info'),
                     )
                     
-                    db.session.add(event)
-                    db.session.commit()
-                    created_count += 1
-                    logger.info(f"   ✅ Created: {event_data['title']}")
+                    try:
+                        db.session.add(event)
+                        db.session.commit()
+                        created_count += 1
+                        logger.info(f"   ✅ Created: {event_data['title']} on {event_date}")
+                    except Exception as commit_error:
+                        db.session.rollback()
+                        logger.error(f"   ❌ Database error creating event '{event_data.get('title')}': {commit_error}")
+                        import traceback
+                        logger.debug(traceback.format_exc())
+                        error_count += 1
+                        continue
                     
-                        # Update progress file every 5 events for real-time table updates
-                        if (created_count + updated_count) % 5 == 0:
-                            try:
-                                import json
-                                from datetime import datetime
-                                progress_file = os.path.join(project_root, 'scraping_progress.json')
-                                if os.path.exists(progress_file):
-                                    with open(progress_file, 'r') as f:
-                                        progress_data = json.load(f)
-                                    progress_data.update({
-                                        'events_saved': created_count,
-                                        'events_updated': updated_count,
-                                        'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
-                                        'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
-                                        'timestamp': datetime.now().isoformat()
-                                    })
-                                    with open(progress_file, 'w') as f:
-                                        json.dump(progress_data, f)
-                            except Exception as e:
-                                logger.debug(f"Could not update progress file: {e}")
-                
+                    # Update progress file every 5 events for real-time table updates
+                    if (created_count + updated_count) % 5 == 0:
+                        try:
+                            import json
+                            progress_file = os.path.join(project_root, 'scraping_progress.json')
+                            if os.path.exists(progress_file):
+                                with open(progress_file, 'r') as f:
+                                    progress_data = json.load(f)
+                                progress_data.update({
+                                    'events_saved': created_count,
+                                    'events_updated': updated_count,
+                                    'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
+                                    'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
+                                    'timestamp': datetime.now().isoformat()
+                                })
+                                with open(progress_file, 'w') as f:
+                                    json.dump(progress_data, f)
+                        except Exception as e:
+                            logger.debug(f"Could not update progress file: {e}")
+            
             except Exception as e:
-                logger.error(f"   ❌ Error processing event {event_data.get('title')}: {e}")
+                logger.error(f"   ❌ Error processing event {event_data.get('title', 'Unknown')}: {e}")
+                import traceback
+                logger.debug(traceback.format_exc())
+                error_count += 1
                 db.session.rollback()
                 continue
         
         logger.info(f"✅ Created {created_count} new events, updated {updated_count} existing events")
+        if skipped_count > 0:
+            logger.info(f"⚠️  Skipped {skipped_count} events (missing fields or invalid data)")
+        if error_count > 0:
+            logger.warning(f"❌ Errors processing {error_count} events")
+        if created_count == 0 and updated_count == 0 and len(events) > 0:
+            logger.warning(f"⚠️  No events were created or updated, but {len(events)} events were scraped.")
+            logger.warning(f"   - Skipped: {skipped_count}, Errors: {error_count}")
+            logger.warning(f"   - This might indicate all events are duplicates or there's an issue with event processing.")
+        
         return created_count, updated_count
 
 
