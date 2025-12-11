@@ -188,12 +188,21 @@ class GenericVenueScraper:
                     logger.info(f"   ⚠️  403 Forbidden, trying cloudscraper for {url}")
                     if attempt < max_retries - 1:
                         scraper = self._get_cloudscraper(base_url or url)
-                        # Refresh session
+                        # Refresh session by visiting base URL first
                         try:
-                            scraper.get(base_url or url, timeout=15, verify=False)
+                            base = base_url or url.split('/')[0] + '//' + url.split('/')[2] if '/' in url else base_url or url
+                            scraper.get(base, timeout=15, verify=False)
                             time.sleep(2)
                         except:
                             pass
+                        # Now retry with cloudscraper
+                        try:
+                            response = scraper.get(url, timeout=20, verify=False)
+                            if response.status_code == 200:
+                                return response
+                            # If still 403, continue to next attempt
+                        except Exception as e:
+                            logger.debug(f"   ⚠️  Cloudscraper attempt failed: {e}")
                         continue
                 
                 response.raise_for_status()
