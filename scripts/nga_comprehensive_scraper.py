@@ -1415,9 +1415,15 @@ def create_events_in_database(events):
                         skipped_count += 1
                         continue
                 
-                # Parse date
+                # Parse date - handle both string and date object
                 try:
-                    event_date = datetime.fromisoformat(event_data['start_date']).date()
+                    start_date_value = event_data['start_date']
+                    if isinstance(start_date_value, date):
+                        event_date = start_date_value
+                    elif isinstance(start_date_value, str):
+                        event_date = datetime.fromisoformat(start_date_value).date()
+                    else:
+                        raise ValueError(f"Unexpected date type: {type(start_date_value)}")
                 except (ValueError, TypeError) as e:
                     logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format: {e}")
                     skipped_count += 1
@@ -1561,7 +1567,7 @@ def create_events_in_database(events):
                         title=event_data['title'],
                         description=event_data.get('description'),
                         start_date=event_date,
-                        end_date=datetime.fromisoformat(event_data['end_date']).date() if event_data.get('end_date') else event_date,
+                        end_date=event_data['end_date'] if isinstance(event_data.get('end_date'), date) else (datetime.fromisoformat(event_data['end_date']).date() if event_data.get('end_date') else event_date),
                         start_time=start_time_obj,
                         end_time=end_time_obj,
                         start_location=location,
