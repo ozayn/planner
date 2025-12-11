@@ -64,6 +64,7 @@ def update_venues_json():
                     "image_url": venue.image_url or "",
                     "latitude": venue.latitude,
                     "longitude": venue.longitude,
+                    "additional_info": venue.additional_info or "",  # Include saved paths
                     "created_at": venue.created_at.isoformat() if venue.created_at else None,
                     "updated_at": venue.updated_at.isoformat() if venue.updated_at else None
                 }
