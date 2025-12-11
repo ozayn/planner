@@ -17,8 +17,16 @@ from app import app, db, Venue
 EVENTBRITE_URLS = {
     # Embassies with confirmed Eventbrite organizer pages
     'Embassy of South Korea': 'https://www.eventbrite.com/o/korean-cultural-center-washington-dc-30268623512',
+    'Embassy of Italy': 'https://www.eventbrite.com/o/italian-cultural-institute-of-washington-3947489343',
+    'Embassy of Canada': 'https://www.eventbrite.com/d/dc--washington/canadian-embassy/',
+    'Embassy of Spain': 'https://www.eventbrite.com/o/spain-arts-culture-2142047099',
+    'Embassy of the Netherlands': 'https://www.eventbrite.com/o/embassy-of-the-kingdom-of-the-netherlands-32846230335',
+    'Embassy of Sweden': 'https://www.eventbrite.com/o/embassy-of-sweden-washington-dc-1856264527',
+    'Embassy of Finland': 'https://www.eventbrite.com/o/embassy-of-finland-25380847919',
+    'Embassy of Germany': 'https://www.eventbrite.fi/o/german-embassy-washington-dc-7550764939',
+    'Embassy of Switzerland': 'https://www.eventbrite.com/o/embassy-of-switzerland-in-the-usa-29752613551',
     
-    # Note: Canadian Embassy URL in database is a discovery page, not an organizer page
+    # Note: Canadian Embassy URL is a discovery page, not an organizer page
     # Most embassies don't have official Eventbrite organizer pages - they use third-party organizers
     # or their own ticketing systems
     
