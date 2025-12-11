@@ -69,15 +69,17 @@ class EventbriteScraper:
         
         Args:
             url: Eventbrite organizer page URL (e.g., https://www.eventbrite.com/o/organizer-name-1234567890)
+                 Can also be eventbrite.fi (e.g., https://www.eventbrite.fi/o/organizer-name-1234567890)
         
         Returns:
             Organizer ID as string, or None if not found
         """
-        if not url or 'eventbrite.com' not in url:
+        if not url or 'eventbrite' not in url.lower():
             return None
         
-        # Pattern 1: Organizer page URL: eventbrite.com/o/organizer-name-1234567890
-        match = re.search(r'eventbrite\.com/o/[^/]+-(\d+)', url)
+        # Pattern 1: Organizer page URL: eventbrite.com/o/organizer-name-1234567890 or eventbrite.fi/o/...
+        # Handle both .com and .fi domains (and potentially other country-specific domains)
+        match = re.search(r'eventbrite\.(?:com|fi|co\.uk|de|fr|es|it|nl|se|no|dk|fi)/o/[^/]+-(\d+)', url, re.IGNORECASE)
         if match:
             return match.group(1)
         
@@ -892,9 +894,9 @@ def _scrape_dc_embassy_events_impl(city_id: Optional[int] = None, time_range: st
             start_date = today
             end_date = today + timedelta(days=30)
         
-        # Process embassies with Eventbrite URLs
-        venues_with_urls = [v for v in embassy_venues if v.ticketing_url and 'eventbrite.com' in v.ticketing_url]
-        venues_without_urls = [v for v in embassy_venues if not v.ticketing_url or 'eventbrite.com' not in v.ticketing_url]
+        # Process embassies with Eventbrite URLs (handle both .com and .fi domains)
+        venues_with_urls = [v for v in embassy_venues if v.ticketing_url and 'eventbrite' in v.ticketing_url.lower()]
+        venues_without_urls = [v for v in embassy_venues if not v.ticketing_url or 'eventbrite' not in v.ticketing_url.lower()]
         
         logger.info(f"  - {len(venues_with_urls)} embassies with Eventbrite URLs")
         logger.info(f"  - {len(venues_without_urls)} embassies without Eventbrite URLs")
