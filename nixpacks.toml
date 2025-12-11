@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python313", "gunicorn"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "python scripts/reset_railway_database.py && gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 300 --workers 2"
