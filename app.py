@@ -3406,6 +3406,28 @@ def debug_oauth():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/debug-eventbrite-token')
+def debug_eventbrite_token():
+    """Debug Eventbrite API token configuration (does not expose token value)"""
+    import os
+    try:
+        eventbrite_token = os.getenv('EVENTBRITE_API_TOKEN') or os.getenv('EVENTBRITE_PRIVATE_TOKEN')
+        all_env_vars = dict(os.environ)
+        eventbrite_vars = {k: '***SET***' if v else 'NOT SET' for k, v in all_env_vars.items() if 'EVENTBRITE' in k.upper()}
+        
+        return jsonify({
+            'token_set': bool(eventbrite_token),
+            'token_length': len(eventbrite_token) if eventbrite_token else 0,
+            'token_preview': f"{eventbrite_token[:10]}..." if eventbrite_token and len(eventbrite_token) > 10 else None,
+            'eventbrite_env_vars': eventbrite_vars,
+            'checking_vars': ['EVENTBRITE_API_TOKEN', 'EVENTBRITE_PRIVATE_TOKEN'],
+            'EVENTBRITE_API_TOKEN_set': bool(os.getenv('EVENTBRITE_API_TOKEN')),
+            'EVENTBRITE_PRIVATE_TOKEN_set': bool(os.getenv('EVENTBRITE_PRIVATE_TOKEN'))
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/test-oauth')
 def test_oauth():
     """Test OAuth flow manually"""
