@@ -8259,6 +8259,7 @@ def scrape_dc_embassy_eventbrite():
                 time_range=time_range,
                 search_missing=search_missing
             )
+            app_logger.info(f"Scraper returned {len(all_events) if all_events else 0} events")
         except Exception as scraper_error:
             app_logger.error(f"Error in scrape_dc_embassy_events: {scraper_error}")
             import traceback
@@ -8267,15 +8268,41 @@ def scrape_dc_embassy_eventbrite():
                 'success': False,
                 'error': f'Scraper error: {str(scraper_error)}',
                 'events_found': 0,
-                'events_saved': 0
+                'events_saved': 0,
+                'traceback': traceback.format_exc()
             }), 500
         
         if not all_events:
+            # Log more details about why no events were found
+            dc_city = City.query.filter(
+                db.or_(
+                    City.name == 'Washington',
+                    City.name == 'Washington, DC',
+                    City.name == 'Washington DC'
+                )
+            ).filter_by(country='United States').first()
+            
+            embassy_venues = []
+            venues_with_urls = []
+            if dc_city:
+                embassy_venues = Venue.query.filter_by(
+                    city_id=dc_city.id,
+                    venue_type='embassy'
+                ).all()
+                venues_with_urls = [v for v in embassy_venues if v.ticketing_url and 'eventbrite' in v.ticketing_url.lower()]
+                app_logger.warning(f"No events found. Found {len(embassy_venues)} embassies, {len(venues_with_urls)} with Eventbrite URLs")
+                for v in venues_with_urls:
+                    app_logger.info(f"  - {v.name}: {v.ticketing_url}")
+            
             return jsonify({
                 'success': False,
                 'error': 'No events found from DC embassy Eventbrite pages',
                 'events_found': 0,
-                'events_saved': 0
+                'events_saved': 0,
+                'debug_info': {
+                    'embassies_found': len(embassy_venues),
+                    'embassies_with_urls': len(venues_with_urls)
+                }
             }), 404
         
         # Save events to database
