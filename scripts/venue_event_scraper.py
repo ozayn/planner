@@ -307,6 +307,7 @@ class VenueEventScraper:
             'ocma.art',
             'nga.gov',
             'metmuseum.org',
+            'britishmuseum.org',  # British Museum (has specialized scraper)
             'si.edu',  # Smithsonian (has specialized scrapers)
         ]
         
@@ -765,6 +766,41 @@ class VenueEventScraper:
             # Also look for event calendar links
             event_calendar_links = soup.find_all('a', href=lambda href: href and ('events' in href.lower() or 'calendar' in href.lower()))
             event_links.extend(event_calendar_links)
+            
+            # Special handling for British Museum
+            if 'britishmuseum.org' in venue.website_url.lower():
+                # Scrape exhibitions-events page
+                exhibitions_url = urljoin(venue.website_url, '/exhibitions-events')
+                try:
+                    logger.info(f"🔍 Checking British Museum exhibitions-events page: {exhibitions_url}")
+                    exhibitions_response = self._fetch_with_retry(exhibitions_url, base_url=venue.website_url)
+                    if exhibitions_response and exhibitions_response.status_code == 200:
+                        exhibitions_soup = BeautifulSoup(exhibitions_response.content, 'html.parser')
+                        bm_exhibitions = self._extract_british_museum_exhibitions(exhibitions_soup, venue, exhibitions_url, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
+                        if bm_exhibitions:
+                            logger.info(f"✅ Extracted {len(bm_exhibitions)} exhibitions from British Museum exhibitions-events page")
+                            events.extend(bm_exhibitions)
+                except Exception as e:
+                    logger.debug(f"Error accessing British Museum exhibitions-events page: {e}")
+                
+                # Scrape tours-and-talks page
+                tours_talks_url = urljoin(venue.website_url, '/visit/tours-and-talks')
+                try:
+                    logger.info(f"🔍 Checking British Museum tours-and-talks page: {tours_talks_url}")
+                    tours_response = self._fetch_with_retry(tours_talks_url, base_url=venue.website_url)
+                    if tours_response and tours_response.status_code == 200:
+                        tours_soup = BeautifulSoup(tours_response.content, 'html.parser')
+                        bm_tours_talks = self._extract_british_museum_tours_talks(tours_soup, venue, tours_talks_url, event_type=event_type, time_range=time_range)
+                        if bm_tours_talks:
+                            logger.info(f"✅ Extracted {len(bm_tours_talks)} tours/talks from British Museum tours-and-talks page")
+                            events.extend(bm_tours_talks)
+                except Exception as e:
+                    logger.debug(f"Error accessing British Museum tours-and-talks page: {e}")
+                
+                # Return early if we found events (don't continue with generic scraping)
+                if events:
+                    logger.info(f"✅ British Museum special scraper found {len(events)} total events")
+                    return events[:max_events_per_venue]
             
             # Special handling for OCMA calendar page
             if 'ocma.art' in venue.website_url.lower():
@@ -3461,6 +3497,252 @@ class VenueEventScraper:
             
         except Exception as e:
             logger.debug(f"Error extracting OCMA calendar events: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+        
+        return events
+    
+    def _extract_british_museum_exhibitions(self, soup, venue, page_url, event_type=None, time_range='this_month', max_exhibitions_per_venue=10):
+        """Extract exhibitions from British Museum exhibitions-events page"""
+        events = []
+        
+        try:
+            # British Museum exhibitions page structure
+            # Look for exhibition cards/items
+            exhibition_selectors = [
+                'article.exhibition',
+                '.exhibition-card',
+                '.exhibition-item',
+                '[class*="exhibition"]',
+                'a[href*="/exhibitions/"]',
+                'a[href*="/exhibitions-events/"]'
+            ]
+            
+            seen_titles = set()
+            
+            # Find all exhibition links
+            exhibition_links = soup.find_all('a', href=lambda href: href and (
+                '/exhibitions/' in str(href).lower() or
+                '/exhibitions-events/' in str(href).lower()
+            ))
+            
+            for link in exhibition_links[:max_exhibitions_per_venue]:
+                href = link.get('href', '')
+                if not href or href == '/exhibitions-events' or href == '/exhibitions-events/':
+                    continue
+                
+                # Get parent container for context
+                parent = link.find_parent(['article', 'div', 'li', 'section'])
+                if not parent:
+                    parent = link.parent
+                
+                parent_text = parent.get_text() if parent else ''
+                link_text = link.get_text(strip=True)
+                
+                # Extract title
+                title = link_text if link_text and len(link_text) > 5 else None
+                if not title:
+                    # Try to extract from parent
+                    title_elem = parent.find(['h2', 'h3', 'h4']) if parent else None
+                    if title_elem:
+                        title = title_elem.get_text(strip=True)
+                
+                # Extract date range from parent text
+                date_text = None
+                date_range_pattern = re.compile(
+                    r'(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})\s*[–—\-]\s*(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})',
+                    re.IGNORECASE
+                )
+                date_match = date_range_pattern.search(parent_text)
+                if date_match:
+                    date_text = f"{date_match.group(1)} – {date_match.group(2)}"
+                
+                # Parse dates
+                start_date = None
+                end_date = None
+                if date_text:
+                    date_parts = re.split(r'[–—\-]', date_text)
+                    if len(date_parts) == 2:
+                        from datetime import datetime
+                        try:
+                            # Format: "15 January 2026"
+                            start_date = datetime.strptime(date_parts[0].strip(), "%d %B %Y").date()
+                            end_date = datetime.strptime(date_parts[1].strip(), "%d %B %Y").date()
+                        except:
+                            try:
+                                # Format: "15 Jan 2026"
+                                start_date = datetime.strptime(date_parts[0].strip(), "%d %b %Y").date()
+                                end_date = datetime.strptime(date_parts[1].strip(), "%d %b %Y").date()
+                            except:
+                                pass
+                
+                # Extract image
+                image_url = None
+                if parent:
+                    img = parent.find('img')
+                    if img:
+                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                        if img_src:
+                            image_url = urljoin(page_url, img_src)
+                
+                # Clean title
+                if title:
+                    title = self._clean_title(title)
+                    if title.lower() in seen_titles:
+                        continue
+                    seen_titles.add(title.lower())
+                else:
+                    continue
+                
+                # Build full URL
+                full_url = urljoin(page_url, href)
+                
+                events.append({
+                    'title': title,
+                    'description': '',
+                    'start_date': start_date.isoformat() if start_date else None,
+                    'end_date': end_date.isoformat() if end_date else None,
+                    'start_time': None,
+                    'end_time': None,
+                    'start_location': venue.name,
+                    'url': full_url,
+                    'image_url': image_url,
+                    'event_type': 'exhibition',
+                    'venue_id': venue.id,
+                    'city_id': venue.city_id,
+                    'source': 'website',
+                    'source_url': page_url,
+                    'organizer': venue.name
+                })
+            
+            logger.info(f"📦 Extracted {len(events)} exhibitions from British Museum exhibitions-events page")
+            
+        except Exception as e:
+            logger.debug(f"Error extracting British Museum exhibitions: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+        
+        return events
+    
+    def _extract_british_museum_tours_talks(self, soup, venue, page_url, event_type=None, time_range='this_month'):
+        """Extract tours and talks from British Museum tours-and-talks page"""
+        events = []
+        
+        try:
+            # British Museum tours-and-talks page structure
+            # Look for tour/talk items
+            seen_titles = set()
+            
+            # Find all tour/talk links
+            event_links = soup.find_all('a', href=lambda href: href and (
+                '/visit/tours-and-talks/' in str(href).lower() or
+                '/tours/' in str(href).lower() or
+                '/talks/' in str(href).lower()
+            ))
+            
+            for link in event_links[:20]:  # Limit to 20 events
+                href = link.get('href', '')
+                if not href or href == '/visit/tours-and-talks' or href == '/visit/tours-and-talks/':
+                    continue
+                
+                # Get parent container
+                parent = link.find_parent(['article', 'div', 'li', 'section'])
+                if not parent:
+                    parent = link.parent
+                
+                parent_text = parent.get_text() if parent else ''
+                link_text = link.get_text(strip=True)
+                
+                # Extract title
+                title = link_text if link_text and len(link_text) > 5 else None
+                if not title:
+                    title_elem = parent.find(['h2', 'h3', 'h4']) if parent else None
+                    if title_elem:
+                        title = title_elem.get_text(strip=True)
+                
+                # Determine event type from title or URL
+                determined_type = 'tour'
+                if 'talk' in title.lower() or 'lecture' in title.lower() or '/talks/' in href.lower():
+                    determined_type = 'talk'
+                elif 'workshop' in title.lower():
+                    determined_type = 'workshop'
+                
+                # Extract date/time from parent text
+                start_date = None
+                start_time = None
+                # Pattern: "Monday, 15 January 2026, 11:00"
+                date_time_pattern = re.compile(
+                    r'([A-Z][a-z]+day),?\s+(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4}),?\s+(\d{1,2}):(\d{2})',
+                    re.IGNORECASE
+                )
+                date_match = date_time_pattern.search(parent_text)
+                if date_match:
+                    from datetime import datetime, time
+                    try:
+                        day_name = date_match.group(1)
+                        day = int(date_match.group(2))
+                        month_name = date_match.group(3)
+                        year = int(date_match.group(4))
+                        hour = int(date_match.group(5))
+                        minute = int(date_match.group(6))
+                        
+                        # Parse date
+                        date_str = f"{day} {month_name} {year}"
+                        start_date = datetime.strptime(date_str, "%d %B %Y").date()
+                        start_time = time(hour, minute)
+                    except:
+                        pass
+                
+                # Extract description
+                description = ''
+                if parent:
+                    desc_elem = parent.find('p')
+                    if desc_elem:
+                        description = desc_elem.get_text(strip=True)
+                
+                # Extract image
+                image_url = None
+                if parent:
+                    img = parent.find('img')
+                    if img:
+                        img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                        if img_src:
+                            image_url = urljoin(page_url, img_src)
+                
+                # Clean title
+                if title:
+                    title = self._clean_title(title)
+                    if title.lower() in seen_titles:
+                        continue
+                    seen_titles.add(title.lower())
+                else:
+                    continue
+                
+                # Build full URL
+                full_url = urljoin(page_url, href)
+                
+                events.append({
+                    'title': title,
+                    'description': description,
+                    'start_date': start_date.isoformat() if start_date else None,
+                    'end_date': None,
+                    'start_time': start_time.isoformat() if start_time else None,
+                    'end_time': None,
+                    'start_location': venue.name,
+                    'url': full_url,
+                    'image_url': image_url,
+                    'event_type': determined_type,
+                    'venue_id': venue.id,
+                    'city_id': venue.city_id,
+                    'source': 'website',
+                    'source_url': page_url,
+                    'organizer': venue.name
+                })
+            
+            logger.info(f"📅 Extracted {len(events)} tours/talks from British Museum tours-and-talks page")
+            
+        except Exception as e:
+            logger.debug(f"Error extracting British Museum tours/talks: {e}")
             import traceback
             logger.debug(traceback.format_exc())
         
