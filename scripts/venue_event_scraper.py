@@ -302,8 +302,9 @@ class VenueEventScraper:
         has_saved_paths = bool(saved_paths)
         
         if has_saved_paths:
-            logger.info(f"📋 Found saved paths for {venue.name}, using them directly...")
-            saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type)
+            logger.info(f"📋 Found saved paths for {venue.name}: {saved_paths}")
+            logger.info(f"   Using saved paths directly (skipping discovery)...")
+            saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
             if saved_path_events:
                 logger.info(f"✅ Found {len(saved_path_events)} events using saved paths for {venue.name}")
                 events.extend(saved_path_events)
@@ -317,7 +318,9 @@ class VenueEventScraper:
                     events = events[:max_events_per_venue]
                 return events
             else:
-                logger.info(f"⚠️  Saved paths found but no events extracted, falling back to other methods...")
+                logger.warning(f"⚠️  Saved paths found but no events extracted, falling back to other methods...")
+        else:
+            logger.debug(f"   No saved paths found for {venue.name} in additional_info")
         
         # Check if this venue has a specialized scraper
         # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
@@ -3915,19 +3918,16 @@ class VenueEventScraper:
         
         return discovered_paths
     
-    def _use_saved_paths_for_scraping(self, venue, event_type=None):
+    def _use_saved_paths_for_scraping(self, venue, event_type=None, max_exhibitions_per_venue=10, max_events_per_venue=20):
         """Use saved event paths to scrape events"""
         events = []
         saved_paths = self._get_venue_event_paths(venue)
         
         if not saved_paths:
-            # No saved paths, discover them first
-            logger.info(f"🔍 No saved paths for {venue.name}, discovering...")
-            discovered = self._discover_and_test_event_paths(venue)
-            saved_paths = {k: v[0] if v else None for k, v in discovered.items() if v}
-        
-        if not saved_paths:
+            logger.debug(f"   No saved paths in _use_saved_paths_for_scraping for {venue.name}")
             return events
+        
+        logger.info(f"   Using saved paths: {saved_paths}")
         
         base_url = venue.website_url.rstrip('/')
         parsed = urlparse(base_url)
@@ -3968,7 +3968,7 @@ class VenueEventScraper:
                     soup = BeautifulSoup(response.content, 'html.parser')
                     # Use existing extraction methods based on path type
                     if path_type == 'exhibitions':
-                        extracted = self._extract_exhibitions_from_listing_page(soup, venue, full_url, event_type=event_type, time_range='this_month', max_exhibitions_per_venue=10)
+                        extracted = self._extract_exhibitions_from_listing_page(soup, venue, full_url, event_type=event_type, time_range='this_month', max_exhibitions_per_venue=max_exhibitions_per_venue)
                     else:
                         # For other types, use generic extraction
                         extracted = self._extract_events_from_html(soup, venue, full_url, event_type=event_type, time_range='this_month')
