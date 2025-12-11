@@ -5288,17 +5288,29 @@
             }
             
             // Separate generic tour events from regular events
-            const genericTourGroups = {};
+            // Group by venue so each venue's recurring tours are separate
+            const genericTourGroupsByVenue = {};
             const regularEvents = [];
             
             upcomingEvents.forEach(event => {
                 // Only group if it's a tour type AND matches generic patterns
                 if (event.event_type === 'tour' && isGenericTourTitle(event.title)) {
-                    const titleKey = event.title.trim();
-                    if (!genericTourGroups[titleKey]) {
-                        genericTourGroups[titleKey] = [];
+                    // Group by venue_id or venue_name to keep each venue's tours separate
+                    const venueKey = event.venue_id || event.venue_name || 'no-venue';
+                    const venueName = event.venue_name || 'Unknown Venue';
+                    
+                    if (!genericTourGroupsByVenue[venueKey]) {
+                        genericTourGroupsByVenue[venueKey] = {
+                            venueName: venueName,
+                            tours: {}
+                        };
                     }
-                    genericTourGroups[titleKey].push(event);
+                    
+                    const titleKey = event.title.trim();
+                    if (!genericTourGroupsByVenue[venueKey].tours[titleKey]) {
+                        genericTourGroupsByVenue[venueKey].tours[titleKey] = [];
+                    }
+                    genericTourGroupsByVenue[venueKey].tours[titleKey].push(event);
                 } else {
                     // All other events (including non-tour events and tours with specific titles) go to regular events
                     regularEvents.push(event);
@@ -5306,8 +5318,8 @@
             });
             
             // Debug: log counts (can be removed later)
-            if (Object.keys(genericTourGroups).length > 0 || regularEvents.length > 0) {
-                console.log(`Event display: ${Object.keys(genericTourGroups).length} grouped tour types, ${regularEvents.length} regular events`);
+            if (Object.keys(genericTourGroupsByVenue).length > 0 || regularEvents.length > 0) {
+                console.log(`Event display: ${Object.keys(genericTourGroupsByVenue).length} venues with recurring tours, ${regularEvents.length} regular events`);
             }
             
             // Build HTML
@@ -5327,22 +5339,47 @@
                 html += '</div>';
             }
             
-            // Show grouped generic tours at the top (before date-grouped events)
-            if (Object.keys(genericTourGroups).length > 0) {
+            // Show grouped generic tours with tabs for each venue
+            if (Object.keys(genericTourGroupsByVenue).length > 0) {
                 html += `
                     <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
                         Recurring Tours
                     </div>
                 `;
-                Object.keys(genericTourGroups).forEach(tourTitle => {
-                    const tourEvents = genericTourGroups[tourTitle];
-                    // Sort by date/time
-                    tourEvents.sort((a, b) => {
-                        const dateA = new Date(a.start_date + ' ' + (a.start_time || '00:00'));
-                        const dateB = new Date(b.start_date + ' ' + (b.start_time || '00:00'));
-                        return dateA - dateB;
+                
+                // Create tabs for each venue
+                const venueKeys = Object.keys(genericTourGroupsByVenue);
+                if (venueKeys.length > 1) {
+                    html += '<div class="panel-tabs" style="margin-bottom: 12px;">';
+                    venueKeys.forEach((venueKey, index) => {
+                        const venueData = genericTourGroupsByVenue[venueKey];
+                        const tabId = `recurring-tour-tab-${venueKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                        const isActive = index === 0 ? 'active' : '';
+                        const escapedVenueKey = venueKey.replace(/'/g, "\\'");
+                        html += `<div class="panel-tab ${isActive}" data-venue-key="${escapedVenueKey}" onclick="switchRecurringTourTab('${escapedVenueKey}')">${venueData.venueName}</div>`;
                     });
-                    html += createGroupedTourCard(tourTitle, tourEvents);
+                    html += '</div>';
+                }
+                
+                // Create content for each venue's tours
+                venueKeys.forEach((venueKey, index) => {
+                    const venueData = genericTourGroupsByVenue[venueKey];
+                    const tabContentId = `recurring-tour-content-${venueKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                    const isActive = index === 0 ? '' : 'style="display: none;"';
+                    html += `<div id="${tabContentId}" class="recurring-tour-venue-content" ${isActive}>`;
+                    
+                    Object.keys(venueData.tours).forEach(tourTitle => {
+                        const tourEvents = venueData.tours[tourTitle];
+                        // Sort by date/time
+                        tourEvents.sort((a, b) => {
+                            const dateA = new Date(a.start_date + ' ' + (a.start_time || '00:00'));
+                            const dateB = new Date(b.start_date + ' ' + (b.start_time || '00:00'));
+                            return dateA - dateB;
+                        });
+                        html += createGroupedTourCard(tourTitle, tourEvents);
+                    });
+                    
+                    html += '</div>';
                 });
             }
             
@@ -6404,6 +6441,33 @@
             } else {
                 advancedControls.classList.add('hidden');
                 toggle.textContent = 'Advanced Filters ▼';
+            }
+        }
+
+        // Switch between recurring tour venue tabs
+        function switchRecurringTourTab(venueKey) {
+            // Hide all venue content
+            document.querySelectorAll('.recurring-tour-venue-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.panel-tab[data-venue-key]').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected venue content
+            const contentId = `recurring-tour-content-${venueKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            const content = document.getElementById(contentId);
+            if (content) {
+                content.style.display = '';
+            }
+            
+            // Add active class to selected tab (escape special characters in selector)
+            const escapedVenueKey = venueKey.replace(/"/g, '\\"');
+            const tab = document.querySelector(`.panel-tab[data-venue-key="${escapedVenueKey}"]`);
+            if (tab) {
+                tab.classList.add('active');
             }
         }
 
