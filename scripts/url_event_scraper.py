@@ -1970,6 +1970,27 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
                     continue
                 
+                # Detect if event is baby-friendly
+                is_baby_friendly = False
+                title_lower = title.lower()
+                description_lower = (description or '').lower()
+                combined_text = f"{title_lower} {description_lower}"
+                
+                baby_keywords = [
+                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
+                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
+                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
+                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
+                    'stroller', 'strollers', 'nursing', 'breastfeeding',
+                    'family program', 'family-friendly', 'family friendly',
+                    'art & play', 'art and play', 'play time', 'playtime',
+                    'children', 'kids', 'little ones', 'young families'
+                ]
+                
+                if any(keyword in combined_text for keyword in baby_keywords):
+                    is_baby_friendly = True
+                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
+                
                 event = Event(
                     title=title,
                     description=description,
@@ -1998,6 +2019,10 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     event.registration_info = registration_info
                 if hasattr(Event, 'price'):
                     event.price = event_price
+                
+                # Set baby-friendly flag if detected
+                if hasattr(Event, 'is_baby_friendly'):
+                    event.is_baby_friendly = is_baby_friendly
                 
                 db.session.add(event)
                 events_created += 1

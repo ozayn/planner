@@ -658,6 +658,27 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
                     continue
                 
+                # Detect if event is baby-friendly
+                is_baby_friendly = False
+                title_lower = title.lower()
+                description_lower = (event_data.get('description', '') or '').lower()
+                combined_text = f"{title_lower} {description_lower}"
+                
+                baby_keywords = [
+                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
+                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
+                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
+                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
+                    'stroller', 'strollers', 'nursing', 'breastfeeding',
+                    'family program', 'family-friendly', 'family friendly',
+                    'art & play', 'art and play', 'play time', 'playtime',
+                    'children', 'kids', 'little ones', 'young families'
+                ]
+                
+                if any(keyword in combined_text for keyword in baby_keywords):
+                    is_baby_friendly = True
+                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
+                
                 # Find existing event by title and venue
                 existing = Event.query.filter_by(
                     title=title,
@@ -693,6 +714,11 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     elif 'is_selected' in event_data:
                         existing.is_selected = event_data['is_selected']
                     
+                    # Update baby-friendly flag if detected
+                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
+                        if not existing.is_baby_friendly:
+                            existing.is_baby_friendly = True
+                    
                     existing.updated_at = datetime.utcnow()
                     updated_count += 1
                     logger.info(f"   ✅ Updated: {event_data.get('title')}")
@@ -716,6 +742,11 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         language=event_data.get('language', 'English'),
                         is_selected=event_data.get('is_selected', True)
                     )
+                    
+                    # Set baby-friendly flag if detected
+                    if hasattr(Event, 'is_baby_friendly'):
+                        new_event.is_baby_friendly = is_baby_friendly
+                    
                     db.session.add(new_event)
                     created_count += 1
                     logger.info(f"   ✅ Created: {event_data.get('title')}")

@@ -5500,9 +5500,7 @@
         // Helper function to get image URL (backend handles API key injection)
         function getImageUrl(imageData) {
             if (!imageData) {
-                // Use a data URI for placeholder image (no external service needed)
-                // Simple gray placeholder: 1x1 transparent pixel
-                return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV2ZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                return null; // Return null instead of placeholder
             }
             
             // Backend now handles photo data conversion to full URLs with API keys
@@ -5513,6 +5511,7 @@
         function createEventCard(event) {
             const isSelected = selectedEvents.has(event.id);
             const imageUrl = getImageUrl(event.image_url);
+            const hasImage = imageUrl && event.image_url; // Only show if we have actual image data
             
             const isOnline = event.is_online || false;
             const isBabyFriendly = event.is_baby_friendly || false;
@@ -5529,19 +5528,15 @@
                                onchange="toggleEventSelection(${event.id})">
                     </div>
                     
-                    ${imageUrl ? `
+                    ${hasImage ? `
                     <div style="position: relative; margin-bottom: 15px;">
                         <a href="${event.image_url || imageUrl}" target="_blank" title="View full image" style="display: block;">
                             <img src="${imageUrl}" alt="${event.title}" class="event-image" 
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV2ZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg=='; this.onerror=null;"
+                                 onerror="this.parentElement.parentElement.style.display='none'; this.onerror=null;"
                                  style="cursor: pointer;">
                         </a>
                         ${event.maps_link ? `<a href="${event.maps_link}" target="_blank" title="View on Google Maps" style="position: absolute; top: 8px; right: 8px; background: rgba(255, 255, 255, 0.9); padding: 6px 10px; border-radius: 6px; text-decoration: none; font-size: 0.75rem; color: #374151; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">📍 Map</a>` : ''}
                     </div>
-                    ` : event.maps_link ? `
-                    <a href="${event.maps_link}" target="_blank" title="View on Google Maps" style="display: block; margin-bottom: 15px; padding: 40px; text-align: center; background: #f3f4f6; border-radius: 8px; color: #6b7280; text-decoration: none;">
-                        📍 View on Google Maps
-                    </a>
                     ` : ''}
                     
                     <div class="event-details">
@@ -6242,6 +6237,7 @@
             const locationDisplay = isOnline ? '🌐 Online Event' : (event.venue_name || event.start_location || 'Location TBD');
             
             const imageUrl = getImageUrl(event.image_url);
+            const hasImage = imageUrl && event.image_url; // Only show if we have actual image data
             const isSelected = selectedEvents.has(event.id);
             const isNewEvent = event.is_new || false;
             const isUpdatedEvent = event.is_updated || false;
@@ -6253,10 +6249,10 @@
             
             return `
                 <div class="${cardClass} ${isSelected ? 'selected' : ''}" data-event-id="${event.id}" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
-                    ${imageUrl ? `
+                    ${hasImage ? `
                     <img src="${imageUrl}" alt="${event.title}" class="event-image-thumb" 
                          onerror="this.style.display='none';">
-                    ` : '<div class="event-image-thumb" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.75rem;">📅</div>'}
+                    ` : ''}
                     <div class="event-info">
                         <div class="event-time">${timeStr}</div>
                         <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}</div>
@@ -6370,7 +6366,7 @@
                             ${addField('Source', event.source)}
                             ${addField('URL', event.url, true)}
                             ${addField('Registration URL', event.registration_url, true, 'Register / Get Tickets')}
-                            ${event.image_url ? `
+                            ${event.image_url && getImageUrl(event.image_url) ? `
                                 <div style="margin-top: 10px;">
                                     <strong style="font-size: 0.875rem;">Image:</strong>
                                     <div style="margin-top: 8px;">
@@ -6378,7 +6374,7 @@
                                             <img src="${getImageUrl(event.image_url)}" 
                                                  alt="${event.title}" 
                                                  class="event-detail-image"
-                                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV2ZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg=='; this.onerror=null;"
+                                                 onerror="this.parentElement.parentElement.parentElement.style.display='none'; this.onerror=null;"
                                                  title="Click to view full image">
                                         </a>
                                     </div>

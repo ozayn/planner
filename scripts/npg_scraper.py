@@ -1305,6 +1305,27 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
                     continue
                 
+                # Detect if event is baby-friendly
+                is_baby_friendly = False
+                title_lower = title.lower()
+                description_lower = (event_data.get('description', '') or '').lower()
+                combined_text = f"{title_lower} {description_lower}"
+                
+                baby_keywords = [
+                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
+                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
+                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
+                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
+                    'stroller', 'strollers', 'nursing', 'breastfeeding',
+                    'family program', 'family-friendly', 'family friendly',
+                    'art & play', 'art and play', 'play time', 'playtime',
+                    'children', 'kids', 'little ones', 'young families'
+                ]
+                
+                if any(keyword in combined_text for keyword in baby_keywords):
+                    is_baby_friendly = True
+                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
+                
                 # Handle missing start_date - check if it might be ongoing/permanent
                 if not event_data.get('start_date'):
                     # Check if event might be ongoing/permanent
@@ -1421,6 +1442,12 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         existing.end_time = end_time_obj
                         updated = True
                     
+                    # Update baby-friendly flag if detected
+                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
+                        if not existing.is_baby_friendly:
+                            existing.is_baby_friendly = True
+                            updated = True
+                    
                     if updated:
                         db.session.commit()
                         updated_count += 1
@@ -1446,6 +1473,10 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                         social_media_url=source_url,
                         organizer=VENUE_NAME,
                     )
+                    
+                    # Set baby-friendly flag if detected
+                    if hasattr(Event, 'is_baby_friendly'):
+                        event.is_baby_friendly = is_baby_friendly
                     
                     db.session.add(event)
                     db.session.commit()
