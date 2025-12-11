@@ -300,6 +300,14 @@ class VenueEventScraper:
         # Check if this venue has saved paths - use them first if available (for ALL venues)
         # This check happens FIRST, before any specialized scrapers or generic scrapers
         logger.info(f"🔍 Checking for saved paths for {venue.name}...")
+        
+        # Refresh venue from database to ensure we have latest additional_info
+        try:
+            db.session.refresh(venue)
+            logger.debug(f"   ✅ Refreshed venue from database")
+        except Exception as e:
+            logger.debug(f"   ⚠️  Could not refresh venue: {e}")
+        
         saved_paths = self._get_venue_event_paths(venue)
         has_saved_paths = bool(saved_paths)
         logger.info(f"   Saved paths check result: has_saved_paths={has_saved_paths}, paths={saved_paths}")
