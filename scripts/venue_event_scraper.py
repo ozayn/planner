@@ -773,13 +773,22 @@ class VenueEventScraper:
                 exhibitions_url = urljoin(venue.website_url, '/exhibitions-events')
                 try:
                     logger.info(f"🔍 Checking British Museum exhibitions-events page: {exhibitions_url}")
-                    exhibitions_response = self._fetch_with_retry(exhibitions_url, base_url=venue.website_url)
-                    if exhibitions_response and exhibitions_response.status_code == 200:
+                    exhibitions_response = self.session.get(exhibitions_url, timeout=10)
+                    if exhibitions_response.status_code == 200:
                         exhibitions_soup = BeautifulSoup(exhibitions_response.content, 'html.parser')
                         bm_exhibitions = self._extract_british_museum_exhibitions(exhibitions_soup, venue, exhibitions_url, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
                         if bm_exhibitions:
                             logger.info(f"✅ Extracted {len(bm_exhibitions)} exhibitions from British Museum exhibitions-events page")
                             events.extend(bm_exhibitions)
+                    elif exhibitions_response.status_code == 403:
+                        # Try cloudscraper for 403 errors
+                        html_content = self._scrape_with_cloudscraper(exhibitions_url)
+                        if html_content:
+                            exhibitions_soup = BeautifulSoup(html_content, 'html.parser')
+                            bm_exhibitions = self._extract_british_museum_exhibitions(exhibitions_soup, venue, exhibitions_url, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
+                            if bm_exhibitions:
+                                logger.info(f"✅ Extracted {len(bm_exhibitions)} exhibitions from British Museum exhibitions-events page (via cloudscraper)")
+                                events.extend(bm_exhibitions)
                 except Exception as e:
                     logger.debug(f"Error accessing British Museum exhibitions-events page: {e}")
                 
@@ -787,13 +796,22 @@ class VenueEventScraper:
                 tours_talks_url = urljoin(venue.website_url, '/visit/tours-and-talks')
                 try:
                     logger.info(f"🔍 Checking British Museum tours-and-talks page: {tours_talks_url}")
-                    tours_response = self._fetch_with_retry(tours_talks_url, base_url=venue.website_url)
-                    if tours_response and tours_response.status_code == 200:
+                    tours_response = self.session.get(tours_talks_url, timeout=10)
+                    if tours_response.status_code == 200:
                         tours_soup = BeautifulSoup(tours_response.content, 'html.parser')
                         bm_tours_talks = self._extract_british_museum_tours_talks(tours_soup, venue, tours_talks_url, event_type=event_type, time_range=time_range)
                         if bm_tours_talks:
                             logger.info(f"✅ Extracted {len(bm_tours_talks)} tours/talks from British Museum tours-and-talks page")
                             events.extend(bm_tours_talks)
+                    elif tours_response.status_code == 403:
+                        # Try cloudscraper for 403 errors
+                        html_content = self._scrape_with_cloudscraper(tours_talks_url)
+                        if html_content:
+                            tours_soup = BeautifulSoup(html_content, 'html.parser')
+                            bm_tours_talks = self._extract_british_museum_tours_talks(tours_soup, venue, tours_talks_url, event_type=event_type, time_range=time_range)
+                            if bm_tours_talks:
+                                logger.info(f"✅ Extracted {len(bm_tours_talks)} tours/talks from British Museum tours-and-talks page (via cloudscraper)")
+                                events.extend(bm_tours_talks)
                 except Exception as e:
                     logger.debug(f"Error accessing British Museum tours-and-talks page: {e}")
                 
