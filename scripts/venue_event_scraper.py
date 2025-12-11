@@ -302,11 +302,18 @@ class VenueEventScraper:
         logger.info(f"🔍 Checking for saved paths for {venue.name}...")
         
         # Refresh venue from database to ensure we have latest additional_info
+        # Use merge to handle detached instances
         try:
-            db.session.refresh(venue)
-            logger.debug(f"   ✅ Refreshed venue from database")
+            # Try to refresh if venue is attached to session
+            if venue in db.session:
+                db.session.refresh(venue)
+                logger.debug(f"   ✅ Refreshed venue from database")
+            else:
+                # If detached, merge it back into session
+                venue = db.session.merge(venue)
+                logger.debug(f"   ✅ Merged venue into session")
         except Exception as e:
-            logger.debug(f"   ⚠️  Could not refresh venue: {e}")
+            logger.debug(f"   ⚠️  Could not refresh/merge venue: {e}, continuing with existing object")
         
         saved_paths = self._get_venue_event_paths(venue)
         has_saved_paths = bool(saved_paths)

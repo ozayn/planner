@@ -2008,6 +2008,8 @@ def trigger_scraping_stream():
                             
                         except Exception as e:
                             app_logger.error(f"Error scraping venue {venue.name}: {e}")
+                            import traceback
+                            app_logger.error(f"Traceback: {traceback.format_exc()}")
                             yield f"data: {json.dumps({'type': 'error', 'message': f'Error scraping {venue.name}: {str(e)}'})}\n\n"
                             continue
                     
