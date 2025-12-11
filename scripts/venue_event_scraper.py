@@ -297,37 +297,12 @@ class VenueEventScraper:
         if not venue.website_url:
             return events
         
-        # Check if this venue has a specialized scraper
-        # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
-        has_specialized_scraper = False
-        venue_url_lower = venue.website_url.lower() if venue.website_url else ''
+        # Check if this venue has saved paths - use them first if available
+        saved_paths = self._get_venue_event_paths(venue)
+        has_saved_paths = bool(saved_paths)
         
-        specialized_venues = [
-            'hirshhorn.si.edu',
-            'ocma.art',
-            'nga.gov',
-            'metmuseum.org',
-            'britishmuseum.org',  # British Museum (has specialized scraper)
-            'si.edu',  # Smithsonian (has specialized scrapers)
-        ]
-        
-        for specialized_venue in specialized_venues:
-            if specialized_venue in venue_url_lower:
-                has_specialized_scraper = True
-                logger.debug(f"   🎯 Venue has specialized scraper: {specialized_venue}")
-                break
-        
-        # For venues WITHOUT specialized scrapers, try saved paths first, then generic scraper
-        if not has_specialized_scraper:
-            logger.info(f"🔍 No specialized scraper for {venue.name}, checking saved paths...")
-            logger.info(f"   URL: {venue.website_url}")
-            
-            # Validate URL before attempting to scrape
-            if not venue.website_url or not venue.website_url.startswith('http'):
-                logger.warning(f"   ⚠️  Invalid URL for {venue.name}, skipping...")
-                return events
-            
-            # Try using saved paths first
+        if has_saved_paths:
+            logger.info(f"📋 Found saved paths for {venue.name}, using them directly...")
             saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type)
             if saved_path_events:
                 logger.info(f"✅ Found {len(saved_path_events)} events using saved paths for {venue.name}")
@@ -341,9 +316,38 @@ class VenueEventScraper:
                 else:
                     events = events[:max_events_per_venue]
                 return events
+            else:
+                logger.info(f"⚠️  Saved paths found but no events extracted, falling back to other methods...")
+        
+        # Check if this venue has a specialized scraper
+        # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
+        has_specialized_scraper = False
+        venue_url_lower = venue.website_url.lower() if venue.website_url else ''
+        
+        specialized_venues = [
+            'hirshhorn.si.edu',
+            'ocma.art',
+            'nga.gov',
+            'metmuseum.org',
+            'britishmuseum.org',  # British Museum (has specialized scraper, but will use saved paths if available)
+            'si.edu',  # Smithsonian (has specialized scrapers)
+        ]
+        
+        for specialized_venue in specialized_venues:
+            if specialized_venue in venue_url_lower:
+                has_specialized_scraper = True
+                logger.debug(f"   🎯 Venue has specialized scraper: {specialized_venue}")
+                break
+        
+        # For venues WITHOUT specialized scrapers, try generic scraper
+        if not has_specialized_scraper:
+            logger.info(f"🔍 No specialized scraper for {venue.name}, trying generic scraper...")
+            logger.info(f"   URL: {venue.website_url}")
             
-            # If no saved paths or no events found, try generic scraper
-            logger.info(f"   No saved paths or no events found, trying generic scraper...")
+            # Validate URL before attempting to scrape
+            if not venue.website_url or not venue.website_url.startswith('http'):
+                logger.warning(f"   ⚠️  Invalid URL for {venue.name}, skipping...")
+                return events
             # Use 'this_month' for generic scraper to be less restrictive (instead of 'today' or 'this_week')
             # This ensures we get more events, especially for recurring events
             adjusted_time_range = 'this_month' if time_range in ['today', 'this_week'] else time_range
