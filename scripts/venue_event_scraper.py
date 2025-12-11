@@ -61,6 +61,8 @@ class VenueEventScraper:
         # Configure adapter with longer timeouts, connection pooling, and retry logic
         from requests.adapters import HTTPAdapter
         from urllib3.util.retry import Retry
+        import ssl
+        
         retry_strategy = Retry(
             total=3,  # Increased from 2 to 3
             backoff_factor=1.0,  # Increased from 0.5 to 1.0 for exponential backoff
@@ -70,13 +72,29 @@ class VenueEventScraper:
             read=3,     # Increased from 2 to 3 for read errors
             redirect=3  # Increased from 2 to 3 for redirect errors
         )
-        adapter = HTTPAdapter(
+        
+        # Create SSL adapter that properly disables both verification and hostname checking
+        class SSLAdapter(HTTPAdapter):
+            def init_poolmanager(self, *args, **kwargs):
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                kwargs['ssl_context'] = ctx
+                return super().init_poolmanager(*args, **kwargs)
+        
+        # Use SSL adapter for HTTPS, regular adapter for HTTP
+        http_adapter = HTTPAdapter(
             max_retries=retry_strategy,
             pool_connections=10,
             pool_maxsize=10
         )
-        self.session.mount('http://', adapter)
-        self.session.mount('https://', adapter)
+        https_adapter = SSLAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,
+            pool_maxsize=10
+        )
+        self.session.mount('http://', http_adapter)
+        self.session.mount('https://', https_adapter)
         self.scraped_events = []
         
     def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today', max_exhibitions_per_venue=5, max_events_per_venue=10):
