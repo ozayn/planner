@@ -8249,6 +8249,18 @@ def scrape_dc_embassy_eventbrite():
         
         app_logger.info(f"Starting DC embassy Eventbrite scraping (time_range: {time_range}, search_missing: {search_missing})")
         
+        # Check if Eventbrite API token is available
+        import os
+        eventbrite_token = os.getenv('EVENTBRITE_API_TOKEN') or os.getenv('EVENTBRITE_PRIVATE_TOKEN')
+        if not eventbrite_token:
+            app_logger.warning("⚠️  No Eventbrite API token found in environment variables")
+            return jsonify({
+                'success': False,
+                'error': 'Eventbrite API token not configured. Please set EVENTBRITE_API_TOKEN in Railway environment variables.',
+                'events_found': 0,
+                'events_saved': 0
+            }), 500
+        
         # Import enhanced DC embassy scraper
         from scripts.eventbrite_scraper import scrape_dc_embassy_events
         
