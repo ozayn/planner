@@ -1000,6 +1000,15 @@ def _scrape_dc_embassy_events_impl(city_id: Optional[int] = None, time_range: st
                     continue
         
         logger.info(f"\n✅ Total: {len(all_events)} events scraped from DC embassies")
+        
+        # Log summary of what was attempted
+        if len(all_events) == 0:
+            logger.warning("⚠️  No events found. Summary:")
+            logger.warning(f"  - Attempted to scrape {len(venues_with_urls)} embassies with Eventbrite URLs")
+            for v in venues_with_urls:
+                organizer_id = scraper.extract_organizer_id_from_url(v.ticketing_url)
+                logger.warning(f"    - {v.name}: URL={v.ticketing_url}, Organizer ID={organizer_id if organizer_id else 'FAILED'}")
+        
         return all_events
 
 

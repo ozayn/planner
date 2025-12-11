@@ -8296,6 +8296,7 @@ def scrape_dc_embassy_eventbrite():
             
             embassy_venues = []
             venues_with_urls = []
+            venue_details = []
             if dc_city:
                 embassy_venues = Venue.query.filter_by(
                     city_id=dc_city.id,
@@ -8303,8 +8304,18 @@ def scrape_dc_embassy_eventbrite():
                 ).all()
                 venues_with_urls = [v for v in embassy_venues if v.ticketing_url and 'eventbrite' in v.ticketing_url.lower()]
                 app_logger.warning(f"No events found. Found {len(embassy_venues)} embassies, {len(venues_with_urls)} with Eventbrite URLs")
+                
+                # Test organizer ID extraction for each venue
+                from scripts.eventbrite_scraper import EventbriteScraper
+                test_scraper = EventbriteScraper()
                 for v in venues_with_urls:
-                    app_logger.info(f"  - {v.name}: {v.ticketing_url}")
+                    organizer_id = test_scraper.extract_organizer_id_from_url(v.ticketing_url)
+                    app_logger.info(f"  - {v.name}: {v.ticketing_url} → Organizer ID: {organizer_id if organizer_id else 'FAILED'}")
+                    venue_details.append({
+                        'name': v.name,
+                        'url': v.ticketing_url,
+                        'organizer_id': organizer_id if organizer_id else None
+                    })
             
             return jsonify({
                 'success': False,
@@ -8313,7 +8324,9 @@ def scrape_dc_embassy_eventbrite():
                 'events_saved': 0,
                 'debug_info': {
                     'embassies_found': len(embassy_venues),
-                    'embassies_with_urls': len(venues_with_urls)
+                    'embassies_with_urls': len(venues_with_urls),
+                    'venues_attempted': venue_details,
+                    'api_token_set': bool(eventbrite_token)
                 }
             }), 404
         
