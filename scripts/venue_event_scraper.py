@@ -303,7 +303,7 @@ class VenueEventScraper:
         
         if has_saved_paths:
             logger.info(f"📋 Found saved paths for {venue.name}: {saved_paths}")
-            logger.info(f"   Using saved paths directly (skipping discovery)...")
+            logger.info(f"   Using saved paths directly (skipping discovery and generic scraper)...")
             saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
             if saved_path_events:
                 logger.info(f"✅ Found {len(saved_path_events)} events using saved paths for {venue.name}")
@@ -318,9 +318,11 @@ class VenueEventScraper:
                     events = events[:max_events_per_venue]
                 return events
             else:
-                logger.warning(f"⚠️  Saved paths found but no events extracted, falling back to other methods...")
+                logger.warning(f"⚠️  Saved paths found but no events extracted - returning empty (not falling back to discovery)")
+                # Don't fall back to generic scraper if we have saved paths - return empty instead
+                return events
         else:
-            logger.debug(f"   No saved paths found for {venue.name} in additional_info")
+            logger.debug(f"   No saved paths found for {venue.name} in additional_info - will use generic scraper/discovery")
         
         # Check if this venue has a specialized scraper
         # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
