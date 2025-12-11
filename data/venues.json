@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-12-10",
+    "created": "2025-12-11",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 206,
-    "last_updated": "2025-12-10 23:53:08"
+    "total_venues": 207,
+    "last_updated": "2025-12-11 00:07:04"
   },
   "venues": {
     "1": {
@@ -419,9 +419,9 @@
       "image_url": "AciIO2eHv4R8Gj5ZEj3LPsP_NnJpmeXuedVv8Ya3MCxHBCtV4IU74SVbi1yjLBPbWXpPsDDXsi0f2VntUApx1S4nTnCehNRfI7NCdtAKc3lIe5X8We8HUdrbkY61todoz4QMVmExOoLZ6T6_pYalQzt974XETIQT-qDsTAO94hnn0-z7Z-LW9sXRDEdmImRbBot6l2T1AXslYhVIaMTVnsrQM8duXncrMM1HTrVlxRioadl-5jyIzxAbzTZwgwY5gtTOzW_kkn_XzDmi_qMEcbTP1Hn_sxU-pbEV5BumKkrY2sHZhQ",
       "latitude": 38.8877,
       "longitude": -77.0199,
-      "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001389\"}",
+      "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001389\", \"event_paths\": {\"exhibitions\": \"/whats-on/exhibitions\"}}",
       "created_at": "2025-10-08T20:42:31.666469",
-      "updated_at": "2025-12-11T00:58:43.614870"
+      "updated_at": "2025-12-11T05:00:30.376041"
     },
     "17": {
       "name": "National Gallery of Art",
@@ -731,9 +731,9 @@
       "image_url": "AciIO2c18TrjzdjaCzl_iM_bXYSYnHV3IwspAw-ZAhFQbOZEDA2-KlvVuvMz8Pdpn3MeuT6g9ArSSZgwGNLKbDZybXSM81h4-07TeeDR2ACAL7z4NztTTucEaRhDMXOWwn4mRsxvtuibLbp9F4RomeHL4p5hnEA114oquumwHqP3cIEGBAgupK5_E6Uc_vj4KzpaNtkez0KsOQLuArVdfNzPpNDCcGTYlXvYNp-4hapLseYx5K_JkYRL6y2EbKkJe0eCwNUGgJiRAUCrOwFhmPgKb505NOr4tnxbay_JVBW73PwunBHRvqLCcf06t3u6UOTdrUCFB1W6KIiBjxQEIBag6FZIhHN1H2KsF4_oCydyzOwrfYRXCv7X73hSO_j1PnQYb8JYLjj9BgLbVRDMYlr_P_hFDULL1TarSFBWsR8A73HxSg",
       "latitude": 38.8913,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001453\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001453\", \"event_paths\": {\"exhibitions\": \"/exhibits\", \"events\": \"/events/after-hours-programs-adults\"}}",
       "created_at": "2025-10-08T20:42:31.666748",
-      "updated_at": "2025-12-11T00:58:43.618079"
+      "updated_at": "2025-12-11T05:03:57.878740"
     },
     "30": {
       "name": "Smithsonian National Museum of the American Indian",
@@ -809,9 +809,9 @@
       "image_url": "AciIO2fHv3R7Gj4ZEj2LPsP_NnJpmeXuedVv8Ya2MCxHBCtV4IU74SVbi1yjLBPbWXpPsDDXsi0f2VntUApx1S3nTnCehNRfI6NCdtAKc2lIe4X7We7HUdrbkY60todoz3QMVmExOoLZ5T5_pYalQzt973XETIQT-qDsTAO93hnn0-z6Z-LW8sXRDEdmImRbBot5l1T0AXslYhVIaMTVnsrQM7duXncrMM0HTrVlxRioadl-4jyIzxAbzTZwgwY4gtTOzW_kkn_XzDmi_qMEcbTP0Hn_sxU-pbEV4BumKkrY1sHZhQ",
       "latitude": 38.9133,
       "longitude": -77.0481,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001468\"}",
+      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001468\", \"event_paths\": {\"exhibitions\": \"/exhibitions-events\", \"events\": \"/exhibitions-events\", \"talks\": \"/events?field_event_features_value[free]=free&field_event_features_value[inperson]=inperson&field_event_type_target_id_2[35]=35\", \"tours\": \"/events?field_event_features_value[free]=free&field_event_features_value[inperson]=inperson&field_event_type_target_id_2[35]=35\"}}",
       "created_at": "2025-10-08T20:42:31.666811",
-      "updated_at": "2025-12-11T00:58:43.618738"
+      "updated_at": "2025-12-11T04:55:47.965998"
     },
     "33": {
       "name": "Tidal Basin",
@@ -4995,9 +4995,9 @@
       "image_url": "",
       "latitude": 38.8978,
       "longitude": -77.0225,
-      "additional_info": "",
+      "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions\", \"tours\": \"/visit/tours\", \"events\": \"/search/events?content_type=event\"}}",
       "created_at": "2025-12-04T16:52:01.250900",
-      "updated_at": "2025-12-11T00:58:43.652557"
+      "updated_at": "2025-12-11T04:57:26.340576"
     },
     "200": {
       "name": "Renwick Gallery",
@@ -5362,6 +5362,32 @@
       "additional_info": "",
       "created_at": "2025-12-11T03:08:48.086809",
       "updated_at": "2025-12-11T03:08:54.546157"
+    },
+    "215": {
+      "name": "National Building Museum",
+      "venue_type": "museum",
+      "address": "401 F Street NW, Washington, DC 20001",
+      "city_id": 1,
+      "city_name": "Washington",
+      "description": "The National Building Museum is America's leading cultural institution dedicated to the history and impact of the built environment.",
+      "opening_hours": "",
+      "holiday_hours": "",
+      "phone_number": "",
+      "email": "",
+      "website_url": "https://nbm.org",
+      "ticketing_url": "",
+      "instagram_url": "",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "",
+      "image_url": "",
+      "latitude": null,
+      "longitude": null,
+      "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions/\", \"events\": \"/programs-events/adult-programs/\"}}",
+      "created_at": "2025-12-11T05:05:39.906095",
+      "updated_at": "2025-12-11T05:06:24.968869"
     }
   }
 }
