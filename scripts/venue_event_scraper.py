@@ -317,9 +317,9 @@ class VenueEventScraper:
                 logger.debug(f"   🎯 Venue has specialized scraper: {specialized_venue}")
                 break
         
-        # For venues WITHOUT specialized scrapers, use generic scraper first
+        # For venues WITHOUT specialized scrapers, try saved paths first, then generic scraper
         if not has_specialized_scraper:
-            logger.info(f"🔍 No specialized scraper for {venue.name}, using generic scraper...")
+            logger.info(f"🔍 No specialized scraper for {venue.name}, checking saved paths...")
             logger.info(f"   URL: {venue.website_url}")
             
             # Validate URL before attempting to scrape
@@ -327,6 +327,23 @@ class VenueEventScraper:
                 logger.warning(f"   ⚠️  Invalid URL for {venue.name}, skipping...")
                 return events
             
+            # Try using saved paths first
+            saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type)
+            if saved_path_events:
+                logger.info(f"✅ Found {len(saved_path_events)} events using saved paths for {venue.name}")
+                events.extend(saved_path_events)
+                # Apply limits
+                if event_type and event_type.lower() == 'exhibition':
+                    exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
+                    other_events = [e for e in events if e.get('event_type') != 'exhibition']
+                    limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                    events = limited_exhibitions + other_events
+                else:
+                    events = events[:max_events_per_venue]
+                return events
+            
+            # If no saved paths or no events found, try generic scraper
+            logger.info(f"   No saved paths or no events found, trying generic scraper...")
             # Use 'this_month' for generic scraper to be less restrictive (instead of 'today' or 'this_week')
             # This ensures we get more events, especially for recurring events
             adjusted_time_range = 'this_month' if time_range in ['today', 'this_week'] else time_range
@@ -3763,6 +3780,201 @@ class VenueEventScraper:
             logger.debug(f"Error extracting British Museum tours/talks: {e}")
             import traceback
             logger.debug(traceback.format_exc())
+        
+        return events
+    
+    def _get_venue_event_paths(self, venue):
+        """Get saved event paths from venue's additional_info field"""
+        if not venue.additional_info:
+            return {}
+        
+        try:
+            import json
+            info = json.loads(venue.additional_info) if isinstance(venue.additional_info, str) else venue.additional_info
+            return info.get('event_paths', {})
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            return {}
+    
+    def _save_venue_event_paths(self, venue, paths):
+        """Save event paths to venue's additional_info field"""
+        try:
+            import json
+            # Get existing additional_info
+            if venue.additional_info:
+                try:
+                    info = json.loads(venue.additional_info) if isinstance(venue.additional_info, str) else venue.additional_info
+                except (json.JSONDecodeError, TypeError):
+                    info = {}
+            else:
+                info = {}
+            
+            # Update with new paths
+            info['event_paths'] = paths
+            
+            # Save back to venue
+            venue.additional_info = json.dumps(info)
+            db.session.commit()
+            logger.info(f"💾 Saved event paths for {venue.name}: {paths}")
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to save event paths for {venue.name}: {e}")
+            db.session.rollback()
+    
+    def _discover_and_test_event_paths(self, venue):
+        """Discover and test common event paths for a venue, return working paths"""
+        discovered_paths = {}
+        
+        if not venue.website_url:
+            return discovered_paths
+        
+        base_url = venue.website_url.rstrip('/')
+        parsed = urlparse(base_url)
+        base_domain = f"{parsed.scheme}://{parsed.netloc}"
+        
+        # Common paths organized by event type
+        path_candidates = {
+            'exhibitions': [
+                '/exhibitions', '/exhibition', '/exhibitions/current', '/exhibitions/on-view',
+                '/exhibitions/upcoming', '/exhibitions-events', '/exhibitions-and-events',
+                '/whats-on/exhibitions', '/visit/exhibitions', '/see/exhibitions',
+                '/explore/exhibitions', '/collection/exhibitions', '/art/exhibitions',
+                '/current-exhibitions', '/upcoming-exhibitions', '/on-view',
+                '/gallery', '/galleries', '/shows', '/shows/current'
+            ],
+            'tours': [
+                '/tours', '/visit/tours', '/visit/tours-and-talks', '/tours-and-talks',
+                '/explore/tours', '/programs/tours', '/learn/tours', '/experience/tours'
+            ],
+            'talks': [
+                '/talks', '/lectures', '/visit/talks', '/visit/tours-and-talks',
+                '/programs/talks', '/programs/lectures', '/learn/talks', '/events/talks'
+            ],
+            'events': [
+                '/events', '/event', '/calendar', '/programs', '/program',
+                '/whats-on', '/whats-on/events', '/whats-on/current',
+                '/visit/events', '/experience/events', '/learn/programs'
+            ],
+            'workshops': [
+                '/workshops', '/workshop', '/programs/workshops', '/learn/workshops',
+                '/events/workshops', '/classes', '/programs/classes'
+            ]
+        }
+        
+        logger.info(f"🔍 Discovering event paths for {venue.name}...")
+        
+        for event_type, paths in path_candidates.items():
+            for path in paths:
+                test_url = base_domain + path
+                try:
+                    # Test if the path exists and returns useful content
+                    response = self.session.get(test_url, timeout=5, allow_redirects=True)
+                    
+                    if response.status_code == 200:
+                        # Check if the page has event-related content
+                        soup = BeautifulSoup(response.content, 'html.parser')
+                        page_text = soup.get_text().lower()
+                        
+                        # Look for indicators that this is an event page
+                        event_indicators = [
+                            'exhibition' in page_text[:2000] if event_type == 'exhibitions' else False,
+                            'tour' in page_text[:2000] if event_type == 'tours' else False,
+                            'talk' in page_text[:2000] or 'lecture' in page_text[:2000] if event_type == 'talks' else False,
+                            'event' in page_text[:2000] or 'program' in page_text[:2000] if event_type == 'events' else False,
+                            'workshop' in page_text[:2000] or 'class' in page_text[:2000] if event_type == 'workshops' else False,
+                        ]
+                        
+                        # Also check for event links
+                        has_event_links = bool(soup.find_all('a', href=lambda h: h and (
+                            'exhibition' in h.lower() or 'event' in h.lower() or 
+                            'tour' in h.lower() or 'talk' in h.lower() or
+                            'program' in h.lower() or 'workshop' in h.lower()
+                        )))
+                        
+                        if any(event_indicators) or has_event_links:
+                            if event_type not in discovered_paths:
+                                discovered_paths[event_type] = []
+                            discovered_paths[event_type].append(path)
+                            logger.info(f"   ✅ Found {event_type} path: {path}")
+                            break  # Found one working path for this type, move to next type
+                
+                except (Timeout, ConnectionError, RequestException) as e:
+                    # Path doesn't exist or is unreachable, skip
+                    continue
+                except Exception as e:
+                    logger.debug(f"   ⚠️  Error testing path {path}: {e}")
+                    continue
+        
+        # Save discovered paths
+        if discovered_paths:
+            # Convert lists to single paths (take first working path for each type)
+            saved_paths = {k: v[0] if v else None for k, v in discovered_paths.items() if v}
+            self._save_venue_event_paths(venue, saved_paths)
+        
+        return discovered_paths
+    
+    def _use_saved_paths_for_scraping(self, venue, event_type=None):
+        """Use saved event paths to scrape events"""
+        events = []
+        saved_paths = self._get_venue_event_paths(venue)
+        
+        if not saved_paths:
+            # No saved paths, discover them first
+            logger.info(f"🔍 No saved paths for {venue.name}, discovering...")
+            discovered = self._discover_and_test_event_paths(venue)
+            saved_paths = {k: v[0] if v else None for k, v in discovered.items() if v}
+        
+        if not saved_paths:
+            return events
+        
+        base_url = venue.website_url.rstrip('/')
+        parsed = urlparse(base_url)
+        base_domain = f"{parsed.scheme}://{parsed.netloc}"
+        
+        # Determine which paths to use based on event_type filter
+        paths_to_scrape = []
+        if event_type:
+            event_type_lower = event_type.lower()
+            if event_type_lower == 'exhibition':
+                if 'exhibitions' in saved_paths:
+                    paths_to_scrape.append(('exhibitions', saved_paths['exhibitions']))
+            elif event_type_lower in ['tour', 'tours']:
+                if 'tours' in saved_paths:
+                    paths_to_scrape.append(('tours', saved_paths['tours']))
+            elif event_type_lower in ['talk', 'talks', 'lecture', 'lectures']:
+                if 'talks' in saved_paths:
+                    paths_to_scrape.append(('talks', saved_paths['talks']))
+            elif event_type_lower in ['workshop', 'workshops']:
+                if 'workshops' in saved_paths:
+                    paths_to_scrape.append(('workshops', saved_paths['workshops']))
+            elif event_type_lower in ['event', 'events']:
+                if 'events' in saved_paths:
+                    paths_to_scrape.append(('events', saved_paths['events']))
+        else:
+            # No filter, scrape all saved paths
+            for path_type, path in saved_paths.items():
+                if path:
+                    paths_to_scrape.append((path_type, path))
+        
+        # Scrape each path
+        for path_type, path in paths_to_scrape:
+            full_url = base_domain + path
+            try:
+                logger.info(f"📄 Scraping saved {path_type} path: {full_url}")
+                response = self.session.get(full_url, timeout=10)
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    # Use existing extraction methods based on path type
+                    if path_type == 'exhibitions':
+                        extracted = self._extract_exhibitions_from_listing_page(soup, venue, full_url, event_type=event_type, time_range='this_month', max_exhibitions_per_venue=10)
+                    else:
+                        # For other types, use generic extraction
+                        extracted = self._extract_events_from_html(soup, venue, full_url, event_type=event_type, time_range='this_month')
+                    
+                    if extracted:
+                        events.extend(extracted)
+                        logger.info(f"   ✅ Extracted {len(extracted)} events from {path_type} path")
+            except Exception as e:
+                logger.debug(f"   ⚠️  Error scraping saved path {path}: {e}")
+                continue
         
         return events
     
