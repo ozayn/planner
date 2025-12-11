@@ -1522,6 +1522,11 @@ def create_events_in_database(events):
                         existing.registration_info = event_data.get('registration_info')
                         updated = True
                     
+                    # Ensure is_selected is True for NGA events
+                    if not existing.is_selected:
+                        existing.is_selected = True
+                        updated = True
+                    
                     if updated:
                         db.session.commit()
                         updated_count += 1
@@ -1567,7 +1572,7 @@ def create_events_in_database(events):
                         image_url=event_data.get('image_url'),
                         source='website',
                         source_url=NGA_CALENDAR_URL,
-                        is_selected=False,
+                        is_selected=True,
                         is_online=is_online,
                         is_registration_required=event_data.get('is_registration_required', False),
                         registration_url=event_data.get('registration_url'),

@@ -532,7 +532,7 @@ def parse_single_date(date_string: str) -> Optional[date]:
 
 def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
     """Scrape details from an individual event page with retry logic"""
-    import time
+    import time as time_module
     
     for attempt in range(max_retries):
         try:
@@ -545,7 +545,7 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
             if attempt < max_retries - 1:
                 wait_time = 2 * (attempt + 1)  # Exponential backoff: 2s, 4s
                 logger.debug(f"   ⏳ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
-                time.sleep(wait_time)
+                time_module.sleep(wait_time)
                 continue
             else:
                 logger.warning(f"   ⚠️ Timeout scraping event detail {url} after {max_retries} attempts: {type(e).__name__}")
@@ -554,7 +554,7 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
             if attempt < max_retries - 1:
                 wait_time = 2 * (attempt + 1)
                 logger.debug(f"   ⏳ Connection error on attempt {attempt + 1}, retrying in {wait_time}s...")
-                time.sleep(wait_time)
+                time_module.sleep(wait_time)
                 continue
             else:
                 logger.warning(f"   ⚠️ Connection error scraping event detail {url} after {max_retries} attempts: {type(e).__name__}")
@@ -836,11 +836,22 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
             language = 'Mandarin'
         # Note: Don't detect language from culture names like "Korean", "Japanese", "Chinese" in titles
         
+        # Determine event type - check for tour keywords in title and description
+        determined_event_type = 'event'  # default
+        title_lower = title.lower() if title else ''
+        desc_lower = (description or '').lower()
+        combined_text = f"{title_lower} {desc_lower}"
+        
+        # Check for tour indicators
+        tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
+        if any(keyword in combined_text for keyword in tour_keywords):
+            determined_event_type = 'tour'
+        
         # Build event dictionary
         event = {
             'title': title,
             'description': description or f"Event at {VENUE_NAME}",
-            'event_type': 'tour' if 'tour' in title.lower() else 'event',
+            'event_type': determined_event_type,
             'source_url': url,
             'organizer': VENUE_NAME,
             'social_media_platform': 'website',
@@ -1045,8 +1056,15 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
                     events.append(event_data)
                 elif listing_data.get('title'):
                     # If detail page scraping failed but we have listing data, use that
+                    # Determine event type from title
+                    title_lower = listing_data.get('title', '').lower()
+                    determined_event_type = 'event'  # default
+                    tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
+                    if any(keyword in title_lower for keyword in tour_keywords):
+                        determined_event_type = 'tour'
+                    
                     listing_data['source_url'] = full_url
-                    listing_data['event_type'] = 'event'
+                    listing_data['event_type'] = determined_event_type
                     listing_data['organizer'] = VENUE_NAME
                     listing_data['social_media_platform'] = 'website'
                     listing_data['social_media_url'] = full_url

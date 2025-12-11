@@ -640,7 +640,13 @@ def create_events_in_database(events):
                 ).first()
                 
                 if existing:
-                    logger.info(f"   ⚠️  Event already exists: {event_data['title']}")
+                    # Ensure is_selected is True for existing events
+                    if not existing.is_selected:
+                        existing.is_selected = True
+                        db.session.commit()
+                        logger.info(f"   ✅ Updated is_selected=True for existing event: {event_data['title']}")
+                    else:
+                        logger.info(f"   ℹ️  Event already exists: {event_data['title']}")
                     continue
                 
                 # Parse times
@@ -704,7 +710,7 @@ def create_events_in_database(events):
                     image_url=event_data.get('image_url'),
                     source='website',
                     source_url=FINDING_AWE_URL,
-                    is_selected=False,
+                    is_selected=True,
                     is_online=is_online,
                     is_registration_required=event_data.get('is_registration_required', False),
                     registration_opens_date=registration_opens_date_obj,
