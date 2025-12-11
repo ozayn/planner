@@ -3990,7 +3990,13 @@ class VenueEventScraper:
         
         # Scrape each path
         for path_type, path in paths_to_scrape:
-            full_url = base_domain + path
+            # Handle full URLs (for subdomains) vs relative paths
+            if path.startswith('http://') or path.startswith('https://'):
+                # Full URL provided (e.g., for subdomains like visit.mcachicago.org)
+                full_url = path
+            else:
+                # Relative path - construct from base domain
+                full_url = base_domain + path
             try:
                 logger.info(f"📄 Scraping saved {path_type} path: {full_url}")
                 response = self.session.get(full_url, timeout=10)
