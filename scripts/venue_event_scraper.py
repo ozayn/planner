@@ -297,7 +297,7 @@ class VenueEventScraper:
         if not venue.website_url:
             return events
         
-        # Check if this venue has saved paths - use them first if available
+        # Check if this venue has saved paths - use them first if available (for ALL venues)
         saved_paths = self._get_venue_event_paths(venue)
         has_saved_paths = bool(saved_paths)
         
@@ -321,6 +321,7 @@ class VenueEventScraper:
         
         # Check if this venue has a specialized scraper
         # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
+        # Note: Saved paths take priority over specialized scrapers
         has_specialized_scraper = False
         venue_url_lower = venue.website_url.lower() if venue.website_url else ''
         
@@ -329,7 +330,6 @@ class VenueEventScraper:
             'ocma.art',
             'nga.gov',
             'metmuseum.org',
-            'britishmuseum.org',  # British Museum (has specialized scraper, but will use saved paths if available)
             'si.edu',  # Smithsonian (has specialized scrapers)
         ]
         
