@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import time
 import re
+import platform
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1539,17 +1540,29 @@ class VenueEventScraper:
         """Scrape a page using cloudscraper to bypass bot protection (Railway-compatible)"""
         try:
             import cloudscraper
+            import platform
             
-            # Create a cloudscraper session
+            # Detect platform for Railway compatibility (Linux) vs local (macOS/Windows)
+            detected_platform = platform.system().lower()
+            if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
+                platform_name = 'linux'
+            elif detected_platform == 'darwin':
+                platform_name = 'darwin'
+            else:
+                platform_name = 'windows'
+            
+            # Create a cloudscraper session with platform detection
             scraper = cloudscraper.create_scraper(
                 browser={
                     'browser': 'chrome',
-                    'platform': 'darwin',
+                    'platform': platform_name,
                     'desktop': True
                 }
             )
             
             # Disable SSL verification to avoid certificate errors
+            scraper.verify = False
+            
             # Make the request
             response = scraper.get(url, timeout=10, verify=False)
             response.raise_for_status()

@@ -103,10 +103,21 @@ class GenericVenueScraper:
     def _get_cloudscraper(self, base_url=None):
         """Get or create a cloudscraper instance with enhanced headers"""
         if self._cloudscraper is None and CLOUDSCRAPER_AVAILABLE:
+            # Detect platform for Railway compatibility (Linux) vs local (macOS/Windows)
+            import platform
+            import os
+            detected_platform = platform.system().lower()
+            if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
+                platform_name = 'linux'
+            elif detected_platform == 'darwin':
+                platform_name = 'darwin'
+            else:
+                platform_name = 'windows'
+            
             self._cloudscraper = cloudscraper.create_scraper(
                 browser={
                     'browser': 'chrome',
-                    'platform': 'darwin',
+                    'platform': platform_name,
                     'desktop': True
                 }
             )
