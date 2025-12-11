@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-12-07",
+    "created": "2025-12-10",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 205,
-    "last_updated": "2025-12-11 00:00:00"
+    "last_updated": "2025-12-10 21:56:32"
   },
   "venues": {
     "1": {
@@ -30,7 +30,7 @@
       "latitude": 38.8967,
       "longitude": -77.0258,
       "created_at": "2025-10-08T20:42:31.666065",
-      "updated_at": "2025-12-04T16:52:13.707686"
+      "updated_at": "2025-12-11T00:58:43.611259"
     },
     "2": {
       "name": "Capitol Building",
@@ -55,7 +55,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666142",
-      "updated_at": "2025-12-04T16:52:13.708204"
+      "updated_at": "2025-12-11T00:58:43.611744"
     },
     "3": {
       "name": "Capitol Hill",
@@ -80,7 +80,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666175",
-      "updated_at": "2025-12-04T16:52:13.708503"
+      "updated_at": "2025-12-11T00:58:43.612005"
     },
     "4": {
       "name": "Capitol Hill Arts Workshop",
@@ -105,7 +105,7 @@
       "latitude": 38.8833,
       "longitude": -76.9967,
       "created_at": "2025-10-08T20:42:31.666199",
-      "updated_at": "2025-12-07T21:58:35.877310"
+      "updated_at": "2025-12-11T00:58:43.612239"
     },
     "5": {
       "name": "Dupont Circle",
@@ -130,7 +130,7 @@
       "latitude": 38.9097,
       "longitude": -77.0434,
       "created_at": "2025-10-08T20:42:31.666223",
-      "updated_at": "2025-12-04T16:52:13.709022"
+      "updated_at": "2025-12-11T00:58:43.612473"
     },
     "6": {
       "name": "Ford's Theatre",
@@ -155,7 +155,7 @@
       "latitude": 38.8967,
       "longitude": -77.0258,
       "created_at": "2025-10-08T20:42:31.666245",
-      "updated_at": "2025-12-07T21:58:38.068403"
+      "updated_at": "2025-12-11T00:58:43.612692"
     },
     "7": {
       "name": "Franklin Delano Roosevelt Memorial",
@@ -180,7 +180,7 @@
       "latitude": 38.8814,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666271",
-      "updated_at": "2025-12-04T16:52:13.709452"
+      "updated_at": "2025-12-11T00:58:43.612910"
     },
     "8": {
       "name": "Georgetown",
@@ -205,7 +205,7 @@
       "latitude": 38.9097,
       "longitude": -77.0654,
       "created_at": "2025-10-08T20:42:31.666293",
-      "updated_at": "2025-12-07T21:58:39.222107"
+      "updated_at": "2025-12-11T00:58:43.613136"
     },
     "9": {
       "name": "International Spy Museum",
@@ -230,7 +230,7 @@
       "latitude": 38.8869,
       "longitude": -77.0325,
       "created_at": "2025-10-08T20:42:31.666315",
-      "updated_at": "2025-12-04T16:52:13.711717"
+      "updated_at": "2025-12-11T00:58:43.613352"
     },
     "10": {
       "name": "Jefferson Memorial",
@@ -255,7 +255,7 @@
       "latitude": 38.8814,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666337",
-      "updated_at": "2025-12-04T16:52:13.712027"
+      "updated_at": "2025-12-11T00:58:43.613568"
     },
     "11": {
       "name": "Kennedy Center",
@@ -280,7 +280,7 @@
       "latitude": 38.8957,
       "longitude": -77.0558,
       "created_at": "2025-10-08T20:42:31.666358",
-      "updated_at": "2025-12-07T21:58:40.497056"
+      "updated_at": "2025-12-11T00:58:43.613792"
     },
     "12": {
       "name": "Korean War Veterans Memorial",
@@ -305,7 +305,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666382",
-      "updated_at": "2025-12-04T16:52:13.716437"
+      "updated_at": "2025-12-11T00:58:43.614004"
     },
     "13": {
       "name": "Library of Congress",
@@ -330,7 +330,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666404",
-      "updated_at": "2025-12-07T21:58:41.130928"
+      "updated_at": "2025-12-11T00:58:43.614219"
     },
     "14": {
       "name": "Lincoln Memorial",
@@ -355,7 +355,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666425",
-      "updated_at": "2025-12-04T16:52:13.716894"
+      "updated_at": "2025-12-11T00:58:43.614441"
     },
     "15": {
       "name": "Martin Luther King Jr. Memorial",
@@ -380,7 +380,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666447",
-      "updated_at": "2025-12-04T16:52:13.717099"
+      "updated_at": "2025-12-11T00:58:43.614653"
     },
     "16": {
       "name": "National Air and Space Museum",
@@ -405,7 +405,7 @@
       "latitude": 38.8877,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666469",
-      "updated_at": "2025-12-04T16:52:13.717295"
+      "updated_at": "2025-12-11T00:58:43.614870"
     },
     "17": {
       "name": "National Gallery of Art",
@@ -430,7 +430,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666490",
-      "updated_at": "2025-12-04T16:52:13.717497"
+      "updated_at": "2025-12-11T00:58:43.615090"
     },
     "18": {
       "name": "National Mall",
@@ -455,7 +455,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666511",
-      "updated_at": "2025-12-04T16:52:13.717686"
+      "updated_at": "2025-12-11T00:58:43.615305"
     },
     "19": {
       "name": "National Portrait Gallery",
@@ -480,7 +480,7 @@
       "latitude": 38.8977,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666532",
-      "updated_at": "2025-12-08T03:06:25.106898"
+      "updated_at": "2025-12-11T00:58:43.615524"
     },
     "20": {
       "name": "National Zoo",
@@ -505,7 +505,7 @@
       "latitude": 38.9289,
       "longitude": -77.0475,
       "created_at": "2025-10-08T20:42:31.666553",
-      "updated_at": "2025-12-04T16:52:13.718121"
+      "updated_at": "2025-12-11T00:58:43.616024"
     },
     "21": {
       "name": "Newseum",
@@ -530,7 +530,7 @@
       "latitude": 38.8869,
       "longitude": -77.0325,
       "created_at": "2025-10-08T20:42:31.666574",
-      "updated_at": "2025-12-04T16:52:13.718316"
+      "updated_at": "2025-12-11T00:58:43.616408"
     },
     "22": {
       "name": "Rock Creek Park",
@@ -555,7 +555,7 @@
       "latitude": 38.9647,
       "longitude": -77.0444,
       "created_at": "2025-10-08T20:42:31.666595",
-      "updated_at": "2025-12-04T16:52:13.718509"
+      "updated_at": "2025-12-11T00:58:43.616673"
     },
     "23": {
       "name": "Smithsonian National Museum of Asian Art",
@@ -580,7 +580,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666617",
-      "updated_at": "2025-12-08T03:23:46.152167"
+      "updated_at": "2025-12-11T00:58:43.616946"
     },
     "25": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -605,7 +605,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666660",
-      "updated_at": "2025-12-04T16:52:13.719177"
+      "updated_at": "2025-12-11T00:58:43.617181"
     },
     "26": {
       "name": "Smithsonian National Air and Space Museum",
@@ -630,7 +630,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666681",
-      "updated_at": "2025-12-04T16:52:13.719412"
+      "updated_at": "2025-12-11T00:58:43.617415"
     },
     "27": {
       "name": "Smithsonian National Museum of African American History and Culture",
@@ -655,7 +655,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666702",
-      "updated_at": "2025-12-04T16:52:13.719617"
+      "updated_at": "2025-12-11T00:58:43.617632"
     },
     "28": {
       "name": "Smithsonian National Museum of American History",
@@ -680,7 +680,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666727",
-      "updated_at": "2025-12-04T16:52:13.719837"
+      "updated_at": "2025-12-11T00:58:43.617850"
     },
     "29": {
       "name": "Smithsonian National Museum of Natural History",
@@ -705,7 +705,7 @@
       "latitude": 38.8913,
       "longitude": -77.0263,
       "created_at": "2025-10-08T20:42:31.666748",
-      "updated_at": "2025-12-04T16:52:13.720035"
+      "updated_at": "2025-12-11T00:58:43.618079"
     },
     "30": {
       "name": "Smithsonian National Museum of the American Indian",
@@ -730,7 +730,7 @@
       "latitude": 38.8882,
       "longitude": -77.0199,
       "created_at": "2025-10-08T20:42:31.666769",
-      "updated_at": "2025-12-04T16:52:13.720223"
+      "updated_at": "2025-12-11T00:58:43.618297"
     },
     "31": {
       "name": "Supreme Court",
@@ -755,7 +755,7 @@
       "latitude": 38.8898,
       "longitude": -77.0091,
       "created_at": "2025-10-08T20:42:31.666790",
-      "updated_at": "2025-12-04T16:52:13.720411"
+      "updated_at": "2025-12-11T00:58:43.618516"
     },
     "32": {
       "name": "The Phillips Collection",
@@ -780,7 +780,7 @@
       "latitude": 38.9133,
       "longitude": -77.0481,
       "created_at": "2025-10-08T20:42:31.666811",
-      "updated_at": "2025-12-04T16:52:13.720605"
+      "updated_at": "2025-12-11T00:58:43.618738"
     },
     "33": {
       "name": "Tidal Basin",
@@ -805,7 +805,7 @@
       "latitude": 38.8814,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666832",
-      "updated_at": "2025-12-07T21:58:54.194087"
+      "updated_at": "2025-12-11T00:58:43.618955"
     },
     "34": {
       "name": "United States Holocaust Memorial Museum",
@@ -830,7 +830,7 @@
       "latitude": 38.8869,
       "longitude": -77.0325,
       "created_at": "2025-10-08T20:42:31.666852",
-      "updated_at": "2025-12-07T21:58:54.196511"
+      "updated_at": "2025-12-11T00:58:43.619149"
     },
     "35": {
       "name": "Vietnam Veterans Memorial",
@@ -855,7 +855,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666871",
-      "updated_at": "2025-12-04T16:52:13.721167"
+      "updated_at": "2025-12-11T00:58:43.619348"
     },
     "36": {
       "name": "Washington Monument",
@@ -880,7 +880,7 @@
       "latitude": 38.8895,
       "longitude": -77.0353,
       "created_at": "2025-10-08T20:42:31.666889",
-      "updated_at": "2025-12-04T16:52:13.721351"
+      "updated_at": "2025-12-11T00:58:43.619539"
     },
     "37": {
       "name": "White House",
@@ -905,7 +905,7 @@
       "latitude": 38.8977,
       "longitude": -77.0365,
       "created_at": "2025-10-08T20:42:31.666908",
-      "updated_at": "2025-12-04T16:52:13.721538"
+      "updated_at": "2025-12-11T00:58:43.619733"
     },
     "38": {
       "name": "World War II Memorial",
@@ -930,7 +930,7 @@
       "latitude": 38.8893,
       "longitude": -77.0502,
       "created_at": "2025-10-08T20:42:31.666927",
-      "updated_at": "2025-12-04T16:52:13.721730"
+      "updated_at": "2025-12-11T00:58:43.620044"
     },
     "39": {
       "name": "United States Botanic Garden",
@@ -955,7 +955,7 @@
       "latitude": 38.8883,
       "longitude": -77.0128,
       "created_at": "2025-10-08T20:42:31.666945",
-      "updated_at": "2025-12-04T16:52:13.721916"
+      "updated_at": "2025-12-11T00:58:43.620252"
     },
     "40": {
       "name": "9:30 Club",
@@ -980,7 +980,7 @@
       "latitude": 38.9185,
       "longitude": -77.0239,
       "created_at": "2025-10-08T20:42:31.666965",
-      "updated_at": "2025-12-04T16:52:13.722103"
+      "updated_at": "2025-12-11T00:58:43.620451"
     },
     "41": {
       "name": "Embassy of the United Kingdom",
@@ -1005,7 +1005,7 @@
       "latitude": 38.9207,
       "longitude": -77.0564,
       "created_at": "2025-10-08T20:42:31.666990",
-      "updated_at": "2025-12-04T16:52:13.722296"
+      "updated_at": "2025-12-11T00:58:43.620655"
     },
     "42": {
       "name": "Embassy of France",
@@ -1030,7 +1030,7 @@
       "latitude": 38.9167,
       "longitude": -77.0711,
       "created_at": "2025-10-08T20:42:31.667009",
-      "updated_at": "2025-12-04T16:52:13.722482"
+      "updated_at": "2025-12-11T00:58:43.620848"
     },
     "43": {
       "name": "Embassy of Germany",
@@ -1044,7 +1044,7 @@
       "phone_number": "(202) 298-4000",
       "email": "",
       "website_url": "https://www.germany.info/us-en",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.fi/o/german-embassy-washington-dc-7550764939",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1055,7 +1055,7 @@
       "latitude": 38.9156,
       "longitude": -77.0789,
       "created_at": "2025-10-08T20:42:31.667028",
-      "updated_at": "2025-12-07T21:59:02.983319"
+      "updated_at": "2025-12-11T02:51:03.350360"
     },
     "44": {
       "name": "Embassy of Italy",
@@ -1080,7 +1080,7 @@
       "latitude": 38.9189,
       "longitude": -77.0533,
       "created_at": "2025-10-08T20:42:31.667047",
-      "updated_at": "2025-12-08T03:41:09.926331"
+      "updated_at": "2025-12-11T00:58:43.621239"
     },
     "45": {
       "name": "Embassy of Japan",
@@ -1105,7 +1105,7 @@
       "latitude": 38.9108,
       "longitude": -77.0478,
       "created_at": "2025-10-08T20:42:31.667066",
-      "updated_at": "2025-12-04T16:52:13.723043"
+      "updated_at": "2025-12-11T00:58:43.621432"
     },
     "46": {
       "name": "Embassy of Canada",
@@ -1130,7 +1130,7 @@
       "latitude": 38.8938,
       "longitude": -77.0186,
       "created_at": "2025-10-08T20:42:31.667086",
-      "updated_at": "2025-12-07T22:25:26.139694"
+      "updated_at": "2025-12-11T00:58:43.621624"
     },
     "47": {
       "name": "Embassy of Spain",
@@ -1155,7 +1155,7 @@
       "latitude": 38.9025,
       "longitude": -77.0522,
       "created_at": "2025-10-08T20:42:31.667104",
-      "updated_at": "2025-12-08T03:22:21.916629"
+      "updated_at": "2025-12-11T00:58:43.621824"
     },
     "48": {
       "name": "Embassy of the Netherlands",
@@ -1180,7 +1180,7 @@
       "latitude": 38.9289,
       "longitude": -77.0711,
       "created_at": "2025-10-08T20:42:31.667123",
-      "updated_at": "2025-12-08T03:42:04.456644"
+      "updated_at": "2025-12-11T00:58:43.622014"
     },
     "49": {
       "name": "Embassy of Australia",
@@ -1205,7 +1205,7 @@
       "latitude": 38.9089,
       "longitude": -77.0378,
       "created_at": "2025-10-08T20:42:31.667146",
-      "updated_at": "2025-12-04T16:52:13.723821"
+      "updated_at": "2025-12-11T00:58:43.622206"
     },
     "50": {
       "name": "Embassy of Brazil",
@@ -1230,7 +1230,7 @@
       "latitude": 38.9192,
       "longitude": -77.0539,
       "created_at": "2025-10-08T20:42:31.667166",
-      "updated_at": "2025-12-07T21:59:45.358509"
+      "updated_at": "2025-12-11T00:58:43.622402"
     },
     "51": {
       "name": "Embassy of India",
@@ -1255,7 +1255,7 @@
       "latitude": 38.9094,
       "longitude": -77.0434,
       "created_at": "2025-10-08T20:42:31.667185",
-      "updated_at": "2025-12-07T21:59:48.740314"
+      "updated_at": "2025-12-11T00:58:43.622600"
     },
     "52": {
       "name": "Embassy of Mexico",
@@ -1280,7 +1280,7 @@
       "latitude": 38.9015,
       "longitude": -77.0432,
       "created_at": "2025-10-08T20:42:31.667204",
-      "updated_at": "2025-12-07T22:12:26.892777"
+      "updated_at": "2025-12-11T00:58:43.622816"
     },
     "53": {
       "name": "Embassy of South Korea",
@@ -1305,7 +1305,7 @@
       "latitude": 38.9101,
       "longitude": -77.0469,
       "created_at": "2025-10-08T20:42:31.667223",
-      "updated_at": "2025-12-07T22:25:26.139698"
+      "updated_at": "2025-12-11T00:58:43.623039"
     },
     "54": {
       "name": "Embassy of Sweden",
@@ -1330,7 +1330,7 @@
       "latitude": 38.9017,
       "longitude": -77.0597,
       "created_at": "2025-10-08T20:42:31.667242",
-      "updated_at": "2025-12-08T03:22:02.990058"
+      "updated_at": "2025-12-11T00:58:43.623259"
     },
     "55": {
       "name": "Embassy of Switzerland",
@@ -1344,7 +1344,7 @@
       "phone_number": "(202) 745-7900",
       "email": "",
       "website_url": "https://www.eda.admin.ch/washington",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/embassy-of-switzerland-in-the-usa-29752613551",
       "instagram_url": "",
       "facebook_url": "",
       "twitter_url": "",
@@ -1355,7 +1355,7 @@
       "latitude": 38.9289,
       "longitude": -77.0622,
       "created_at": "2025-10-08T20:42:31.667261",
-      "updated_at": "2025-12-04T16:52:13.725181"
+      "updated_at": "2025-12-11T02:51:03.350911"
     },
     "56": {
       "name": "Suns Cinema",
@@ -1380,7 +1380,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.667279",
-      "updated_at": "2025-12-07T22:00:18.327506"
+      "updated_at": "2025-12-11T00:58:43.623963"
     },
     "57": {
       "name": "Busboys and Poets",
@@ -1405,7 +1405,7 @@
       "latitude": 38.9169,
       "longitude": -77.032,
       "created_at": "2025-10-08T20:42:31.667299",
-      "updated_at": "2025-12-04T16:52:13.725590"
+      "updated_at": "2025-12-11T00:58:43.624196"
     },
     "58": {
       "name": "The Kennedy Center Roof Terrace Restaurant",
@@ -1430,7 +1430,7 @@
       "latitude": 38.8971,
       "longitude": -77.0568,
       "created_at": "2025-10-08T20:42:31.667317",
-      "updated_at": "2025-12-04T16:52:13.725812"
+      "updated_at": "2025-12-11T00:58:43.624405"
     },
     "59": {
       "name": "Kramerbooks & Afterwords Cafe",
@@ -1455,7 +1455,7 @@
       "latitude": 38.9093,
       "longitude": -77.0431,
       "created_at": "2025-10-08T20:42:31.667335",
-      "updated_at": "2025-12-08T03:48:57.361544"
+      "updated_at": "2025-12-11T00:58:43.624622"
     },
     "60": {
       "name": "The Hamilton",
@@ -1480,7 +1480,7 @@
       "latitude": 38.8959,
       "longitude": -77.0319,
       "created_at": "2025-10-08T20:42:31.667353",
-      "updated_at": "2025-12-04T16:52:13.726241"
+      "updated_at": "2025-12-11T00:58:43.624830"
     },
     "61": {
       "name": "Songbyrd Music House & Record Cafe",
@@ -1505,7 +1505,7 @@
       "latitude": 38.9181,
       "longitude": -77.042,
       "created_at": "2025-10-08T20:42:31.667372",
-      "updated_at": "2025-12-07T22:00:27.630093"
+      "updated_at": "2025-12-11T00:58:43.625026"
     },
     "62": {
       "name": "Founding Farmers",
@@ -1530,7 +1530,7 @@
       "latitude": 38.8959,
       "longitude": -77.0431,
       "created_at": "2025-10-08T20:42:31.667390",
-      "updated_at": "2025-12-04T16:52:13.726649"
+      "updated_at": "2025-12-11T00:58:43.625228"
     },
     "63": {
       "name": "Politics and Prose Bookstore",
@@ -1555,7 +1555,7 @@
       "latitude": 38.958,
       "longitude": -77.0638,
       "created_at": "2025-10-08T20:42:31.667447",
-      "updated_at": "2025-12-08T03:39:29.175731"
+      "updated_at": "2025-12-11T00:58:43.625422"
     },
     "64": {
       "name": "East City Bookshop",
@@ -1580,7 +1580,7 @@
       "latitude": 38.8846,
       "longitude": -77.0042,
       "created_at": "2025-10-08T20:42:31.667495",
-      "updated_at": "2025-12-04T16:52:13.727043"
+      "updated_at": "2025-12-11T00:58:43.625620"
     },
     "65": {
       "name": "The Bookstore in Glover Park",
@@ -1605,7 +1605,7 @@
       "latitude": 38.9203,
       "longitude": -77.0717,
       "created_at": "2025-10-08T20:42:31.667522",
-      "updated_at": "2025-12-04T16:52:13.727303"
+      "updated_at": "2025-12-11T00:58:43.625823"
     },
     "66": {
       "name": "Solid State Books",
@@ -1630,7 +1630,7 @@
       "latitude": 38.8996,
       "longitude": -77.001,
       "created_at": "2025-10-08T20:42:31.667546",
-      "updated_at": "2025-12-07T22:00:33.532444"
+      "updated_at": "2025-12-11T00:58:43.626013"
     },
     "67": {
       "name": "Bridge Street Books",
@@ -1655,10 +1655,10 @@
       "latitude": 38.9048,
       "longitude": -77.0625,
       "created_at": "2025-10-08T20:42:31.667569",
-      "updated_at": "2025-12-04T16:52:13.727717"
+      "updated_at": "2025-12-11T00:58:43.626208"
     },
     "68": {
-      "name": "Sankofa Video Books & Caf\u00e9",
+      "name": "Sankofa Video Books & Café",
       "venue_type": "cafe",
       "address": "2714 Georgia Ave NW, Washington, DC 20001",
       "city_id": 1,
@@ -1680,7 +1680,7 @@
       "latitude": 38.9153,
       "longitude": -77.0322,
       "created_at": "2025-10-08T20:42:31.667592",
-      "updated_at": "2025-12-07T22:00:36.329467"
+      "updated_at": "2025-12-11T00:58:43.626406"
     },
     "69": {
       "name": "American Museum of Natural History",
@@ -1705,7 +1705,7 @@
       "latitude": 40.7813,
       "longitude": -73.9739,
       "created_at": "2025-10-08T20:42:31.670066",
-      "updated_at": "2025-12-04T16:52:13.728400"
+      "updated_at": "2025-12-11T00:58:43.626600"
     },
     "71": {
       "name": "Brooklyn Bridge",
@@ -1730,7 +1730,7 @@
       "latitude": 40.7061,
       "longitude": -73.9969,
       "created_at": "2025-10-08T20:42:31.670121",
-      "updated_at": "2025-12-04T16:52:13.728655"
+      "updated_at": "2025-12-11T00:58:43.626793"
     },
     "72": {
       "name": "Central Park",
@@ -1755,7 +1755,7 @@
       "latitude": 40.7829,
       "longitude": -73.9654,
       "created_at": "2025-10-08T20:42:31.670141",
-      "updated_at": "2025-12-04T16:52:13.728868"
+      "updated_at": "2025-12-11T00:58:43.626997"
     },
     "73": {
       "name": "Empire State Building",
@@ -1780,7 +1780,7 @@
       "latitude": 40.7484,
       "longitude": -73.9857,
       "created_at": "2025-10-08T20:42:31.670161",
-      "updated_at": "2025-12-04T16:52:13.729093"
+      "updated_at": "2025-12-11T00:58:43.627192"
     },
     "74": {
       "name": "Metropolitan Museum of Art",
@@ -1805,7 +1805,7 @@
       "latitude": 40.7794,
       "longitude": -73.9632,
       "created_at": "2025-10-08T20:42:31.670180",
-      "updated_at": "2025-12-04T16:52:13.729487"
+      "updated_at": "2025-12-11T00:58:43.627400"
     },
     "76": {
       "name": "Museum of Modern Art (MoMA)",
@@ -1830,7 +1830,7 @@
       "latitude": 40.7614,
       "longitude": -73.9776,
       "created_at": "2025-10-08T20:42:31.670217",
-      "updated_at": "2025-12-04T16:52:13.729682"
+      "updated_at": "2025-12-11T00:58:43.627592"
     },
     "77": {
       "name": "Statue of Liberty",
@@ -1855,7 +1855,7 @@
       "latitude": 40.6892,
       "longitude": -74.0445,
       "created_at": "2025-10-08T20:42:31.670236",
-      "updated_at": "2025-12-04T16:52:13.729873"
+      "updated_at": "2025-12-11T00:58:43.627788"
     },
     "78": {
       "name": "Times Square",
@@ -1880,7 +1880,7 @@
       "latitude": 40.758,
       "longitude": -73.9855,
       "created_at": "2025-10-08T20:42:31.670254",
-      "updated_at": "2025-12-04T16:52:13.730066"
+      "updated_at": "2025-12-11T00:58:43.627979"
     },
     "79": {
       "name": "Getty Center",
@@ -1905,7 +1905,7 @@
       "latitude": 34.078,
       "longitude": -118.474,
       "created_at": "2025-10-08T20:42:31.670725",
-      "updated_at": "2025-12-04T16:52:13.730277"
+      "updated_at": "2025-12-11T00:58:43.628170"
     },
     "80": {
       "name": "Griffith Observatory",
@@ -1930,7 +1930,7 @@
       "latitude": 34.1183,
       "longitude": -118.3003,
       "created_at": "2025-10-08T20:42:31.670754",
-      "updated_at": "2025-12-04T16:52:13.730471"
+      "updated_at": "2025-12-11T00:58:43.628368"
     },
     "81": {
       "name": "Hollywood Walk of Fame",
@@ -1955,7 +1955,7 @@
       "latitude": 34.1016,
       "longitude": -118.3267,
       "created_at": "2025-10-08T20:42:31.670775",
-      "updated_at": "2025-12-07T22:00:57.684838"
+      "updated_at": "2025-12-11T00:58:43.628558"
     },
     "82": {
       "name": "Los Angeles County Museum of Art (LACMA)",
@@ -1980,7 +1980,7 @@
       "latitude": 34.0638,
       "longitude": -118.3594,
       "created_at": "2025-10-08T20:42:31.670795",
-      "updated_at": "2025-12-04T16:52:13.730849"
+      "updated_at": "2025-12-11T00:58:43.628745"
     },
     "83": {
       "name": "Santa Monica Pier",
@@ -2005,7 +2005,7 @@
       "latitude": 34.0089,
       "longitude": -118.4973,
       "created_at": "2025-10-08T20:42:31.670818",
-      "updated_at": "2025-12-07T22:01:36.754566"
+      "updated_at": "2025-12-11T00:58:43.628940"
     },
     "84": {
       "name": "Alcatraz Island",
@@ -2030,7 +2030,7 @@
       "latitude": 37.8267,
       "longitude": -122.423,
       "created_at": "2025-10-08T20:42:31.671173",
-      "updated_at": "2025-12-04T16:52:13.731260"
+      "updated_at": "2025-12-11T00:58:43.629138"
     },
     "85": {
       "name": "Golden Gate Bridge",
@@ -2055,7 +2055,7 @@
       "latitude": 37.8199,
       "longitude": -122.4783,
       "created_at": "2025-10-08T20:42:31.671200",
-      "updated_at": "2025-12-07T04:07:07.747856"
+      "updated_at": "2025-12-11T00:58:43.629326"
     },
     "86": {
       "name": "Palace of Fine Arts",
@@ -2080,7 +2080,7 @@
       "latitude": 37.8029,
       "longitude": -122.4484,
       "created_at": "2025-10-08T20:42:31.671220",
-      "updated_at": "2025-12-07T22:01:40.313699"
+      "updated_at": "2025-12-11T00:58:43.629520"
     },
     "87": {
       "name": "San Francisco Museum of Modern Art (SFMOMA)",
@@ -2105,7 +2105,7 @@
       "latitude": 37.7857,
       "longitude": -122.4011,
       "created_at": "2025-10-08T20:42:31.671240",
-      "updated_at": "2025-12-07T04:09:38.462192"
+      "updated_at": "2025-12-11T00:58:43.629708"
     },
     "88": {
       "name": "de Young Museum",
@@ -2130,7 +2130,7 @@
       "latitude": 37.7694,
       "longitude": -122.4686,
       "created_at": "2025-10-08T20:42:31.671258",
-      "updated_at": "2025-12-07T22:01:43.110484"
+      "updated_at": "2025-12-11T00:58:43.630161"
     },
     "89": {
       "name": "Art Institute of Chicago",
@@ -2155,7 +2155,7 @@
       "latitude": 41.8796,
       "longitude": -87.6237,
       "created_at": "2025-10-08T20:42:31.671577",
-      "updated_at": "2025-12-04T16:52:13.732206"
+      "updated_at": "2025-12-11T00:58:43.630479"
     },
     "90": {
       "name": "Field Museum",
@@ -2180,7 +2180,7 @@
       "latitude": 41.8661,
       "longitude": -87.6167,
       "created_at": "2025-10-08T20:42:31.671603",
-      "updated_at": "2025-12-04T16:52:13.732390"
+      "updated_at": "2025-12-11T00:58:43.630714"
     },
     "91": {
       "name": "Millennium Park",
@@ -2205,7 +2205,7 @@
       "latitude": 41.8826,
       "longitude": -87.6226,
       "created_at": "2025-10-08T20:42:31.671628",
-      "updated_at": "2025-12-04T16:52:13.732580"
+      "updated_at": "2025-12-11T00:58:43.630937"
     },
     "92": {
       "name": "Shedd Aquarium",
@@ -2230,7 +2230,7 @@
       "latitude": 41.8675,
       "longitude": -87.6144,
       "created_at": "2025-10-08T20:42:31.671648",
-      "updated_at": "2025-12-04T16:52:13.732773"
+      "updated_at": "2025-12-11T00:58:43.631173"
     },
     "93": {
       "name": "Willis Tower Skydeck",
@@ -2255,7 +2255,7 @@
       "latitude": 41.8789,
       "longitude": -87.6359,
       "created_at": "2025-10-08T20:42:31.671667",
-      "updated_at": "2025-12-04T16:52:13.732963"
+      "updated_at": "2025-12-11T00:58:43.631388"
     },
     "94": {
       "name": "Boston Common",
@@ -2280,7 +2280,7 @@
       "latitude": 42.3551,
       "longitude": -71.0656,
       "created_at": "2025-10-08T20:42:31.671993",
-      "updated_at": "2025-12-07T22:02:00.497063"
+      "updated_at": "2025-12-11T00:58:43.631593"
     },
     "95": {
       "name": "Fenway Park",
@@ -2305,7 +2305,7 @@
       "latitude": 42.3467,
       "longitude": -71.0972,
       "created_at": "2025-10-08T20:42:31.672019",
-      "updated_at": "2025-12-07T22:02:07.442306"
+      "updated_at": "2025-12-11T00:58:43.631801"
     },
     "96": {
       "name": "Freedom Trail",
@@ -2330,7 +2330,7 @@
       "latitude": 42.3601,
       "longitude": -71.0589,
       "created_at": "2025-10-08T20:42:31.672041",
-      "updated_at": "2025-12-04T16:52:13.733537"
+      "updated_at": "2025-12-11T00:58:43.632018"
     },
     "97": {
       "name": "Isabella Stewart Gardner Museum",
@@ -2355,7 +2355,7 @@
       "latitude": 42.3381,
       "longitude": -71.0992,
       "created_at": "2025-10-08T20:42:31.672061",
-      "updated_at": "2025-12-04T16:52:13.733732"
+      "updated_at": "2025-12-11T00:58:43.632262"
     },
     "98": {
       "name": "Museum of Fine Arts Boston",
@@ -2380,7 +2380,7 @@
       "latitude": 42.3394,
       "longitude": -71.0942,
       "created_at": "2025-10-08T20:42:31.672086",
-      "updated_at": "2025-12-07T22:02:19.751124"
+      "updated_at": "2025-12-11T00:58:43.632630"
     },
     "99": {
       "name": "Chihuly Garden and Glass",
@@ -2405,7 +2405,7 @@
       "latitude": 47.6205,
       "longitude": -122.3493,
       "created_at": "2025-10-08T20:42:31.672408",
-      "updated_at": "2025-12-04T16:52:13.734104"
+      "updated_at": "2025-12-11T00:58:43.632850"
     },
     "100": {
       "name": "Museum of Pop Culture (MoPOP)",
@@ -2430,7 +2430,7 @@
       "latitude": 47.6205,
       "longitude": -122.3493,
       "created_at": "2025-10-08T20:42:31.672438",
-      "updated_at": "2025-12-04T16:52:13.734297"
+      "updated_at": "2025-12-11T00:58:43.633072"
     },
     "101": {
       "name": "Pike Place Market",
@@ -2455,7 +2455,7 @@
       "latitude": 47.6097,
       "longitude": -122.3331,
       "created_at": "2025-10-08T20:42:31.672458",
-      "updated_at": "2025-12-07T22:02:29.725481"
+      "updated_at": "2025-12-11T00:58:43.633280"
     },
     "102": {
       "name": "Seattle Art Museum",
@@ -2480,7 +2480,7 @@
       "latitude": 47.6073,
       "longitude": -122.3387,
       "created_at": "2025-10-08T20:42:31.672478",
-      "updated_at": "2025-12-07T22:02:49.120077"
+      "updated_at": "2025-12-11T00:58:43.633472"
     },
     "103": {
       "name": "Space Needle",
@@ -2505,7 +2505,7 @@
       "latitude": 47.6205,
       "longitude": -122.3493,
       "created_at": "2025-10-08T20:42:31.672499",
-      "updated_at": "2025-12-04T16:52:13.734907"
+      "updated_at": "2025-12-11T00:58:43.633668"
     },
     "104": {
       "name": "Frost Science Museum",
@@ -2530,10 +2530,10 @@
       "latitude": 25.7864,
       "longitude": -80.1869,
       "created_at": "2025-10-08T20:42:31.672818",
-      "updated_at": "2025-12-04T16:52:13.735118"
+      "updated_at": "2025-12-11T00:58:43.633867"
     },
     "105": {
-      "name": "P\u00e9rez Art Museum Miami (PAMM)",
+      "name": "Pérez Art Museum Miami (PAMM)",
       "venue_type": "museum",
       "address": "1103 Biscayne Blvd, Miami, FL 33132",
       "city_id": 8,
@@ -2555,7 +2555,7 @@
       "latitude": 25.7864,
       "longitude": -80.1869,
       "created_at": "2025-10-08T20:42:31.672852",
-      "updated_at": "2025-12-07T22:02:53.669623"
+      "updated_at": "2025-12-11T00:58:43.634059"
     },
     "106": {
       "name": "South Beach",
@@ -2580,7 +2580,7 @@
       "latitude": 25.7907,
       "longitude": -80.13,
       "created_at": "2025-10-08T20:42:31.672872",
-      "updated_at": "2025-12-07T22:22:40.240577"
+      "updated_at": "2025-12-11T00:58:43.634251"
     },
     "107": {
       "name": "Vizcaya Museum and Gardens",
@@ -2605,7 +2605,7 @@
       "latitude": 25.743,
       "longitude": -80.2106,
       "created_at": "2025-10-08T20:42:31.672891",
-      "updated_at": "2025-12-07T22:03:12.879813"
+      "updated_at": "2025-12-11T00:58:43.634445"
     },
     "108": {
       "name": "Wynwood Walls",
@@ -2630,7 +2630,7 @@
       "latitude": 25.801,
       "longitude": -80.1994,
       "created_at": "2025-10-08T20:42:31.672910",
-      "updated_at": "2025-12-07T22:03:20.648591"
+      "updated_at": "2025-12-11T00:58:43.634647"
     },
     "109": {
       "name": "British Museum",
@@ -2655,7 +2655,7 @@
       "latitude": 51.5194,
       "longitude": -0.127,
       "created_at": "2025-10-08T20:42:31.673226",
-      "updated_at": "2025-12-04T16:52:13.736094"
+      "updated_at": "2025-12-11T00:58:43.634841"
     },
     "110": {
       "name": "National Gallery",
@@ -2680,7 +2680,7 @@
       "latitude": 51.5086,
       "longitude": -0.1283,
       "created_at": "2025-10-08T20:42:31.673252",
-      "updated_at": "2025-12-07T22:03:23.366135"
+      "updated_at": "2025-12-11T00:58:43.635040"
     },
     "111": {
       "name": "Natural History Museum",
@@ -2705,7 +2705,7 @@
       "latitude": 51.4967,
       "longitude": -0.1764,
       "created_at": "2025-10-08T20:42:31.673273",
-      "updated_at": "2025-12-04T16:52:13.736510"
+      "updated_at": "2025-12-11T00:58:43.635236"
     },
     "112": {
       "name": "Royal Academy of Arts",
@@ -2730,7 +2730,7 @@
       "latitude": 51.5094,
       "longitude": -0.1393,
       "created_at": "2025-10-08T20:42:31.673293",
-      "updated_at": "2025-12-04T16:52:13.736719"
+      "updated_at": "2025-12-11T00:58:43.635440"
     },
     "113": {
       "name": "Science Museum",
@@ -2755,7 +2755,7 @@
       "latitude": 51.4975,
       "longitude": -0.1746,
       "created_at": "2025-10-08T20:42:31.673312",
-      "updated_at": "2025-12-04T16:52:13.736910"
+      "updated_at": "2025-12-11T00:58:43.635645"
     },
     "114": {
       "name": "Tate Britain",
@@ -2780,7 +2780,7 @@
       "latitude": 51.4911,
       "longitude": -0.1278,
       "created_at": "2025-10-08T20:42:31.673331",
-      "updated_at": "2025-12-04T16:52:13.737101"
+      "updated_at": "2025-12-11T00:58:43.635839"
     },
     "115": {
       "name": "Tate Modern",
@@ -2805,7 +2805,7 @@
       "latitude": 51.5076,
       "longitude": -0.0994,
       "created_at": "2025-10-08T20:42:31.673349",
-      "updated_at": "2025-12-04T16:52:13.737296"
+      "updated_at": "2025-12-11T00:58:43.636036"
     },
     "116": {
       "name": "Tower of London",
@@ -2830,7 +2830,7 @@
       "latitude": 51.5081,
       "longitude": -0.0759,
       "created_at": "2025-10-08T20:42:31.673368",
-      "updated_at": "2025-12-04T16:52:13.737497"
+      "updated_at": "2025-12-11T00:58:43.636237"
     },
     "117": {
       "name": "Victoria and Albert Museum",
@@ -2855,7 +2855,7 @@
       "latitude": 51.4966,
       "longitude": -0.1722,
       "created_at": "2025-10-08T20:42:31.673386",
-      "updated_at": "2025-12-04T16:52:13.737732"
+      "updated_at": "2025-12-11T00:58:43.636431"
     },
     "118": {
       "name": "Westminster Abbey",
@@ -2880,7 +2880,7 @@
       "latitude": 51.4994,
       "longitude": -0.1274,
       "created_at": "2025-10-08T20:42:31.673405",
-      "updated_at": "2025-12-07T22:03:34.588682"
+      "updated_at": "2025-12-11T00:58:43.636622"
     },
     "119": {
       "name": "Arc de Triomphe",
@@ -2905,12 +2905,12 @@
       "latitude": 48.8738,
       "longitude": 2.295,
       "created_at": "2025-10-08T20:42:31.673979",
-      "updated_at": "2025-12-04T16:52:13.738251"
+      "updated_at": "2025-12-11T00:58:43.636816"
     },
     "120": {
-      "name": "Champs-\u00c9lys\u00e9es",
+      "name": "Champs-Élysées",
       "venue_type": "landmark",
-      "address": "Champs-\u00c9lys\u00e9es, 75008 Paris, France",
+      "address": "Champs-Élysées, 75008 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A avenue in Paris offering cultural experiences and entertainment.",
@@ -2930,7 +2930,7 @@
       "latitude": 48.8566,
       "longitude": 2.3522,
       "created_at": "2025-10-08T20:42:31.674009",
-      "updated_at": "2025-12-07T22:03:40.403706"
+      "updated_at": "2025-12-11T00:58:43.637023"
     },
     "121": {
       "name": "Eiffel Tower",
@@ -2955,7 +2955,7 @@
       "latitude": 48.8584,
       "longitude": 2.2945,
       "created_at": "2025-10-08T20:42:31.674037",
-      "updated_at": "2025-12-04T16:52:13.738722"
+      "updated_at": "2025-12-11T00:58:43.637220"
     },
     "122": {
       "name": "Louvre Museum",
@@ -2980,7 +2980,7 @@
       "latitude": 48.8606,
       "longitude": 2.3376,
       "created_at": "2025-10-08T20:42:31.674065",
-      "updated_at": "2025-12-04T16:52:13.738944"
+      "updated_at": "2025-12-11T00:58:43.637411"
     },
     "123": {
       "name": "Montmartre",
@@ -3005,12 +3005,12 @@
       "latitude": 48.8867,
       "longitude": 2.3431,
       "created_at": "2025-10-08T20:42:31.674085",
-      "updated_at": "2025-12-04T16:52:13.739155"
+      "updated_at": "2025-12-11T00:58:43.637604"
     },
     "124": {
-      "name": "Mus\u00e9e d'Orsay",
+      "name": "Musée d'Orsay",
       "venue_type": "museum",
-      "address": "1 Rue de la L\u00e9gion d'Honneur, 75007 Paris, France",
+      "address": "1 Rue de la Légion d'Honneur, 75007 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A museum in Paris offering cultural experiences and entertainment.",
@@ -3030,10 +3030,10 @@
       "latitude": 48.86,
       "longitude": 2.3266,
       "created_at": "2025-10-08T20:42:31.674105",
-      "updated_at": "2025-12-07T22:03:43.121338"
+      "updated_at": "2025-12-11T00:58:43.637804"
     },
     "126": {
-      "name": "Mus\u00e9e du Louvre",
+      "name": "Musée du Louvre",
       "venue_type": "museum",
       "address": "Rue de Rivoli, 75001 Paris, France",
       "city_id": 10,
@@ -3055,7 +3055,7 @@
       "latitude": 48.8606,
       "longitude": 2.3376,
       "created_at": "2025-10-08T20:42:31.674143",
-      "updated_at": "2025-12-07T22:03:43.123981"
+      "updated_at": "2025-12-11T00:58:43.637998"
     },
     "127": {
       "name": "Notre-Dame Cathedral",
@@ -3080,7 +3080,7 @@
       "latitude": 48.853,
       "longitude": 2.3499,
       "created_at": "2025-10-08T20:42:31.674162",
-      "updated_at": "2025-12-07T22:03:44.011417"
+      "updated_at": "2025-12-11T00:58:43.638191"
     },
     "128": {
       "name": "Seine River",
@@ -3105,7 +3105,7 @@
       "latitude": 48.8566,
       "longitude": 2.3522,
       "created_at": "2025-10-08T20:42:31.674181",
-      "updated_at": "2025-12-04T16:52:13.740198"
+      "updated_at": "2025-12-11T00:58:43.638414"
     },
     "129": {
       "name": "Ginza District",
@@ -3130,7 +3130,7 @@
       "latitude": 35.6718,
       "longitude": 139.7653,
       "created_at": "2025-10-08T20:42:31.674689",
-      "updated_at": "2025-12-04T16:52:13.740387"
+      "updated_at": "2025-12-11T00:58:43.638608"
     },
     "130": {
       "name": "Meiji Shrine",
@@ -3155,7 +3155,7 @@
       "latitude": 35.6762,
       "longitude": 139.6993,
       "created_at": "2025-10-08T20:42:31.674725",
-      "updated_at": "2025-12-07T22:03:47.841467"
+      "updated_at": "2025-12-11T00:58:43.638803"
     },
     "131": {
       "name": "Senso-ji Temple",
@@ -3180,7 +3180,7 @@
       "latitude": 35.7148,
       "longitude": 139.7967,
       "created_at": "2025-10-08T20:42:31.674747",
-      "updated_at": "2025-12-07T22:03:51.077587"
+      "updated_at": "2025-12-11T00:58:43.639002"
     },
     "132": {
       "name": "Tokyo National Museum",
@@ -3205,7 +3205,7 @@
       "latitude": 35.7186,
       "longitude": 139.7762,
       "created_at": "2025-10-08T20:42:31.674773",
-      "updated_at": "2025-12-07T22:03:53.507287"
+      "updated_at": "2025-12-11T00:58:43.639201"
     },
     "133": {
       "name": "Tokyo Tower",
@@ -3230,7 +3230,7 @@
       "latitude": 35.6586,
       "longitude": 139.7454,
       "created_at": "2025-10-08T20:42:31.674799",
-      "updated_at": "2025-12-04T16:52:13.741185"
+      "updated_at": "2025-12-11T00:58:43.639395"
     },
     "134": {
       "name": "Art Gallery of New South Wales",
@@ -3255,7 +3255,7 @@
       "latitude": -33.8688,
       "longitude": 151.2093,
       "created_at": "2025-10-08T20:42:31.675133",
-      "updated_at": "2025-12-07T22:03:55.955461"
+      "updated_at": "2025-12-11T00:58:43.639587"
     },
     "135": {
       "name": "Australian Museum",
@@ -3280,7 +3280,7 @@
       "latitude": -33.8747,
       "longitude": 151.2129,
       "created_at": "2025-10-08T20:42:31.675160",
-      "updated_at": "2025-12-07T22:04:09.222982"
+      "updated_at": "2025-12-11T00:58:43.639785"
     },
     "136": {
       "name": "Sydney Harbour Bridge",
@@ -3305,7 +3305,7 @@
       "latitude": -33.8523,
       "longitude": 151.2108,
       "created_at": "2025-10-08T20:42:31.675180",
-      "updated_at": "2025-12-07T22:04:12.504566"
+      "updated_at": "2025-12-11T00:58:43.640187"
     },
     "137": {
       "name": "Sydney Opera House",
@@ -3330,7 +3330,7 @@
       "latitude": -33.8568,
       "longitude": 151.2153,
       "created_at": "2025-10-08T20:42:31.675200",
-      "updated_at": "2025-12-04T16:52:13.741971"
+      "updated_at": "2025-12-11T00:58:43.640429"
     },
     "138": {
       "name": "The Rocks",
@@ -3355,7 +3355,7 @@
       "latitude": -33.8587,
       "longitude": 151.2078,
       "created_at": "2025-10-08T20:42:31.675219",
-      "updated_at": "2025-12-04T16:52:13.742164"
+      "updated_at": "2025-12-11T00:58:43.640726"
     },
     "139": {
       "name": "McCord Museum",
@@ -3380,7 +3380,7 @@
       "latitude": 45.5042,
       "longitude": -73.5708,
       "created_at": "2025-10-08T20:42:31.675544",
-      "updated_at": "2025-12-07T22:12:26.894673"
+      "updated_at": "2025-12-11T00:58:43.641074"
     },
     "140": {
       "name": "Montreal Museum of Fine Arts",
@@ -3405,7 +3405,7 @@
       "latitude": 45.4984,
       "longitude": -73.5794,
       "created_at": "2025-10-08T20:42:31.675571",
-      "updated_at": "2025-12-07T22:04:17.529182"
+      "updated_at": "2025-12-11T00:58:43.641348"
     },
     "141": {
       "name": "Mount Royal Park",
@@ -3430,7 +3430,7 @@
       "latitude": 45.5017,
       "longitude": -73.5873,
       "created_at": "2025-10-08T20:42:31.675591",
-      "updated_at": "2025-12-07T22:04:22.549280"
+      "updated_at": "2025-12-11T00:58:43.641571"
     },
     "142": {
       "name": "Notre-Dame Basilica",
@@ -3455,7 +3455,7 @@
       "latitude": 45.5048,
       "longitude": -73.5562,
       "created_at": "2025-10-08T20:42:31.675610",
-      "updated_at": "2025-12-07T22:04:25.558684"
+      "updated_at": "2025-12-11T00:58:43.641778"
     },
     "143": {
       "name": "Old Montreal",
@@ -3480,7 +3480,7 @@
       "latitude": 45.5042,
       "longitude": -73.5562,
       "created_at": "2025-10-08T20:42:31.675629",
-      "updated_at": "2025-12-07T22:04:27.838374"
+      "updated_at": "2025-12-11T00:58:43.641986"
     },
     "144": {
       "name": "Art Gallery of Ontario",
@@ -3505,7 +3505,7 @@
       "latitude": 43.6536,
       "longitude": -79.3925,
       "created_at": "2025-10-08T20:42:31.675937",
-      "updated_at": "2025-12-07T22:04:28.800543"
+      "updated_at": "2025-12-11T00:58:43.642200"
     },
     "145": {
       "name": "CN Tower",
@@ -3530,7 +3530,7 @@
       "latitude": 43.6426,
       "longitude": -79.3871,
       "created_at": "2025-10-08T20:42:31.675964",
-      "updated_at": "2025-12-07T22:04:33.804828"
+      "updated_at": "2025-12-11T00:58:43.642398"
     },
     "146": {
       "name": "Casa Loma",
@@ -3555,7 +3555,7 @@
       "latitude": 43.678,
       "longitude": -79.4094,
       "created_at": "2025-10-08T20:42:31.675984",
-      "updated_at": "2025-12-07T22:04:34.621486"
+      "updated_at": "2025-12-11T00:58:43.642594"
     },
     "147": {
       "name": "Distillery District",
@@ -3580,7 +3580,7 @@
       "latitude": 43.6519,
       "longitude": -79.3604,
       "created_at": "2025-10-08T20:42:31.676059",
-      "updated_at": "2025-12-07T22:04:36.405435"
+      "updated_at": "2025-12-11T00:58:43.642791"
     },
     "148": {
       "name": "Royal Ontario Museum",
@@ -3605,7 +3605,7 @@
       "latitude": 43.6677,
       "longitude": -79.3948,
       "created_at": "2025-10-08T20:42:31.676105",
-      "updated_at": "2025-12-07T22:04:39.087637"
+      "updated_at": "2025-12-11T00:58:43.643000"
     },
     "149": {
       "name": "Capilano Suspension Bridge",
@@ -3630,7 +3630,7 @@
       "latitude": 49.3429,
       "longitude": -123.1149,
       "created_at": "2025-10-08T20:42:31.676542",
-      "updated_at": "2025-12-07T22:04:41.114892"
+      "updated_at": "2025-12-11T00:58:43.643192"
     },
     "150": {
       "name": "Granville Island",
@@ -3655,7 +3655,7 @@
       "latitude": 49.2726,
       "longitude": -123.135,
       "created_at": "2025-10-08T20:42:31.676573",
-      "updated_at": "2025-12-07T22:04:42.238234"
+      "updated_at": "2025-12-11T00:58:43.643387"
     },
     "151": {
       "name": "Museum of Anthropology",
@@ -3680,7 +3680,7 @@
       "latitude": 49.2696,
       "longitude": -123.2606,
       "created_at": "2025-10-08T20:42:31.676595",
-      "updated_at": "2025-12-07T22:04:43.488242"
+      "updated_at": "2025-12-11T00:58:43.643580"
     },
     "152": {
       "name": "Stanley Park",
@@ -3705,7 +3705,7 @@
       "latitude": 49.3043,
       "longitude": -123.1443,
       "created_at": "2025-10-08T20:42:31.676615",
-      "updated_at": "2025-12-04T16:52:13.745358"
+      "updated_at": "2025-12-11T00:58:43.643780"
     },
     "153": {
       "name": "Vancouver Art Gallery",
@@ -3730,7 +3730,7 @@
       "latitude": 49.2827,
       "longitude": -123.1207,
       "created_at": "2025-10-08T20:42:31.676634",
-      "updated_at": "2025-12-04T16:52:13.745612"
+      "updated_at": "2025-12-11T00:58:43.643975"
     },
     "154": {
       "name": "Azadi Tower",
@@ -3755,7 +3755,7 @@
       "latitude": 35.6961,
       "longitude": 51.3379,
       "created_at": "2025-10-08T20:42:31.676980",
-      "updated_at": "2025-12-07T22:04:45.622563"
+      "updated_at": "2025-12-11T00:58:43.644166"
     },
     "155": {
       "name": "Golestan Palace",
@@ -3780,7 +3780,7 @@
       "latitude": 35.6794,
       "longitude": 51.4206,
       "created_at": "2025-10-08T20:42:31.677007",
-      "updated_at": "2025-12-04T16:52:13.746025"
+      "updated_at": "2025-12-11T00:58:43.644357"
     },
     "156": {
       "name": "Grand Bazaar",
@@ -3805,7 +3805,7 @@
       "latitude": 35.6756,
       "longitude": 51.4181,
       "created_at": "2025-10-08T20:42:31.677028",
-      "updated_at": "2025-12-04T16:52:13.746233"
+      "updated_at": "2025-12-11T00:58:43.644553"
     },
     "157": {
       "name": "National Museum of Iran",
@@ -3830,7 +3830,7 @@
       "latitude": 35.6892,
       "longitude": 51.3889,
       "created_at": "2025-10-08T20:42:31.677047",
-      "updated_at": "2025-12-07T22:12:26.895535"
+      "updated_at": "2025-12-11T00:58:43.644742"
     },
     "158": {
       "name": "Tehran Museum of Contemporary Art",
@@ -3855,7 +3855,7 @@
       "latitude": 35.6892,
       "longitude": 51.3889,
       "created_at": "2025-10-08T20:42:31.677066",
-      "updated_at": "2025-12-07T22:04:59.788056"
+      "updated_at": "2025-12-11T00:58:43.644933"
     },
     "159": {
       "name": "Baltimore Museum of Art",
@@ -3880,7 +3880,7 @@
       "latitude": 39.3289,
       "longitude": -76.6194,
       "created_at": "2025-10-08T20:42:31.677382",
-      "updated_at": "2025-12-04T16:52:13.746821"
+      "updated_at": "2025-12-11T00:58:43.645122"
     },
     "160": {
       "name": "Fort McHenry National Monument",
@@ -3905,7 +3905,7 @@
       "latitude": 39.2631,
       "longitude": -76.5797,
       "created_at": "2025-10-08T20:42:31.677409",
-      "updated_at": "2025-12-04T16:52:13.747019"
+      "updated_at": "2025-12-11T00:58:43.645317"
     },
     "161": {
       "name": "Inner Harbor",
@@ -3930,7 +3930,7 @@
       "latitude": 39.2854,
       "longitude": -76.6121,
       "created_at": "2025-10-08T20:42:31.677429",
-      "updated_at": "2025-12-07T22:05:02.739605"
+      "updated_at": "2025-12-11T00:58:43.645507"
     },
     "162": {
       "name": "National Aquarium",
@@ -3955,7 +3955,7 @@
       "latitude": 39.2854,
       "longitude": -76.6121,
       "created_at": "2025-10-08T20:42:31.677448",
-      "updated_at": "2025-12-04T16:52:13.747397"
+      "updated_at": "2025-12-11T00:58:43.645696"
     },
     "163": {
       "name": "Walters Art Museum",
@@ -3980,7 +3980,7 @@
       "latitude": 39.2976,
       "longitude": -76.6154,
       "created_at": "2025-10-08T20:42:31.677467",
-      "updated_at": "2025-12-04T16:52:13.747588"
+      "updated_at": "2025-12-11T00:58:43.645889"
     },
     "164": {
       "name": "Franklin Institute",
@@ -4005,7 +4005,7 @@
       "latitude": 39.9581,
       "longitude": -75.1725,
       "created_at": "2025-10-08T20:42:31.677771",
-      "updated_at": "2025-12-07T22:05:09.545898"
+      "updated_at": "2025-12-11T00:58:43.646086"
     },
     "165": {
       "name": "Independence Hall",
@@ -4030,7 +4030,7 @@
       "latitude": 39.9489,
       "longitude": -75.15,
       "created_at": "2025-10-08T20:42:31.677797",
-      "updated_at": "2025-12-04T16:52:13.747973"
+      "updated_at": "2025-12-11T00:58:43.646276"
     },
     "166": {
       "name": "Liberty Bell Center",
@@ -4055,7 +4055,7 @@
       "latitude": 39.9489,
       "longitude": -75.15,
       "created_at": "2025-10-08T20:42:31.677817",
-      "updated_at": "2025-12-07T21:42:45.661870"
+      "updated_at": "2025-12-11T00:58:43.646471"
     },
     "167": {
       "name": "Philadelphia Museum of Art",
@@ -4080,7 +4080,7 @@
       "latitude": 39.9656,
       "longitude": -75.1806,
       "created_at": "2025-10-08T20:42:31.677837",
-      "updated_at": "2025-12-07T21:42:45.662097"
+      "updated_at": "2025-12-11T00:58:43.646679"
     },
     "168": {
       "name": "Reading Terminal Market",
@@ -4105,7 +4105,7 @@
       "latitude": 39.9544,
       "longitude": -75.16,
       "created_at": "2025-10-08T20:42:31.677855",
-      "updated_at": "2025-12-07T22:05:14.695858"
+      "updated_at": "2025-12-11T00:58:43.646900"
     },
     "169": {
       "name": "Morven Museum & Garden",
@@ -4130,7 +4130,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678158",
-      "updated_at": "2025-12-07T22:05:15.659318"
+      "updated_at": "2025-12-11T00:58:43.647089"
     },
     "171": {
       "name": "Palmer Square",
@@ -4155,7 +4155,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678205",
-      "updated_at": "2025-12-07T22:05:18.167713"
+      "updated_at": "2025-12-11T00:58:43.647285"
     },
     "172": {
       "name": "Princeton Battlefield State Park",
@@ -4180,7 +4180,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678224",
-      "updated_at": "2025-12-04T16:52:13.749385"
+      "updated_at": "2025-12-11T00:58:43.647483"
     },
     "174": {
       "name": "Princeton Public Library",
@@ -4205,7 +4205,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678262",
-      "updated_at": "2025-12-07T22:05:20.930005"
+      "updated_at": "2025-12-11T00:58:43.647674"
     },
     "175": {
       "name": "Princeton University Art Museum",
@@ -4214,7 +4214,7 @@
       "city_id": 22,
       "city_name": "Princeton",
       "description": "One of the finest university art museums in the country, with over 100,000 works spanning 5,000 years of world culture. Free to all. The museum recently opened a new facility at the historic center of Princeton's campus, featuring exhibitions, collections, education centers, and the Mosaic Restaurant.",
-      "opening_hours": "Monday\u2013Wednesday: 10 a.m.\u20135 p.m., Thursday\u2013Friday: 10 a.m.\u20138 p.m., Saturday: 10 a.m.\u20135 p.m., Sunday: 12\u20135 p.m.",
+      "opening_hours": "Monday–Wednesday: 10 a.m.–5 p.m., Thursday–Friday: 10 a.m.–8 p.m., Saturday: 10 a.m.–5 p.m., Sunday: 12–5 p.m.",
       "holiday_hours": "",
       "phone_number": "(609) 258-3788",
       "email": "artmuseum@princeton.edu",
@@ -4230,7 +4230,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678281",
-      "updated_at": "2025-12-04T16:52:13.749957"
+      "updated_at": "2025-12-11T00:58:43.647867"
     },
     "176": {
       "name": "Princeton University Chapel",
@@ -4255,7 +4255,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-10-08T20:42:31.678300",
-      "updated_at": "2025-12-04T16:52:13.750167"
+      "updated_at": "2025-12-11T00:58:43.648066"
     },
     "178": {
       "name": "AFI Silver Theatre and Cultural Center",
@@ -4280,7 +4280,7 @@
       "latitude": 38.9919,
       "longitude": -77.0256,
       "created_at": "2025-10-08T20:42:31.678698",
-      "updated_at": "2025-12-07T22:05:25.333376"
+      "updated_at": "2025-12-11T00:58:43.648258"
     },
     "179": {
       "name": "Webster's Bookstore Cafe",
@@ -4305,7 +4305,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-01T23:57:46.135332",
-      "updated_at": "2025-12-04T16:52:13.750775"
+      "updated_at": "2025-12-11T00:58:43.648451"
     },
     "180": {
       "name": "Rosa's Lounge",
@@ -4330,7 +4330,7 @@
       "latitude": 41.9176,
       "longitude": -87.7075,
       "created_at": "2025-12-03T22:14:47.202564",
-      "updated_at": "2025-12-04T16:52:13.750976"
+      "updated_at": "2025-12-11T00:58:43.648650"
     },
     "181": {
       "name": "House of Blues",
@@ -4355,7 +4355,7 @@
       "latitude": 41.8886,
       "longitude": -87.6294,
       "created_at": "2025-12-03T22:14:47.203126",
-      "updated_at": "2025-12-07T22:05:28.750804"
+      "updated_at": "2025-12-11T00:58:43.648842"
     },
     "182": {
       "name": "Subterranean",
@@ -4380,7 +4380,7 @@
       "latitude": 41.9106,
       "longitude": -87.6778,
       "created_at": "2025-12-03T22:14:47.203458",
-      "updated_at": "2025-12-07T22:05:30.890254"
+      "updated_at": "2025-12-11T00:58:43.649049"
     },
     "183": {
       "name": "Laugh Factory",
@@ -4405,7 +4405,7 @@
       "latitude": 41.9406,
       "longitude": -87.6447,
       "created_at": "2025-12-03T22:14:47.203743",
-      "updated_at": "2025-12-04T16:52:13.751577"
+      "updated_at": "2025-12-11T00:58:43.649242"
     },
     "184": {
       "name": "The Comedy Bar",
@@ -4430,7 +4430,7 @@
       "latitude": 41.8958,
       "longitude": -87.625,
       "created_at": "2025-12-03T22:14:47.204003",
-      "updated_at": "2025-12-04T16:52:13.751804"
+      "updated_at": "2025-12-11T00:58:43.649436"
     },
     "185": {
       "name": "Gallery Cabaret",
@@ -4455,7 +4455,7 @@
       "latitude": 41.9178,
       "longitude": -87.6847,
       "created_at": "2025-12-03T22:14:47.204264",
-      "updated_at": "2025-12-04T16:52:13.752025"
+      "updated_at": "2025-12-11T00:58:43.649646"
     },
     "186": {
       "name": "Second City",
@@ -4480,7 +4480,7 @@
       "latitude": 41.9111,
       "longitude": -87.6344,
       "created_at": "2025-12-03T22:14:47.204524",
-      "updated_at": "2025-12-04T16:52:13.752245"
+      "updated_at": "2025-12-11T00:58:43.649873"
     },
     "187": {
       "name": "Museum of Contemporary Art Chicago",
@@ -4505,7 +4505,7 @@
       "latitude": 41.8967,
       "longitude": -87.6217,
       "created_at": "2025-12-03T22:14:47.204770",
-      "updated_at": "2025-12-07T22:05:37.597680"
+      "updated_at": "2025-12-11T00:58:43.650167"
     },
     "188": {
       "name": "Museum of Illusions Chicago",
@@ -4530,7 +4530,7 @@
       "latitude": 41.8827,
       "longitude": -87.6274,
       "created_at": "2025-12-03T22:14:47.205027",
-      "updated_at": "2025-12-07T22:05:38.701981"
+      "updated_at": "2025-12-11T00:58:43.650393"
     },
     "189": {
       "name": "Ukrainian Institute of Modern Art",
@@ -4555,7 +4555,7 @@
       "latitude": 41.8958,
       "longitude": -87.6811,
       "created_at": "2025-12-03T22:14:47.205231",
-      "updated_at": "2025-12-07T22:05:39.524059"
+      "updated_at": "2025-12-11T00:58:43.650597"
     },
     "190": {
       "name": "Irvine Barclay Theatre",
@@ -4580,7 +4580,7 @@
       "latitude": 33.6486,
       "longitude": -117.8428,
       "created_at": "2025-12-03T23:02:17.866640",
-      "updated_at": "2025-12-07T22:05:41.057973"
+      "updated_at": "2025-12-11T00:58:43.650795"
     },
     "191": {
       "name": "Orange County Great Park",
@@ -4605,7 +4605,7 @@
       "latitude": 33.6906,
       "longitude": -117.7503,
       "created_at": "2025-12-03T23:02:17.867201",
-      "updated_at": "2025-12-07T22:05:42.387090"
+      "updated_at": "2025-12-11T00:58:43.650990"
     },
     "192": {
       "name": "Irvine Museum of Art",
@@ -4630,7 +4630,7 @@
       "latitude": 33.6708,
       "longitude": -117.8447,
       "created_at": "2025-12-03T23:02:17.867490",
-      "updated_at": "2025-12-04T16:52:13.753446"
+      "updated_at": "2025-12-11T00:58:43.651187"
     },
     "193": {
       "name": "Pretend City Children's Museum",
@@ -4655,7 +4655,7 @@
       "latitude": 33.6806,
       "longitude": -117.7503,
       "created_at": "2025-12-03T23:02:17.867733",
-      "updated_at": "2025-12-04T16:52:13.753633"
+      "updated_at": "2025-12-11T00:58:43.651379"
     },
     "194": {
       "name": "Irvine Spectrum Center",
@@ -4680,7 +4680,7 @@
       "latitude": 33.6506,
       "longitude": -117.7447,
       "created_at": "2025-12-03T23:02:17.867963",
-      "updated_at": "2025-12-07T22:05:46.276900"
+      "updated_at": "2025-12-11T00:58:43.651572"
     },
     "195": {
       "name": "Bren Events Center",
@@ -4705,7 +4705,7 @@
       "latitude": 33.6486,
       "longitude": -117.8428,
       "created_at": "2025-12-03T23:02:17.868198",
-      "updated_at": "2025-12-07T22:05:51.760013"
+      "updated_at": "2025-12-11T00:58:43.651764"
     },
     "196": {
       "name": "Irvine Fine Arts Center",
@@ -4730,7 +4730,7 @@
       "latitude": 33.6847,
       "longitude": -117.7947,
       "created_at": "2025-12-03T23:02:17.868419",
-      "updated_at": "2025-12-07T22:05:54.100586"
+      "updated_at": "2025-12-11T00:58:43.651961"
     },
     "197": {
       "name": "William R. Mason Regional Park",
@@ -4755,7 +4755,7 @@
       "latitude": 33.6708,
       "longitude": -117.8447,
       "created_at": "2025-12-03T23:02:17.868838",
-      "updated_at": "2025-12-07T22:12:26.898418"
+      "updated_at": "2025-12-11T00:58:43.652166"
     },
     "198": {
       "name": "Orange County Museum of Art (OCMA)",
@@ -4780,7 +4780,7 @@
       "latitude": 33.6906,
       "longitude": -117.8847,
       "created_at": "2025-12-03T23:15:39.646762",
-      "updated_at": "2025-12-04T16:52:13.754617"
+      "updated_at": "2025-12-11T00:58:43.652358"
     },
     "199": {
       "name": "Smithsonian American Art Museum",
@@ -4805,7 +4805,7 @@
       "latitude": 38.8978,
       "longitude": -77.0225,
       "created_at": "2025-12-04T16:52:01.250900",
-      "updated_at": "2025-12-04T16:52:13.754809"
+      "updated_at": "2025-12-11T00:58:43.652557"
     },
     "200": {
       "name": "Renwick Gallery",
@@ -4830,7 +4830,7 @@
       "latitude": 38.8977,
       "longitude": -77.0414,
       "created_at": "2025-12-04T16:52:01.252156",
-      "updated_at": "2025-12-04T16:52:13.755004"
+      "updated_at": "2025-12-11T00:58:43.652758"
     },
     "201": {
       "name": "Smithsonian National Museum of African Art",
@@ -4855,7 +4855,7 @@
       "latitude": 38.8878,
       "longitude": -77.0253,
       "created_at": "2025-12-05T03:56:53.540814",
-      "updated_at": "2025-12-05T03:58:26.791634"
+      "updated_at": "2025-12-11T00:58:43.652954"
     },
     "202": {
       "name": "Photoworks at Glen Echo Park",
@@ -4880,7 +4880,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-05T23:50:58.900019",
-      "updated_at": "2025-12-05T23:50:58.900033"
+      "updated_at": "2025-12-11T00:58:43.653150"
     },
     "203": {
       "name": "National Archives",
@@ -4905,7 +4905,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:10:14.397619",
-      "updated_at": "2025-12-08T03:10:14.397629"
+      "updated_at": "2025-12-11T00:58:43.653346"
     },
     "204": {
       "name": "Embassy of Finland",
@@ -4913,7 +4913,7 @@
       "address": "3301 Massachusetts Avenue NW, Washington, DC 20008",
       "city_id": 1,
       "city_name": "Washington",
-      "description": "The Embassy of Finland in Washington DC is located in a beautiful building that blends into its lush natural surroundings, embodying Finnish architecture. The building is designed to feel like a miniature Finland \u2013 green, modern and transparent. We take great pride in being the first Platinum LEED certified embassy in the United States.",
+      "description": "The Embassy of Finland in Washington DC is located in a beautiful building that blends into its lush natural surroundings, embodying Finnish architecture. The building is designed to feel like a miniature Finland – green, modern and transparent. We take great pride in being the first Platinum LEED certified embassy in the United States.",
       "opening_hours": "By appointment",
       "holiday_hours": "",
       "phone_number": "",
@@ -4930,7 +4930,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:18:29.971367",
-      "updated_at": "2025-12-08T03:18:29.971377"
+      "updated_at": "2025-12-11T00:58:43.653548"
     },
     "205": {
       "name": "Dupont Underground",
@@ -4938,7 +4938,7 @@
       "address": "19 Dupont Circle NW, Washington, DC 20036",
       "city_id": 1,
       "city_name": "Washington",
-      "description": "Dupont Underground is an arts organization transforming 15,000 sqft of open abandoned space under Dupont Circle into a platform for creative exchange and contemporary arts in our vibrant city. We are committed to developing a multidisciplinary platform for creative expression and strive to reflect the diversity of our community \u2013 both artists and audiences.",
+      "description": "Dupont Underground is an arts organization transforming 15,000 sqft of open abandoned space under Dupont Circle into a platform for creative exchange and contemporary arts in our vibrant city. We are committed to developing a multidisciplinary platform for creative expression and strive to reflect the diversity of our community – both artists and audiences.",
       "opening_hours": "Varies by event",
       "holiday_hours": "",
       "phone_number": "",
@@ -4955,7 +4955,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:19:20.536380",
-      "updated_at": "2025-12-08T03:19:20.536391"
+      "updated_at": "2025-12-11T00:58:43.653755"
     },
     "206": {
       "name": "Washington Improv Theater",
@@ -4980,7 +4980,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:19:44.829737",
-      "updated_at": "2025-12-08T03:19:44.829747"
+      "updated_at": "2025-12-11T00:58:43.653951"
     },
     "207": {
       "name": "Johns Hopkins University Bloomberg Center",
@@ -5005,7 +5005,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:21:16.831527",
-      "updated_at": "2025-12-08T03:21:16.831538"
+      "updated_at": "2025-12-11T00:58:43.654145"
     },
     "208": {
       "name": "Eaton DC",
@@ -5030,7 +5030,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:21:38.129041",
-      "updated_at": "2025-12-08T03:21:38.129052"
+      "updated_at": "2025-12-11T00:58:43.654343"
     },
     "209": {
       "name": "Goethe-Institut Washington",
@@ -5055,7 +5055,7 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:22:52.301627",
-      "updated_at": "2025-12-08T03:22:52.301638"
+      "updated_at": "2025-12-11T00:58:43.654538"
     },
     "210": {
       "name": "Villa Albertine Washington DC",
@@ -5080,12 +5080,12 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-08T03:25:31.928964",
-      "updated_at": "2025-12-08T03:25:31.928975"
+      "updated_at": "2025-12-11T00:58:43.654734"
     },
     "212": {
       "name": "Museu Nacional de Machado de Castro",
       "venue_type": "museum",
-      "address": "Largo Dr. Jos\u00e9 Rodrigues, 3000-236 Coimbra, Portugal",
+      "address": "Largo Dr. José Rodrigues, 3000-236 Coimbra, Portugal",
       "city_id": 27,
       "city_name": "Coimbra",
       "description": "One of Portugal's most important museums of fine arts and archaeology, housed in the former Bishop's Palace. Features extensive collections of sculpture, painting, decorative arts, and archaeological artifacts spanning from ancient times to the modern era.",
@@ -5105,12 +5105,12 @@
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-11T00:34:40.813269",
-      "updated_at": "2025-12-11T00:38:03.710152"
+      "updated_at": "2025-12-11T00:58:43.654959"
     },
     "213": {
       "name": "Science Museum of the University of Coimbra",
       "venue_type": "museum",
-      "address": "Largo Marqu\u00eas de Pombal, 3000-272 Coimbra, Portugal",
+      "address": "Largo Marquês de Pombal, 3000-272 Coimbra, Portugal",
       "city_id": 27,
       "city_name": "Coimbra",
       "description": "Interactive science museum located in the historic Chemical Laboratory building at the University of Coimbra. Features scientific collections, interactive exhibitions, and educational programs showcasing the history of science and the university's scientific heritage.",
@@ -5125,12 +5125,12 @@
       "twitter_url": "",
       "youtube_url": "",
       "tiktok_url": "",
-      "admission_fee": "\u20ac8 (adults), discounts available - check website for current pricing",
+      "admission_fee": "€8 (adults), discounts available - check website for current pricing",
       "image_url": "",
       "latitude": null,
       "longitude": null,
       "created_at": "2025-12-11T00:34:40.814263",
-      "updated_at": "2025-12-11T00:38:03.710390"
+      "updated_at": "2025-12-11T00:58:43.655244"
     }
   }
 }
