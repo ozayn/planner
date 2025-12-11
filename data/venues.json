@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-12-10",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 205,
-    "last_updated": "2025-12-10 22:00:56"
+    "total_venues": 206,
+    "last_updated": "2025-12-10 22:08:55"
   },
   "venues": {
     "1": {
@@ -5131,6 +5131,31 @@
       "longitude": null,
       "created_at": "2025-12-11T00:34:40.814263",
       "updated_at": "2025-12-11T00:58:43.655244"
+    },
+    "214": {
+      "name": "Milken Center for Advancing the American Dream",
+      "venue_type": "museum",
+      "address": "1503 Pennsylvania Avenue NW, Washington, DC 20005",
+      "city_id": 1,
+      "city_name": "Washington",
+      "description": "An immersive museum featuring interactive galleries and displays highlighting pathways to opportunity through education, health, entrepreneurship, and financial empowerment. Features the American Dream Experience exhibition, special exhibitions, and the Holodeck Experience.",
+      "opening_hours": "Open daily 10:00 AM - 5:30 PM. Closed Tuesdays, Thanksgiving Day, Christmas Day, and New Year's Day.",
+      "holiday_hours": "",
+      "phone_number": "(202) 955-3000",
+      "email": "",
+      "website_url": "https://www.mcaad.org",
+      "ticketing_url": "",
+      "instagram_url": "",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "Free (timed tickets required). Holodeck Experience: $15.",
+      "image_url": "",
+      "latitude": 38.8977,
+      "longitude": -77.033,
+      "created_at": "2025-12-11T03:08:48.086809",
+      "updated_at": "2025-12-11T03:08:54.546157"
     }
   }
 }
