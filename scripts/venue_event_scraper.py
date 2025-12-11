@@ -299,8 +299,10 @@ class VenueEventScraper:
         
         # Check if this venue has saved paths - use them first if available (for ALL venues)
         # This check happens FIRST, before any specialized scrapers or generic scrapers
+        logger.info(f"🔍 Checking for saved paths for {venue.name}...")
         saved_paths = self._get_venue_event_paths(venue)
         has_saved_paths = bool(saved_paths)
+        logger.info(f"   Saved paths check result: has_saved_paths={has_saved_paths}, paths={saved_paths}")
         
         if has_saved_paths:
             logger.info(f"📋 Found saved paths for {venue.name}: {saved_paths}")
@@ -3796,14 +3798,23 @@ class VenueEventScraper:
     
     def _get_venue_event_paths(self, venue):
         """Get saved event paths from venue's additional_info field"""
+        logger.debug(f"   🔍 Checking saved paths for {venue.name}...")
+        logger.debug(f"      additional_info exists: {bool(venue.additional_info)}")
+        logger.debug(f"      additional_info type: {type(venue.additional_info)}")
+        logger.debug(f"      additional_info value: {venue.additional_info[:200] if venue.additional_info else 'None'}")
+        
         if not venue.additional_info:
+            logger.debug(f"   ⚠️  No additional_info for {venue.name}")
             return {}
         
         try:
             import json
             info = json.loads(venue.additional_info) if isinstance(venue.additional_info, str) else venue.additional_info
-            return info.get('event_paths', {})
-        except (json.JSONDecodeError, TypeError, AttributeError):
+            paths = info.get('event_paths', {})
+            logger.debug(f"   ✅ Found paths in additional_info: {paths}")
+            return paths
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            logger.debug(f"   ⚠️  Error parsing additional_info for {venue.name}: {e}")
             return {}
     
     def _save_venue_event_paths(self, venue, paths):
