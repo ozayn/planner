@@ -435,9 +435,15 @@ class EventbriteScraper:
         organizer_id = self.extract_organizer_id_from_url(venue.ticketing_url)
         if not organizer_id:
             logger.warning(f"Could not extract organizer ID from URL: {venue.ticketing_url}")
+            logger.warning(f"  URL pattern check: {'eventbrite' in venue.ticketing_url.lower() if venue.ticketing_url else 'No URL'}")
             return []
         
         logger.info(f"Scraping Eventbrite events for {venue.name} (organizer ID: {organizer_id})")
+        
+        # Check if API token is available
+        if not self.api_token:
+            logger.error(f"Cannot fetch events for {venue.name}: No API token available")
+            return []
         
         # Calculate date range
         today = date.today()
@@ -904,12 +910,16 @@ def _scrape_dc_embassy_events_impl(city_id: Optional[int] = None, time_range: st
         # Scrape from embassies with URLs
         for venue in venues_with_urls:
             try:
-                logger.info(f"Scraping events from {venue.name} (has Eventbrite URL)")
+                logger.info(f"Scraping events from {venue.name} (has Eventbrite URL: {venue.ticketing_url})")
                 events = scraper.scrape_venue_events(venue, time_range=time_range)
-                all_events.extend(events)
                 logger.info(f"  ✅ Found {len(events)} events from {venue.name}")
+                if len(events) == 0:
+                    logger.warning(f"  ⚠️  No events found for {venue.name} - organizer ID extraction or API call may have failed")
+                all_events.extend(events)
             except Exception as e:
                 logger.error(f"  ❌ Error scraping {venue.name}: {e}")
+                import traceback
+                logger.error(f"  Traceback: {traceback.format_exc()}")
                 continue
         
         # Search and scrape from embassies without URLs (if enabled)
