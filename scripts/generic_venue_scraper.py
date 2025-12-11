@@ -134,13 +134,31 @@ class GenericVenueScraper:
                 'Sec-Fetch-User': '?1',
                 'Cache-Control': 'max-age=0'
             })
+            # Disable SSL verification properly (fixes "Cannot set verify_mode to CERT_NONE when check_hostname is enabled")
             self._cloudscraper.verify = False
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            # Fix SSL context to disable both verification and hostname checking
+            import ssl
+            from requests.adapters import HTTPAdapter
+            from urllib3.poolmanager import PoolManager
+            
+            class SSLAdapter(HTTPAdapter):
+                def init_poolmanager(self, *args, **kwargs):
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    kwargs['ssl_context'] = ctx
+                    return super().init_poolmanager(*args, **kwargs)
+            
+            self._cloudscraper.mount('https://', SSLAdapter())
             
             # Establish session by visiting base URL if provided
             if base_url:
                 try:
                     logger.debug(f"   🔧 Establishing cloudscraper session with {base_url}...")
-                    self._cloudscraper.get(base_url, timeout=15)
+                    self._cloudscraper.get(base_url, timeout=15, verify=False)
                     import time
                     time.sleep(1)
                 except Exception as e:
