@@ -4,7 +4,7 @@
     "created": "2025-12-10",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 205,
-    "last_updated": "2025-12-10 21:56:32"
+    "last_updated": "2025-12-10 22:00:56"
   },
   "venues": {
     "1": {
@@ -1055,7 +1055,7 @@
       "latitude": 38.9156,
       "longitude": -77.0789,
       "created_at": "2025-10-08T20:42:31.667028",
-      "updated_at": "2025-12-11T02:51:03.350360"
+      "updated_at": "2025-12-11T03:00:55.843690"
     },
     "44": {
       "name": "Embassy of Italy",
@@ -1355,7 +1355,7 @@
       "latitude": 38.9289,
       "longitude": -77.0622,
       "created_at": "2025-10-08T20:42:31.667261",
-      "updated_at": "2025-12-11T02:51:03.350911"
+      "updated_at": "2025-12-11T03:00:55.843710"
     },
     "56": {
       "name": "Suns Cinema",
