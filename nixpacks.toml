@@ -8,4 +8,4 @@ cmds = ["pip install -r requirements.txt"]
 cmds = []
 
 [start]
-cmd = "python scripts/reset_railway_database.py && gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 300 --workers 2"
+cmd = "python scripts/reset_railway_database.py || true && gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 300 --workers 2"

@@ -284,16 +284,28 @@ def load_sources_from_json():
         return False
 
 def main():
-    """Main reset function"""
-    print("🔄 Starting Railway database reset...")
+    """Main reset function - only runs if database is empty"""
+    print("🔄 Checking Railway database...")
     print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
     
     with app.app_context():
-        # Step 1: Clear all data
+        # Check if database is already populated
+        cities_count = City.query.count()
+        venues_count = Venue.query.count()
+        
+        if cities_count > 0 and venues_count > 0:
+            print(f"✅ Database already populated (Cities: {cities_count}, Venues: {venues_count})")
+            print("⏭️  Skipping reset - database is not empty")
+            print("=" * 50)
+            return True
+        
+        print("📭 Database is empty, initializing from JSON files...")
+        print("=" * 50)
+        
+        # Step 1: Clear all data (should be empty, but just in case)
         if not clear_all_data():
-            print("❌ Failed to clear data. Aborting.")
-            return False
+            print("⚠️  Warning: Failed to clear data, but continuing...")
         
         # Step 2: Load cities
         if not load_cities_from_json():
@@ -317,7 +329,7 @@ def main():
         events_count = Event.query.count()
         
         print("=" * 50)
-        print("🎉 Railway database reset completed successfully!")
+        print("🎉 Railway database initialization completed successfully!")
         print(f"📊 Final counts:")
         print(f"   Cities: {cities_count}")
         print(f"   Venues: {venues_count}")
