@@ -427,7 +427,7 @@ class EventbriteScraper:
         Returns:
             List of event dictionaries in our format
         """
-        if not venue.ticketing_url or 'eventbrite.com' not in venue.ticketing_url:
+        if not venue.ticketing_url or 'eventbrite' not in venue.ticketing_url.lower():
             logger.debug(f"Venue {venue.name} does not have Eventbrite ticketing URL")
             return []
         
