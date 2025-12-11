@@ -430,7 +430,8 @@ class GenericVenueScraper:
                 '/exhibitions/upcoming', '/exhibitions/past',
                 '/events', '/event', '/calendar', '/programs', '/program',
                 '/whats-on', '/whats-on/current', '/whats-on/exhibitions', '/whats-on/events',
-                '/visit/exhibitions', '/see/exhibitions', '/explore/exhibitions',
+                '/visit/exhibitions', '/visit/tours-and-talks', '/visit/tours', '/visit/talks',
+                '/see/exhibitions', '/explore/exhibitions',
                 '/collection/exhibitions', '/art/exhibitions',
                 '/current-exhibitions', '/upcoming-exhibitions', '/on-view',
                 '/gallery', '/galleries', '/shows', '/shows/current',
@@ -472,6 +473,7 @@ class GenericVenueScraper:
                 'programs', 'program', 'events', 'event', 'calendar',
                 'talks', 'lectures', 'gallery-talks', 'curator-talks',
                 'tours', 'guided-tours', 'workshops', 'classes',
+                'tours-and-talks', 'tours & talks',  # Combined tours and talks pages
                 'whats-on', 'what\'s-on', 'whats-on', 'visit', 'see',
                 'schedule', 'upcoming', 'current', 'featured', 'shows',
                 # Additional patterns for better discovery
