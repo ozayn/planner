@@ -2341,6 +2341,24 @@
                     </div>
                 </div>
 
+                <div class="form-group" id="extractedEventsGroup">
+                    <div class="filter-section-header" onclick="toggleFilterSection('extractedEventsGroup', event)">
+                        <label>Events</label>
+                        <span class="filter-section-toggle">▼</span>
+                    </div>
+                    <div class="filter-section-content">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; color: #374151;">
+                                <input type="checkbox" id="showExtractedEvents" checked style="width: 16px; height: 16px; cursor: pointer;">
+                                <span>Show extracted events</span>
+                            </label>
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-left: 24px;">
+                                Events already saved to database
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 8px; margin-top: 24px;">
                     <button id="clearFiltersButton" class="clear-button" title="Reset All Filters">
                         Reset
@@ -2605,6 +2623,8 @@
         let statusSectionCollapsed = true; // Track status section state (default: collapsed)
         let selectedEventTypeFilters = new Set(); // Track selected event type filters (can be multiple)
         let babyFriendlyFilterActive = false; // Track baby-friendly filter state
+        let showExtractedEvents = true; // Track whether to show already extracted events (default: show)
+        let displayUnifiedEventsTimeout = null; // Debounce timer for displayUnifiedEvents
 
         // Toggle status section
         function toggleStatusSection() {
@@ -3090,6 +3110,15 @@
             // Add clear filters button
             document.getElementById('clearFiltersButton').addEventListener('click', clearAllFilters);
             
+            // Add extracted events filter checkbox listener
+            const showExtractedEventsCheckbox = document.getElementById('showExtractedEvents');
+            if (showExtractedEventsCheckbox) {
+                showExtractedEventsCheckbox.addEventListener('change', function() {
+                    showExtractedEvents = this.checked;
+                    displayUnifiedEvents(); // Refresh event display
+                });
+            }
+            
             // Add date range filter listener
             document.getElementById('dateRangeSelect').addEventListener('change', handleDateRangeChange);
             
@@ -3126,6 +3155,39 @@
                 // Update currentCity for discovered events
                 const selectedOption = citySelect.options[citySelect.selectedIndex];
                 currentCity = selectedOption ? selectedOption.textContent : 'Selected City';
+                
+                // Auto-select museums and embassies for Washington DC
+                // Check by both city name and city ID (DC is typically city_id 1)
+                const cityName = currentCity.toLowerCase();
+                const cityIdStr = cityId ? String(cityId) : '';
+                const isWashingtonDC = (cityName.includes('washington') && (cityName.includes('dc') || cityName.includes('district') || cityName.includes('columbia'))) 
+                                    || cityIdStr === '1'; // Washington DC is typically city_id 1
+                
+                if (isWashingtonDC) {
+                    // Small delay to ensure DOM is ready
+                    setTimeout(() => {
+                        // Activate museum and embassy tabs for Washington DC
+                        // Use querySelector with data-id attribute to find tabs within venueTypesGroup
+                        const venueTypesGroup = document.getElementById('venueTypesGroup');
+                        if (venueTypesGroup) {
+                            const museumTab = venueTypesGroup.querySelector('[data-id="venueTypeMuseum"]');
+                            const embassyTab = venueTypesGroup.querySelector('[data-id="venueTypeEmbassy"]');
+                            
+                            if (museumTab && !museumTab.classList.contains('active')) {
+                                museumTab.classList.add('active');
+                            }
+                            if (embassyTab && !embassyTab.classList.contains('active')) {
+                                embassyTab.classList.add('active');
+                            }
+                            
+                            // Update venue counts if venues are already loaded
+                            if (allVenues.length > 0) {
+                                updateVenueCounts();
+                                filterAndDisplayVenues();
+                            }
+                        }
+                    }, 100);
+                }
                 
                 // Show source type controls when city is selected
                 if (platformGroup) platformGroup.style.display = 'block';
@@ -3222,13 +3284,21 @@
 
         // Get selected venue types
         function getSelectedVenueTypes() {
-            const activeTabs = document.querySelectorAll('.venue-type-tabs .venue-type-tab.active');
-            const selectedTypes = [];
+            const venueTypesGroup = document.getElementById('venueTypesGroup');
+            if (!venueTypesGroup) return [];
             
+            const allTabs = venueTypesGroup.querySelectorAll('.venue-type-tab');
+            const activeTabs = venueTypesGroup.querySelectorAll('.venue-type-tab.active');
+            
+            // If all tabs are active, return empty array (no filtering)
+            if (allTabs.length > 0 && activeTabs.length === allTabs.length) {
+                return [];
+            }
+            
+            const selectedTypes = [];
             activeTabs.forEach(tab => {
                 const value = tab.getAttribute('data-value');
-                // Only count tabs that are in the Venue Types section (not Platforms or Content)
-                if (value && tab.closest('.form-group').querySelector('label').textContent.includes('Venue Types')) {
+                if (value) {
                     // Split comma-separated values and add to array
                     const types = value.split(',');
                     selectedTypes.push(...types);
@@ -3259,6 +3329,9 @@
                         updateVenueCounts();
                         filterAndDisplayVenues();
                     }
+                    
+                    // Update event display when price filter changes
+                    displayUnifiedEvents();
                 });
             });
 
@@ -3275,6 +3348,8 @@
                             updateVenueCounts();
                             filterAndDisplayVenues();
                         }
+                        // Update event display when venue type filter changes
+                        displayUnifiedEvents();
                     });
                 });
             }
@@ -3286,6 +3361,8 @@
                 platformTabs.forEach(tab => {
                     tab.addEventListener('click', function() {
                         this.classList.toggle('active');
+                        // Update event display when platform filter changes
+                        displayUnifiedEvents();
                     });
                 });
             }
@@ -3296,6 +3373,8 @@
                 contentTabs.forEach(tab => {
                     tab.addEventListener('click', function() {
                         this.classList.toggle('active');
+                        // Update event display when content filter changes
+                        displayUnifiedEvents();
                     });
                 });
             }
@@ -3303,7 +3382,17 @@
 
         // Get selected price filters (can be multiple)
         function getSelectedPriceFilters() {
-            const activeBtns = document.querySelectorAll('.price-filter-btn.active');
+            const priceGroup = document.getElementById('priceGroup');
+            if (!priceGroup) return [];
+            
+            const allBtns = priceGroup.querySelectorAll('.price-filter-btn');
+            const activeBtns = priceGroup.querySelectorAll('.price-filter-btn.active');
+            
+            // If all buttons are active, return empty array (no filtering)
+            if (allBtns.length > 0 && activeBtns.length === allBtns.length) {
+                return [];
+            }
+            
             return Array.from(activeBtns).map(btn => btn.dataset.filter);
         }
 
@@ -3360,6 +3449,12 @@
 
         // Clear all filters and reset to defaults
         function clearAllFilters() {
+            // Reset extracted events filter
+            showExtractedEvents = true;
+            const showExtractedCheckbox = document.getElementById('showExtractedEvents');
+            if (showExtractedCheckbox) {
+                showExtractedCheckbox.checked = true;
+            }
             // Reset city selection
             citySelect.value = '';
             
@@ -4176,12 +4271,21 @@
 
         // Get selected platform types
         function getSelectedPlatformTypes() {
-            const activeTabs = document.querySelectorAll('.venue-type-tabs .venue-type-tab.active');
-            const selectedTypes = [];
+            const platformsGroup = document.getElementById('platformsGroup');
+            if (!platformsGroup) return [];
             
+            const allTabs = platformsGroup.querySelectorAll('.venue-type-tab');
+            const activeTabs = platformsGroup.querySelectorAll('.venue-type-tab.active');
+            
+            // If all tabs are active, return empty array (no filtering)
+            if (allTabs.length > 0 && activeTabs.length === allTabs.length) {
+                return [];
+            }
+            
+            const selectedTypes = [];
             activeTabs.forEach(tab => {
                 const value = tab.getAttribute('data-value');
-                if (value && tab.closest('.form-group').querySelector('label').textContent.includes('Source Platforms')) {
+                if (value) {
                     const types = value.split(',');
                     selectedTypes.push(...types);
                 }
@@ -4192,12 +4296,21 @@
 
         // Get selected content types
         function getSelectedContentTypes() {
-            const activeTabs = document.querySelectorAll('.venue-type-tabs .venue-type-tab.active');
-            const selectedTypes = [];
+            const contentGroup = document.getElementById('contentGroup');
+            if (!contentGroup) return [];
             
+            const allTabs = contentGroup.querySelectorAll('.venue-type-tab');
+            const activeTabs = contentGroup.querySelectorAll('.venue-type-tab.active');
+            
+            // If all tabs are active, return empty array (no filtering)
+            if (allTabs.length > 0 && activeTabs.length === allTabs.length) {
+                return [];
+            }
+            
+            const selectedTypes = [];
             activeTabs.forEach(tab => {
                 const value = tab.getAttribute('data-value');
-                if (value && tab.closest('.form-group').querySelector('label').textContent.includes('Content Types')) {
+                if (value) {
                     const types = value.split(',');
                     selectedTypes.push(...types);
                 }
@@ -5077,40 +5190,171 @@
 
         // Display events - now unified with discovered events
         function displayEvents(events) {
-            // Update allEvents and trigger unified display
+            // Update allEvents and trigger unified display (immediate, no debounce)
             allEvents = events;
-            displayUnifiedEvents();
+            displayUnifiedEvents(true);
         }
 
         // Unified display function that combines allEvents and discoveredEvents
-        function displayUnifiedEvents() {
+        function displayUnifiedEvents(immediate = false) {
+            // Debounce rapid filter changes (wait 100ms before executing)
+            if (!immediate) {
+                if (displayUnifiedEventsTimeout) {
+                    clearTimeout(displayUnifiedEventsTimeout);
+                }
+                displayUnifiedEventsTimeout = setTimeout(() => {
+                    displayUnifiedEvents(true);
+                }, 100);
+                return;
+            }
+            
             const container = document.getElementById('discoveredEventsContainer');
             const exportBtn = document.getElementById('exportDiscoveredEventsBtn');
             const exportSelectedBtn = document.getElementById('exportSelectedBtn');
             
             if (!container) {
-                console.error('discoveredEventsContainer not found');
+                // Silently return if container doesn't exist yet (page still loading)
                 return;
             }
             
             // Combine both event sources and remove duplicates by ID
+            // Filter extracted events based on showExtractedEvents setting
+            const eventsToCombine = showExtractedEvents 
+                ? [...allEvents, ...discoveredEvents]
+                : [...discoveredEvents]; // Only show newly discovered events if extracted events are hidden
+            
             const combinedEvents = [];
             const eventIds = new Set();
             
-            [...allEvents, ...discoveredEvents].forEach(event => {
+            eventsToCombine.forEach(event => {
                 if (!eventIds.has(event.id)) {
                     eventIds.add(event.id);
                     combinedEvents.push(event);
                 }
             });
             
+            // Start with all combined events
+            let filteredEvents = combinedEvents;
+            
+            // Early return if no events to filter
+            if (combinedEvents.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                    </div>
+                `;
+                if (exportBtn) exportBtn.disabled = true;
+                if (exportSelectedBtn) exportSelectedBtn.disabled = true;
+                return;
+            }
+            
+            // Filter by venue types (from left sidebar) - apply first
+            const selectedVenueTypes = getSelectedVenueTypes();
+            if (selectedVenueTypes.length > 0) {
+                filteredEvents = filteredEvents.filter(event => {
+                    // If event has a venue_type directly (from API), use it
+                    if (event.venue_type) {
+                        return selectedVenueTypes.includes(event.venue_type);
+                    }
+                    
+                    // Otherwise, try to look it up from allVenues if available
+                    if (event.venue_id && allVenues.length > 0) {
+                        const venue = allVenues.find(v => v.id === event.venue_id);
+                        if (venue && venue.venue_type) {
+                            return selectedVenueTypes.includes(venue.venue_type);
+                        }
+                    }
+                    
+                    // If event has no venue_id or venue_type, include it (might be from sources)
+                    return true;
+                });
+            }
+            
+            // Filter by platform types (from left sidebar)
+            const selectedPlatformTypes = getSelectedPlatformTypes();
+            if (selectedPlatformTypes.length > 0) {
+                filteredEvents = filteredEvents.filter(event => {
+                    // If event has a source, check if it matches selected platforms
+                    if (event.source) {
+                        // Check if source matches any of the selected platform types
+                        // Handle comma-separated values in selectedPlatformTypes
+                        return selectedPlatformTypes.some(platform => {
+                            if (platform.includes(',')) {
+                                return platform.split(',').includes(event.source);
+                            }
+                            return platform === event.source;
+                        });
+                    }
+                    // If event has no source, include it
+                    return true;
+                });
+            }
+            
+            // Filter by content types (from left sidebar)
+            const selectedContentTypes = getSelectedContentTypes();
+            if (selectedContentTypes.length > 0) {
+                // Map event types to content types
+                const eventTypeToContentType = {
+                    'exhibition': ['art_exhibitions', 'visual_arts', 'gallery_openings'],
+                    'film': ['film_screenings'],
+                    'talk': ['lectures'],
+                    'workshop': ['workshops', 'photography_workshops'],
+                    'performance': ['music', 'concerts', 'theater', 'dance', 'performances'],
+                    'festival': ['festivals', 'community_events'],
+                    'photowalk': ['photowalks', 'photography', 'street_photography', 'art_walks'],
+                    'event': ['cultural_events', 'free_events', 'local_news', 'community_events'],
+                    'tour': ['cultural_events']
+                };
+                
+                filteredEvents = filteredEvents.filter(event => {
+                    if (!event.event_type) return false;
+                    
+                    // Get content types for this event type
+                    const eventContentTypes = eventTypeToContentType[event.event_type] || [];
+                    
+                    // Check if any of the event's content types match selected content types
+                    return eventContentTypes.some(contentType => 
+                        selectedContentTypes.includes(contentType)
+                    );
+                });
+            }
+            
+            // Filter by price (from left sidebar)
+            const priceFilters = getSelectedPriceFilters();
+            if (priceFilters.length > 0) {
+                // Filter by price
+                filteredEvents = filteredEvents.filter(event => {
+                    // Check event price first
+                    const eventPrice = event.price !== null && event.price !== undefined ? event.price : 
+                                     (event.admission_price !== null && event.admission_price !== undefined ? event.admission_price : null);
+                    
+                    let isFree = false;
+                    if (eventPrice !== null) {
+                        isFree = eventPrice === 0;
+                    } else if (event.venue_id && allVenues.length > 0) {
+                        // Check venue's admission fee if event doesn't have price
+                        const venue = allVenues.find(v => v.id === event.venue_id);
+                        if (venue) {
+                            isFree = isVenueFree(venue);
+                        } else {
+                            // If we can't determine, include it
+                            return true;
+                        }
+                    } else {
+                        // If we can't determine, include it
+                        return true;
+                    }
+                    
+                    return (priceFilters.includes('free') && isFree) || 
+                           (priceFilters.includes('paid') && !isFree);
+                });
+            }
+            
             // Filter by selected venues - only show events from selected venues
             // But if no venues have been loaded yet, show all events from the city
-            let filteredEvents = combinedEvents;
             if (allVenues.length > 0) {
                 // Venues have been loaded, so filter by selected venues
                 if (selectedVenues.size > 0) {
-                    filteredEvents = combinedEvents.filter(event => {
+                    filteredEvents = filteredEvents.filter(event => {
                         // If event has a venue_id, it must be in selectedVenues
                         if (event.venue_id) {
                             return selectedVenues.has(event.venue_id);
@@ -5120,7 +5364,7 @@
                     });
                 } else {
                     // If no venues are selected, only show events without venue_id (from sources)
-                    filteredEvents = combinedEvents.filter(event => !event.venue_id);
+                    filteredEvents = filteredEvents.filter(event => !event.venue_id);
                 }
             }
             // If allVenues.length === 0, show all events (no venue filtering yet)
@@ -5319,7 +5563,8 @@
             
             // Debug: log counts (can be removed later)
             if (Object.keys(genericTourGroupsByVenue).length > 0 || regularEvents.length > 0) {
-                console.log(`Event display: ${Object.keys(genericTourGroupsByVenue).length} venues with recurring tours, ${regularEvents.length} regular events`);
+                // Debug: Event display stats (commented out to reduce console noise)
+                // console.log(`Event display: ${Object.keys(genericTourGroupsByVenue).length} venues with recurring tours, ${regularEvents.length} regular events`);
             }
             
             // Build HTML

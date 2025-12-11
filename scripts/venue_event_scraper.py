@@ -1831,7 +1831,7 @@ class VenueEventScraper:
             if 'exhibition' in content or 'exhibit' in content:
                 return 'exhibition'
             else:
-                return 'tour'  # Default museums to tours
+                return 'event'  # Default museums to generic event type
         elif venue_type == 'gallery':
             return 'exhibition'
         elif venue_type == 'theater':
@@ -1841,7 +1841,7 @@ class VenueEventScraper:
         elif 'festival' in content:
             return 'festival'
         else:
-            return 'tour'  # Default to tour for most venues
+            return 'event'  # Default to generic event type for most venues
     
     def _extract_exhibition_from_page(self, soup, venue, url, event_type=None, time_range='today'):
         """Extract an exhibition event from an individual exhibition page"""

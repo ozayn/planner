@@ -1983,6 +1983,80 @@ async function startWebstersScraping() {
     }
 }
 
+async function startDCEmbassyEventbriteScraping() {
+    showScrapingProgressModal('DC Embassy Events (Eventbrite)');
+    
+    try {
+        const response = await fetch('/api/admin/scrape-dc-embassy-eventbrite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})  // Send empty JSON object explicitly
+        });
+        
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const responseText = await response.text();
+                if (responseText) {
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        // Not JSON, use text as error message
+                        if (responseText.length < 500) {
+                            errorMessage = responseText;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignore parsing errors
+                console.error('Error parsing error response:', e);
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
+        // Parse JSON response
+        let result;
+        try {
+            const responseText = await response.text();
+            if (!responseText || responseText.trim() === '') {
+                throw new Error('Empty response from server');
+            }
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
+        if (result.success) {
+            updateScrapingStatus(`✅ DC Embassy Eventbrite scraping completed! Found ${result.events_found} events, saved ${result.events_saved}`, 'success');
+            // Reload events table
+            await loadEvents();
+            setTimeout(() => {
+                closeScrapingProgressModal();
+            }, 3000);
+        } else {
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
+        }
+    } catch (error) {
+        console.error('DC Embassy Eventbrite scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && (error.message.includes('JSON') || error.message.includes('parse'))) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed. Check server logs for details.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
+    }
+}
+
 async function startNGAScraping() {
     showScrapingProgressModal('National Gallery of Art');
     

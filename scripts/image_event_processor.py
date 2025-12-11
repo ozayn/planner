@@ -1524,7 +1524,7 @@ class ImageEventProcessor:
                         if any('photowalk' in et.lower() or 'photo_walk' in et.lower() for et in event_types):
                             event_data.event_type = 'photowalk'
                         elif any('workshop' in et.lower() for et in event_types):
-                            event_data.event_type = 'tour'
+                            event_data.event_type = 'workshop'  # Workshops should be 'workshop', not 'tour'
                 except (json.JSONDecodeError, TypeError):
                     pass
         

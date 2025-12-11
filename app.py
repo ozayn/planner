@@ -784,6 +784,7 @@ class Event(db.Model):
             'end_location': self.end_location,
             'venue_id': self.venue_id,
             'venue_name': self.venue.name if self.venue else None,
+            'venue_type': self.venue.venue_type if self.venue else None,
             'venue_address': self.venue.address if self.venue else None,
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
@@ -8225,6 +8226,136 @@ def scrape_eventbrite():
     except Exception as e:
         db.session.rollback()
         app_logger.error(f"Error scraping Eventbrite events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/scrape-dc-embassy-eventbrite', methods=['POST'])
+def scrape_dc_embassy_eventbrite():
+    """Scrape events from Eventbrite for DC embassy venues"""
+    try:
+        # Handle empty request body gracefully
+        try:
+            data = request.get_json() or {}
+        except Exception as e:
+            app_logger.warning(f"Could not parse request JSON: {e}, using empty dict")
+            data = {}
+        
+        time_range = data.get('time_range', 'this_month')
+        search_missing = data.get('search_missing', True)  # Default to True to search for missing organizers
+        
+        app_logger.info(f"Starting DC embassy Eventbrite scraping (time_range: {time_range}, search_missing: {search_missing})")
+        
+        # Import enhanced DC embassy scraper
+        from scripts.eventbrite_scraper import scrape_dc_embassy_events
+        
+        # Use the scraper function - it will detect we're in an app context
+        try:
+            all_events = scrape_dc_embassy_events(
+                city_id=None,  # Will auto-detect Washington DC
+                time_range=time_range,
+                search_missing=search_missing
+            )
+        except Exception as scraper_error:
+            app_logger.error(f"Error in scrape_dc_embassy_events: {scraper_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            return jsonify({
+                'success': False,
+                'error': f'Scraper error: {str(scraper_error)}',
+                'events_found': 0,
+                'events_saved': 0
+            }), 500
+        
+        if not all_events:
+            return jsonify({
+                'success': False,
+                'error': 'No events found from DC embassy Eventbrite pages',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        # Save events to database
+        events_saved = 0
+        events_skipped = 0
+        
+        for event_data in all_events:
+            try:
+                title = event_data.get('title', 'Untitled Event')
+                venue_id_event = event_data.get('venue_id')
+                city_id_event = event_data.get('city_id')
+                start_date_str = event_data.get('start_date')
+                
+                # Check for duplicates
+                from datetime import datetime as dt
+                if start_date_str:
+                    try:
+                        start_date = dt.strptime(start_date_str, '%Y-%m-%d').date() if isinstance(start_date_str, str) else start_date_str
+                    except:
+                        start_date = None
+                else:
+                    start_date = None
+                
+                # Check if event already exists
+                existing = Event.query.filter_by(
+                    title=title,
+                    venue_id=venue_id_event,
+                    city_id=city_id_event
+                )
+                if start_date:
+                    existing = existing.filter_by(start_date=start_date)
+                
+                existing_event = existing.first()
+                
+                if existing_event:
+                    events_skipped += 1
+                    continue
+                
+                # Create new event
+                event = Event(
+                    title=title,
+                    description=event_data.get('description', ''),
+                    start_date=start_date or date.today(),
+                    end_date=event_data.get('end_date'),
+                    start_time=event_data.get('start_time'),
+                    end_time=event_data.get('end_time'),
+                    event_type=event_data.get('event_type', 'tour'),
+                    venue_id=venue_id_event,
+                    city_id=city_id_event,
+                    url=event_data.get('url'),
+                    image_url=event_data.get('image_url'),
+                    source='eventbrite',
+                    source_url=event_data.get('source_url', event_data.get('url')),
+                    is_registration_required=event_data.get('is_registration_required', True),
+                    registration_url=event_data.get('registration_url', event_data.get('url')),
+                    start_location=event_data.get('start_location', '')
+                )
+                
+                db.session.add(event)
+                events_saved += 1
+                
+            except Exception as e:
+                app_logger.error(f"Error saving event {event_data.get('title')}: {e}")
+                continue
+        
+        db.session.commit()
+        
+        app_logger.info(f"✅ Saved {events_saved} DC embassy Eventbrite events, skipped {events_skipped} duplicates")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully scraped and saved {events_saved} events from DC embassy Eventbrite pages',
+            'events_found': len(all_events),
+            'events_saved': events_saved,
+            'events_skipped': events_skipped
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error scraping DC embassy Eventbrite events: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
         return jsonify({

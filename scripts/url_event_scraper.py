@@ -2430,8 +2430,8 @@ def _determine_event_type(title, description, page_text, url):
     if any(keyword in content for keyword in photowalk_keywords):
         return 'photowalk'
     
-    # Default to tour for museum/venue events
-    return 'tour'
+    # Default to event for museum/venue events (generic catch-all)
+    return 'event'
 
 
 def _extract_date(page_text, url):

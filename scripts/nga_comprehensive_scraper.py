@@ -826,7 +826,7 @@ def scrape_nga_tour_page(tour_url, scraper):
         is_registration_required, registration_url, registration_info = extract_registration_info(page_text, soup)
         
         # Determine event type - check for "Guided Tours" tag or tour indicators
-        event_type = 'tour'  # Default for tour pages
+        event_type = 'event'  # Default to generic event type
         if 'Guided Tours' in page_text or 'guided tour' in page_text.lower():
             event_type = 'tour'
         elif 'tour' in page_text.lower() or 'tour' in title.lower():
@@ -1065,7 +1065,7 @@ def scrape_nga_generic_event_page(event_url, scraper):
         is_online = bool(re.search(r'\bonline\b|\bvirtual\b|\bzoom\b', page_text, re.IGNORECASE))
         
         # Determine event type
-        event_type = 'talk'  # default
+        event_type = 'talk'  # default for talk pages
         if 'tour' in page_text.lower() or 'tour' in title.lower():
             event_type = 'tour'
         elif 'workshop' in page_text.lower() or 'workshop' in title.lower():

@@ -120,7 +120,7 @@ class EventbriteScraper:
         params = {
             'status': status,
             'order_by': 'start_asc',
-            'expand': 'venue,organizer'
+            'expand': 'venue,organizer,category,subcategory,format'
         }
         
         if start_date:
@@ -201,6 +201,54 @@ class EventbriteScraper:
         name = eb_event.get('name', {}).get('text', 'Untitled Event')
         description = eb_event.get('description', {}).get('text', '')
         
+        # Filter out non-English events (unless they have English subtitles/translation)
+        # Check if event title/description indicates it's in a non-English language
+        combined_text = f"{name} {description}".lower()
+        
+        # Check for English accessibility indicators (allow these events even if in another language)
+        english_accessibility_indicators = [
+            'english subtitles', 'with english subtitles', 'english translation',
+            'with english translation', 'subtitled in english', 'english captions',
+            'english audio', 'in english', 'conducted in english', 'presented in english'
+        ]
+        has_english_access = any(indicator in combined_text for indicator in english_accessibility_indicators)
+        
+        # Common non-English language indicators (phrases that explicitly indicate language)
+        non_english_indicators = [
+            # Italian
+            'in italiano', 'in italian', 'italiano', 'in biblioteca in italiano',
+            # Spanish
+            'en español', 'en espanol', 'in spanish', 'español', 'espanol',
+            # French
+            'en français', 'en francais', 'in french', 'français', 'francais',
+            # German
+            'auf deutsch', 'in german', 'deutsch',
+            # Portuguese
+            'em português', 'em portugues', 'in portuguese', 'português', 'portugues',
+            # Other languages
+            'en català', 'en catala', 'catalan',  # Catalan
+            'en euskera', 'basque',  # Basque
+            'en galego', 'galician',  # Galician
+            '中文', '日本語',  # Chinese, Japanese (but Korean is okay)
+        ]
+        
+        # Skip if event is explicitly in a non-English language
+        # Exception 1: Events with English subtitles/translation are okay
+        # Exception 2: Korean events are okay (K-Cinema, K-Art, etc.)
+        if any(indicator in combined_text for indicator in non_english_indicators):
+            # Check if it has English accessibility (subtitles, translation, etc.)
+            if has_english_access:
+                logger.debug(f"Keeping non-English event with English subtitles: {name}")
+                # Don't skip - event is accessible to English speakers
+            else:
+                # Check if it's Korean (we want Korean events)
+                korean_indicators = ['k-cinema', 'k-art', 'korean', '한국', 'k-pop', 'hallyu', 'k-artsong']
+                is_korean_event = any(indicator in combined_text for indicator in korean_indicators)
+                
+                if not is_korean_event:
+                    logger.info(f"Skipping non-English event: {name} (detected non-English language indicator without English accessibility)")
+                    return None
+        
         # Extract dates/times
         start = eb_event.get('start', {})
         end = eb_event.get('end', {})
@@ -233,10 +281,85 @@ class EventbriteScraper:
         if logo and logo.get('url'):
             image_url = logo['url']
         
-        # Determine event type (default to 'tour' but could be improved)
-        event_type = 'tour'  # Default
-        category = eb_event.get('category_id')
-        # You could map Eventbrite categories to our event types here
+        # Determine event type based on category, subcategory, format, name, and description
+        # Priority: 1) Eventbrite categories, 2) Title/description keywords, 3) Default to 'event'
+        event_type = None  # Will be set based on detection
+        
+        # Get category and subcategory (can be IDs or expanded objects)
+        category_id = eb_event.get('category_id')
+        subcategory_id = eb_event.get('subcategory_id')
+        category_obj = eb_event.get('category', {})
+        subcategory_obj = eb_event.get('subcategory', {})
+        format_obj = eb_event.get('format', {})
+        
+        # Extract category/subcategory names if expanded objects are available
+        category_name = category_obj.get('name', '').lower() if isinstance(category_obj, dict) else ''
+        subcategory_name = subcategory_obj.get('name', '').lower() if isinstance(subcategory_obj, dict) else ''
+        format_name = format_obj.get('name', '').lower() if isinstance(format_obj, dict) else ''
+        
+        # Check event name and description for keywords
+        name_lower = name.lower()
+        description_lower = description.lower()
+        
+        # STEP 1: Check Eventbrite categories first (most reliable)
+        # Workshop/Class category
+        workshop_category_ids = ['103']  # Classes & Workshops category ID
+        workshop_subcategory_ids = ['5003', '5004']  # Classes & Workshops subcategories
+        if (str(category_id) in workshop_category_ids or
+            str(subcategory_id) in workshop_subcategory_ids or
+            'workshop' in category_name or 'class' in category_name or
+            'workshop' in subcategory_name or 'class' in subcategory_name):
+            event_type = 'workshop'
+        
+        # Performance/Dance category
+        elif (str(category_id) == '105' or  # Performing Arts category ID
+              str(subcategory_id) in ['5005', '5006', '5007'] or  # Performing Arts subcategories (Dance, Music, Theater)
+              'dance' in category_name or 'dance' in subcategory_name or
+              'performing' in category_name or 'performing' in subcategory_name or
+              'arts' in category_name or 'arts' in subcategory_name):
+            event_type = 'performance'
+        
+        # Film/Movie category
+        elif (str(category_id) == '104' or  # Film & Media category ID
+              str(subcategory_id) in ['5001', '5002'] or  # Film & Media subcategories
+              'film' in category_name or 'film' in subcategory_name):
+            event_type = 'film'
+        
+        # STEP 2: If no category match, check title and description keywords
+        if not event_type:
+            all_text = f"{name_lower} {description_lower}"
+            
+            # Workshop/Class keywords
+            workshop_keywords = ['workshop', 'class', 'workshop:', 'masterclass', 'training', 'seminar', 
+                                'workshop at', 'hands-on', 'hands on', 'learning session']
+            if any(keyword in all_text for keyword in workshop_keywords):
+                event_type = 'workshop'
+            
+            # Performance/Dance keywords
+            elif any(keyword in all_text for keyword in ['performance', 'dance', 'concert', 'soirée', 'soiree', 'recital', 'show', 
+                               'ballet', 'theater', 'theatre', 'opera', 'symphony', 'orchestra', 'choreography']):
+                event_type = 'performance'
+            
+            # Film/Movie keywords
+            elif any(keyword in all_text for keyword in ['movie', 'film', 'cinema', 'screening', 'k-cinema', 'movie night', 'film screening', 
+                        '영화', '상영', '시네마']):  # Korean words for movie/film/screening
+                event_type = 'film'
+            
+            # Exhibition keywords
+            elif 'exhibition' in all_text or 'exhibit' in all_text:
+                event_type = 'exhibition'
+            
+            # Festival keywords
+            elif 'festival' in all_text:
+                event_type = 'festival'
+            
+            # Tour keywords
+            elif 'tour' in all_text:
+                event_type = 'tour'
+        
+        # STEP 3: Default to 'event' if nothing matched
+        if not event_type:
+            event_type = 'event'
         
         # Build our event format
         event_data = {
@@ -260,6 +383,27 @@ class EventbriteScraper:
         if end_datetime:
             event_data['end_date'] = end_datetime.date()
             event_data['end_time'] = end_datetime.time()
+        
+        # Filter out events that are already over
+        # Check if event has ended (use end_datetime if available, otherwise start_datetime)
+        event_end = end_datetime if end_datetime else start_datetime
+        if event_end:
+            # Get current time, handling timezone-aware and naive datetimes
+            from datetime import timezone
+            if event_end.tzinfo:
+                # Event has timezone info, use UTC for comparison
+                now = datetime.now(timezone.utc)
+                # Convert event_end to UTC if it has timezone info
+                event_end_utc = event_end.astimezone(timezone.utc)
+            else:
+                # Event is naive, use naive datetime
+                now = datetime.now()
+                event_end_utc = event_end
+            
+            if event_end_utc < now:
+                # Event is in the past, return None to skip it
+                logger.debug(f"Skipping past event: {name} (ended: {event_end_utc})")
+                return None
         
         # Add venue/city info if available
         if venue:
@@ -313,14 +457,16 @@ class EventbriteScraper:
         events = self.get_organizer_events(organizer_id, status='live', 
                                           start_date=start_date, end_date=end_date)
         
-        # Convert to our format
+        # Convert to our format and filter out past events
         converted_events = []
         for eb_event in events:
             try:
                 event_data = self.convert_eventbrite_event_to_our_format(
                     eb_event, venue=venue, city=venue.city if hasattr(venue, 'city') else None
                 )
-                converted_events.append(event_data)
+                # Skip if event is None (past event was filtered out)
+                if event_data is not None:
+                    converted_events.append(event_data)
             except Exception as e:
                 logger.error(f"Error converting event {eb_event.get('id')}: {e}")
         
@@ -672,6 +818,176 @@ def scrape_all_eventbrite_venues(city_id: Optional[int] = None, time_range: str 
                 logger.error(f"Error scraping {venue.name}: {e}")
         
         logger.info(f"✅ Total: {len(all_events)} events scraped from {len(venues)} venues")
+        return all_events
+
+
+def scrape_dc_embassy_events(city_id: Optional[int] = None, time_range: str = 'this_month', 
+                              search_missing: bool = True) -> List[Dict[str, Any]]:
+    """
+    Enhanced scraper for DC embassy events from Eventbrite.
+    
+    This function:
+    1. Scrapes events from embassies that already have Eventbrite URLs
+    2. Optionally searches for Eventbrite organizers for embassies without URLs
+    3. Scrapes events from found organizers
+    
+    Args:
+        city_id: Optional city ID (defaults to Washington DC if not provided)
+        time_range: Time range for events ('today', 'this_week', 'this_month', 'all')
+        search_missing: If True, search for Eventbrite organizers for embassies without URLs
+    
+    Returns:
+        List of all event dictionaries
+    """
+    # Always use app context - even if we're in one, nesting is safe
+    # This ensures db is properly bound to the app
+    with app.app_context():
+        return _scrape_dc_embassy_events_impl(city_id, time_range, search_missing)
+
+
+def _scrape_dc_embassy_events_impl(city_id: Optional[int] = None, time_range: str = 'this_month', 
+                                    search_missing: bool = True) -> List[Dict[str, Any]]:
+    """Internal implementation of DC embassy events scraper"""
+    # Use module-level db, City, Venue - they're bound to the current app context
+    # The wrapper function ensures we're always in an app context when this is called
+    
+    # Get Washington DC city if not provided
+    if not city_id:
+        dc_city = City.query.filter(
+            db.or_(
+                City.name == 'Washington',
+                City.name == 'Washington, DC',
+                City.name == 'Washington DC'
+            )
+        ).filter_by(country='United States').first()
+        
+        if not dc_city:
+            logger.error("Washington DC city not found in database")
+            return []
+        city_id = dc_city.id
+        
+        # Get all DC embassy venues
+        embassy_venues = Venue.query.filter_by(
+            city_id=city_id,
+            venue_type='embassy'
+        ).all()
+        
+        logger.info(f"Found {len(embassy_venues)} DC embassy venues")
+        
+        scraper = EventbriteScraper()
+        all_events = []
+        
+        # Calculate date range
+        today = date.today()
+        start_date = None
+        end_date = None
+        
+        if time_range == 'today':
+            start_date = today
+            end_date = today
+        elif time_range == 'this_week':
+            start_date = today
+            end_date = today + timedelta(days=7)
+        elif time_range == 'this_month':
+            start_date = today
+            end_date = today + timedelta(days=30)
+        
+        # Process embassies with Eventbrite URLs
+        venues_with_urls = [v for v in embassy_venues if v.ticketing_url and 'eventbrite.com' in v.ticketing_url]
+        venues_without_urls = [v for v in embassy_venues if not v.ticketing_url or 'eventbrite.com' not in v.ticketing_url]
+        
+        logger.info(f"  - {len(venues_with_urls)} embassies with Eventbrite URLs")
+        logger.info(f"  - {len(venues_without_urls)} embassies without Eventbrite URLs")
+        
+        # Scrape from embassies with URLs
+        for venue in venues_with_urls:
+            try:
+                logger.info(f"Scraping events from {venue.name} (has Eventbrite URL)")
+                events = scraper.scrape_venue_events(venue, time_range=time_range)
+                all_events.extend(events)
+                logger.info(f"  ✅ Found {len(events)} events from {venue.name}")
+            except Exception as e:
+                logger.error(f"  ❌ Error scraping {venue.name}: {e}")
+                continue
+        
+        # Search and scrape from embassies without URLs (if enabled)
+        if search_missing and venues_without_urls:
+            logger.info(f"\n🔍 Searching for Eventbrite organizers for {len(venues_without_urls)} embassies without URLs...")
+            
+            dc_city_obj = City.query.get(city_id)
+            city_name = dc_city_obj.name if dc_city_obj else 'Washington'
+            state = 'DC' if 'Washington' in city_name else None
+            
+            for venue in venues_without_urls:
+                try:
+                    logger.info(f"\n🔍 Searching for Eventbrite organizer: {venue.name}")
+                    
+                    # Search for organizers matching this embassy
+                    organizers = scraper.search_organizers_by_venue_name(
+                        venue_name=venue.name,
+                        city_name=city_name,
+                        state=state,
+                        max_results=3  # Limit to top 3 matches
+                    )
+                    
+                    if not organizers:
+                        logger.info(f"  ⚠️  No Eventbrite organizers found for {venue.name}")
+                        continue
+                    
+                    # Try to find the best matching organizer
+                    best_organizer = None
+                    for org in organizers:
+                        # Check if organizer name contains embassy name or vice versa
+                        org_name_lower = org.get('name', '').lower()
+                        venue_name_lower = venue.name.lower()
+                        
+                        # Simple matching: check if key words match
+                        if any(word in org_name_lower for word in venue_name_lower.split() if len(word) > 3):
+                            best_organizer = org
+                            break
+                    
+                    # If no good match, use the first one
+                    if not best_organizer and organizers:
+                        best_organizer = organizers[0]
+                    
+                    if best_organizer:
+                        organizer_id = best_organizer.get('id')
+                        logger.info(f"  ✅ Found organizer: {best_organizer.get('name')} (ID: {organizer_id})")
+                        
+                        # Fetch events from this organizer
+                        try:
+                            events = scraper.get_organizer_events(
+                                organizer_id=organizer_id,
+                                status='live',
+                                start_date=start_date,
+                                end_date=end_date
+                            )
+                            
+                            # Convert events to our format and filter out past events
+                            for eb_event in events:
+                                try:
+                                    event_data = scraper.convert_eventbrite_event_to_our_format(
+                                        eb_event,
+                                        venue=venue,
+                                        city=dc_city_obj
+                                    )
+                                    # Skip if event is None (past event was filtered out)
+                                    if event_data is not None:
+                                        all_events.append(event_data)
+                                except Exception as e:
+                                    logger.error(f"  ❌ Error converting event: {e}")
+                            
+                            logger.info(f"  ✅ Scraped {len(events)} events from {best_organizer.get('name')}")
+                            
+                        except Exception as e:
+                            logger.error(f"  ❌ Error fetching events from organizer {organizer_id}: {e}")
+                            continue
+                    
+                except Exception as e:
+                    logger.error(f"  ❌ Error searching for {venue.name}: {e}")
+                    continue
+        
+        logger.info(f"\n✅ Total: {len(all_events)} events scraped from DC embassies")
         return all_events
 
 
