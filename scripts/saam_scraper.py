@@ -2809,12 +2809,16 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                 source_url = event_data.get('source_url') or event_data.get('url')
                 
                 # First, try to match by title + venue + date (for recurring events)
-                existing = Event.query.filter_by(
+                # Include start_time in duplicate check to distinguish between multiple tours on same day
+                query = Event.query.filter_by(
                     title=event_data.get('title'),
                     venue_id=venue.id if venue else None,
                     start_date=event_date,
                     city_id=city.id
-                ).first()
+                )
+                if start_time_obj:
+                    query = query.filter_by(start_time=start_time_obj)
+                existing = query.first()
                 
                 # If not found and we have a unique URL, try URL-based matching
                 # But only if the URL is specific (not a generic page like /visit/tours)

@@ -176,12 +176,17 @@ def check_events_duplicates():
             event_keys = defaultdict(list)
             
             for event in events:
-                # Check for duplicates based on title, city, and start date
+                # Check for duplicates based on title, venue, city, start date, and start time
+                # Events from different venues with the same title are NOT duplicates
+                # Events with different times on the same day are NOT duplicates
                 start_date = event.start_date.strftime('%Y-%m-%d') if event.start_date else None
+                start_time = event.start_time.strftime('%H:%M:%S') if event.start_time else None
                 key = (
                     event.title.lower().strip() if event.title else '',
+                    event.venue_id,  # Include venue_id to distinguish between different venues
                     event.city_id,
-                    start_date
+                    start_date,
+                    start_time  # Include start_time to distinguish between different times on same day
                 )
                 if key[0]:  # Only check if title exists
                     event_keys[key].append(event)
@@ -192,10 +197,20 @@ def check_events_duplicates():
                 duplicates_found = True
                 print("❌ Found duplicates in database:")
                 for key, events_list in db_duplicates.items():
-                    title, city_id, start_date = key
-                    print(f"\n   📍 {title.title()} (city_id: {city_id}, date: {start_date})")
+                    title, venue_id, city_id, start_date, start_time = key
+                    venue_name = f"venue_id {venue_id}"
+                    if venue_id:
+                        try:
+                            from app import Venue
+                            venue = Venue.query.get(venue_id)
+                            if venue:
+                                venue_name = venue.name
+                        except:
+                            pass
+                    time_str = f" at {start_time}" if start_time else ""
+                    print(f"\n   📍 {title.title()} ({venue_name}, city_id: {city_id}, date: {start_date}{time_str})")
                     for event in events_list:
-                        print(f"      - ID {event.id}: {event.title}")
+                        print(f"      - ID {event.id}: {event.title} (venue_id: {event.venue_id}, time: {event.start_time})")
             else:
                 print("✅ No duplicates found in database")
                 
