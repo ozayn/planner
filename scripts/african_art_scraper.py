@@ -57,58 +57,8 @@ def create_scraper():
     return scraper
 
 
-def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
-    """
-    Parse date range strings like:
-    - "June 21, 2025 – November 30, 2025"
-    - "March 2, 2024–January 11, 2026"
-    - "April 12, 2025 – April 26, 2026"
-    Returns dict with 'start_date' and 'end_date' or None
-    """
-    if not date_string:
-        return None
-    
-    # Clean up the string
-    date_string = date_string.strip()
-    
-    # Try to match date range pattern
-    # Pattern: "Month Day, Year – Month Day, Year" or "Month Day, Year–Month Day, Year"
-    range_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
-    match = re.search(range_pattern, date_string)
-    
-    if match:
-        start_str = match.group(1).strip()
-        end_str = match.group(2).strip()
-        
-        try:
-            start_date = datetime.strptime(start_str, '%B %d, %Y').date()
-            end_date = datetime.strptime(end_str, '%B %d, %Y').date()
-            return {'start_date': start_date, 'end_date': end_date}
-        except ValueError:
-            try:
-                # Try without comma
-                start_date = datetime.strptime(start_str, '%B %d %Y').date()
-                end_date = datetime.strptime(end_str, '%B %d %Y').date()
-                return {'start_date': start_date, 'end_date': end_date}
-            except ValueError:
-                pass
-    
-    # Try single date pattern
-    single_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
-    match = re.search(single_pattern, date_string)
-    if match:
-        date_str = match.group(1).strip()
-        try:
-            single_date = datetime.strptime(date_str, '%B %d, %Y').date()
-            return {'start_date': single_date, 'end_date': None}
-        except ValueError:
-            try:
-                single_date = datetime.strptime(date_str, '%B %d %Y').date()
-                return {'start_date': single_date, 'end_date': None}
-            except ValueError:
-                pass
-    
-    return None
+# Use shared parse_date_range from utils
+from scripts.utils import parse_date_range
 
 
 def parse_time(time_string: str) -> Optional[time]:
@@ -156,25 +106,25 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         from scripts.utils import clean_event_title
         title = clean_event_title(title)
         
-        # Extract description - look for common description patterns
-        description = None
-        desc_elem = soup.find('div', class_=lambda x: x and 'description' in (x or '').lower()) or \
-                    soup.find('div', class_=lambda x: x and 'content' in (x or '').lower()) or \
-                    soup.find('article')
-        if desc_elem:
-            paragraphs = desc_elem.find_all('p')
-            if paragraphs:
-                description = ' '.join([p.get_text(strip=True) for p in paragraphs[:3]])
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup, extract_date_range_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
-        # Extract date range
+        # Extract date range using shared utility function
         date_range = None
-        page_text = soup.get_text()
+        date_text = extract_date_range_from_soup(soup)
         
-        # Look for date patterns in the page
-        date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', page_text)
-        if date_range_match:
-            date_text = date_range_match.group(0)
+        # Parse date range if found
+        if date_text:
             date_range = parse_date_range(date_text)
+        
+        # Fallback: look for date patterns in the page text
+        if not date_range:
+            page_text = soup.get_text()
+            date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', page_text)
+            if date_range_match:
+                date_text = date_range_match.group(0)
+                date_range = parse_date_range(date_text)
         
         # Extract image
         image_url = None

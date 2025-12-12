@@ -2293,9 +2293,17 @@ Important:
     
     def _parse_date_range_string(self, date_string: str) -> Optional[Dict[str, date]]:
         """
-        Parse date range string like "November 25, 2025–July 12, 2026" (learned from specialized scrapers)
-        Returns dict with 'start_date' and 'end_date' or None if parsing fails
+        Parse date range string - uses shared utility function from utils.
+        Falls back to local _parse_single_date_string for compatibility with existing code.
         """
+        from scripts.utils import parse_date_range
+        
+        # Try shared utility function first
+        result = parse_date_range(date_string)
+        if result:
+            return result
+        
+        # Fallback: try to parse with local method for edge cases
         if not date_string:
             return None
         
@@ -2945,22 +2953,23 @@ Important:
                     elif not self._is_in_time_range(start_date, time_range):
                         continue
                 
-                # Extract description from parent or nearby elements
+                # Extract description from parent or nearby elements using shared utility
                 description = None
                 if parent:
-                    # Look for paragraph after the link
-                    desc_elem = parent.find('p')
-                    if desc_elem:
-                        desc_text = desc_elem.get_text(strip=True)
-                        # Skip if it's just the date
-                        if not re.match(r'^[A-Z][a-z]+\s+\d{1,2}', desc_text):
-                            description = desc_text[:500]
+                    # Use shared utility function for better description extraction
+                    from scripts.utils import extract_description_from_soup
+                    # Create a temporary soup from parent element for extraction
+                    parent_soup = BeautifulSoup(str(parent), 'html.parser')
+                    description = extract_description_from_soup(parent_soup, max_length=500)
                     
-                    # Also try meta description
+                    # Fallback: if shared function doesn't find anything, try simple paragraph extraction
                     if not description:
-                        meta_desc = soup.find('meta', property='og:description')
-                        if meta_desc:
-                            description = meta_desc.get('content', '')[:500]
+                        desc_elem = parent.find('p')
+                        if desc_elem:
+                            desc_text = desc_elem.get_text(strip=True)
+                            # Skip if it's just the date
+                            if not re.match(r'^[A-Z][a-z]+\s+\d{1,2}', desc_text):
+                                description = desc_text[:500]
                 
                 # Extract image from listing page - search thoroughly before fetching individual page
                 image_url = None
@@ -3074,30 +3083,44 @@ Important:
                             # Pattern 3: Date range in various formats on the page
                             # Look for date ranges in the page text
                             if not start_date or not end_date:
-                                # First, try to find dates in common HTML structures (Tate format)
+                                # First, try shared utility function for structured HTML date extraction
+                                from scripts.utils import extract_date_range_from_soup, parse_date_range
+                                date_text = extract_date_range_from_soup(event_soup)
+                                if date_text:
+                                    date_range = parse_date_range(date_text)
+                                    if date_range:
+                                        if not start_date:
+                                            start_date = date_range.get('start_date')
+                                        if not end_date:
+                                            end_date = date_range.get('end_date')
+                                        if start_date or end_date:
+                                            logger.debug(f"   📅 Extracted date range using shared utility: {start_date} to {end_date}")
+                                
+                                # Fallback: try to find dates in common HTML structures (Tate format)
                                 # Look for "Dates" heading followed by date range
-                                dates_heading = event_soup.find(['h2', 'h3', 'dt'], string=re.compile(r'^Dates?$', re.I))
-                                if dates_heading:
-                                    # Check next sibling (dd, div, p, etc.)
-                                    next_sibling = dates_heading.find_next_sibling()
-                                    if next_sibling:
-                                        date_text = next_sibling.get_text(strip=True)
-                                        if date_text:
-                                            date_range = self._parse_date_range_string(date_text)
-                                            if date_range:
-                                                if not start_date:
-                                                    start_date = date_range.get('start_date')
-                                                if not end_date:
-                                                    end_date = date_range.get('end_date')
-                                                if start_date or end_date:
-                                                    logger.debug(f"   📅 Extracted date range from 'Dates' section: {start_date} to {end_date}")
-                                    
-                                    # Also check parent's children (for dt/dd structure)
-                                    if (not start_date or not end_date) and dates_heading.parent:
-                                        for sibling in dates_heading.parent.find_all(['dd', 'div', 'p', 'span']):
-                                            date_text = sibling.get_text(strip=True)
-                                            if date_text and re.search(r'\d{1,2}\s+[A-Z][a-z]+\s+\d{4}', date_text):
+                                if not start_date or not end_date:
+                                    dates_heading = event_soup.find(['h2', 'h3', 'dt'], string=re.compile(r'^Dates?$', re.I))
+                                    if dates_heading:
+                                        # Check next sibling (dd, div, p, etc.)
+                                        next_sibling = dates_heading.find_next_sibling()
+                                        if next_sibling:
+                                            date_text = next_sibling.get_text(strip=True)
+                                            if date_text:
                                                 date_range = self._parse_date_range_string(date_text)
+                                                if date_range:
+                                                    if not start_date:
+                                                        start_date = date_range.get('start_date')
+                                                    if not end_date:
+                                                        end_date = date_range.get('end_date')
+                                                    if start_date or end_date:
+                                                        logger.debug(f"   📅 Extracted date range from 'Dates' section: {start_date} to {end_date}")
+                                        
+                                        # Also check parent's children (for dt/dd structure)
+                                        if (not start_date or not end_date) and dates_heading.parent:
+                                            for sibling in dates_heading.parent.find_all(['dd', 'div', 'p', 'span']):
+                                                date_text = sibling.get_text(strip=True)
+                                                if date_text and re.search(r'\d{1,2}\s+[A-Z][a-z]+\s+\d{4}', date_text):
+                                                    date_range = self._parse_date_range_string(date_text)
                                                 if date_range:
                                                     if not start_date:
                                                         start_date = date_range.get('start_date')

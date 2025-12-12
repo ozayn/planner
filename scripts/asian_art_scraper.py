@@ -57,58 +57,8 @@ def create_scraper():
     return scraper
 
 
-def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
-    """
-    Parse date range strings like:
-    - "June 21, 2025 – November 30, 2025"
-    - "March 2, 2024–January 11, 2026"
-    - "April 12, 2025 – April 26, 2026"
-    Returns dict with 'start_date' and 'end_date' or None
-    """
-    if not date_string:
-        return None
-    
-    # Clean up the string
-    date_string = date_string.strip()
-    
-    # Try to match date range pattern
-    # Pattern: "Month Day, Year – Month Day, Year" or "Month Day, Year–Month Day, Year"
-    range_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
-    match = re.search(range_pattern, date_string)
-    
-    if match:
-        start_str = match.group(1).strip()
-        end_str = match.group(2).strip()
-        
-        try:
-            start_date = datetime.strptime(start_str, '%B %d, %Y').date()
-            end_date = datetime.strptime(end_str, '%B %d, %Y').date()
-            return {'start_date': start_date, 'end_date': end_date}
-        except ValueError:
-            try:
-                # Try without comma
-                start_date = datetime.strptime(start_str, '%B %d %Y').date()
-                end_date = datetime.strptime(end_str, '%B %d %Y').date()
-                return {'start_date': start_date, 'end_date': end_date}
-            except ValueError:
-                pass
-    
-    # Try single date pattern
-    single_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
-    match = re.search(single_pattern, date_string)
-    if match:
-        date_str = match.group(1).strip()
-        try:
-            single_date = datetime.strptime(date_str, '%B %d, %Y').date()
-            return {'start_date': single_date, 'end_date': None}
-        except ValueError:
-            try:
-                single_date = datetime.strptime(date_str, '%B %d %Y').date()
-                return {'start_date': single_date, 'end_date': None}
-            except ValueError:
-                pass
-    
-    return None
+# Use shared parse_date_range from utils
+from scripts.utils import parse_date_range
 
 
 def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
@@ -165,34 +115,38 @@ def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optiona
             logger.debug(f"   ⚠️ Could not find title for {url}")
             return None
         
-        # Extract description
-        description = None
-        desc_elem = soup.find('div', class_=re.compile(r'description|summary|intro|content', re.I))
-        if desc_elem:
-            description = desc_elem.get_text(strip=True)
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
-        if not description:
-            # Try first paragraph
-            first_p = soup.find('p')
-            if first_p:
-                description = first_p.get_text(strip=True)
-        
-        # Extract date range
+        # Extract date range - prioritize structured HTML extraction
         date_range = None
-        date_elem = soup.find(string=re.compile(r'\d{4}'))
-        if date_elem:
-            date_text = date_elem.parent.get_text() if hasattr(date_elem, 'parent') else str(date_elem)
+        date_text = None
+        
+        # Use shared utility function to extract date text from structured HTML
+        from scripts.utils import extract_date_range_from_soup
+        date_text = extract_date_range_from_soup(soup)
+        
+        # Parse date range if found
+        if date_text:
             date_range = parse_date_range(date_text)
         
-        # Also look for date in specific elements
+        # Fallback: look for date in specific elements with date classes
         if not date_range:
             date_containers = soup.find_all(['div', 'span', 'p'], 
                                            class_=re.compile(r'date|time|duration', re.I))
             for container in date_containers:
-                date_text = container.get_text(strip=True)
-                date_range = parse_date_range(date_text)
+                container_text = container.get_text(strip=True)
+                date_range = parse_date_range(container_text)
                 if date_range:
                     break
+        
+        # Last resort: look for any text with a 4-digit year
+        if not date_range:
+            date_elem = soup.find(string=re.compile(r'\d{4}'))
+            if date_elem:
+                date_text = date_elem.parent.get_text() if hasattr(date_elem, 'parent') else str(date_elem)
+                date_range = parse_date_range(date_text)
         
         # Extract image - try multiple strategies
         image_url = None
@@ -378,37 +332,64 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
                 if href:
                     exhibition_url = urljoin(ASIAN_ART_BASE_URL, href)
             
-            # Extract date from container text
+            # Extract date from container text - try structured HTML first
+            date_text = None
             if container:
-                container_text = container.get_text()
+                # First, try to find structured date format (h3 with "Dates" or similar)
+                dates_heading = container.find(['h3', 'h4', 'dt'], string=re.compile('Dates?', re.I))
+                if dates_heading:
+                    # Check next sibling
+                    next_sibling = dates_heading.find_next_sibling()
+                    if next_sibling:
+                        date_text = next_sibling.get_text(strip=True)
+                    # Check parent's siblings
+                    if not date_text and dates_heading.parent:
+                        siblings = dates_heading.parent.find_all(['div', 'p', 'span', 'li'], recursive=False)
+                        for sibling in siblings:
+                            sibling_text = sibling.get_text(strip=True)
+                            if re.search(r'[A-Z][a-z]+\s+\d{1,2},?\s+20\d{2}[–-]', sibling_text):
+                                date_text = sibling_text
+                                break
                 
-                # Look for date range pattern: "June 21, 2025 – November 30, 2025"
-                date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
-                if date_range_match:
-                    date_text = date_range_match.group(0)
-                else:
-                    # Try simpler pattern
-                    date_simple_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
-                    if date_simple_match:
-                        date_text = date_simple_match.group(0)
+                # Fallback: look for date range pattern in container text
+                if not date_text:
+                    container_text = container.get_text()
+                    # Look for date range pattern: "June 21, 2025 – November 30, 2025"
+                    date_range_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
+                    if date_range_match:
+                        date_text = date_range_match.group(0)
+                    else:
+                        # Try simpler pattern
+                        date_simple_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})', container_text)
+                        if date_simple_match:
+                            date_text = date_simple_match.group(0)
                 
                 # Get description - look for paragraphs after the h3
+                # Collect multiple paragraphs for better descriptions
+                desc_paragraphs = []
                 next_elem = h3.find_next_sibling()
-                while next_elem and not description:
+                while next_elem and len(desc_paragraphs) < 3:  # Limit to 3 paragraphs
                     if next_elem.name == 'p':
                         text = next_elem.get_text(strip=True)
-                        if len(text) > 50:  # Only use substantial paragraphs
-                            description = text
-                            break
+                        # Skip very short text or captions
+                        if len(text) > 50 and not any(keyword in text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
+                            desc_paragraphs.append(text)
                     next_elem = next_elem.find_next_sibling()
+                
+                if desc_paragraphs:
+                    description = ' '.join(desc_paragraphs)
                 
                 # If no description from siblings, look in container
                 if not description:
-                    desc_para = container.find('p')
-                    if desc_para:
+                    # Look for all paragraphs in container
+                    desc_paras = container.find_all('p')
+                    desc_paragraphs = []
+                    for desc_para in desc_paras[:3]:  # Limit to first 3 paragraphs
                         desc_text = desc_para.get_text(strip=True)
-                        if len(desc_text) > 50:
-                            description = desc_text
+                        if len(desc_text) > 50 and not any(keyword in desc_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
+                            desc_paragraphs.append(desc_text)
+                    if desc_paragraphs:
+                        description = ' '.join(desc_paragraphs)
             
             # If we found an exhibition URL, try to scrape more details
             if exhibition_url and exhibition_url not in [ASIAN_ART_EXHIBITIONS_URL, ASIAN_ART_EXHIBITIONS_URL + '/']:
@@ -416,12 +397,27 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
                     detail_data = scrape_exhibition_detail(scraper, exhibition_url)
                     if detail_data:
                         # Merge detail data with what we found from listing page
+                        # Detail page data takes precedence for dates (more accurate)
                         if detail_data.get('description') and not description:
                             description = detail_data['description']
                         # Use listing image if available, otherwise use detail page image
                         if not image_url and detail_data.get('image_url'):
                             image_url = detail_data['image_url']
-                        if detail_data.get('start_date') and not date_text:
+                        # Detail page dates are more reliable - use them if available
+                        if detail_data.get('start_date'):
+                            # Format date range for parsing
+                            start_date = detail_data.get('start_date')
+                            end_date = detail_data.get('end_date', start_date)
+                            if isinstance(start_date, date):
+                                # Convert date objects to formatted strings for parse_date_range
+                                from datetime import datetime
+                                start_str = start_date.strftime('%B %d, %Y')
+                                end_str = end_date.strftime('%B %d, %Y') if end_date else start_str
+                                date_text = f"{start_str} – {end_str}"
+                            else:
+                                date_text = f"{start_date} – {end_date}"
+                        elif not date_text and detail_data.get('start_date'):
+                            # Fallback: use detail dates even if not formatted
                             date_text = f"{detail_data.get('start_date')} - {detail_data.get('end_date', '')}"
                 except Exception as e:
                     logger.debug(f"   ⚠️ Error fetching exhibition detail {exhibition_url}: {e}")
@@ -603,6 +599,43 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
                 description = desc_elem.get_text(strip=True)
         
         # Extract date and time
+        # First, try to extract dates from structured HTML (h3/dt elements)
+        date_text = None
+        start_date = None
+        end_date = None
+        
+        # Look for structured date format: h3 with "Dates" followed by date range
+        dates_h3 = soup.find('h3', string=re.compile('^Dates?$', re.I))
+        if dates_h3:
+            # Check next sibling for date text
+            next_sibling = dates_h3.find_next_sibling()
+            if next_sibling:
+                date_text = next_sibling.get_text(strip=True)
+            # If not found, check parent's siblings
+            if not date_text and dates_h3.parent:
+                siblings = dates_h3.parent.find_all(['div', 'p', 'span'], recursive=False)
+                for sibling in siblings:
+                    sibling_text = sibling.get_text(strip=True)
+                    # Check if it looks like a date range
+                    if re.search(r'[A-Z][a-z]+\s+\d{1,2},?\s+20\d{2}[–-]', sibling_text):
+                        date_text = sibling_text
+                        break
+        
+        # Also try dt/dd structure
+        if not date_text:
+            dates_dt = soup.find('dt', string=re.compile('Dates?', re.I))
+            if dates_dt:
+                dates_dd = dates_dt.find_next_sibling('dd')
+                if dates_dd:
+                    date_text = dates_dd.get_text(strip=True)
+        
+        # Parse date range if found
+        if date_text:
+            date_range = parse_date_range(date_text)
+            if date_range:
+                start_date = date_range.get('start_date')
+                end_date = date_range.get('end_date')
+        
         page_text = soup.get_text()
         
         # Normalize text: add space between year and time (e.g., "20252:00" -> "2025 2:00")
@@ -836,16 +869,39 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
             language = 'Mandarin'
         # Note: Don't detect language from culture names like "Korean", "Japanese", "Chinese" in titles
         
-        # Determine event type - check for tour keywords in title and description
+        # Determine event type - check for film, tour, and other keywords in title, description, and page content
         determined_event_type = 'event'  # default
         title_lower = title.lower() if title else ''
         desc_lower = (description or '').lower()
-        combined_text = f"{title_lower} {desc_lower}"
+        page_text_lower = page_text.lower()
+        combined_text = f"{title_lower} {desc_lower} {page_text_lower}"
         
-        # Check for tour indicators
-        tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
-        if any(keyword in combined_text for keyword in tour_keywords):
-            determined_event_type = 'tour'
+        # Check for film indicators first (films should take precedence)
+        # Look for film-related keywords and patterns
+        film_keywords = [
+            'film', 'films', 'movie', 'movies', 'screening', 'screenings', 
+            'cinema', 'director', 'directors', 'dcp', 'format:', 'length:', 
+            'min.', 'minutes', 'runtime', 'animated', 'animation',
+            'event series', 'animated adventures'
+        ]
+        
+        # Check if "Films" appears in Topics section or Event Series
+        if re.search(r'topics[:\s]+.*films?', page_text_lower, re.I) or \
+           re.search(r'event\s+series[:\s]+.*film', page_text_lower, re.I) or \
+           re.search(r'event\s+series[:\s]+.*animated', page_text_lower, re.I):
+            determined_event_type = 'film'
+        # Check for film keywords in combined text
+        elif any(keyword in combined_text for keyword in film_keywords):
+            determined_event_type = 'film'
+        # Check for film patterns (e.g., "Format: DCP", "Length: 77 min", "Directors:")
+        elif re.search(r'format:\s*dcp|length:\s*\d+\s*min|director[s]?:|countries?:|released:', combined_text, re.I):
+            determined_event_type = 'film'
+        
+        # Check for tour indicators (only if not already identified as film)
+        if determined_event_type == 'event':
+            tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
+            if any(keyword in combined_text for keyword in tour_keywords):
+                determined_event_type = 'tour'
         
         # Build event dictionary
         event = {
@@ -858,7 +914,14 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
             'social_media_url': url,
         }
         
-        if event_date:
+        # Use structured date extraction if available, otherwise fall back to event_date
+        if start_date and end_date:
+            event['start_date'] = start_date
+            event['end_date'] = end_date
+        elif start_date:
+            event['start_date'] = start_date
+            event['end_date'] = start_date
+        elif event_date:
             event['start_date'] = event_date
             event['end_date'] = event_date
         

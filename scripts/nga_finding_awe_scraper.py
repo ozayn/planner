@@ -148,51 +148,9 @@ def scrape_individual_event(event_url, scraper=None):
         # Extract description - improved extraction
         description = None
         
-        # First try meta description
-        meta_desc = soup.find('meta', attrs={'name': 'description'})
-        if meta_desc and meta_desc.get('content'):
-            description = meta_desc.get('content').strip()
-            if len(description) > 50:
-                logger.debug(f"   Found meta description: {description[:100]}...")
-        
-        # Try Open Graph description
-        if not description or len(description) < 100:
-            og_desc = soup.find('meta', property='og:description')
-            if og_desc and og_desc.get('content'):
-                og_desc_text = og_desc.get('content').strip()
-                if len(og_desc_text) > len(description or ''):
-                    description = og_desc_text
-                    logger.debug(f"   Found OG description: {description[:100]}...")
-        
-        # Look for main content area with event description
-        if not description or len(description) < 100:
-            # Look for main content paragraphs
-            main_content = soup.find(['article', 'main']) or soup.find('div', class_=re.compile(r'main|content|event', re.I))
-            if main_content:
-                # Find all paragraphs that form the description
-                paragraphs = main_content.find_all('p')
-                description_parts = []
-                for p in paragraphs:
-                    text = p.get_text(separator=' ', strip=True)
-                    # Skip very short paragraphs, navigation, or metadata
-                    if len(text) > 50 and not any(skip in text.lower() for skip in ['register', 'ticket', 'buy now', 'click here', 'learn more', 'follow us', 'social media']):
-                        description_parts.append(text)
-                
-                if description_parts:
-                    # Combine paragraphs that form a coherent description
-                    combined = ' '.join(description_parts)
-                    combined = ' '.join(combined.split())  # Clean up whitespace
-                    if len(combined) > len(description or ''):
-                        description = combined[:2000]  # Increased limit for better descriptions
-                        logger.debug(f"   Found content description: {description[:100]}...")
-        
-        # Fallback to description elements
-        if not description or len(description) < 50:
-            desc_elem = soup.find(['div', 'p'], class_=re.compile(r'description|content|summary', re.I))
-            if desc_elem:
-                description = desc_elem.get_text(separator=' ', strip=True)
-                description = ' '.join(description.split())[:1000]
-                logger.debug(f"   Found description element: {description[:100]}...")
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
         # Extract date and time
         # PRIORITY: Page text > URL parameter (page text is more accurate)

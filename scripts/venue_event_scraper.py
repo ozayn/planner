@@ -4971,7 +4971,15 @@ class VenueEventScraper:
             return None
     
     def _extract_exhibition_dates(self, soup):
-        """Extract date text from exhibition page"""
+        """Extract date text from exhibition page using shared utility function"""
+        from scripts.utils import extract_date_range_from_soup
+        
+        # First, try shared utility function for structured HTML date extraction
+        date_text = extract_date_range_from_soup(soup)
+        if date_text:
+            logger.info(f"📅 Found date using shared utility: {date_text}")
+            return date_text
+        
         # Special handling for Hirshhorn: dates are often in h2 right after h1
         h1 = soup.find('h1')
         if h1:
@@ -4983,7 +4991,7 @@ class VenueEventScraper:
                 if re.search(r'[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}[–—\-]', h2_text):
                     logger.info(f"📅 Found date in h2 after h1: {h2_text}")
                     return h2_text
-        
+
         # Special handling for SFMOMA: dates are often in specific divs or spans
         # Look for common SFMOMA date patterns first
         sfmoma_date_selectors = [
@@ -4995,7 +5003,7 @@ class VenueEventScraper:
             '.hero-meta .date',
             '.exhibition-info .date'
         ]
-        
+
         for selector in sfmoma_date_selectors:
             element = soup.select_one(selector)
             if element:

@@ -59,48 +59,8 @@ def create_scraper():
     return scraper
 
 
-def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
-    """
-    Parse date range string like "September 26, 2025 - March 1, 2026"
-    Returns dict with 'start_date' and 'end_date' or None if parsing fails
-    """
-    if not date_string:
-        return None
-    
-    # Clean up the date string
-    date_string = date_string.strip()
-    
-    # Handle different separators
-    separators = ['–', '-', '—', 'to', 'through']
-    for sep in separators:
-        if sep in date_string:
-            parts = date_string.split(sep, 1)
-            if len(parts) == 2:
-                start_str = parts[0].strip()
-                end_str = parts[1].strip()
-                
-                try:
-                    start_date = parse_single_date(start_str)
-                    end_date = parse_single_date(end_str)
-                    
-                    if start_date and end_date:
-                        return {
-                            'start_date': start_date,
-                            'end_date': end_date
-                        }
-                except Exception as e:
-                    logger.debug(f"Error parsing date range '{date_string}': {e}")
-                    continue
-    
-    # Try to parse as single date
-    single_date = parse_single_date(date_string)
-    if single_date:
-        return {
-            'start_date': single_date,
-            'end_date': single_date
-        }
-    
-    return None
+# Use shared parse_date_range from utils
+from scripts.utils import parse_date_range
 
 
 def parse_single_date(date_string: str) -> Optional[date]:
@@ -479,26 +439,19 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             logger.debug(f"   ⚠️ Could not find title for {url}")
             return None
         
-        # Extract description
-        description = None
-        desc_elem = soup.find('div', class_=re.compile(r'description|summary|intro', re.I))
-        if desc_elem:
-            description = desc_elem.get_text(strip=True)
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup, extract_date_range_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
-        if not description:
-            # Try first paragraph
-            first_p = soup.find('p')
-            if first_p:
-                description = first_p.get_text(strip=True)
-        
-        # Extract date range
+        # Extract date range using shared utility function
         date_range = None
-        date_elem = soup.find(text=re.compile(r'\d{4}'))
-        if date_elem:
-            date_text = date_elem.parent.get_text() if hasattr(date_elem, 'parent') else str(date_elem)
+        date_text = extract_date_range_from_soup(soup)
+        
+        # Parse date range if found
+        if date_text:
             date_range = parse_date_range(date_text)
         
-        # Also look for date in specific elements
+        # Fallback: look for date in specific elements with date classes
         if not date_range:
             date_containers = soup.find_all(['div', 'span', 'p'], 
                                            class_=re.compile(r'date|time|duration', re.I))
@@ -507,6 +460,13 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
                 date_range = parse_date_range(date_text)
                 if date_range:
                     break
+        
+        # Last resort: look for any text with a 4-digit year
+        if not date_range:
+            date_elem = soup.find(string=re.compile(r'\d{4}'))
+            if date_elem:
+                date_text = date_elem.parent.get_text() if hasattr(date_elem, 'parent') else str(date_elem)
+                date_range = parse_date_range(date_text)
         
         # Extract image - try multiple strategies
         image_url = None

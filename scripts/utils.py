@@ -387,6 +387,282 @@ def process_ongoing_exhibition_dates(date_range: Optional[Dict], text: str = Non
     
     return date_range if date_range.get('start_date') or date_range.get('end_date') else None
 
+def extract_description_from_soup(soup, max_length: int = 2000) -> Optional[str]:
+    """
+    Extract description from BeautifulSoup object with comprehensive methods.
+    Filters out captions and image-related text.
+    
+    Args:
+        soup: BeautifulSoup object
+        max_length: Maximum length of description (default 2000)
+    
+    Returns:
+        Description string or None
+    """
+    if not soup:
+        return None
+    
+    description = None
+    
+    # Method 1: Look for meta description
+    meta_desc = soup.find('meta', attrs={'name': 'description'})
+    if meta_desc and meta_desc.get('content'):
+        desc = meta_desc.get('content')
+        if len(desc) > 50:
+            description = desc
+    
+    # Method 2: Look for Open Graph description
+    if not description:
+        og_desc = soup.find('meta', property='og:description')
+        if og_desc and og_desc.get('content'):
+            desc = og_desc.get('content')
+            if len(desc) > 50:
+                description = desc
+    
+    # Method 3: Find main content area (exclude navigation, headers, footers)
+    if not description:
+        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|body', re.I))
+        if not main_content:
+            main_content = soup
+        
+        # Look for explicit description/summary/intro sections
+        desc_elem = main_content.find('div', class_=re.compile(r'description|summary|intro|excerpt', re.I))
+        if desc_elem:
+            # Make sure it's not a caption
+            if not any(excluded in str(desc_elem.get('class', [])).lower() for excluded in ['caption', 'image', 'photo']):
+                description = desc_elem.get_text(separator=' ', strip=True)
+                # Clean up extra whitespace
+                description = ' '.join(description.split())
+        
+        # Method 4: Look for paragraphs in main content, excluding captions
+        if not description:
+            paragraphs = main_content.find_all('p')
+            for p in paragraphs:
+                # Skip if it's inside a figure or caption element
+                if p.find_parent(['figure', 'figcaption']):
+                    continue
+                
+                # Skip if it's very short (likely a caption)
+                p_text = p.get_text(strip=True)
+                if len(p_text) < 50:
+                    continue
+                
+                # Skip if it contains caption-like text
+                if any(keyword in p_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
+                    continue
+                
+                # Skip if it's near an image (check siblings)
+                prev_sibling = p.find_previous_sibling()
+                next_sibling = p.find_next_sibling()
+                if (prev_sibling and prev_sibling.find('img')) or (next_sibling and next_sibling.find('img')):
+                    # Check if it's actually a caption (short text near image)
+                    if len(p_text) < 100:
+                        continue
+                
+                # This looks like a real description paragraph
+                description = p_text
+                # Try to get additional paragraphs if they're part of the description
+                desc_paragraphs = [p_text]
+                current = p.find_next_sibling('p')
+                while current and len(desc_paragraphs) < 3:  # Limit to 3 paragraphs
+                    current_text = current.get_text(strip=True)
+                    # Stop if we hit a caption or very short text
+                    if (len(current_text) < 50 or 
+                        current.find_parent(['figure', 'figcaption']) or
+                        any(keyword in current_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©'])):
+                        break
+                    desc_paragraphs.append(current_text)
+                    current = current.find_next_sibling('p')
+                
+                description = ' '.join(desc_paragraphs)
+                break
+        
+        # Method 5: Look for divs with substantial text content (not captions)
+        if not description:
+            content_divs = main_content.find_all('div', class_=re.compile(r'text|body|content|paragraph', re.I))
+            for div in content_divs:
+                # Skip if it's a caption or image container
+                if any(excluded in str(div.get('class', [])).lower() for excluded in ['caption', 'image', 'photo', 'figure']):
+                    continue
+                
+                div_text = div.get_text(separator=' ', strip=True)
+                # Must be substantial text (at least 100 characters)
+                if len(div_text) > 100:
+                    # Check if it contains actual content (not just metadata)
+                    if not any(keyword in div_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
+                        description = ' '.join(div_text.split())
+                        break
+    
+    # Clean up description if found
+    if description:
+        # Remove extra whitespace
+        description = ' '.join(description.split())
+        # Remove very short descriptions that might be captions
+        if len(description) < 50:
+            description = None
+        # Limit length to reasonable size
+        elif len(description) > max_length:
+            description = description[:max_length] + '...'
+    
+    return description
+
+
+def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
+    """
+    Parse date range strings like:
+    - "June 21, 2025 – November 30, 2025"
+    - "March 2, 2024–January 11, 2026"
+    - "April 12, 2025 – April 26, 2026"
+    - "April 27, 2024–April 29, 2029"
+    - "December 9, 2023–2026" (year only for end)
+    - "March 25, 2023–ongoing"
+    Returns dict with 'start_date' and 'end_date' or None
+    """
+    if not date_string or not isinstance(date_string, str):
+        return None
+    
+    # Clean up the string
+    date_string = date_string.strip()
+    
+    # Handle "ongoing" dates - set end date far in the future
+    if 'ongoing' in date_string.lower():
+        # Extract start date
+        start_match = re.search(r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})', date_string)
+        if start_match:
+            start_str = start_match.group(1).strip()
+            start_date = None
+            try:
+                start_date = datetime.strptime(start_str, '%B %d, %Y').date()
+            except ValueError:
+                try:
+                    start_date = datetime.strptime(start_str, '%B %d %Y').date()
+                except ValueError:
+                    pass
+            if start_date:
+                # Set end date to 10 years in the future for ongoing exhibitions
+                end_date = start_date + timedelta(days=3650)
+                return {'start_date': start_date, 'end_date': end_date}
+    
+    # Try to match date range pattern with full dates
+    # Pattern: "Month Day, Year – Month Day, Year" or "Month Day, Year–Month Day, Year"
+    range_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})\s*[–-]\s*([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
+    match = re.search(range_pattern, date_string)
+    
+    if match:
+        start_str = match.group(1).strip()
+        end_str = match.group(2).strip()
+        
+        try:
+            start_date = datetime.strptime(start_str, '%B %d, %Y').date()
+            end_date = datetime.strptime(end_str, '%B %d, %Y').date()
+            return {'start_date': start_date, 'end_date': end_date}
+        except ValueError:
+            try:
+                # Try without comma
+                start_date = datetime.strptime(start_str, '%B %d %Y').date()
+                end_date = datetime.strptime(end_str, '%B %d %Y').date()
+                return {'start_date': start_date, 'end_date': end_date}
+            except ValueError:
+                pass
+    
+    # Try pattern with year only for end date: "December 9, 2023–2026"
+    year_only_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})\s*[–-]\s*(20\d{2})'
+    match = re.search(year_only_pattern, date_string)
+    if match:
+        start_str = match.group(1).strip()
+        end_year = int(match.group(2))
+        try:
+            start_date = datetime.strptime(start_str, '%B %d, %Y').date()
+            # Set end date to end of the year
+            end_date = date(end_year, 12, 31)
+            return {'start_date': start_date, 'end_date': end_date}
+        except ValueError:
+            try:
+                start_date = datetime.strptime(start_str, '%B %d %Y').date()
+                end_date = date(end_year, 12, 31)
+                return {'start_date': start_date, 'end_date': end_date}
+            except ValueError:
+                pass
+    
+    # Try single date pattern
+    single_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
+    match = re.search(single_pattern, date_string)
+    if match:
+        date_str = match.group(1).strip()
+        try:
+            single_date = datetime.strptime(date_str, '%B %d, %Y').date()
+            return {'start_date': single_date, 'end_date': None}
+        except ValueError:
+            try:
+                single_date = datetime.strptime(date_str, '%B %d %Y').date()
+                return {'start_date': single_date, 'end_date': None}
+            except ValueError:
+                pass
+    
+    return None
+
+
+def extract_date_range_from_soup(soup) -> Optional[str]:
+    """
+    Extract date range text from BeautifulSoup object using structured HTML.
+    Looks for h3/dt elements with "Dates" heading.
+    
+    Args:
+        soup: BeautifulSoup object
+    
+    Returns:
+        Date range string (e.g., "April 27, 2024–April 29, 2029") or None
+    """
+    if not soup:
+        return None
+    
+    date_text = None
+    
+    # First, try to extract dates from structured HTML (h3/dt elements)
+    # Look for structured date format: h3 with "Dates" followed by date range
+    dates_h3 = soup.find('h3', string=re.compile('^Dates?$', re.I))
+    if dates_h3:
+        # Check next sibling for date text
+        next_sibling = dates_h3.find_next_sibling()
+        if next_sibling:
+            date_text = next_sibling.get_text(strip=True)
+        # If not found, check parent's siblings
+        if not date_text and dates_h3.parent:
+            siblings = dates_h3.parent.find_all(['div', 'p', 'span', 'li'], recursive=False)
+            for sibling in siblings:
+                sibling_text = sibling.get_text(strip=True)
+                # Check if it looks like a date range
+                if re.search(r'[A-Z][a-z]+\s+\d{1,2},?\s+20\d{2}[–-]', sibling_text):
+                    date_text = sibling_text
+                    break
+    
+    # Also try dt/dd structure
+    if not date_text:
+        dates_dt = soup.find('dt', string=re.compile('Dates?', re.I))
+        if dates_dt:
+            dates_dd = dates_dt.find_next_sibling('dd')
+            if dates_dd:
+                date_text = dates_dd.get_text(strip=True)
+    
+    # Also try looking for date in list items (li) after "Dates" heading
+    if not date_text:
+        # Look for list items that might contain dates
+        for li in soup.find_all('li'):
+            li_text = li.get_text(strip=True)
+            # Check if it looks like a date range
+            if re.search(r'[A-Z][a-z]+\s+\d{1,2},?\s+20\d{2}[–-]', li_text):
+                # Check if there's a "Dates" heading nearby
+                parent = li.parent
+                if parent:
+                    # Look for "Dates" in parent's text or siblings
+                    parent_text = parent.get_text()
+                    if re.search(r'\bDates?\b', parent_text, re.I):
+                        date_text = li_text
+                        break
+    
+    return date_text
+
+
 def is_category_heading(title: str) -> bool:
     """
     Check if a title is a category heading (like "Past Exhibitions", "Upcoming Exhibitions")

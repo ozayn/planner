@@ -184,8 +184,18 @@ class SmithsonianScraper:
         return None
     
     def _extract_description(self, content: str) -> Optional[str]:
-        """Extract event description from content."""
-        # Look for description patterns
+        """Extract event description from content using shared utility function."""
+        from bs4 import BeautifulSoup
+        from scripts.utils import extract_description_from_soup
+        
+        # Parse content to soup and use shared utility
+        soup = BeautifulSoup(content, 'html.parser')
+        description = extract_description_from_soup(soup, max_length=2000)
+        
+        if description:
+            return description
+        
+        # Fallback: try regex patterns for edge cases
         desc_patterns = [
             r'<p[^>]*class="[^"]*description[^"]*"[^>]*>([^<]+)</p>',
             r'<div[^>]*class="[^"]*description[^"]*"[^>]*>([^<]+)</div>',

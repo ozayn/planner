@@ -175,40 +175,21 @@ def _extract_exhibition_images(soup: BeautifulSoup, url: str, max_images: int = 
     return image_urls
 
 
+# Use shared parse_date_range from utils (but keep parse_single_date for other uses)
+from scripts.utils import parse_date_range as parse_date_range_shared
+
 def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
     """
-    Parse date range string like "November 25, 2025–July 12, 2026"
-    Returns dict with 'start_date' and 'end_date' or None if parsing fails
+    Parse date range string - uses shared utility function.
+    Falls back to parse_single_date for compatibility with existing code.
     """
-    if not date_string:
-        return None
+    # Try shared function first
+    result = parse_date_range_shared(date_string)
+    if result:
+        return result
     
-    # Clean up the date string
-    date_string = date_string.strip()
-    
-    # Handle different separators
-    separators = ['–', '-', '—', 'to', 'through']
-    for sep in separators:
-        if sep in date_string:
-            parts = date_string.split(sep, 1)
-            if len(parts) == 2:
-                start_str = parts[0].strip()
-                end_str = parts[1].strip()
-                
-                try:
-                    start_date = parse_single_date(start_str)
-                    end_date = parse_single_date(end_str)
-                    
-                    if start_date and end_date:
-                        return {
-                            'start_date': start_date,
-                            'end_date': end_date
-                        }
-                except Exception as e:
-                    logger.debug(f"Error parsing date range '{date_string}': {e}")
-                    continue
-    
-    # Try to parse as single date
+    # Fallback: try to parse as single date using local parse_single_date
+    # (for compatibility with existing code that expects this behavior)
     single_date = parse_single_date(date_string)
     if single_date:
         return {
@@ -492,94 +473,9 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             logger.debug(f"   ⚠️ Could not find title for {url}")
             return None
         
-        # Extract description - avoid photo captions
-        description = None
-        
-        # First, try to find main content area (exclude navigation, headers, footers)
-        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|body', re.I))
-        if not main_content:
-            main_content = soup
-        
-        # Exclude image-related elements (captions, figure elements)
-        excluded_selectors = ['figcaption', 'img', 'picture', '[class*="caption"]', '[class*="image"]', '[class*="photo"]']
-        
-        # Method 1: Look for explicit description/summary/intro sections
-        desc_elem = main_content.find('div', class_=re.compile(r'description|summary|intro|excerpt', re.I))
-        if desc_elem:
-            # Make sure it's not a caption
-            if not any(excluded in str(desc_elem.get('class', [])).lower() for excluded in ['caption', 'image', 'photo']):
-                description = desc_elem.get_text(separator=' ', strip=True)
-                # Clean up extra whitespace
-                description = ' '.join(description.split())
-        
-        # Method 2: Look for paragraphs in main content, excluding captions
-        if not description:
-            # Find all paragraphs, but exclude those that are captions or near images
-            paragraphs = main_content.find_all('p')
-            for p in paragraphs:
-                # Skip if it's inside a figure or caption element
-                if p.find_parent(['figure', 'figcaption']):
-                    continue
-                
-                # Skip if it's very short (likely a caption)
-                p_text = p.get_text(strip=True)
-                if len(p_text) < 50:
-                    continue
-                
-                # Skip if it contains caption-like text
-                if any(keyword in p_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
-                    continue
-                
-                # Skip if it's near an image (check siblings)
-                prev_sibling = p.find_previous_sibling()
-                next_sibling = p.find_next_sibling()
-                if (prev_sibling and prev_sibling.find('img')) or (next_sibling and next_sibling.find('img')):
-                    # Check if it's actually a caption (short text near image)
-                    if len(p_text) < 100:
-                        continue
-                
-                # This looks like a real description paragraph
-                description = p_text
-                # Try to get additional paragraphs if they're part of the description
-                # Look for consecutive paragraphs that aren't captions
-                desc_paragraphs = [p_text]
-                current = p.find_next_sibling('p')
-                while current and len(desc_paragraphs) < 3:  # Limit to 3 paragraphs
-                    current_text = current.get_text(strip=True)
-                    # Stop if we hit a caption or very short text
-                    if (len(current_text) < 50 or 
-                        current.find_parent(['figure', 'figcaption']) or
-                        any(keyword in current_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©'])):
-                        break
-                    desc_paragraphs.append(current_text)
-                    current = current.find_next_sibling('p')
-                
-                description = ' '.join(desc_paragraphs)
-                break
-        
-        # Method 3: Look for divs with substantial text content (not captions)
-        if not description:
-            content_divs = main_content.find_all('div', class_=re.compile(r'text|body|content|paragraph', re.I))
-            for div in content_divs:
-                # Skip if it's a caption or image container
-                if any(excluded in str(div.get('class', [])).lower() for excluded in ['caption', 'image', 'photo', 'figure']):
-                    continue
-                
-                div_text = div.get_text(separator=' ', strip=True)
-                # Must be substantial text (at least 100 characters)
-                if len(div_text) > 100:
-                    # Check if it contains actual content (not just metadata)
-                    if not any(keyword in div_text.lower() for keyword in ['credit:', 'photo:', 'image:', 'courtesy of', '©']):
-                        description = ' '.join(div_text.split())
-                        break
-        
-        # Clean up description if found
-        if description:
-            # Remove extra whitespace
-            description = ' '.join(description.split())
-            # Remove very short descriptions that might be captions
-            if len(description) < 50:
-                description = None
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
         # Extract date range, meeting location, and ongoing status - prioritize "Visiting Information" section
         date_range = None
@@ -587,6 +483,12 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         meeting_location = None  # Specific location like "Luce Foundation Center, 3rd Floor"
         is_ongoing = False  # Whether the exhibition is ongoing
         visiting_section_text = ""  # Initialize to ensure it's always defined
+        
+        # First, try to extract dates from structured HTML using shared utility
+        from scripts.utils import extract_date_range_from_soup
+        date_text = extract_date_range_from_soup(soup)
+        if date_text:
+            date_range = parse_date_range(date_text)
         
         # Find "Visiting Information" heading first (dates are usually here)
         visiting_heading = None

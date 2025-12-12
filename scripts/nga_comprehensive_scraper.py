@@ -297,32 +297,9 @@ def scrape_nga_exhibition_page(exhibition_url, scraper):
         if not title:
             return None
         
-        # Extract description - handle all languages (English, Spanish, etc.)
-        description = None
-        meta_desc = soup.find('meta', attrs={'name': 'description'})
-        if meta_desc and meta_desc.get('content'):
-            description = meta_desc.get('content').strip()
-        
-        # If meta description is too short or missing, try OG description
-        # Note: We don't filter by length for non-English content which might be shorter
-        if not description or (len(description) < 50 and 'og:description' not in str(soup)):
-            og_desc = soup.find('meta', property='og:description')
-            if og_desc and og_desc.get('content'):
-                description = og_desc.get('content').strip()
-        
-        # If still no description, try to extract from main content (for non-English pages)
-        if not description or len(description) < 30:
-            # Look for main content paragraphs
-            main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|description', re.I))
-            if main_content:
-                paragraphs = main_content.find_all('p')
-                description_parts = []
-                for p in paragraphs[:3]:  # Get first 3 paragraphs
-                    text = p.get_text(strip=True)
-                    if text and len(text) > 20:  # Reasonable length for any language
-                        description_parts.append(text)
-                if description_parts:
-                    description = ' '.join(description_parts)
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
         # Extract dates
         start_date, end_date = extract_exhibition_dates(page_text, soup)
@@ -359,38 +336,15 @@ def scrape_nga_exhibition_page(exhibition_url, scraper):
 
 def extract_exhibition_dates(page_text, soup):
     """Extract start and end dates from exhibition page"""
+    from scripts.utils import extract_date_range_from_soup, parse_date_range
+    
     start_date = None
     end_date = None
     
-    # First, try to find dates in structured HTML (dt/dd elements or h3/div structures)
-    dates_text = None
+    # First, try to find dates in structured HTML using shared utility
+    dates_text = extract_date_range_from_soup(soup)
     
-    # Try dt/dd structure first
-    dates_dt = soup.find('dt', string=re.compile('Dates?', re.I))
-    if dates_dt:
-        dates_dd = dates_dt.find_next_sibling('dd')
-        if dates_dd:
-            dates_text = dates_dd.get_text(strip=True)
-    
-    # If not found, try h3 structure (NGA uses h3 for "Dates")
-    if not dates_text:
-        dates_h3 = soup.find('h3', string=re.compile('^Dates?$', re.I))
-        if dates_h3:
-            # Check next sibling first
-            next_sibling = dates_h3.find_next_sibling()
-            if next_sibling:
-                dates_text = next_sibling.get_text(strip=True)
-            # If empty, check all siblings of the parent
-            if not dates_text or len(dates_text.strip()) < 10:
-                if dates_h3.parent:
-                    siblings = dates_h3.parent.find_all(['div', 'p', 'span'], recursive=False)
-                    for sibling in siblings:
-                        sibling_text = sibling.get_text(strip=True)
-                        if sibling_text and ('may' in sibling_text.lower() or 'august' in sibling_text.lower() or '2026' in sibling_text):
-                            dates_text = sibling_text
-                            break
-    
-    # If still not found, try finding "Dates" text and getting the following content
+    # If not found, try finding "Dates" text and getting the following content (NGA-specific fallback)
     if not dates_text:
         dates_elem = soup.find(string=re.compile('^Dates?$', re.I))
         if dates_elem:
@@ -407,61 +361,14 @@ def extract_exhibition_dates(page_text, soup):
                         if parent_sibling:
                             dates_text = parent_sibling.get_text(strip=True)
     
+    # Parse date range if found using shared utility
     if dates_text:
-            # Try to parse the dates from the structured text
-            # Pattern 1: "May 23 - August 23, 2026" (year only at end)
-            date_range_match = re.search(
-                r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s*[–-]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
-                dates_text,
-                re.IGNORECASE
-            )
-            # Pattern 2: "May 23, 2026 - August 23, 2026" (year after each date)
-            if not date_range_match:
-                date_range_match = re.search(
-                    r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})\s*[–-]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
-                    dates_text,
-                    re.IGNORECASE
-                )
-            if date_range_match:
-                # Parse the structured dates
-                groups = date_range_match.groups()
-                if len(groups) == 5:
-                    # Pattern 1: "May 23 - August 23, 2026" (year only at end)
-                    start_month_name = groups[0].lower().rstrip('.')
-                    start_day = int(groups[1])
-                    end_month_name = groups[2].lower().rstrip('.')
-                    end_day = int(groups[3])
-                    start_year = int(groups[4])
-                    end_year = int(groups[4])  # Same year for both
-                elif len(groups) == 6:
-                    # Pattern 2: "May 23, 2026 - August 23, 2026" (year after each date)
-                    start_month_name = groups[0].lower().rstrip('.')
-                    start_day = int(groups[1])
-                    start_year = int(groups[2])
-                    end_month_name = groups[3].lower().rstrip('.')
-                    end_day = int(groups[4])
-                    end_year = int(groups[5])
-                else:
-                    date_range_match = None
-                
-                month_map_full = {
-                    'january': 1, 'february': 2, 'march': 3, 'april': 4,
-                    'may': 5, 'june': 6, 'july': 7, 'august': 8,
-                    'september': 9, 'october': 10, 'november': 11, 'december': 12
-                }
-                month_map_abbrev = {
-                    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4,
-                    'may': 5, 'jun': 6, 'jul': 7, 'aug': 8,
-                    'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12
-                }
-                
-                start_month = month_map_full.get(start_month_name) or month_map_abbrev.get(start_month_name[:3])
-                end_month = month_map_full.get(end_month_name) or month_map_abbrev.get(end_month_name[:3])
-                
-                if start_month and end_month:
-                    start_date = date(start_year, start_month, start_day)
-                    end_date = date(end_year, end_month, end_day)
-                    return start_date, end_date
+        date_range = parse_date_range(dates_text)
+        if date_range:
+            start_date = date_range.get('start_date')
+            end_date = date_range.get('end_date')
+            if start_date and end_date:
+                return start_date, end_date
     
     # If structured dates not found, look for date patterns in page text
     # But prioritize dates that appear BEFORE "Other venues" section
@@ -745,32 +652,9 @@ def scrape_nga_tour_page(tour_url, scraper):
             logger.warning(f"   ⚠️  No title found for {tour_url}")
             return None
         
-        # Extract description - handle all languages (English, Spanish, etc.)
-        description = None
-        meta_desc = soup.find('meta', attrs={'name': 'description'})
-        if meta_desc and meta_desc.get('content'):
-            description = meta_desc.get('content').strip()
-        
-        # If meta description is too short or missing, try OG description
-        # Note: We don't filter by length for non-English content which might be shorter
-        if not description or (len(description) < 50 and 'og:description' not in str(soup)):
-            og_desc = soup.find('meta', property='og:description')
-            if og_desc and og_desc.get('content'):
-                description = og_desc.get('content').strip()
-        
-        # If still no description, try to extract from main content (for non-English pages)
-        if not description or len(description) < 30:
-            # Look for main content paragraphs
-            main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|description', re.I))
-            if main_content:
-                paragraphs = main_content.find_all('p')
-                description_parts = []
-                for p in paragraphs[:3]:  # Get first 3 paragraphs
-                    text = p.get_text(strip=True)
-                    if text and len(text) > 20:  # Reasonable length for any language
-                        description_parts.append(text)
-                if description_parts:
-                    description = ' '.join(description_parts)
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
         # Extract date and time - first try HTML time element (most reliable), then page text
         event_date = None
@@ -927,11 +811,9 @@ def scrape_nga_talk_page(talk_url, scraper):
         if not title:
             return None
         
-        # Extract description
-        description = None
-        meta_desc = soup.find('meta', attrs={'name': 'description'})
-        if meta_desc and meta_desc.get('content'):
-            description = meta_desc.get('content').strip()
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
         # Extract date and time
         event_date, start_time, end_time = extract_event_datetime(page_text, talk_url)
@@ -1040,11 +922,9 @@ def scrape_nga_generic_event_page(event_url, scraper):
         if not title:
             return None
         
-        # Extract description
-        description = None
-        meta_desc = soup.find('meta', attrs={'name': 'description'})
-        if meta_desc and meta_desc.get('content'):
-            description = meta_desc.get('content').strip()
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
         
         # Extract date and time
         event_date, start_time, end_time = extract_event_datetime(page_text, event_url)

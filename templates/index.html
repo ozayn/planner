@@ -2697,6 +2697,21 @@
                 showRecurringTours = false;
                 // Don't save false to localStorage - let it default on each load
             }
+            
+            // Load show extracted events preference
+            // Default to true (show extracted events) if no preference saved
+            const savedShowExtractedEvents = localStorage.getItem('showExtractedEvents');
+            if (savedShowExtractedEvents !== null) {
+                showExtractedEvents = (savedShowExtractedEvents === 'true');
+            } else {
+                showExtractedEvents = true; // Default to showing extracted events
+            }
+            
+            // Sync checkbox with variable state
+            const showExtractedEventsCheckbox = document.getElementById('showExtractedEvents');
+            if (showExtractedEventsCheckbox) {
+                showExtractedEventsCheckbox.checked = showExtractedEvents;
+            }
         }
 
         // DOM elements
@@ -3145,9 +3160,15 @@
             // Add extracted events filter checkbox listener
             const showExtractedEventsCheckbox = document.getElementById('showExtractedEvents');
             if (showExtractedEventsCheckbox) {
+                // Ensure checkbox is synced with variable state (in case it was loaded from localStorage)
+                showExtractedEventsCheckbox.checked = showExtractedEvents;
+                
                 showExtractedEventsCheckbox.addEventListener('change', function() {
                     showExtractedEvents = this.checked;
-                    displayUnifiedEvents(); // Refresh event display
+                    // Save preference to localStorage
+                    localStorage.setItem('showExtractedEvents', showExtractedEvents ? 'true' : 'false');
+                    // Force immediate refresh to show the change
+                    displayUnifiedEvents(true); // Refresh event display immediately
                 });
             }
             
@@ -3500,6 +3521,8 @@
             const showExtractedCheckbox = document.getElementById('showExtractedEvents');
             if (showExtractedCheckbox) {
                 showExtractedCheckbox.checked = true;
+                // Update localStorage
+                localStorage.setItem('showExtractedEvents', 'true');
             }
             // Reset city selection
             citySelect.value = '';
@@ -5249,6 +5272,12 @@
                 showRecurringTours = (savedRecurringToursState === 'true');
             }
             
+            // Ensure showExtractedEvents state is initialized before display
+            if (typeof showExtractedEvents === 'undefined') {
+                const savedShowExtractedEvents = localStorage.getItem('showExtractedEvents');
+                showExtractedEvents = (savedShowExtractedEvents !== null) ? (savedShowExtractedEvents === 'true') : true;
+            }
+            
             // Debounce rapid filter changes (wait 100ms before executing)
             if (!immediate) {
                 if (displayUnifiedEventsTimeout) {
@@ -5271,9 +5300,11 @@
             
             // Combine both event sources and remove duplicates by ID
             // Filter extracted events based on showExtractedEvents setting
+            console.log('displayUnifiedEvents: showExtractedEvents =', showExtractedEvents, 'allEvents count =', allEvents.length, 'discoveredEvents count =', discoveredEvents.length);
             const eventsToCombine = showExtractedEvents 
                 ? [...allEvents, ...discoveredEvents]
                 : [...discoveredEvents]; // Only show newly discovered events if extracted events are hidden
+            console.log('displayUnifiedEvents: eventsToCombine count =', eventsToCombine.length);
             
             const combinedEvents = [];
             const eventIds = new Set();
