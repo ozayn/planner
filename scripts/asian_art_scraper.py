@@ -1624,6 +1624,13 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                             existing.is_baby_friendly = True
                             updated = True
                     
+                    # Update event_type if it has changed (important for fixing categorization)
+                    new_event_type = event_data.get('event_type', 'event')
+                    if existing.event_type != new_event_type:
+                        existing.event_type = new_event_type
+                        updated = True
+                        logger.info(f"   📝 Updated event_type: '{existing.event_type}' -> '{new_event_type}' for: {event_data['title']}")
+                    
                     if updated:
                         existing.updated_at = datetime.utcnow()
                         db.session.commit()
