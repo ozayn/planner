@@ -1398,6 +1398,12 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                     is_baby_friendly = True
                     logger.info(f"   👶 Detected baby-friendly event: '{title}'")
                 
+                # Skip non-English language events
+                language = event_data.get('language', 'English')
+                if language and language.lower() != 'english':
+                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
+                    continue
+                
                 # Handle missing start_date - check if it might be ongoing/permanent
                 if not event_data.get('start_date'):
                     # Check if event might be ongoing/permanent

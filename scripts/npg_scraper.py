@@ -673,8 +673,8 @@ def scrape_npg_tours(scraper=None) -> List[Dict]:
                 end_time_str = f"{end_hour}:{end_time_obj.minute:02d} {end_am_pm}"
                 
                 event = {
-                    'title': 'Docent Tour',
-                    'description': 'Daily walk-in docent-led tour providing insights into the museum\'s collection of portraits. No reservations necessary. Last-minute cancellations may occur due to volunteer availability.',
+                    'title': 'Docent-Led Walk-In Tour',
+                    'description': 'Free, docent-led walk-in tour at the National Portrait Gallery. Tours last approximately one hour. No reservations necessary. Last-minute cancellations may occur due to volunteer availability.',
                     'event_type': 'tour',
                     'start_date': tour_date,
                     'end_date': tour_date,
@@ -689,53 +689,7 @@ def scrape_npg_tours(scraper=None) -> List[Dict]:
                 
                 events.append(event)
         
-        # Look for Spanish-language tours (usually on select Sundays)
-        # Check for links to Spanish tour events
-        spanish_tour_links = soup.find_all('a', href=re.compile(r'spanish|espanol|español', re.I))
-        for link in spanish_tour_links:
-            href = link.get('href', '')
-            if not href:
-                continue
-            
-            full_url = urljoin(NPG_BASE_URL, href)
-            
-            # Try to scrape the Spanish tour page for specific dates
-            try:
-                spanish_tour_data = scrape_event_detail(scraper, full_url)
-                if spanish_tour_data:
-                    # Update title to indicate it's Spanish-language
-                    spanish_tour_data['title'] = 'Spanish-Language Docent Tour'
-                    spanish_tour_data['description'] = 'Spanish-language walk-in docent-led tour. Free but may require registration. Meeting point: F Street Lobby.'
-                    spanish_tour_data['event_type'] = 'tour'
-                    events.append(spanish_tour_data)
-            except Exception as e:
-                logger.debug(f"   ⚠️ Error scraping Spanish tour {full_url}: {e}")
-        
-        # Also check page text for mentions of Spanish tours on Sundays
-        if 'spanish' in page_text.lower() and 'sunday' in page_text.lower():
-            # Look for Sunday dates mentioned
-            today = date.today()
-            for i in range(180):  # Check next 6 months
-                tour_date = today + timedelta(days=i)
-                if tour_date.weekday() == 6:  # Sunday
-                    # Check if there's mention of this specific Sunday
-                    # For now, add Spanish tours for all Sundays in next 3 months
-                    if i < 90:  # Only next 3 months
-                        event = {
-                            'title': 'Spanish-Language Docent Tour',
-                            'description': 'Spanish-language walk-in docent-led tour on select Sundays. Free but may require registration. Please check the website for specific dates.',
-                            'event_type': 'tour',
-                            'start_date': tour_date,
-                            'end_date': tour_date,
-                            'start_time': '3:00 p.m.',
-                            'end_time': '4:00 p.m.',
-                            'meeting_point': meeting_point,
-                            'source_url': NPG_TOURS_URL,
-                            'organizer': VENUE_NAME,
-                            'social_media_platform': 'website',
-                            'social_media_url': NPG_TOURS_URL,
-                        }
-                        events.append(event)
+        # Note: Spanish-language and other non-English events are excluded per requirements
         
         logger.info(f"   ✅ Found {len(events)} tour events")
         
@@ -1242,11 +1196,11 @@ def scrape_all_npg_events() -> List[Dict]:
     all_events.extend(exhibitions)
     logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
     
-    # 2. Scrape tours (DISABLED - taking too much space)
-    # logger.info("🚶 Scraping tours...")
-    # tours = scrape_npg_tours(scraper)
-    # all_events.extend(tours)
-    # logger.info(f"   ✅ Found {len(tours)} tours")
+    # 2. Scrape tours (recurring daily tours)
+    logger.info("🚶 Scraping tours...")
+    tours = scrape_npg_tours(scraper)
+    all_events.extend(tours)
+    logger.info(f"   ✅ Found {len(tours)} tours")
     
     # 3. Scrape events (talks, etc.)
     logger.info("🎤 Scraping events (talks, etc.)...")
@@ -1303,6 +1257,12 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                 from scripts.utils import is_category_heading, get_ongoing_exhibition_dates, detect_ongoing_exhibition
                 if is_category_heading(title):
                     logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
+                    continue
+                
+                # Skip non-English language events
+                language = event_data.get('language', 'English')
+                if language and language.lower() != 'english':
+                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
                     continue
                 
                 # Detect if event is baby-friendly

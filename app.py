@@ -1588,6 +1588,12 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
             app_logger.debug(f"⚠️ Skipping category heading: '{title}'")
             return None, False
         
+        # Skip non-English language events
+        language = event_data.get('language', 'English')
+        if language and language.lower() != 'english':
+            app_logger.debug(f"⚠️ Skipping non-English event: '{title}' (language: {language})")
+            return None, False
+        
         venue_id = event_data.get('venue_id')
         city_id_event = event_data.get('city_id', city_id)
         start_date_str = event_data.get('start_date')

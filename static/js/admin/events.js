@@ -1,6 +1,51 @@
+// Helper function to detect generic/recurring tour titles
+function isGenericTourTitle(title) {
+    if (!title) return false;
+    const genericPatterns = [
+        /^docent[- ]led walk[- ]in tour$/i,
+        /^walk[- ]in tour$/i,
+        /^docent[- ]led tour$/i,
+        /^guided tour$/i,
+        /^public tour$/i,
+        /^drop[- ]in tour$/i,
+        /^self[- ]guided tour$/i
+    ];
+    return genericPatterns.some(pattern => pattern.test(title.trim()));
+}
+
+// Track whether to show recurring tours (default: hidden to save space)
+let showRecurringToursAdmin = false;
+
+// Load recurring tours visibility preference from localStorage
+function loadRecurringToursPreference() {
+    const savedState = localStorage.getItem('showRecurringToursAdmin');
+    showRecurringToursAdmin = (savedState === 'true');
+}
+
+// Toggle recurring tours visibility in admin
+function toggleRecurringToursVisibilityAdmin() {
+    showRecurringToursAdmin = !showRecurringToursAdmin;
+    if (showRecurringToursAdmin) {
+        localStorage.setItem('showRecurringToursAdmin', 'true');
+    } else {
+        localStorage.removeItem('showRecurringToursAdmin'); // Remove to allow default false
+    }
+    
+    // Update button text
+    const toggleBtn = document.getElementById('recurringToursToggleBtn');
+    if (toggleBtn) {
+        toggleBtn.textContent = showRecurringToursAdmin ? '▼ Hide' : '▶ Show';
+    }
+    
+    applyEventFilters(); // Re-apply filters to update display
+}
+
 // Load events data
 async function loadEvents() {
     try {
+        // Load recurring tours preference
+        loadRecurringToursPreference();
+        
         // Load cities first if not already loaded (needed for city filter)
         if (!window.allCities || window.allCities.length === 0) {
             try {
@@ -28,7 +73,15 @@ async function loadEvents() {
         
         // Store events globally for filtering
         window.allEvents = events;
-        window.filteredEvents = [...events];
+        
+        // Apply filters (which will hide recurring tours by default)
+        applyEventFilters();
+        
+        // Update recurring tours toggle button
+        const toggleBtn = document.getElementById('recurringToursToggleBtn');
+        if (toggleBtn) {
+            toggleBtn.textContent = showRecurringToursAdmin ? '▼ Hide' : '▶ Show';
+        }
         
         // Render the events table
         renderEventsTable();
@@ -551,6 +604,11 @@ function applyEventFilters() {
     const venueFilter = document.getElementById('eventVenueFilter').value;
     
     window.filteredEvents = window.allEvents.filter(event => {
+        // Filter out recurring tours if not shown
+        if (!showRecurringToursAdmin && event.event_type === 'tour' && isGenericTourTitle(event.title)) {
+            return false;
+        }
+        
         const matchesSearch = !searchTerm || 
             event.title.toLowerCase().includes(searchTerm) ||
             (event.event_type && event.event_type.toLowerCase().includes(searchTerm)) ||
@@ -583,6 +641,9 @@ function applyEventFilters() {
         activeFilters.push(`City: ${selectedCity.text}`);
     }
     if (venueFilter) activeFilters.push(`Venue: ${venueFilter}`);
+    if (!showRecurringToursAdmin) {
+        activeFilters.push(`Recurring Tours: Hidden`);
+    }
     
     if (activeFilters.length > 0) {
         summary.textContent = `Active filters: ${activeFilters.join(' • ')} | Showing ${window.filteredEvents.length} of ${window.allEvents.length} events`;
@@ -601,9 +662,10 @@ function clearEventFilters() {
     document.getElementById('eventCityFilter').value = '';
     document.getElementById('eventVenueFilter').value = '';
     
+    // Note: We don't reset showRecurringToursAdmin here - that's a separate toggle
+    // Re-apply filters (which will still respect the recurring tours toggle)
     if (window.allEvents) {
-        window.filteredEvents = [...window.allEvents];
-        renderEventsTable();
+        applyEventFilters();
     }
 }
 

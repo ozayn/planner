@@ -1393,6 +1393,13 @@ def create_events_in_database(events):
                     skipped_count += 1
                     continue
                 
+                # Skip non-English language events
+                language = event_data.get('language', 'English')
+                if language and language.lower() != 'english':
+                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
+                    skipped_count += 1
+                    continue
+                
                 # Detect if event is baby-friendly
                 is_baby_friendly = False
                 title_lower = title.lower()

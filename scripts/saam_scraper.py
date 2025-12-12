@@ -56,6 +56,125 @@ def create_scraper():
     return scraper
 
 
+def _extract_exhibition_images(soup: BeautifulSoup, url: str, max_images: int = 10) -> List[str]:
+    """
+    Extract multiple images from an exhibition/event page, prioritizing hero/feature images.
+    Returns a list of image URLs, filtered to exclude logos, icons, and small images.
+    
+    Args:
+        soup: BeautifulSoup object
+        url: Base URL for resolving relative image paths
+        max_images: Maximum number of images to return
+    
+    Returns:
+        List of image URLs (strings)
+    """
+    image_urls = []
+    seen_urls = set()
+    
+    # Skip patterns for non-content images
+    skip_patterns = ['logo', 'icon', 'avatar', 'placeholder', 'spacer', 'button', 
+                     'badge', 'social', 'share', 'menu', 'nav', 'header', 'footer']
+    
+    # Priority 1: Open Graph image (usually the best featured image)
+    og_image = soup.find('meta', property='og:image')
+    if og_image and og_image.get('content'):
+        img_url = og_image.get('content')
+        if img_url not in seen_urls:
+            if not img_url.startswith('http'):
+                img_url = urljoin(SAAM_BASE_URL, img_url)
+            image_urls.append(img_url)
+            seen_urls.add(img_url)
+    
+    # Priority 2: Hero/feature/main images (exhibition/event specific)
+    hero_selectors = [
+        ('img', {'class': re.compile(r'hero|feature|main|exhibition|event|banner', re.I)}),
+        ('img', {'id': re.compile(r'hero|feature|main|exhibition|event|banner', re.I)}),
+        ('img', {'data-class': re.compile(r'hero|feature|main|exhibition|event', re.I)}),
+    ]
+    
+    for tag, attrs in hero_selectors:
+        hero_imgs = soup.find_all(tag, attrs)
+        for img in hero_imgs:
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+            if src and src not in seen_urls:
+                # Check if it's a content image (not a logo/icon)
+                if not any(skip in src.lower() for skip in skip_patterns):
+                    if not src.startswith('http'):
+                        src = urljoin(SAAM_BASE_URL, src)
+                    image_urls.append(src)
+                    seen_urls.add(src)
+                    if len(image_urls) >= max_images:
+                        return image_urls
+    
+    # Priority 3: Images in main content areas (article, main, content sections)
+    main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|body|exhibition', re.I))
+    if main_content:
+        content_imgs = main_content.find_all('img')
+        for img in content_imgs:
+            # Skip if it's inside a figure/caption (might be decorative)
+            if img.find_parent(['figure', 'figcaption']):
+                continue
+            
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+            if src and src not in seen_urls:
+                # Check if it's a content image
+                if not any(skip in src.lower() for skip in skip_patterns):
+                    # Check image size if available (prefer larger images)
+                    img_width = img.get('width')
+                    img_height = img.get('height')
+                    is_substantial = True
+                    
+                    if img_width and img_height:
+                        try:
+                            width = int(img_width)
+                            height = int(img_height)
+                            # Prefer images that are at least 200x200 pixels
+                            if width < 200 or height < 200:
+                                is_substantial = False
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    if is_substantial:
+                        if not src.startswith('http'):
+                            src = urljoin(SAAM_BASE_URL, src)
+                        image_urls.append(src)
+                        seen_urls.add(src)
+                        if len(image_urls) >= max_images:
+                            return image_urls
+    
+    # Priority 4: All other substantial images (fallback)
+    all_imgs = soup.find_all('img')
+    for img in all_imgs:
+        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+        if src and src not in seen_urls:
+            # Check if it's a content image
+            if not any(skip in src.lower() for skip in skip_patterns):
+                # Check image size
+                img_width = img.get('width')
+                img_height = img.get('height')
+                is_substantial = True
+                
+                if img_width and img_height:
+                    try:
+                        width = int(img_width)
+                        height = int(img_height)
+                        if width < 200 or height < 200:
+                            is_substantial = False
+                    except (ValueError, TypeError):
+                        pass
+                
+                if is_substantial:
+                    if not src.startswith('http'):
+                        src = urljoin(SAAM_BASE_URL, src)
+                    image_urls.append(src)
+                    seen_urls.add(src)
+                    if len(image_urls) >= max_images:
+                        return image_urls
+    
+    return image_urls
+
+
 def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
     """
     Parse date range string like "November 25, 2025–July 12, 2026"
@@ -857,13 +976,15 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
             main_content = soup.find('main') or soup.find('article') or soup
             location = determine_venue_from_soup(main_content)
         
-        # Extract image
+        # Extract images (multiple)
         image_url = None
-        img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|exhibition', re.I))
-        if img_elem:
-            img_src = img_elem.get('src') or img_elem.get('data-src')
-            if img_src:
-                image_url = urljoin(SAAM_BASE_URL, img_src)
+        additional_images = []
+        
+        # Use enhanced image extraction
+        all_images = _extract_exhibition_images(soup, url)
+        if all_images:
+            image_url = all_images[0]
+            additional_images = all_images[1:] if len(all_images) > 1 else []
         
         # Extract times (e.g., opening reception times, special event times)
         # Look for time patterns in the page text
@@ -1067,8 +1188,14 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         if image_url:
             event['image_url'] = image_url
         
+        # Add additional images if any
+        if additional_images:
+            event['additional_images'] = additional_images
+        
         # Final debug: Log what we're returning
         logger.debug(f"   ✅ Returning event with dates: start={event.get('start_date')}, end={event.get('end_date')}")
+        if additional_images:
+            logger.debug(f"   📸 Found {len(additional_images)} additional images")
         
         return event
         
@@ -1196,6 +1323,37 @@ def parse_exhibitions_from_page(soup: BeautifulSoup) -> List[Dict]:
             if desc_elem:
                 description = desc_elem.get_text(strip=True)
             
+            # Extract image from listing page (thumbnail/preview image)
+            image_url = None
+            img_elem = container.find('img')
+            if img_elem:
+                img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src') or img_elem.get('data-original')
+                if img_src:
+                    # Skip logos, icons, and small decorative images
+                    skip_patterns = ['logo', 'icon', 'avatar', 'placeholder', 'spacer', 'button', 
+                                   'badge', 'social', 'share', 'menu', 'nav', 'header', 'footer']
+                    if not any(skip in img_src.lower() for skip in skip_patterns):
+                        # Check image size if available (prefer larger images)
+                        img_width = img_elem.get('width')
+                        img_height = img_elem.get('height')
+                        is_substantial = True
+                        
+                        if img_width and img_height:
+                            try:
+                                width = int(img_width)
+                                height = int(img_height)
+                                # Prefer images that are at least 150x150 pixels (thumbnails are usually larger)
+                                if width < 150 or height < 150:
+                                    is_substantial = False
+                            except (ValueError, TypeError):
+                                pass
+                        
+                        if is_substantial:
+                            if not img_src.startswith('http'):
+                                image_url = urljoin(SAAM_BASE_URL, img_src)
+                            else:
+                                image_url = img_src
+            
             # Build event
             event = {
                 'title': title,
@@ -1206,6 +1364,10 @@ def parse_exhibitions_from_page(soup: BeautifulSoup) -> List[Dict]:
                 'source_url': url,
                 'social_media_url': url,
             }
+            
+            # Add image from listing page if found
+            if image_url:
+                event['image_url'] = image_url
             
             if date_range:
                 event['start_date'] = date_range['start_date']
@@ -2555,6 +2717,12 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                 title = event_data.get('title', '').strip()
                 if not title:
                     logger.warning(f"   ⚠️  Skipping event: missing title")
+                    continue
+                
+                # Skip non-English language events
+                language = event_data.get('language', 'English')
+                if language and language.lower() != 'english':
+                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
                     continue
                 
                 # Detect if event is baby-friendly

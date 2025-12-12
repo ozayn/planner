@@ -2624,6 +2624,7 @@
         let selectedEventTypeFilters = new Set(); // Track selected event type filters (can be multiple)
         let babyFriendlyFilterActive = false; // Track baby-friendly filter state
         let showExtractedEvents = true; // Track whether to show already extracted events (default: show)
+        let showRecurringTours = false; // Track whether to show recurring tours (default: hidden to save space)
         let displayUnifiedEventsTimeout = null; // Debounce timer for displayUnifiedEvents
 
         // Toggle status section
@@ -2683,6 +2684,18 @@
                 }
             } else {
                 statusSectionCollapsed = false;
+            }
+            
+            // Load recurring tours visibility preference
+            // Default to hidden (false) to save space - only show if explicitly set to true
+            const savedRecurringToursState = localStorage.getItem('showRecurringTours');
+            // Only set to true if explicitly saved as 'true', otherwise default to false
+            showRecurringTours = (savedRecurringToursState === 'true');
+            
+            // If there's no saved preference, ensure it's false (hidden by default)
+            if (savedRecurringToursState === null) {
+                showRecurringTours = false;
+                // Don't save false to localStorage - let it default on each load
             }
         }
 
@@ -2831,6 +2844,25 @@
             loadFilterSectionStates();
             setupEventListeners();
             setupEventTypeFilters();
+            
+            // Listen for changes to admin-selected venues (for main page filtering)
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'mainPageSelectedVenues') {
+                    // Admin changed venue selection, refresh main page display
+                    if (allEvents.length > 0 || discoveredEvents.length > 0) {
+                        displayUnifiedEvents(true);
+                    }
+                }
+            });
+            
+            // Also check periodically (in case same-window changes don't trigger storage event)
+            setInterval(function() {
+                const adminSelected = getAdminSelectedVenuesForMainPage();
+                if (adminSelected.size > 0 && (allEvents.length > 0 || discoveredEvents.length > 0)) {
+                    // Refresh display to apply admin filter
+                    displayUnifiedEvents(true);
+                }
+            }, 2000); // Check every 2 seconds
             
             // Initially hide source type controls until city is selected
             const platformLabel = document.querySelector('label[for="platformTypeInstagram"]');
@@ -3282,6 +3314,20 @@
             statusSelected.textContent = selectedVenues.size > 0 ? selectedVenues.size : '';
         }
 
+        // Get admin-selected venues for main page filtering (from localStorage)
+        function getAdminSelectedVenuesForMainPage() {
+            const saved = localStorage.getItem('mainPageSelectedVenues');
+            if (saved) {
+                try {
+                    const ids = JSON.parse(saved);
+                    return new Set(ids.map(id => parseInt(id)));
+                } catch (e) {
+                    return new Set();
+                }
+            }
+            return new Set();
+        }
+        
         // Get selected venue types
         function getSelectedVenueTypes() {
             const venueTypesGroup = document.getElementById('venueTypesGroup');
@@ -5197,6 +5243,12 @@
 
         // Unified display function that combines allEvents and discoveredEvents
         function displayUnifiedEvents(immediate = false) {
+            // Ensure recurring tours state is initialized before display
+            if (typeof showRecurringTours === 'undefined') {
+                const savedRecurringToursState = localStorage.getItem('showRecurringTours');
+                showRecurringTours = (savedRecurringToursState === 'true');
+            }
+            
             // Debounce rapid filter changes (wait 100ms before executing)
             if (!immediate) {
                 if (displayUnifiedEventsTimeout) {
@@ -5349,15 +5401,19 @@
                 });
             }
             
-            // Filter by selected venues - only show events from selected venues
+            // Filter by selected venues - check both main page selection and admin selection
+            // Priority: Admin selection (from localStorage) > Main page selection
+            const adminSelectedVenues = getAdminSelectedVenuesForMainPage();
+            const venuesToFilterBy = adminSelectedVenues.size > 0 ? adminSelectedVenues : selectedVenues;
+            
             // But if no venues have been loaded yet, show all events from the city
             if (allVenues.length > 0) {
                 // Venues have been loaded, so filter by selected venues
-                if (selectedVenues.size > 0) {
+                if (venuesToFilterBy.size > 0) {
                     filteredEvents = filteredEvents.filter(event => {
-                        // If event has a venue_id, it must be in selectedVenues
+                        // If event has a venue_id, it must be in selected venues
                         if (event.venue_id) {
-                            return selectedVenues.has(event.venue_id);
+                            return venuesToFilterBy.has(event.venue_id);
                         }
                         // If event has no venue_id, include it (might be from sources or city-wide events)
                         return true;
@@ -5586,11 +5642,29 @@
             
             // Show grouped generic tours with tabs for each venue
             if (Object.keys(genericTourGroupsByVenue).length > 0) {
+                // Count total recurring tour events
+                let totalRecurringTourEvents = 0;
+                Object.values(genericTourGroupsByVenue).forEach(venueData => {
+                    Object.values(venueData.tours).forEach(tourEvents => {
+                        totalRecurringTourEvents += tourEvents.length;
+                    });
+                });
+                
                 html += `
-                    <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500;">
-                        Recurring Tours
+                    <div class="date-header" style="margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #374151; font-size: 0.875rem; font-weight: 500; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Recurring Tours (${totalRecurringTourEvents} sessions)</span>
+                        <button onclick="toggleRecurringToursVisibility()" style="background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer; color: #374151; transition: all 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.08)'" onmouseout="this.style.background='rgba(0,0,0,0.05)'">
+                            ${(showRecurringTours === true) ? '▼ Hide' : '▶ Show'}
+                        </button>
                     </div>
                 `;
+                
+                // Wrap recurring tours content in a container that can be hidden/shown
+                // Default to hidden (false) - only show if explicitly enabled
+                // Force hidden if showRecurringTours is false or undefined
+                const shouldShow = (showRecurringTours === true);
+                const recurringToursContainerStyle = shouldShow ? '' : 'style="display: none !important;"';
+                html += `<div id="recurring-tours-container" ${recurringToursContainerStyle}>`;
                 
                 // Create tabs for each venue
                 const venueKeys = Object.keys(genericTourGroupsByVenue);
@@ -5626,6 +5700,8 @@
                     
                     html += '</div>';
                 });
+                
+                html += '</div>'; // Close recurring-tours-container
             }
             
             // Group regular upcoming events by date
@@ -5950,7 +6026,19 @@
             
             // Get selected events from both sources
             const allCombinedEvents = [...allEvents, ...discoveredEvents];
-            const selectedEventsList = allCombinedEvents.filter(event => selectedEvents.has(event.id));
+            // Filter to only include events that are actually selected (in selectedEvents Set)
+            // Also exclude recurring tours if they're not selected
+            const selectedEventsList = allCombinedEvents.filter(event => {
+                // Only include if explicitly selected
+                if (!selectedEvents.has(event.id)) {
+                    return false;
+                }
+                // Double-check: if it's a generic recurring tour, make sure it's selected
+                if (event.event_type === 'tour' && isGenericTourTitle(event.title)) {
+                    return selectedEvents.has(event.id);
+                }
+                return true;
+            });
             
             if (selectedEventsList.length === 0) {
                 showNotification('Selected events not found', 'error');
@@ -6359,8 +6447,8 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                 <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; flex: 1; min-width: 0;">${tourTitle}</div>
-                                <input type="checkbox" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''} 
-                                       onchange="toggleGroupedTourSelection('${tourTitle}', ${allSelected}); event.stopPropagation();"
+                                <input type="checkbox" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''}
+                                       onchange="toggleGroupedTourSelection('${tourTitle}', this.checked); event.stopPropagation();"
                                        onclick="event.stopPropagation();"
                                        style="width: 16px; height: 16px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0;">
                             </div>
@@ -6415,25 +6503,29 @@
         }
         
         // Toggle selection for all events in a grouped tour
-        function toggleGroupedTourSelection(tourTitle, currentlyAllSelected) {
+        function toggleGroupedTourSelection(tourTitle, checkboxChecked) {
             // Find all events with this title
-            const allEventsWithTitle = [...allEvents, ...discoveredEvents].filter(e => 
+            const allEventsWithTitle = [...allEvents, ...discoveredEvents].filter(e =>
                 e.title && e.title.trim() === tourTitle && e.event_type === 'tour'
             );
-            
-            if (currentlyAllSelected) {
-                // Deselect all
-                allEventsWithTitle.forEach(event => {
-                    selectedEvents.delete(event.id);
-                });
-            } else {
-                // Select all
+
+            if (checkboxChecked) {
+                // Select all events in this group
                 allEventsWithTitle.forEach(event => {
                     selectedEvents.add(event.id);
                 });
+            } else {
+                // Deselect all events in this group
+                allEventsWithTitle.forEach(event => {
+                    selectedEvents.delete(event.id);
+                });
             }
-            
-            // Refresh display
+
+            // Update export button state
+            updateExportSelectedButton();
+            updateSelectAllButton();
+
+            // Refresh display to update checkbox states
             displayUnifiedEvents();
         }
         
@@ -6685,6 +6777,35 @@
             }
         }
 
+        // Toggle recurring tours visibility
+        function toggleRecurringToursVisibility() {
+            showRecurringTours = !showRecurringTours;
+            const container = document.getElementById('recurring-tours-container');
+            
+            if (container) {
+                if (showRecurringTours) {
+                    container.style.display = '';
+                } else {
+                    container.style.display = 'none';
+                }
+            }
+            
+            // Update button text - find the button by looking for the one with the toggle function
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('toggleRecurringToursVisibility')) {
+                    btn.textContent = showRecurringTours ? '▼ Hide' : '▶ Show';
+                }
+            });
+            
+            // Save preference to localStorage (only save 'true', remove if false to allow default)
+            if (showRecurringTours) {
+                localStorage.setItem('showRecurringTours', 'true');
+            } else {
+                localStorage.removeItem('showRecurringTours'); // Remove to allow default false
+            }
+        }
+        
         // Switch between recurring tour venue tabs
         function switchRecurringTourTab(venueKey) {
             // Hide all venue content

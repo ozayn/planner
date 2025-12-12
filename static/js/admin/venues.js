@@ -38,6 +38,16 @@ async function loadVenues() {
         renderVenuesTable();
         populateVenueFilters();
         
+        // Update select all checkbox state after rendering
+        setTimeout(() => {
+            updateSelectAllVenuesForMainPageCheckbox();
+        }, 100);
+        
+        // Update select all checkbox state after rendering
+        setTimeout(() => {
+            updateSelectAllVenuesForMainPageCheckbox();
+        }, 100);
+        
     } catch (error) {
         console.error('Error loading venues:', error);
         const venuesTable = document.getElementById('venuesTable');
@@ -1174,6 +1184,71 @@ async function searchEventbriteOrganizer() {
     }
 }
 
+// Functions to manage venue selection for main page filtering
+// Make it globally accessible so tables.js can use it
+window.getMainPageSelectedVenues = function() {
+    const saved = localStorage.getItem('mainPageSelectedVenues');
+    if (saved) {
+        try {
+            const ids = JSON.parse(saved);
+            return new Set(ids);
+        } catch (e) {
+            return new Set();
+        }
+    }
+    return new Set();
+};
+
+function getMainPageSelectedVenues() {
+    return window.getMainPageSelectedVenues();
+}
+
+function saveMainPageSelectedVenues(venueIds) {
+    localStorage.setItem('mainPageSelectedVenues', JSON.stringify(Array.from(venueIds)));
+}
+
+function toggleVenueForMainPage(venueId, isChecked) {
+    const selectedVenues = getMainPageSelectedVenues();
+    if (isChecked) {
+        selectedVenues.add(venueId);
+    } else {
+        selectedVenues.delete(venueId);
+    }
+    saveMainPageSelectedVenues(selectedVenues);
+    
+    // Update select all checkbox state
+    updateSelectAllVenuesForMainPageCheckbox();
+}
+
+function toggleSelectAllVenuesForMainPage(checkbox) {
+    if (!window.allVenues) return;
+    
+    const selectedVenues = new Set();
+    if (checkbox.checked) {
+        // Select all visible venues
+        window.allVenues.forEach(venue => selectedVenues.add(venue.id));
+    }
+    // If unchecked, selectedVenues stays empty
+    
+    saveMainPageSelectedVenues(selectedVenues);
+    
+    // Update all checkboxes
+    const venueCheckboxes = document.querySelectorAll('.venue-main-page-checkbox');
+    venueCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+}
+
+function updateSelectAllVenuesForMainPageCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllVenuesForMainPage');
+    if (!selectAllCheckbox || !window.allVenues) return;
+    
+    const selectedVenues = getMainPageSelectedVenues();
+    const allSelected = window.allVenues.length > 0 && 
+                       window.allVenues.every(venue => selectedVenues.has(venue.id));
+    selectAllCheckbox.checked = allSelected;
+}
+
 function selectEventbriteOrganizer(url, name) {
     /**Select an Eventbrite organizer and populate the ticketing URL field (for edit modal)*/
     const ticketingInput = document.getElementById('editVenueTicketing');
@@ -1387,4 +1462,69 @@ async function searchEventbriteOrganizerForAdd() {
             </div>
         `;
     }
+}
+
+// Functions to manage venue selection for main page filtering
+// Make it globally accessible so tables.js can use it
+window.getMainPageSelectedVenues = function() {
+    const saved = localStorage.getItem('mainPageSelectedVenues');
+    if (saved) {
+        try {
+            const ids = JSON.parse(saved);
+            return new Set(ids);
+        } catch (e) {
+            return new Set();
+        }
+    }
+    return new Set();
+};
+
+function getMainPageSelectedVenues() {
+    return window.getMainPageSelectedVenues();
+}
+
+function saveMainPageSelectedVenues(venueIds) {
+    localStorage.setItem('mainPageSelectedVenues', JSON.stringify(Array.from(venueIds)));
+}
+
+function toggleVenueForMainPage(venueId, isChecked) {
+    const selectedVenues = getMainPageSelectedVenues();
+    if (isChecked) {
+        selectedVenues.add(venueId);
+    } else {
+        selectedVenues.delete(venueId);
+    }
+    saveMainPageSelectedVenues(selectedVenues);
+    
+    // Update select all checkbox state
+    updateSelectAllVenuesForMainPageCheckbox();
+}
+
+function toggleSelectAllVenuesForMainPage(checkbox) {
+    if (!window.allVenues) return;
+    
+    const selectedVenues = new Set();
+    if (checkbox.checked) {
+        // Select all visible venues
+        window.allVenues.forEach(venue => selectedVenues.add(venue.id));
+    }
+    // If unchecked, selectedVenues stays empty
+    
+    saveMainPageSelectedVenues(selectedVenues);
+    
+    // Update all checkboxes
+    const venueCheckboxes = document.querySelectorAll('.venue-main-page-checkbox');
+    venueCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+}
+
+function updateSelectAllVenuesForMainPageCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllVenuesForMainPage');
+    if (!selectAllCheckbox || !window.allVenues) return;
+    
+    const selectedVenues = getMainPageSelectedVenues();
+    const allSelected = window.allVenues.length > 0 && 
+                       window.allVenues.every(venue => selectedVenues.has(venue.id));
+    selectAllCheckbox.checked = allSelected;
 }

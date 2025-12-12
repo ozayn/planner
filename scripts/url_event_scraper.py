@@ -125,13 +125,16 @@ def extract_event_data_from_url(url):
                         'venue': event_data.get('organizer'),
                         'event_type': 'exhibition',
                         'url': url,
-                        'image_url': event_data.get('image_url'),
+                        'image_url': event_data.get('image_url'),  # Primary image for event tab
                         'is_online': False,
                         'price': None,
                         'is_registration_required': False,
                         'registration_info': None,
                         'language': 'English',
                     }
+                    # Add additional images if available (extracted but not used in event tab)
+                    if event_data.get('additional_images'):
+                        result['additional_images'] = event_data.get('additional_images')
                     logger.info(f"✅ Successfully extracted SAAM exhibition data: {result.get('title')} - Dates: {result.get('start_date')} to {result.get('end_date')}")
                     return result
             except Exception as e:
@@ -819,6 +822,11 @@ def extract_event_data_from_url(url):
                     except:
                         language = 'English'
                 
+                # Skip non-English language events
+                if language and language.lower() != 'english':
+                    logger.info(f"⚠️ Skipping non-English event: '{event_data.get('title')}' (language: {language})")
+                    return None
+                
                 return {
                     'title': event_data.get('title'),
                     'description': event_data.get('description'),
@@ -1102,14 +1110,22 @@ def extract_event_data_from_url(url):
         # Extract event information
         title = _extract_title(soup, url)
         description = _extract_description(soup)
-        image_url = _extract_image(soup, url)
+        # Extract multiple images
+        all_images = _extract_images(soup, url, max_images=10)
+        image_url = all_images[0] if all_images else None
+        additional_images = all_images[1:] if len(all_images) > 1 else []
         meeting_point = _extract_meeting_point(page_text)
         schedule_info, days_of_week, start_time, end_time = _extract_schedule(page_text)
         start_date = _extract_date(page_text, url)
         event_type = _determine_event_type(title, description, page_text, url)
         language = _detect_language(soup, title, description, page_text)
         
-        return {
+        # Skip non-English language events
+        if language and language.lower() != 'english':
+            logger.info(f"⚠️ Skipping non-English event: '{title}' (language: {language})")
+            return None
+        
+        result = {
             'title': title,
             'description': description,
             'start_date': start_date.isoformat() if start_date else None,
@@ -1122,6 +1138,12 @@ def extract_event_data_from_url(url):
             'event_type': event_type,
             'language': language
         }
+        
+        # Add additional images if any
+        if additional_images:
+            result['additional_images'] = additional_images
+        
+        return result
         
     except Exception as e:
         logger.error(f"Error extracting from URL {url}: {e}")
@@ -2315,23 +2337,130 @@ def _extract_description(soup):
 
 
 def _extract_image(soup, url):
-    """Extract event image from page"""
-    # Try Open Graph image
+    """Extract primary event image from page (backward compatible)"""
+    images = _extract_images(soup, url)
+    return images[0] if images else None
+
+
+def _extract_images(soup, url, max_images=10):
+    """
+    Extract multiple images from page, prioritizing hero/feature images.
+    Returns a list of image URLs, filtered to exclude logos, icons, and small images.
+    
+    Args:
+        soup: BeautifulSoup object
+        url: Base URL for resolving relative image paths
+        max_images: Maximum number of images to return
+    
+    Returns:
+        List of image URLs (strings)
+    """
+    from urllib.parse import urljoin
+    
+    image_urls = []
+    seen_urls = set()
+    
+    # Skip patterns for non-content images
+    skip_patterns = ['logo', 'icon', 'avatar', 'placeholder', 'spacer', 'button', 
+                     'badge', 'social', 'share', 'menu', 'nav', 'header', 'footer']
+    
+    # Priority 1: Open Graph image (usually the best featured image)
     og_image = soup.find('meta', property='og:image')
     if og_image and og_image.get('content'):
-        return og_image.get('content')
+        img_url = og_image.get('content')
+        if img_url not in seen_urls:
+            if not img_url.startswith('http'):
+                img_url = urljoin(url, img_url)
+            image_urls.append(img_url)
+            seen_urls.add(img_url)
     
-    # Try first substantial image
-    images = soup.find_all('img')
-    for img in images:
-        src = img.get('src') or img.get('data-src')
-        if src and not any(skip in src.lower() for skip in ['logo', 'icon', 'avatar', 'placeholder']):
-            if not src.startswith('http'):
-                from urllib.parse import urljoin
-                src = urljoin(url, src)
-            return src
+    # Priority 2: Hero/feature/main images (exhibition/event specific)
+    hero_selectors = [
+        ('img', {'class': re.compile(r'hero|feature|main|exhibition|event|banner', re.I)}),
+        ('img', {'id': re.compile(r'hero|feature|main|exhibition|event|banner', re.I)}),
+        ('img', {'data-class': re.compile(r'hero|feature|main|exhibition|event', re.I)}),
+    ]
     
-    return None
+    for tag, attrs in hero_selectors:
+        hero_imgs = soup.find_all(tag, attrs)
+        for img in hero_imgs:
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+            if src and src not in seen_urls:
+                # Check if it's a content image (not a logo/icon)
+                if not any(skip in src.lower() for skip in skip_patterns):
+                    if not src.startswith('http'):
+                        src = urljoin(url, src)
+                    image_urls.append(src)
+                    seen_urls.add(src)
+                    if len(image_urls) >= max_images:
+                        return image_urls
+    
+    # Priority 3: Images in main content areas (article, main, content sections)
+    main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|body|exhibition', re.I))
+    if main_content:
+        content_imgs = main_content.find_all('img')
+        for img in content_imgs:
+            # Skip if it's inside a figure/caption (might be decorative)
+            if img.find_parent(['figure', 'figcaption']):
+                continue
+            
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+            if src and src not in seen_urls:
+                # Check if it's a content image
+                if not any(skip in src.lower() for skip in skip_patterns):
+                    # Check image size if available (prefer larger images)
+                    img_width = img.get('width')
+                    img_height = img.get('height')
+                    is_substantial = True
+                    
+                    if img_width and img_height:
+                        try:
+                            width = int(img_width)
+                            height = int(img_height)
+                            # Prefer images that are at least 200x200 pixels
+                            if width < 200 or height < 200:
+                                is_substantial = False
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    if is_substantial:
+                        if not src.startswith('http'):
+                            src = urljoin(url, src)
+                        image_urls.append(src)
+                        seen_urls.add(src)
+                        if len(image_urls) >= max_images:
+                            return image_urls
+    
+    # Priority 4: All other substantial images (fallback)
+    all_imgs = soup.find_all('img')
+    for img in all_imgs:
+        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+        if src and src not in seen_urls:
+            # Check if it's a content image
+            if not any(skip in src.lower() for skip in skip_patterns):
+                # Check image size
+                img_width = img.get('width')
+                img_height = img.get('height')
+                is_substantial = True
+                
+                if img_width and img_height:
+                    try:
+                        width = int(img_width)
+                        height = int(img_height)
+                        if width < 200 or height < 200:
+                            is_substantial = False
+                    except (ValueError, TypeError):
+                        pass
+                
+                if is_substantial:
+                    if not src.startswith('http'):
+                        src = urljoin(url, src)
+                    image_urls.append(src)
+                    seen_urls.add(src)
+                    if len(image_urls) >= max_images:
+                        return image_urls
+    
+    return image_urls
 
 
 def _extract_meeting_point(page_text):

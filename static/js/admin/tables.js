@@ -99,6 +99,11 @@ function renderDynamicTable(tableId, data, tableType = 'default') {
             headerRow += '<th>📅</th>';
         }
         
+        // Add checkbox header for venues table (to filter main page)
+        if (tableType === 'venues') {
+            headerRow += '<th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllVenuesForMainPage" onchange="toggleSelectAllVenuesForMainPage(this)" title="Select All for Main Page Filter"></th>';
+        }
+        
         orderedFields.forEach(field => {
             const config = fieldConfig.fields[field] || { label: formatFieldName(field), visible: true };
             if (config.visible !== false) {
@@ -151,6 +156,19 @@ function renderDynamicTable(tableId, data, tableType = 'default') {
                 </button>
             </td>`;
             row += calendarIcon;
+        }
+        
+        // Add checkbox for venues (to filter main page)
+        if (tableType === 'venues') {
+            // Check if this venue is selected for main page filtering
+            const mainPageSelectedVenues = getMainPageSelectedVenues();
+            const isSelected = mainPageSelectedVenues.has(item.id);
+            const checkbox = `<td style="text-align: center; padding: 8px; width: 40px;" onclick="event.stopPropagation();">
+                <input type="checkbox" class="venue-main-page-checkbox" value="${item.id}" ${isSelected ? 'checked' : ''} 
+                       onchange="toggleVenueForMainPage(${item.id}, this.checked)" onclick="event.stopPropagation();"
+                       title="Show events from this venue on main page">
+            </td>`;
+            row += checkbox;
         }
         
         orderedFields.forEach(field => {
@@ -355,23 +373,32 @@ function renderVenuesMobileCards(data) {
         return;
     }
     
+    const mainPageSelectedVenues = getMainPageSelectedVenues();
+    
     const cardsHTML = data.map(item => {
         const name = item.name || 'Unknown Venue';
         const venueType = item.venue_type || '';
         const cityName = item.city_name || '';
         const address = item.address || '';
         const website = item.website_url || '';
+        const admissionFee = item.admission_fee || '';
+        const isSelectedForMainPage = mainPageSelectedVenues.has(item.id);
         
         return `
             <div class="venue-mobile-card" id="venue-card-${item.id}" onclick="showVenueDetails(event, ${item.id})">
                 <div class="mobile-card-header">
                     <h3 class="mobile-card-title">${name}</h3>
+                    <input type="checkbox" class="venue-main-page-checkbox" value="${item.id}" ${isSelectedForMainPage ? 'checked' : ''} 
+                           onchange="toggleVenueForMainPage(${item.id}, this.checked)" onclick="event.stopPropagation();"
+                           title="Show events from this venue on main page" style="width: 20px; height: 20px; margin-left: 8px;">
                     ${venueType ? `<span class="venue-type-badge">${venueType}</span>` : ''}
                 </div>
                 <div class="mobile-card-body">
+                    ${venueType ? `<div class="mobile-card-field"><span class="field-label">🏛️ Type:</span> <span class="field-value">${venueType}</span></div>` : ''}
                     ${cityName ? `<div class="mobile-card-field"><span class="field-label">🌍 City:</span> <span class="field-value">${cityName}</span></div>` : ''}
                     ${address ? `<div class="mobile-card-field"><span class="field-label">📍 Address:</span> <span class="field-value">${address.substring(0, 60)}${address.length > 60 ? '...' : ''}</span></div>` : ''}
                     ${website ? `<div class="mobile-card-field"><span class="field-label">🌐 Website:</span> <span class="field-value"><a href="${website}" target="_blank" onclick="event.stopPropagation();">Visit</a></span></div>` : ''}
+                    ${admissionFee ? `<div class="mobile-card-field"><span class="field-label">💰 Admission:</span> <span class="field-value">${admissionFee}</span></div>` : ''}
                 </div>
                 <div class="mobile-card-actions">
                     ${generateActionButtons(item.id, 'venues')}
@@ -875,6 +902,24 @@ function formatFieldValue(fieldName, value, config = {}) {
         default:
             return value;
     }
+}
+
+// Helper function to get main page selected venues (shared with venues.js)
+function getMainPageSelectedVenues() {
+    if (typeof window.getMainPageSelectedVenues === 'function') {
+        return window.getMainPageSelectedVenues();
+    }
+    // Fallback implementation
+    const saved = localStorage.getItem('mainPageSelectedVenues');
+    if (saved) {
+        try {
+            const ids = JSON.parse(saved);
+            return new Set(ids);
+        } catch (e) {
+            return new Set();
+        }
+    }
+    return new Set();
 }
 
 // Generate action buttons based on table type
