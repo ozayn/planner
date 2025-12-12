@@ -35,6 +35,7 @@ ASIAN_ART_EXHIBITIONS_URL = 'https://asia.si.edu/whats-on/exhibitions/'
 ASIAN_ART_EVENTS_URL = 'https://asia.si.edu/whats-on/events/'
 ASIAN_ART_TOURS_URL = 'https://asia.si.edu/whats-on/tours/'
 ASIAN_ART_FILMS_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Films'
+ASIAN_ART_PERFORMANCES_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Performances'
 
 
 def create_scraper():
@@ -876,32 +877,58 @@ def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dic
         page_text_lower = page_text.lower()
         combined_text = f"{title_lower} {desc_lower} {page_text_lower}"
         
-        # Check for film indicators first (films should take precedence)
-        # Look for film-related keywords and patterns
-        film_keywords = [
-            'film', 'films', 'movie', 'movies', 'screening', 'screenings', 
-            'cinema', 'director', 'directors', 'dcp', 'format:', 'length:', 
-            'min.', 'minutes', 'runtime', 'animated', 'animation',
-            'event series', 'animated adventures'
-        ]
+        # Check for tour indicators FIRST (tours are more common and should be detected early)
+        tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
+        if any(keyword in combined_text for keyword in tour_keywords):
+            determined_event_type = 'tour'
         
-        # Check if "Films" appears in Topics section or Event Series
-        if re.search(r'topics[:\s]+.*films?', page_text_lower, re.I) or \
-           re.search(r'event\s+series[:\s]+.*film', page_text_lower, re.I) or \
-           re.search(r'event\s+series[:\s]+.*animated', page_text_lower, re.I):
-            determined_event_type = 'film'
-        # Check for film keywords in combined text
-        elif any(keyword in combined_text for keyword in film_keywords):
-            determined_event_type = 'film'
-        # Check for film patterns (e.g., "Format: DCP", "Length: 77 min", "Directors:")
-        elif re.search(r'format:\s*dcp|length:\s*\d+\s*min|director[s]?:|countries?:|released:', combined_text, re.I):
-            determined_event_type = 'film'
-        
-        # Check for tour indicators (only if not already identified as film)
+        # Check for performance indicators (only if not already identified as tour)
         if determined_event_type == 'event':
-            tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
-            if any(keyword in combined_text for keyword in tour_keywords):
-                determined_event_type = 'tour'
+            # Check if "Performances" appears in Topics section (most reliable)
+            has_performances_topic = re.search(r'topics[:\s]+.*\bperformances?\b', page_text_lower, re.I)
+            if has_performances_topic:
+                determined_event_type = 'performance'
+            # Check for performance keywords
+            elif any(keyword in combined_text for keyword in ['performance', 'performances', 'concert', 'recital', 'ensemble', 'trio', 'quartet', 'musician', 'musicians']):
+                determined_event_type = 'performance'
+        
+        # Check for film indicators - must be very specific to avoid false positives
+        # Primary indicator: "Films" in Topics section (most reliable)
+        has_films_topic = re.search(r'topics[:\s]+.*\bfilms?\b', page_text_lower, re.I)
+        has_film_series = re.search(r'event\s+series[:\s]+.*\b(?:film|animated\s+adventures)\b', page_text_lower, re.I)
+        
+        # Strong film-specific patterns (very specific to films)
+        has_dcp_format = re.search(r'format:\s*dcp\b', combined_text, re.I)  # DCP is film-specific
+        has_film_length = re.search(r'length:\s*\d+\s*min\b', combined_text, re.I)  # "Length: 77 min" is film-specific
+        has_directors_field = re.search(r'\bdirector[s]?:\s*[A-Z]', combined_text, re.I)  # "Directors: Name" is film-specific
+        has_countries_field = re.search(r'\bcountries?:\s*[A-Z]', combined_text, re.I)  # "Countries: France, Belgium" is film-specific
+        has_released_field = re.search(r'\breleased:\s*\d{4}\b', combined_text, re.I)  # "Released: 2025" is film-specific
+        has_film_screening = re.search(r'\b(?:film|movie)\s+screening\b', combined_text, re.I)  # "film screening" is specific
+        
+        # Count strong film indicators
+        strong_film_indicators = sum([
+            bool(has_films_topic),
+            bool(has_film_series),
+            bool(has_dcp_format),
+            bool(has_film_length),
+            bool(has_directors_field),
+            bool(has_countries_field),
+            bool(has_released_field),
+            bool(has_film_screening)
+        ])
+        
+        # Only categorize as film if we have strong evidence (Topics/Series OR multiple strong indicators)
+        # But only if not already identified as tour or performance
+        if determined_event_type == 'event':
+            if has_films_topic or has_film_series:
+                # Most reliable: "Films" in Topics or film-related Event Series
+                determined_event_type = 'film'
+            elif strong_film_indicators >= 2:
+                # Need at least 2 strong indicators (e.g., "Format: DCP" + "Length: 77 min" + "Directors:")
+                determined_event_type = 'film'
+            elif has_dcp_format and (has_film_length or has_directors_field):
+                # DCP format is very specific to films, combined with length or directors
+                determined_event_type = 'film'
         
         # Build event dictionary
         event = {
@@ -1340,6 +1367,201 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     return events
 
 
+def scrape_asian_art_performances(scraper=None) -> List[Dict]:
+    """
+    Scrape performance events from Asian Art Museum performances page
+    Returns list of event dictionaries
+    """
+    if scraper is None:
+        scraper = create_scraper()
+    
+    events = []
+    
+    try:
+        logger.info(f"🎭 Scraping Asian Art Museum performances from: {ASIAN_ART_PERFORMANCES_URL}")
+        try:
+            response = scraper.get(ASIAN_ART_PERFORMANCES_URL, timeout=(15, 45))
+            response.raise_for_status()
+        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
+            logger.error(f"❌ Timeout error scraping Asian Art Museum performances: {timeout_error}")
+            logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
+            logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
+            return events
+        except (ConnectionError, RequestException) as conn_error:
+            logger.error(f"❌ Connection error scraping Asian Art Museum performances: {conn_error}")
+            logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
+            return events
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find event links - they're in h3 headings with links to /whats-on/events/search/event:ID
+        event_links = soup.find_all('a', href=re.compile(r'/whats-on/events/search/event:', re.I))
+        
+        processed_urls = set()
+        
+        for link in event_links:
+            href = link.get('href', '')
+            if not href:
+                continue
+            
+            # Build full URL
+            full_url = urljoin(ASIAN_ART_BASE_URL, href)
+            
+            # Skip if we've already processed this URL
+            if full_url in processed_urls:
+                continue
+            processed_urls.add(full_url)
+            
+            # Extract basic info from listing page first
+            listing_data = {}
+            h3 = link.find_parent('h3') or (link.parent if link.parent and link.parent.name == 'h3' else None)
+            
+            if h3:
+                title = link.get_text(strip=True) or h3.get_text(strip=True)
+                listing_data['title'] = title
+                
+                # Get container around this event to find date/time
+                container = h3.parent
+                date_found = False
+                time_found = False
+                image_found = False
+                
+                for level in range(8):
+                    if not container:
+                        break
+                    
+                    container_text = container.get_text()
+                    
+                    # Normalize text: add space between year and time
+                    container_text = re.sub(r'(20\d{2})([1-9]|1[0-2]:)', r'\1 \2', container_text)
+                    
+                    # Extract date from listing (only once)
+                    if not date_found:
+                        date_patterns = [
+                            r'([A-Za-z]+day,?\s+[A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # Friday, December 5, 2025
+                            r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # December 5, 2025
+                        ]
+                        for pattern in date_patterns:
+                            date_match = re.search(pattern, container_text, re.I)
+                            if date_match:
+                                event_date = parse_single_date(date_match.group(1))
+                                if event_date:
+                                    listing_data['start_date'] = event_date
+                                    listing_data['end_date'] = event_date
+                                    date_found = True
+                                    break
+                    
+                    # Extract time range from listing (only once)
+                    if not time_found:
+                        time_range_pattern = r'\b([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\s*[–\-]\s*([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\b'
+                        time_range_match = re.search(time_range_pattern, container_text, re.I)
+                        
+                        if time_range_match:
+                            # Found time range - extract both times
+                            start_hour = int(time_range_match.group(1))
+                            start_minute = int(time_range_match.group(2))
+                            start_am_pm = time_range_match.group(3)
+                            end_hour = int(time_range_match.group(4))
+                            end_minute = int(time_range_match.group(5))
+                            end_am_pm = time_range_match.group(6)
+                            
+                            # Convert start time to 24-hour format
+                            start_hour_24 = start_hour
+                            if 'pm' in start_am_pm.lower() and start_hour != 12:
+                                start_hour_24 = start_hour + 12
+                            elif 'am' in start_am_pm.lower() and start_hour == 12:
+                                start_hour_24 = 0
+                            
+                            # Convert end time to 24-hour format
+                            end_hour_24 = end_hour
+                            if 'pm' in end_am_pm.lower() and end_hour != 12:
+                                end_hour_24 = end_hour + 12
+                            elif 'am' in end_am_pm.lower() and end_hour == 12:
+                                end_hour_24 = 0
+                            
+                            if 0 <= start_hour_24 < 24 and 0 <= start_minute < 60:
+                                listing_data['start_time'] = time(start_hour_24, start_minute)
+                            if 0 <= end_hour_24 < 24 and 0 <= end_minute < 60:
+                                listing_data['end_time'] = time(end_hour_24, end_minute)
+                            time_found = True
+                    
+                    # Extract image from listing page (only once)
+                    if not image_found:
+                        imgs = container.find_all('img')
+                        for img in imgs:
+                            img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                            if img_src:
+                                # Skip small icons/logos
+                                skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg', 'site-header', 'nav-background']
+                                if any(pattern in img_src.lower() for pattern in skip_patterns):
+                                    continue
+                                
+                                # Check if it's a real image file
+                                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or 'trumba.com' in img_src.lower():
+                                    # Build full URL
+                                    image_url = urljoin(ASIAN_ART_BASE_URL, img_src)
+                                    listing_data['image_url'] = image_url
+                                    image_found = True
+                                    break
+                    
+                    # Continue searching even if we found date/time, but break if we found everything
+                    if date_found and time_found and image_found:
+                        break
+                    
+                    container = container.parent if container else None
+            
+            # Scrape individual event page for full details
+            # Use listing data as fallback if detail page scraping fails
+            event_data = scrape_event_detail(scraper, full_url)
+            
+            if event_data:
+                # Set event type to 'performance'
+                event_data['event_type'] = 'performance'
+                
+                # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
+                if listing_data.get('start_date'):
+                    event_data['start_date'] = listing_data['start_date']
+                    event_data['end_date'] = listing_data['end_date']
+                if listing_data.get('start_time'):
+                    event_data['start_time'] = listing_data['start_time']
+                if listing_data.get('end_time'):
+                    event_data['end_time'] = listing_data['end_time']
+                if listing_data.get('title'):
+                    event_data['title'] = listing_data['title']  # Use listing title if available
+                
+                # Use listing page image if available, otherwise use detail page image
+                if listing_data.get('image_url'):
+                    event_data['image_url'] = listing_data['image_url']
+                
+                events.append(event_data)
+            elif listing_data.get('title'):
+                # If detail page scraping failed but we have listing data, use that
+                listing_data['source_url'] = full_url
+                listing_data['event_type'] = 'performance'
+                listing_data['organizer'] = VENUE_NAME
+                listing_data['social_media_platform'] = 'website'
+                listing_data['social_media_url'] = full_url
+                listing_data['description'] = f"Performance event at {VENUE_NAME}"
+                listing_data['language'] = 'English'
+                events.append(listing_data)
+        
+        logger.info(f"   ✅ Found {len(events)} performance events")
+        
+    except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
+        logger.error(f"❌ Timeout error scraping Asian Art Museum performances: {timeout_error}")
+        logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
+        logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
+    except (ConnectionError, RequestException) as conn_error:
+        logger.error(f"❌ Connection error scraping Asian Art Museum performances: {conn_error}")
+        logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
+    except Exception as e:
+        logger.error(f"❌ Error scraping Asian Art Museum performances: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return events
+
+
 def scrape_all_asian_art_events() -> List[Dict]:
     """
     Scrape all events from Asian Art Museum
@@ -1386,6 +1608,18 @@ def scrape_all_asian_art_events() -> List[Dict]:
             logger.error(traceback.format_exc())
             # Continue even if films fail
         
+        # Scrape performances
+        try:
+            logger.info("🔍 Scraping performances...")
+            performances = scrape_asian_art_performances(scraper)
+            all_events.extend(performances)
+            logger.info(f"   ✅ Found {len(performances)} performances")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping performances: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue even if performances fail
+        
         logger.info(f"✅ Total Asian Art Museum events scraped: {len(all_events)}")
         
     except Exception as e:
@@ -1406,22 +1640,58 @@ def create_events_in_database(events: List[Dict]) -> tuple:
         venue = Venue.query.filter(
             db.func.lower(Venue.name) == VENUE_NAME.lower()
         ).first()
-        
+
         if not venue:
             # Get city
             city = City.query.filter(db.func.lower(City.name) == CITY_NAME.lower()).first()
             if not city:
                 logger.error(f"❌ City '{CITY_NAME}' not found in database")
                 return (0, 0)
+
+            # Build additional_info with scraping paths
+            import json
+            additional_info = {
+                'scraping_paths': {
+                    'exhibitions': '/whats-on/exhibitions/',
+                    'events': '/whats-on/events/',
+                    'tours': '/whats-on/tours/',
+                    'films': '/whats-on/events/search/?edan_fq[]=p.event.topics:Films',
+                    'performances': '/whats-on/events/search/?edan_fq[]=p.event.topics:Performances'
+                }
+            }
             
             venue = Venue(
                 name=VENUE_NAME,
                 venue_type='museum',
-                city_id=city.id
+                city_id=city.id,
+                additional_info=json.dumps(additional_info)
             )
             db.session.add(venue)
             db.session.commit()
             logger.info(f"✅ Created venue: {VENUE_NAME}")
+        else:
+            # Update existing venue's additional_info with scraping paths
+            import json
+            try:
+                existing_info = json.loads(venue.additional_info) if venue.additional_info else {}
+            except (json.JSONDecodeError, TypeError):
+                existing_info = {}
+            
+            if 'scraping_paths' not in existing_info:
+                existing_info['scraping_paths'] = {}
+            
+            # Update scraping paths
+            existing_info['scraping_paths'].update({
+                'exhibitions': '/whats-on/exhibitions/',
+                'events': '/whats-on/events/',
+                'tours': '/whats-on/tours/',
+                'films': '/whats-on/events/search/?edan_fq[]=p.event.topics:Films',
+                'performances': '/whats-on/events/search/?edan_fq[]=p.event.topics:Performances'
+            })
+            
+            venue.additional_info = json.dumps(existing_info)
+            db.session.commit()
+            logger.debug(f"✅ Updated venue additional_info with scraping paths")
         
         created_count = 0
         updated_count = 0
