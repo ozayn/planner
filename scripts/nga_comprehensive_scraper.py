@@ -162,10 +162,22 @@ def scrape_all_nga_events():
         
         # 1. Scrape Finding Awe events
         logger.info("🔍 Scraping Finding Awe events...")
-        from scripts.nga_finding_awe_scraper import scrape_all_finding_awe_events
-        finding_awe_events = scrape_all_finding_awe_events()
-        all_events.extend(finding_awe_events)
-        logger.info(f"   ✅ Found {len(finding_awe_events)} Finding Awe events")
+        try:
+            from scripts.nga_finding_awe_scraper import scrape_all_finding_awe_events
+            finding_awe_events = scrape_all_finding_awe_events()
+            if finding_awe_events is None:
+                logger.warning("   ⚠️  Finding Awe scraper returned None, treating as empty list")
+                finding_awe_events = []
+            all_events.extend(finding_awe_events)
+            logger.info(f"   ✅ Found {len(finding_awe_events)} Finding Awe events")
+            if len(finding_awe_events) > 0:
+                logger.info(f"   📝 Sample Finding Awe event: {finding_awe_events[0].get('title', 'N/A')}")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping Finding Awe events: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue with other event types even if Finding Awe fails
+            finding_awe_events = []
         
         # 2. Scrape exhibitions
         logger.info("🔍 Scraping exhibitions...")
