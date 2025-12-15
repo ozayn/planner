@@ -1,5 +1,5 @@
-// Simple test function
-async function loadOverview() {
+// Simple test function - make it globally accessible
+window.loadOverview = async function loadOverview() {
     try {
         const statsGrid = document.getElementById('statsGrid');
         
@@ -8,7 +8,18 @@ async function loadOverview() {
             return;
         }
         
-        const response = await fetch('/api/admin/stats');
+        // Add cache-busting parameter to ensure fresh data
+        // Add cache-busting parameter and headers to ensure fresh data
+        const cacheBuster = new Date().getTime();
+        const response = await fetch(`/api/admin/stats?_=${cacheBuster}`, {
+            method: 'GET',
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -16,12 +27,16 @@ async function loadOverview() {
         
         const stats = await response.json();
         
+        // Log for debugging
+        console.log('📊 Overview stats loaded:', stats);
+        
         // Ensure all values are numbers, default to 0 if undefined
         const citiesCount = stats.cities !== undefined ? stats.cities : 0;
         const venuesCount = stats.venues !== undefined ? stats.venues : 0;
         const sourcesCount = stats.sources !== undefined ? stats.sources : 0;
         const eventsCount = stats.events !== undefined ? stats.events : 0;
         
+        // Always update the DOM, even if overview section is not currently visible
         statsGrid.innerHTML = 
             '<div class="stat-card" onclick="showSection(\'cities\')" style="cursor: pointer;">' +
                 '<h3>' + citiesCount + '</h3>' +
@@ -40,6 +55,9 @@ async function loadOverview() {
                 '<p>Events</p>' +
             '</div>';
         
+        // Log the update for debugging
+        console.log(`✅ Overview updated: ${eventsCount} events, ${citiesCount} cities, ${venuesCount} venues, ${sourcesCount} sources`);
+        
     } catch (error) {
         console.error('Error loading statistics:', error);
         if (statsGrid) {
@@ -52,8 +70,8 @@ async function loadOverview() {
     }
 }
 
-// Add timeout to prevent infinite loading
-function loadOverviewWithTimeout() {
+// Add timeout to prevent infinite loading - make it globally accessible
+window.loadOverviewWithTimeout = function loadOverviewWithTimeout() {
     const statsGrid = document.getElementById('statsGrid');
     if (statsGrid) {
         // Set a timeout to show error if loading takes too long
@@ -125,6 +143,14 @@ function showSection(sectionId) {
     // Load data asynchronously without blocking UI - use setTimeout to ensure UI updates first
     setTimeout(() => {
         loadSectionData(sectionId);
+        // Always refresh overview when switching to it to ensure latest stats
+        if (sectionId === 'overview') {
+            if (typeof window.loadOverviewWithTimeout === 'function') {
+                window.loadOverviewWithTimeout();
+            } else if (typeof loadOverviewWithTimeout === 'function') {
+                loadOverviewWithTimeout();
+            }
+        }
         // Re-render table if data is already loaded (for sources, cities, venues, events)
         // Use a small delay to ensure section is fully visible
         setTimeout(() => {
@@ -258,7 +284,12 @@ function loadSectionData(sectionName) {
     
     switch(sectionName) {
         case 'overview':
-            loadOverviewWithTimeout();
+            // Always refresh overview when switching to it to show latest stats
+            if (typeof window.loadOverviewWithTimeout === 'function') {
+                window.loadOverviewWithTimeout();
+            } else if (typeof loadOverviewWithTimeout === 'function') {
+                loadOverviewWithTimeout();
+            }
             break;
         case 'cities':
             if (!window.allCities || window.allCities.length === 0) {

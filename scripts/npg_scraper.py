@@ -1182,238 +1182,47 @@ def create_events_in_database(events: List[Dict]) -> tuple:
     """
     Create scraped events in the database with update-or-create logic
     Returns (created_count, updated_count)
+    Uses shared event_database_handler for common logic.
     """
+    from scripts.event_database_handler import create_events_in_database as shared_create_events
+    
     with app.app_context():
-        created_count = 0
-        updated_count = 0
+        # Find venue
+        venue = Venue.query.filter(
+            db.func.lower(Venue.name).like(f'%{VENUE_NAME.lower()}%')
+        ).first()
         
-        for event_data in events:
-            try:
-                # Find venue
-                venue = Venue.query.filter(
-                    db.func.lower(Venue.name).like(f'%{VENUE_NAME.lower()}%')
-                ).first()
-                
-                if not venue:
-                    logger.warning(f"   ⚠️  Venue '{VENUE_NAME}' not found, skipping event: {event_data.get('title')}")
-                    continue
-                
-                # Find city
-                city = City.query.filter(
-                    db.func.lower(City.name).like(f'%{CITY_NAME.lower().split(",")[0]}%')
-                ).first()
-                
-                if not city:
-                    logger.warning(f"   ⚠️  City '{CITY_NAME}' not found, skipping event: {event_data.get('title')}")
-                    continue
-                
-                # Validate required fields
-                title = event_data.get('title', '').strip()
-                if not title:
-                    logger.warning(f"   ⚠️  Skipping event: missing title")
-                    continue
-                
-                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                from scripts.utils import is_category_heading, get_ongoing_exhibition_dates, detect_ongoing_exhibition
-                if is_category_heading(title):
-                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
-                    continue
-                
-                # Skip non-English language events
-                language = event_data.get('language', 'English')
-                if language and language.lower() != 'english':
-                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
-                    continue
-                
-                # Detect if event is baby-friendly
-                is_baby_friendly = False
-                title_lower = title.lower()
-                description_lower = (event_data.get('description', '') or '').lower()
-                combined_text = f"{title_lower} {description_lower}"
-                
-                baby_keywords = [
-                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
-                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
-                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
-                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
-                    'stroller', 'strollers', 'nursing', 'breastfeeding',
-                    'family program', 'family-friendly', 'family friendly',
-                    'art & play', 'art and play', 'play time', 'playtime',
-                    'children', 'kids', 'little ones', 'young families'
-                ]
-                
-                if any(keyword in combined_text for keyword in baby_keywords):
-                    is_baby_friendly = True
-                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
-                
-                # Handle missing start_date - check if it might be ongoing/permanent
-                if not event_data.get('start_date'):
-                    # Check if event might be ongoing/permanent
-                    description_text = event_data.get('description', '') or ''
-                    event_type = event_data.get('event_type', '').lower()
-                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title)
-                    
-                    # If it's an exhibition without dates, treat as ongoing
-                    if event_type == 'exhibition' or 'exhibition' in title.lower():
-                        is_ongoing = True
-                    
-                    if is_ongoing:
-                        # Set dates for ongoing exhibition
-                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
-                        event_data['start_date'] = start_date_obj
-                        event_data['end_date'] = end_date_obj
-                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
-                    else:
-                        logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
-                        continue
-                
-                # Parse date
-                if isinstance(event_data['start_date'], date):
-                    event_date = event_data['start_date']
-                else:
-                    try:
-                        event_date = datetime.fromisoformat(str(event_data['start_date'])).date()
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format: {e}")
-                        continue
-                
-                # Parse times
-                start_time_obj = None
-                end_time_obj = None
-                if event_data.get('start_time'):
-                    try:
-                        if isinstance(event_data['start_time'], time):
-                            start_time_obj = event_data['start_time']
-                        else:
-                            time_str = str(event_data['start_time'])
-                            start_time_obj = parse_time(time_str)
-                    except (ValueError, TypeError):
-                        pass
-                
-                if event_data.get('end_time'):
-                    try:
-                        if isinstance(event_data['end_time'], time):
-                            end_time_obj = event_data['end_time']
-                        else:
-                            time_str = str(event_data['end_time'])
-                            end_time_obj = parse_time(time_str)
-                    except (ValueError, TypeError):
-                        pass
-                
-                # Check if event already exists
-                existing = None
-                source_url = event_data.get('source_url') or event_data.get('url')
-                
-                # First, try to match by title + venue + date + time (for recurring events)
-                # Include start_time to distinguish between multiple tours on the same day
-                query = Event.query.filter_by(
-                    title=event_data.get('title'),
-                    venue_id=venue.id,
-                    start_date=event_date,
-                    city_id=city.id
-                )
-                if start_time_obj:
-                    query = query.filter_by(start_time=start_time_obj)
-                existing = query.first()
-                
-                # If not found and we have a unique URL, try URL-based matching
-                if not existing and source_url:
-                    generic_urls = ['/docent-tours', '/tours', '/events', '/whats-on']
-                    is_generic_url = any(generic in source_url.lower() for generic in generic_urls)
-                    
-                    if not is_generic_url:
-                        existing = Event.query.filter_by(
-                            url=source_url,
-                            city_id=city.id
-                        ).first()
-                
-                # Parse end_date
-                end_date = event_date
-                if event_data.get('end_date'):
-                    if isinstance(event_data['end_date'], date):
-                        end_date = event_data['end_date']
-                    else:
-                        try:
-                            end_date = datetime.fromisoformat(str(event_data['end_date'])).date()
-                        except (ValueError, TypeError):
-                            end_date = event_date
-                
-                if existing:
-                    # Update existing event
-                    updated = False
-                    
-                    if event_data.get('description') and (not existing.description or len(event_data['description']) > len(existing.description or '')):
-                        existing.description = event_data.get('description')
-                        updated = True
-                    
-                    if source_url and existing.url != source_url:
-                        existing.url = source_url
-                        updated = True
-                    
-                    if event_data.get('image_url') and not existing.image_url:
-                        existing.image_url = event_data.get('image_url')
-                        updated = True
-                    
-                    if event_data.get('meeting_point') and existing.start_location != event_data.get('meeting_point'):
-                        existing.start_location = event_data.get('meeting_point')
-                        updated = True
-                    
-                    if start_time_obj and (not existing.start_time or existing.start_time != start_time_obj):
-                        existing.start_time = start_time_obj
-                        updated = True
-                    
-                    if end_time_obj and (not existing.end_time or existing.end_time != end_time_obj):
-                        existing.end_time = end_time_obj
-                        updated = True
-                    
-                    # Update baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
-                        if not existing.is_baby_friendly:
-                            existing.is_baby_friendly = True
-                            updated = True
-                    
-                    if updated:
-                        db.session.commit()
-                        updated_count += 1
-                        logger.info(f"   ✅ Updated: {event_data['title']}")
-                else:
-                    # Create new event
-                    location_text = event_data.get('meeting_point') or event_data.get('location') or venue.name
-                    
-                    event = Event(
-                        title=event_data['title'],
-                        description=event_data.get('description'),
-                        start_date=event_date,
-                        end_date=end_date,
-                        start_time=start_time_obj,
-                        end_time=end_time_obj,
-                        start_location=location_text,
-                        venue_id=venue.id,
-                        city_id=city.id,
-                        event_type=event_data.get('event_type', 'event'),
-                        url=source_url,
-                        image_url=event_data.get('image_url'),
-                        social_media_platform=event_data.get('social_media_platform', 'website'),
-                        social_media_url=source_url,
-                        organizer=VENUE_NAME,
-                    )
-                    
-                    # Set baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly'):
-                        event.is_baby_friendly = is_baby_friendly
-                    
-                    db.session.add(event)
-                    db.session.commit()
-                    created_count += 1
-                    logger.info(f"   ✅ Created: {event_data['title']}")
-                    
-            except Exception as e:
-                logger.error(f"   ❌ Error processing event '{event_data.get('title', 'Unknown')}': {e}")
-                db.session.rollback()
-                continue
+        if not venue:
+            logger.error(f"❌ Venue '{VENUE_NAME}' not found")
+            return 0, 0
         
-        logger.info(f"✅ Created {created_count} events, updated {updated_count} events")
-        return (created_count, updated_count)
+        logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
+        logger.info(f"📊 Processing {len(events)} events...")
+        
+        # Custom processor for NPG-specific fields
+        def npg_event_processor(event_data):
+            """Add NPG-specific fields to event data"""
+            event_data['source'] = 'website'
+            event_data['organizer'] = VENUE_NAME
+            # Set location from meeting_point if available
+            if event_data.get('meeting_point') and not event_data.get('start_location'):
+                event_data['start_location'] = event_data['meeting_point']
+        
+        # Use shared handler for all common logic
+        created_count, updated_count, skipped_count = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=logger,
+            custom_event_processor=npg_event_processor
+        )
+        
+        return created_count, updated_count
 
 
 if __name__ == '__main__':

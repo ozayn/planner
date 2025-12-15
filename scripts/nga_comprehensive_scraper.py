@@ -613,6 +613,23 @@ def scrape_nga_tours(scraper):
 def scrape_nga_tour_page(tour_url, scraper):
     """Scrape a single NGA tour page"""
     try:
+        # Clean URL: remove evd parameter for canonical URL
+        import urllib.parse
+        parsed = urllib.parse.urlparse(tour_url)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        if 'evd' in query_params:
+            del query_params['evd']
+            new_query = urllib.parse.urlencode(query_params, doseq=True)
+            clean_url = urllib.parse.urlunparse((
+                parsed.scheme, parsed.netloc, parsed.path,
+                parsed.params, new_query, parsed.fragment
+            ))
+            if clean_url.endswith('?'):
+                clean_url = clean_url[:-1]
+            canonical_url = clean_url
+        else:
+            canonical_url = tour_url
+        
         response = fetch_with_retry(scraper, tour_url, max_retries=2, delay=1)
         if not response:
             return None
@@ -724,7 +741,7 @@ def scrape_nga_tour_page(tour_url, scraper):
             'start_time': start_time.isoformat() if start_time else None,
             'end_time': end_time.isoformat() if end_time else None,
             'location': location,
-            'url': tour_url,
+            'url': canonical_url,  # Use cleaned URL without evd parameter
             'image_url': image_url,
             'event_type': event_type,
             'is_online': False,
@@ -988,16 +1005,18 @@ def extract_event_datetime(page_text, event_url):
     start_time = None
     end_time = None
     
-    # Extract from page text - this is what users see and is always correct
+    # PRIORITY: Extract from page text first (it's what users see and is most accurate)
+    # The evd parameter can be incorrect, so we only use it as a fallback
+    
     # Date patterns
     date_patterns = [
-        r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
-        r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
-        r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
-        r'(\d{1,2})/(\d{1,2})/(\d{4})',
-        r'(\d{4})-(\d{2})-(\d{2})',
-    ]
-    
+            r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
+            r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
+            r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
+            r'(\d{1,2})/(\d{1,2})/(\d{4})',
+            r'(\d{4})-(\d{2})-(\d{2})',
+        ]
+        
     month_map_full = {
         'january': 1, 'february': 2, 'march': 3, 'april': 4,
         'may': 5, 'june': 6, 'july': 7, 'august': 8,
@@ -1011,42 +1030,42 @@ def extract_event_datetime(page_text, event_url):
     }
     
     for pattern in date_patterns:
-        match = re.search(pattern, page_text, re.IGNORECASE)
-        if match:
-            try:
-                groups = match.groups()
-                if len(groups) == 4:
-                    month_name = match.group(2).lower().rstrip('.')
-                    day = int(match.group(3))
-                    year = int(match.group(4))
-                    month = month_map_full.get(month_name) or month_map_abbrev.get(month_name[:3])
-                    if month:
-                        event_date = date(year, month, day)
-                        break
-                elif len(groups) == 3:
-                    first_group = groups[0].lower().rstrip('.')
-                    if first_group in month_map_full or first_group[:3] in month_map_abbrev:
-                        month_name = first_group
-                        day = int(groups[1])
-                        year = int(groups[2])
+            match = re.search(pattern, page_text, re.IGNORECASE)
+            if match:
+                try:
+                    groups = match.groups()
+                    if len(groups) == 4:
+                        month_name = match.group(2).lower().rstrip('.')
+                        day = int(match.group(3))
+                        year = int(match.group(4))
                         month = month_map_full.get(month_name) or month_map_abbrev.get(month_name[:3])
                         if month:
                             event_date = date(year, month, day)
                             break
-                    else:
-                        if '/' in match.group(0):
-                            month, day, year = int(groups[0]), int(groups[1]), int(groups[2])
-                            event_date = date(year, month, day)
-                            break
+                    elif len(groups) == 3:
+                        first_group = groups[0].lower().rstrip('.')
+                        if first_group in month_map_full or first_group[:3] in month_map_abbrev:
+                            month_name = first_group
+                            day = int(groups[1])
+                            year = int(groups[2])
+                            month = month_map_full.get(month_name) or month_map_abbrev.get(month_name[:3])
+                            if month:
+                                event_date = date(year, month, day)
+                                break
                         else:
-                            year, month, day = int(groups[0]), int(groups[1]), int(groups[2])
-                            event_date = date(year, month, day)
-                            break
-            except (ValueError, IndexError):
-                continue
+                            if '/' in match.group(0):
+                                month, day, year = int(groups[0]), int(groups[1]), int(groups[2])
+                                event_date = date(year, month, day)
+                                break
+                            else:
+                                year, month, day = int(groups[0]), int(groups[1]), int(groups[2])
+                                event_date = date(year, month, day)
+                                break
+                except (ValueError, IndexError):
+                    continue
     
     # Time patterns - handle multiline text (time range may be split across lines)
-    # PRIORITY: Always extract from page text first (it's more accurate than URL)
+    # PRIORITY: Always extract from page text first (it's what users see and is most accurate)
     # Normalize whitespace first to handle newlines
     normalized_text = ' '.join(page_text.split())
     
@@ -1097,13 +1116,8 @@ def extract_event_datetime(page_text, event_url):
                 logger.debug(f"   ⚠️  Error parsing time: {e}")
                 continue
     
-    # Only use URL fallback if we absolutely couldn't extract from page text
-    # This should rarely happen, but URL times are often incorrect
-    if not start_time or not end_time:
-        logger.warning(f"   ⚠️  Could not extract time from page text, trying URL fallback (may be inaccurate)")
-    
-    # If we still don't have times but have a date, try to extract from URL evd parameter as fallback
-    # (in case the page parsing failed but URL has the info)
+    # Only use evd parameter as fallback if page text extraction failed
+    # (evd parameter can be incorrect, so we prioritize page text)
     if event_date and (not start_time or not end_time):
         parsed_url = urllib.parse.urlparse(event_url)
         query_params = urllib.parse.parse_qs(parsed_url.query)
@@ -1115,21 +1129,22 @@ def extract_event_datetime(page_text, event_url):
                     minute = int(evd_value[10:12])
                     if not start_time:
                         start_time = time(hour, minute)
+                        logger.warning(f"   ⚠️  Using evd parameter time (fallback, may be incorrect): {start_time}")
                     if not end_time:
-                        # Default end time: 60 minutes later (standard tour duration)
+                        # Default end time: 90 minutes later (standard Finding Awe/talk duration)
                         end_hour = hour
-                        end_minute = minute + 60
+                        end_minute = minute + 90
                         if end_minute >= 60:
                             end_hour += end_minute // 60
                             end_minute = end_minute % 60
                         if end_hour >= 24:
                             end_hour = end_hour % 24
                         end_time = time(end_hour, end_minute)
-                        logger.warning(f"   ⚠️  Using URL time (may be incorrect): {start_time} - {end_time}")
+                        logger.warning(f"   ⚠️  Using evd parameter end time (fallback, may be incorrect): {end_time}")
                 except (ValueError, IndexError) as e:
                     logger.debug(f"   ⚠️  Could not parse time from evd parameter: {e}")
     
-    # If we still don't have a date, try URL as fallback
+    # If we still don't have a date, try evd parameter as fallback
     if not event_date:
         parsed_url = urllib.parse.urlparse(event_url)
         query_params = urllib.parse.parse_qs(parsed_url.query)
@@ -1141,7 +1156,7 @@ def extract_event_datetime(page_text, event_url):
                     month = int(evd_value[4:6])
                     day = int(evd_value[6:8])
                     event_date = date(year, month, day)
-                    logger.info(f"   📅 Extracted date from URL evd parameter (fallback): {event_date}")
+                    logger.info(f"   📅 Extracted date from evd parameter (fallback): {event_date}")
                 except (ValueError, IndexError) as e:
                     logger.debug(f"   ⚠️  Could not parse date from evd parameter: {e}")
     
@@ -1226,9 +1241,11 @@ def extract_registration_info(page_text, soup):
 def create_events_in_database(events):
     """Create scraped events in the database with update-or-create logic
     Returns (created_count, updated_count)
+    Uses shared event_database_handler for common logic.
     """
+    from scripts.event_database_handler import create_events_in_database as shared_create_events
+    
     # Always use app.app_context() to ensure db is properly bound
-    # This works even when called from Flask routes (Flask handles nested contexts)
     with app.app_context():
         # Find venue and city
         venue = Venue.query.filter(
@@ -1240,323 +1257,50 @@ def create_events_in_database(events):
             return 0, 0
         
         logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
-        
-        city = City.query.filter(
-            db.func.lower(City.name).like(f'%{CITY_NAME.lower().split(",")[0]}%')
-        ).first()
-        
-        if not city:
-            logger.error(f"❌ City '{CITY_NAME}' not found")
-            return 0, 0
-        
-        logger.info(f"✅ Found city: {city.name} (ID: {city.id})")
         logger.info(f"📊 Processing {len(events)} events...")
         
-        created_count = 0
-        updated_count = 0
-        skipped_count = 0
-        error_count = 0
+        # Custom processor for NGA-specific fields
+        def nga_event_processor(event_data):
+            """Add NGA-specific fields to event data"""
+            # Ensure is_selected is True for NGA events
+            event_data['is_selected'] = True
+            event_data['source'] = 'website'
         
-        for event_data in events:
-            try:
-                # Validate required fields
-                title = event_data.get('title', '').strip()
-                if not title:
-                    logger.warning(f"   ⚠️  Skipping event: missing title")
-                    skipped_count += 1
-                    continue
-                
-                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                from scripts.utils import is_category_heading, get_ongoing_exhibition_dates, detect_ongoing_exhibition
-                if is_category_heading(title):
-                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
-                    skipped_count += 1
-                    continue
-                
-                # Skip non-English language events
-                language = event_data.get('language', 'English')
-                if language and language.lower() != 'english':
-                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
-                    skipped_count += 1
-                    continue
-                
-                # Detect if event is baby-friendly
-                is_baby_friendly = False
-                title_lower = title.lower()
-                description_lower = (event_data.get('description', '') or '').lower()
-                combined_text = f"{title_lower} {description_lower}"
-                
-                baby_keywords = [
-                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
-                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
-                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
-                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
-                    'stroller', 'strollers', 'nursing', 'breastfeeding',
-                    'family program', 'family-friendly', 'family friendly',
-                    'art & play', 'art and play', 'play time', 'playtime',
-                    'children', 'kids', 'little ones', 'young families'
-                ]
-                
-                if any(keyword in combined_text for keyword in baby_keywords):
-                    is_baby_friendly = True
-                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
-                
-                # Handle missing start_date - check if it might be ongoing/permanent
-                if not event_data.get('start_date'):
-                    # Check if event might be ongoing/permanent
-                    description_text = event_data.get('description', '') or ''
-                    event_type = event_data.get('event_type', '').lower()
-                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title)
-                    
-                    # If it's an exhibition without dates, treat as ongoing
-                    if event_type == 'exhibition' or 'exhibition' in title.lower():
-                        is_ongoing = True
-                    
-                    if is_ongoing:
-                        # Set dates for ongoing exhibition
-                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
-                        event_data['start_date'] = start_date_obj
-                        event_data['end_date'] = end_date_obj
-                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
-                    else:
-                        logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
-                        skipped_count += 1
-                        continue
-                
-                # Parse date - handle both string and date object
-                try:
-                    start_date_value = event_data['start_date']
-                    if isinstance(start_date_value, date):
-                        event_date = start_date_value
-                    elif isinstance(start_date_value, str):
-                        event_date = datetime.fromisoformat(start_date_value).date()
-                    else:
-                        raise ValueError(f"Unexpected date type: {type(start_date_value)}")
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format: {e}")
-                    skipped_count += 1
-                    continue
-                
-                # Check if event already exists (by URL or title+venue+date)
-                existing = None
-                if event_data.get('url'):
-                    existing = Event.query.filter_by(
-                        url=event_data.get('url'),
-                        city_id=city.id
-                    ).first()
-                    if existing:
-                        logger.debug(f"   Found existing event by URL: {event_data.get('title')}")
-                
-                if not existing:
-                    # Check by title+venue+date (more flexible matching)
-                    venue_id_for_check = venue.id if not event_data.get('is_online') else None
-                    existing = Event.query.filter_by(
-                        title=event_data.get('title'),
-                        venue_id=venue_id_for_check,
-                        start_date=event_date,
-                        city_id=city.id
-                    ).first()
-                    if existing:
-                        logger.debug(f"   Found existing event by title+venue+date: {event_data.get('title')}")
-                
-                # Parse times
-                start_time_obj = None
-                end_time_obj = None
-                if event_data.get('start_time'):
-                    try:
-                        start_time_obj = time.fromisoformat(event_data['start_time'])
-                    except (ValueError, TypeError):
-                        pass
-                
-                if event_data.get('end_time'):
-                    try:
-                        end_time_obj = time.fromisoformat(event_data['end_time'])
-                    except (ValueError, TypeError):
-                        pass
-                
-                # Determine venue_id
-                is_online = event_data.get('is_online', False)
-                venue_id_for_event = None if is_online else venue.id
-                
-                # Ensure location is set for online events
-                location = event_data.get('location')
-                if is_online and not location:
-                    location = "Online"
-                
-                if existing:
-                    # Update existing event
-                    updated = False
-                    
-                    # Update title if different (scraped title is more accurate)
-                    if event_data.get('title') and existing.title != event_data.get('title'):
-                        existing.title = event_data.get('title')
-                        updated = True
-                    
-                    # Update event_type if different (should be 'tour' for tours)
-                    if event_data.get('event_type') and existing.event_type != event_data.get('event_type'):
-                        existing.event_type = event_data.get('event_type')
-                        updated = True
-                    
-                    # Update fields if new data is available or existing is None
-                    if event_data.get('description') and (not existing.description or len(event_data['description']) > len(existing.description or '')):
-                        existing.description = event_data.get('description')
-                        updated = True
-                    
-                    if event_data.get('url') and existing.url != event_data.get('url'):
-                        existing.url = event_data.get('url')
-                        updated = True
-                    
-                    if event_data.get('image_url') and not existing.image_url:
-                        existing.image_url = event_data.get('image_url')
-                        updated = True
-                    
-                    if location and existing.start_location != location:
-                        existing.start_location = location
-                        updated = True
-                    
-                    # Force update times if missing or different
-                    if start_time_obj and (not existing.start_time or existing.start_time != start_time_obj):
-                        existing.start_time = start_time_obj
-                        updated = True
-                    
-                    if end_time_obj and (not existing.end_time or existing.end_time != end_time_obj):
-                        existing.end_time = end_time_obj
-                        updated = True
-                    
-                    # Update registration fields
-                    if event_data.get('is_registration_required') is not None:
-                        existing.is_registration_required = event_data.get('is_registration_required')
-                        updated = True
-                    
-                    if event_data.get('registration_url') and not existing.registration_url:
-                        existing.registration_url = event_data.get('registration_url')
-                        updated = True
-                    
-                    if event_data.get('registration_info') and not existing.registration_info:
-                        existing.registration_info = event_data.get('registration_info')
-                        updated = True
-                    
-                    # Ensure is_selected is True for NGA events
-                    if not existing.is_selected:
-                        existing.is_selected = True
-                        updated = True
-                    
-                    # Update baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
-                        if not existing.is_baby_friendly:
-                            existing.is_baby_friendly = True
-                            updated = True
-                    
-                    if updated:
-                        db.session.commit()
-                        updated_count += 1
-                        logger.info(f"   ✅ Updated: {event_data['title']}")
-                        
-                        # Update progress file every 5 events for real-time table updates
-                        if (created_count + updated_count) % 5 == 0:
-                            try:
-                                import json
-                                progress_file = os.path.join(project_root, 'scraping_progress.json')
-                                if os.path.exists(progress_file):
-                                    with open(progress_file, 'r') as f:
-                                        progress_data = json.load(f)
-                                    progress_data.update({
-                                        'events_saved': created_count,
-                                        'events_updated': updated_count,
-                                        'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
-                                        'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
-                                        'timestamp': datetime.now().isoformat()
-                                    })
-                                    with open(progress_file, 'w') as f:
-                                        json.dump(progress_data, f)
-                            except Exception as e:
-                                logger.debug(f"Could not update progress file: {e}")
-                    else:
-                        # Event exists but no updates needed - this is fine, just log at debug level
-                        logger.debug(f"   ℹ️  Event already exists (no updates needed): {event_data['title']} on {event_date}")
-                        # Don't count as skipped - it's a valid duplicate
-                else:
-                    # Create new event
-                    event = Event(
-                        title=event_data['title'],
-                        description=event_data.get('description'),
-                        start_date=event_date,
-                        end_date=event_data['end_date'] if isinstance(event_data.get('end_date'), date) else (datetime.fromisoformat(event_data['end_date']).date() if event_data.get('end_date') else event_date),
-                        start_time=start_time_obj,
-                        end_time=end_time_obj,
-                        start_location=location,
-                        venue_id=venue_id_for_event,
-                        city_id=city.id,
-                        event_type=event_data.get('event_type', 'talk'),
-                        url=event_data.get('url'),
-                        image_url=event_data.get('image_url'),
-                        source='website',
-                        source_url=NGA_CALENDAR_URL,
-                        is_selected=True,
-                        is_online=is_online,
-                        is_registration_required=event_data.get('is_registration_required', False),
-                        registration_url=event_data.get('registration_url'),
-                        registration_info=event_data.get('registration_info'),
-                    )
-                    
-                    # Set baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly'):
-                        event.is_baby_friendly = is_baby_friendly
-                    
-                    try:
-                        db.session.add(event)
-                        db.session.commit()
-                        created_count += 1
-                        logger.info(f"   ✅ Created: {event_data['title']} on {event_date}")
-                    except Exception as commit_error:
-                        db.session.rollback()
-                        logger.error(f"   ❌ Database error creating event '{event_data.get('title')}': {commit_error}")
-                        import traceback
-                        logger.debug(traceback.format_exc())
-                        error_count += 1
-                        continue
-                    
-                    # Update progress file every 5 events for real-time table updates
-                    if (created_count + updated_count) % 5 == 0:
-                        try:
-                            import json
-                            progress_file = os.path.join(project_root, 'scraping_progress.json')
-                            if os.path.exists(progress_file):
-                                with open(progress_file, 'r') as f:
-                                    progress_data = json.load(f)
-                                progress_data.update({
-                                    'events_saved': created_count,
-                                    'events_updated': updated_count,
-                                    'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
-                                    'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
-                                    'timestamp': datetime.now().isoformat()
-                                })
-                                with open(progress_file, 'w') as f:
-                                    json.dump(progress_data, f)
-                        except Exception as e:
-                            logger.debug(f"Could not update progress file: {e}")
-            
-            except Exception as e:
-                logger.error(f"   ❌ Error processing event {event_data.get('title', 'Unknown')}: {e}")
-                import traceback
-                logger.debug(traceback.format_exc())
-                error_count += 1
-                db.session.rollback()
-                continue
+        # Use shared handler for all common logic
+        created_count, updated_count, skipped_count = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=logger,
+            source_url=NGA_CALENDAR_URL,
+            custom_event_processor=nga_event_processor
+        )
         
-        logger.info(f"✅ Created {created_count} new events, updated {updated_count} existing events")
-        if skipped_count > 0:
-            logger.info(f"⚠️  Skipped {skipped_count} events (missing fields or invalid data)")
-        if error_count > 0:
-            logger.warning(f"❌ Errors processing {error_count} events")
-        if created_count == 0 and updated_count == 0 and len(events) > 0:
-            logger.warning(f"⚠️  No events were created or updated, but {len(events)} events were scraped.")
-            logger.warning(f"   - Skipped: {skipped_count}, Errors: {error_count}")
-            logger.warning(f"   - This might indicate all events are duplicates or there's an issue with event processing.")
+        # Update progress file (NGA-specific)
+        try:
+            import json
+            progress_file = os.path.join(project_root, 'scraping_progress.json')
+            if os.path.exists(progress_file):
+                with open(progress_file, 'r') as f:
+                    progress_data = json.load(f)
+                progress_data.update({
+                    'events_saved': created_count,
+                    'events_updated': updated_count,
+                    'percentage': min(80 + int(((created_count + updated_count) / max(len(events), 1)) * 20), 99),
+                    'message': f'Saving events to database... ({created_count + updated_count}/{len(events)})',
+                    'timestamp': datetime.now().isoformat()
+                })
+                with open(progress_file, 'w') as f:
+                    json.dump(progress_data, f)
+        except Exception as e:
+            logger.debug(f"Could not update progress file: {e}")
         
         return created_count, updated_count
-
-
 if __name__ == '__main__':
     print("🔍 Scraping all NGA events...")
     events = scrape_all_nga_events()

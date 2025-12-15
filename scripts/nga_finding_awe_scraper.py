@@ -25,9 +25,22 @@ FINDING_AWE_URL = 'https://www.nga.gov/calendar/finding-awe'
 VENUE_NAME = "National Gallery of Art"
 CITY_NAME = "Washington, DC"
 
-def scrape_all_finding_awe_events():
-    """Scrape all Finding Awe events from the series page"""
+def scrape_all_finding_awe_events(save_incrementally=False):
+    """Scrape all Finding Awe events from the series page
+    
+    Args:
+        save_incrementally: If True, save events in batches as they're scraped.
+                          If False, return all events for batch saving later.
+    
+    Returns:
+        If save_incrementally=True: (events_list, total_created, total_updated)
+        If save_incrementally=False: events_list
+    """
     events = []
+    batch = []  # For incremental saving
+    batch_size = 5
+    total_created = 0
+    total_updated = 0
     
     try:
         # Create a cloudscraper session to bypass bot detection
@@ -48,61 +61,160 @@ def scrape_all_finding_awe_events():
         })
         
         logger.info(f"🔍 Scraping Finding Awe series from: {FINDING_AWE_URL}")
-        response = scraper.get(FINDING_AWE_URL, timeout=15)
-        response.raise_for_status()
         
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Find all event links on the page
-        # NGA typically uses specific patterns for event listings
+        # Find all event links - check multiple pages if pagination exists
         event_links = []
+        page = 1
+        max_pages = 20  # Safety limit to prevent infinite loops
         
-        # Look for links that contain "finding-awe" in the URL (but not the main series page)
-        all_links = soup.find_all('a', href=True)
-        for link in all_links:
-            href = link.get('href', '')
-            # Match finding-awe URLs but exclude the main series page
-            if 'finding-awe' in href.lower() and href != FINDING_AWE_URL and '/finding-awe/' in href.lower():
-                # Exclude the main series page URL
-                if not href.lower().endswith('/finding-awe') and not href.lower().endswith('/finding-awe/'):
-                    full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
-                    # Only add if it's a specific event page (has a title/name in the URL)
-                    if full_url != FINDING_AWE_URL and full_url not in event_links:
-                        event_links.append(full_url)
+        while page <= max_pages:
+            # Build URL with page parameter if not first page
+            if page == 1:
+                url = FINDING_AWE_URL
+            else:
+                # Try common pagination patterns
+                url = f"{FINDING_AWE_URL}?page={page}"
+            
+            try:
+                response = scraper.get(url, timeout=15)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Find event links on this page
+                page_links = []
+                
+                # Look for links that contain "finding-awe" in the URL (but not the main series page)
+                all_links = soup.find_all('a', href=True)
+                for link in all_links:
+                    href = link.get('href', '')
+                    # Match finding-awe URLs but exclude the main series page
+                    if 'finding-awe' in href.lower() and href != FINDING_AWE_URL and '/finding-awe/' in href.lower():
+                        # Exclude the main series page URL
+                        if not href.lower().endswith('/finding-awe') and not href.lower().endswith('/finding-awe/'):
+                            full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
+                            # Only add if it's a specific event page (has a title/name in the URL)
+                            if full_url != FINDING_AWE_URL and full_url not in event_links and full_url not in page_links:
+                                page_links.append(full_url)
+                
+                # Also look for event cards/listings that might have links
+                event_cards = soup.find_all(['article', 'div', 'li'], class_=re.compile(r'event|calendar|program|listing', re.I))
+                for card in event_cards:
+                    card_links = card.find_all('a', href=True)
+                    for link in card_links:
+                        href = link.get('href', '')
+                        if 'finding-awe' in href.lower() and '/finding-awe/' in href.lower():
+                            if not href.lower().endswith('/finding-awe') and not href.lower().endswith('/finding-awe/'):
+                                full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
+                                if full_url != FINDING_AWE_URL and full_url not in event_links and full_url not in page_links:
+                                    page_links.append(full_url)
+                
+                # If no new links found on this page, stop pagination
+                if not page_links:
+                    if page == 1:
+                        logger.warning(f"   ⚠️  No event links found on first page - page structure may have changed")
+                    else:
+                        logger.info(f"   No more event links found on page {page}, stopping pagination")
+                    break
+                
+                event_links.extend(page_links)
+                logger.info(f"   Found {len(page_links)} event links on page {page} (total: {len(event_links)})")
+                
+                # Check if there's a "next page" link or button
+                has_next_page = False
+                next_indicators = soup.find_all(['a', 'button'], string=re.compile(r'next|more|load.*more|see.*all', re.I))
+                if next_indicators:
+                    has_next_page = True
+                
+                # Also check for pagination indicators
+                pagination = soup.find_all(['a', 'span', 'div'], class_=re.compile(r'pagination|next|page', re.I))
+                for pag_elem in pagination:
+                    if 'next' in pag_elem.get('class', []) or 'next' in (pag_elem.get_text() or '').lower():
+                        has_next_page = True
+                        break
+                
+                # If no next page indicator and we're past page 1, stop
+                if page > 1 and not has_next_page:
+                    logger.info(f"   No next page indicator found, stopping pagination")
+                    break
+                
+                page += 1
+                
+                # Small delay between pages to be respectful
+                import time
+                time.sleep(1)
+                
+            except Exception as e:
+                if page == 1:
+                    # If first page fails, raise the error
+                    raise
+                else:
+                    # If later pages fail, just stop pagination
+                    logger.info(f"   Error fetching page {page}: {e}, stopping pagination")
+                    break
         
-        # Also look for event cards/listings that might have links
-        event_cards = soup.find_all(['article', 'div', 'li'], class_=re.compile(r'event|calendar|program|listing', re.I))
-        for card in event_cards:
-            card_links = card.find_all('a', href=True)
-            for link in card_links:
-                href = link.get('href', '')
-                if 'finding-awe' in href.lower() and '/finding-awe/' in href.lower():
-                    if not href.lower().endswith('/finding-awe') and not href.lower().endswith('/finding-awe/'):
-                        full_url = href if href.startswith('http') else f"https://www.nga.gov{href}"
-                        if full_url != FINDING_AWE_URL and full_url not in event_links:
-                            event_links.append(full_url)
-        
-        logger.info(f"   Found {len(event_links)} unique Finding Awe event links")
+        logger.info(f"   Found {len(event_links)} unique Finding Awe event links across {page - 1} page(s)")
         
         # Extract events from links
-        for event_url in event_links:
+        for idx, event_url in enumerate(event_links):
             try:
-                logger.info(f"   📄 Scraping: {event_url}")
+                logger.info(f"   📄 Scraping ({idx+1}/{len(event_links)}): {event_url}")
                 event_data = scrape_individual_event(event_url, scraper)
                 if event_data:
                     events.append(event_data)
                     logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                    
+                    # If saving incrementally, add to batch and save when batch is full
+                    if save_incrementally:
+                        batch.append(event_data)
+                        logger.debug(f"   📦 Added to batch: {event_data.get('title', 'Unknown')} (batch size: {len(batch)}/{batch_size})")
+                        if len(batch) >= batch_size:
+                            logger.info(f"   💾 Saving batch of {len(batch)} events...")
+                            try:
+                                created, updated = create_events_in_database(batch)
+                                total_created += created
+                                total_updated += updated
+                                logger.info(f"   ✅ Saved batch: {created} created, {updated} updated (total: {total_created} created, {total_updated} updated)")
+                                if created == 0 and updated == 0:
+                                    logger.warning(f"   ⚠️  Batch saved but no events created/updated - all may be duplicates")
+                            except Exception as save_error:
+                                logger.error(f"   ❌ Error saving batch: {save_error}")
+                                import traceback
+                                logger.error(traceback.format_exc())
+                            finally:
+                                batch = []  # Reset batch even if save failed
             except Exception as e:
                 logger.warning(f"   ⚠️  Error scraping event from {event_url}: {e}")
                 continue
         
+        # Save any remaining events in the batch
+        if save_incrementally and batch:
+            logger.info(f"   💾 Saving final batch of {len(batch)} events...")
+            try:
+                created, updated = create_events_in_database(batch)
+                total_created += created
+                total_updated += updated
+                logger.info(f"   ✅ Saved final batch: {created} created, {updated} updated (total: {total_created} created, {total_updated} updated)")
+                if created == 0 and updated == 0 and len(batch) > 0:
+                    logger.warning(f"   ⚠️  Final batch saved but no events created/updated - all may be duplicates")
+            except Exception as save_error:
+                logger.error(f"   ❌ Error saving final batch: {save_error}")
+                import traceback
+                logger.error(traceback.format_exc())
+        elif save_incrementally and not batch:
+            logger.info(f"   ℹ️  No remaining events to save (all batches already saved)")
+        
         logger.info(f"✅ Scraped {len(events)} Finding Awe events")
+        if save_incrementally:
+            return events, total_created, total_updated
         return events
         
     except Exception as e:
         logger.error(f"Error scraping Finding Awe series: {e}")
         import traceback
         traceback.print_exc()
+        if save_incrementally:
+            return [], 0, 0
         return []
 
 
@@ -528,221 +640,65 @@ def extract_event_from_element(element):
 
 
 def create_events_in_database(events):
-    """Create scraped events in the database"""
-    with app.app_context():
-        # Find venue and city
-        venue = Venue.query.filter(
-            db.func.lower(Venue.name).like(f'%{VENUE_NAME.lower()}%')
-        ).first()
+    """Create scraped events in the database with update-or-create logic
+    Returns (created_count, updated_count)
+    Uses shared event_database_handler for common logic.
+    """
+    from scripts.event_database_handler import create_events_in_database as shared_create_events
+    
+    if not events:
+        logger.warning("⚠️  No events to save")
+        return 0, 0
+    
+    # Always use app.app_context() to ensure db is properly bound
+    # Flask supports nested contexts, so this is safe even if called from within an endpoint
+    try:
+        with app.app_context():
+            # Find venue and city
+            venue = Venue.query.filter(
+                db.func.lower(Venue.name).like(f'%{VENUE_NAME.lower()}%')
+            ).first()
+            
+            if not venue:
+                logger.error(f"❌ Venue '{VENUE_NAME}' not found")
+                return 0, 0
+            
+            logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
+            logger.info(f"📊 Processing {len(events)} events...")
+            
+            # Custom processor for Finding Awe-specific fields
+            def finding_awe_event_processor(event_data):
+                """Add Finding Awe-specific fields to event data"""
+                event_data['is_selected'] = True
+                event_data['source'] = 'website'
+                event_data['source_url'] = FINDING_AWE_URL
+            
+            # Use shared handler for all common logic
+            created_count, updated_count, skipped_count = shared_create_events(
+                events=events,
+                venue_id=venue.id,
+                city_id=venue.city_id,
+                venue_name=venue.name,
+                db=db,
+                Event=Event,
+                Venue=Venue,
+                batch_size=5,
+                logger_instance=logger,
+                source_url=FINDING_AWE_URL,
+                custom_event_processor=finding_awe_event_processor
+            )
+            
+            logger.info(f"✅ Created {created_count} new events, updated {updated_count} existing events")
+            return created_count, updated_count
+    except Exception as e:
+        logger.error(f"❌ Error in create_events_in_database: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return 0, 0
         
-        if not venue:
-            logger.error(f"❌ Venue '{VENUE_NAME}' not found")
-            return 0
-        
-        city = City.query.filter(
-            db.func.lower(City.name).like(f'%{CITY_NAME.lower().split(",")[0]}%')
-        ).first()
-        
-        if not city:
-            logger.error(f"❌ City '{CITY_NAME}' not found")
-            return 0
-        
-        created_count = 0
-        for event_data in events:
-            try:
-                # Validate required fields
-                title = event_data.get('title', '').strip()
-                if not title:
-                    logger.warning(f"   ⚠️  Skipping event: missing title")
-                    continue
-                
-                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                from scripts.utils import is_category_heading, get_ongoing_exhibition_dates, detect_ongoing_exhibition
-                if is_category_heading(title):
-                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
-                    continue
-                
-                # Skip non-English language events
-                language = event_data.get('language', 'English')
-                if language and language.lower() != 'english':
-                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
-                    continue
-                
-                # Detect if event is baby-friendly
-                is_baby_friendly = False
-                title_lower = title.lower()
-                description_lower = (event_data.get('description', '') or '').lower()
-                combined_text = f"{title_lower} {description_lower}"
-                
-                baby_keywords = [
-                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
-                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
-                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
-                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
-                    'stroller', 'strollers', 'nursing', 'breastfeeding',
-                    'family program', 'family-friendly', 'family friendly',
-                    'art & play', 'art and play', 'play time', 'playtime',
-                    'children', 'kids', 'little ones', 'young families'
-                ]
-                
-                if any(keyword in combined_text for keyword in baby_keywords):
-                    is_baby_friendly = True
-                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
-                
-                # Handle missing start_date - check if it might be ongoing/permanent
-                if not event_data.get('start_date'):
-                    # Check if event might be ongoing/permanent
-                    description_text = event_data.get('description', '') or ''
-                    event_type = event_data.get('event_type', '').lower()
-                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title)
-                    
-                    # If it's an exhibition without dates, treat as ongoing
-                    if event_type == 'exhibition' or 'exhibition' in title.lower():
-                        is_ongoing = True
-                    
-                    if is_ongoing:
-                        # Set dates for ongoing exhibition
-                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
-                        event_data['start_date'] = start_date_obj
-                        event_data['end_date'] = end_date_obj
-                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
-                    else:
-                        logger.warning(f"   ⚠️  Skipping event '{title}': missing start_date")
-                        continue
-                
-                # Parse date
-                try:
-                    event_date = datetime.fromisoformat(event_data['start_date']).date()
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format: {e}")
-                    continue
-                
-                # Check if event already exists
-                existing = Event.query.filter_by(
-                    url=event_data.get('url'),
-                    start_date=event_date,
-                    city_id=city.id
-                ).first()
-                
-                if existing:
-                    # Ensure is_selected is True for existing events
-                    updated = False
-                    if not existing.is_selected:
-                        existing.is_selected = True
-                        updated = True
-                    
-                    # Update baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
-                        if not existing.is_baby_friendly:
-                            existing.is_baby_friendly = True
-                            updated = True
-                    
-                    if updated:
-                        db.session.commit()
-                        logger.info(f"   ✅ Updated existing event: {event_data['title']}")
-                    else:
-                        logger.info(f"   ℹ️  Event already exists: {event_data['title']}")
-                    continue
-                
-                # Parse times
-                start_time_obj = None
-                end_time_obj = None
-                if event_data.get('start_time'):
-                    try:
-                        # time.isoformat() returns "HH:MM:SS", so use time.fromisoformat() directly
-                        start_time_obj = time.fromisoformat(event_data['start_time'])
-                        logger.debug(f"   ✅ Parsed start_time: {start_time_obj}")
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"   ⚠️  Could not parse start_time '{event_data.get('start_time')}': {e}")
-                
-                if event_data.get('end_time'):
-                    try:
-                        # time.isoformat() returns "HH:MM:SS", so use time.fromisoformat() directly
-                        end_time_obj = time.fromisoformat(event_data['end_time'])
-                        logger.debug(f"   ✅ Parsed end_time: {end_time_obj}")
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"   ⚠️  Could not parse end_time '{event_data.get('end_time')}': {e}")
-                
-                # Parse registration opens date/time
-                registration_opens_date_obj = None
-                registration_opens_time_obj = None
-                if event_data.get('registration_opens_date'):
-                    try:
-                        registration_opens_date_obj = datetime.fromisoformat(event_data['registration_opens_date']).date()
-                    except (ValueError, TypeError):
-                        logger.debug(f"   Could not parse registration_opens_date: {event_data.get('registration_opens_date')}")
-                
-                if event_data.get('registration_opens_time'):
-                    try:
-                        registration_opens_time_obj = datetime.fromisoformat(event_data['registration_opens_time']).time()
-                    except (ValueError, TypeError):
-                        logger.debug(f"   Could not parse registration_opens_time: {event_data.get('registration_opens_time')}")
-                
-                # Determine venue_id - online events don't need a venue
-                is_online = event_data.get('is_online', False)
-                venue_id_for_event = None if is_online else venue.id
-                
-                # Ensure location is set for online events
-                location = event_data.get('location')
-                if is_online and not location:
-                    location = "Online"
-                elif not location:
-                    location = None
-                
-                # Create event
-                event = Event(
-                    title=event_data['title'],
-                    description=event_data.get('description'),
-                    start_date=event_date,
-                    end_date=event_date,
-                    start_time=start_time_obj,
-                    end_time=end_time_obj,
-                    start_location=location,
-                    venue_id=venue_id_for_event,
-                    city_id=city.id,
-                    event_type=event_data.get('event_type', 'talk'),
-                    url=event_data.get('url'),
-                    image_url=event_data.get('image_url'),
-                    source='website',
-                    source_url=FINDING_AWE_URL,
-                    is_selected=True,
-                    is_online=is_online,
-                    is_registration_required=event_data.get('is_registration_required', False),
-                    registration_opens_date=registration_opens_date_obj,
-                    registration_opens_time=registration_opens_time_obj,
-                    registration_url=event_data.get('registration_url'),
-                    registration_info=event_data.get('registration_info'),
-                )
-                
-                # Set baby-friendly flag if detected
-                if hasattr(Event, 'is_baby_friendly'):
-                    event.is_baby_friendly = is_baby_friendly
-                
-                db.session.add(event)
-                
-                # Commit each event individually to avoid partial failures
-                try:
-                    db.session.commit()
-                    created_count += 1
-                    logger.info(f"   ✅ Created: {event_data['title']}")
-                except Exception as commit_error:
-                    db.session.rollback()
-                    logger.error(f"   ❌ Database error creating event '{event_data.get('title')}': {commit_error}")
-                    import traceback
-                    logger.debug(traceback.format_exc())
-                    continue
-                
-            except Exception as e:
-                logger.error(f"   ❌ Error creating event {event_data.get('title')}: {e}")
-                import traceback
-                logger.debug(traceback.format_exc())
-                db.session.rollback()
-                continue
-        
-        logger.info(f"✅ Created {created_count} new events in database")
-        return created_count
-
-
+        # Old code removed - replaced with shared handler above
+        # The following was the old individual event processing loop:
+        # (removed ~200 lines of duplicate logic)
 if __name__ == '__main__':
     print("🔍 Scraping all Finding Awe events...")
     events = scrape_all_finding_awe_events()

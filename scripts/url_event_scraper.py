@@ -74,6 +74,7 @@ def extract_event_data_from_url(url):
     
     For Finding Awe events, uses the dedicated scraper for better extraction.
     For SAAM events, uses the SAAM scraper for better extraction.
+    For Instagram posts, uses Instagram scraper.
     
     Args:
         url: The URL to scrape
@@ -81,6 +82,125 @@ def extract_event_data_from_url(url):
     Returns:
         dict with extracted event data
     """
+    # Check if this is an Instagram post or profile
+    if 'instagram.com' in url.lower() or 'instagr.am' in url.lower():
+        try:
+            logger.info(f"📱 Detected Instagram URL: {url}")
+            is_individual_post = '/p/' in url or '/reel/' in url
+            
+            # For Instagram, use LLM as primary method since Instagram is very difficult to scrape
+            # Instagram heavily relies on JavaScript and bot detection
+            if is_individual_post:
+                logger.info(f"🤖 Using LLM to extract Instagram post data (primary method): {url}")
+                try:
+                    from scripts.llm_url_extractor import extract_event_with_llm
+                    llm_result = extract_event_with_llm(url)
+                    if llm_result and (llm_result.get('title') or llm_result.get('description')):
+                        logger.info(f"✅ LLM successfully extracted Instagram post data")
+                        # Ensure social media fields are set
+                        if 'social_media_platform' not in llm_result:
+                            llm_result['social_media_platform'] = 'instagram'
+                        if 'social_media_url' not in llm_result:
+                            llm_result['social_media_url'] = url
+                        return llm_result
+                    else:
+                        logger.warning(f"LLM returned empty result, trying web scraping fallback")
+                except Exception as e:
+                    logger.warning(f"LLM extraction failed: {e}, trying web scraping fallback")
+            
+            # Fallback: Try web scraping (may not work well due to Instagram's structure)
+            from scripts.source_event_scraper import SourceEventScraper
+            from app import Source
+            
+            # Extract username from URL
+            username = None
+            if is_individual_post:
+                # Individual post - extract username from post if possible, or use URL directly
+                logger.info(f"   Trying web scraping fallback for Instagram post")
+                # Extract shortcode for reference
+                shortcode_match = re.search(r'instagram\.com/(?:p|reel)/([^/]+)', url)
+                shortcode = shortcode_match.group(1) if shortcode_match else None
+            else:
+                # Profile URL
+                match = re.search(r'instagram\.com/([^/?]+)', url)
+                if match:
+                    username = match.group(1)
+            
+            if not username and not is_individual_post:
+                # Try to extract from any Instagram URL
+                match = re.search(r'instagram\.com/([^/?]+)', url)
+                if match:
+                    username = match.group(1)
+            
+            # Create a temporary source object
+            class MockSource:
+                def __init__(self, url, username=None):
+                    if username:
+                        self.name = f"Instagram @{username}"
+                        self.url = f"https://www.instagram.com/{username}/"
+                        self.handle = f"@{username}"
+                    else:
+                        self.name = "Instagram Post"
+                        self.url = url
+                        self.handle = None
+                    self.source_type = 'instagram'
+                    self.city_id = None
+                    self.event_types = None
+            
+            mock_source = MockSource(url, username)
+            
+            # Use SourceEventScraper to scrape Instagram
+            scraper = SourceEventScraper()
+            events = scraper._scrape_instagram_source(mock_source)
+            
+            if events:
+                # Return the first event found (or most recent)
+                event = events[0]
+                
+                # Convert to format expected by extract_event_data_from_url
+                result = {
+                    'title': event.get('title', 'Instagram Event'),
+                    'description': event.get('description', ''),
+                    'start_date': event.get('start_date').isoformat() if event.get('start_date') else None,
+                    'end_date': event.get('end_date').isoformat() if event.get('end_date') else None,
+                    'start_time': event.get('start_time').isoformat() if event.get('start_time') and hasattr(event.get('start_time'), 'isoformat') else (str(event.get('start_time')) if event.get('start_time') else None),
+                    'end_time': event.get('end_time').isoformat() if event.get('end_time') and hasattr(event.get('end_time'), 'isoformat') else (str(event.get('end_time')) if event.get('end_time') else None),
+                    'location': event.get('location') or event.get('meeting_point'),
+                    'image_url': event.get('image_url'),
+                    'event_type': event.get('event_type', 'event'),
+                    'language': event.get('language', 'English'),
+                    'social_media_platform': 'instagram',
+                    'social_media_url': event.get('social_media_url', url),
+                    'social_media_handle': event.get('social_media_handle', f"@{username}" if username else None),
+                }
+                
+                logger.info(f"✅ Successfully extracted Instagram event via web scraping: {result.get('title')}")
+                return result
+            else:
+                logger.warning(f"⚠️ No events found from Instagram URL: {url}")
+                # If LLM also failed, return a basic result
+                return {
+                    'title': 'Instagram Post' if is_individual_post else f"Instagram @{username}" if username else 'Instagram',
+                    'description': f"Could not extract content from Instagram URL. Instagram content may require authentication or use JavaScript to load. URL: {url}",
+                    'social_media_platform': 'instagram',
+                    'social_media_url': url,
+                    'error': 'No content extracted'
+                }
+        except Exception as e:
+            logger.error(f"Error extracting from Instagram URL {url}: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            # Try LLM as last resort
+            try:
+                logger.info(f"🤖 Trying LLM as last resort after error: {e}")
+                from scripts.llm_url_extractor import extract_event_with_llm
+                llm_result = extract_event_with_llm(url)
+                if llm_result and (llm_result.get('title') or llm_result.get('description')):
+                    return llm_result
+            except:
+                pass
+            # Fall through to regular URL scraping as fallback
+    
     # Check if this is a SAAM event or exhibition page - use SAAM scraper
     if 'americanart.si.edu' in url.lower():
         # Handle SAAM exhibitions
@@ -1173,6 +1293,25 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         dict with events_created count, events list, and schedule_info
     """
     try:
+        # Clean URL: remove evd parameter (it's just for linking to specific date/time)
+        # Save the canonical base URL instead
+        import urllib.parse
+        parsed = urllib.parse.urlparse(url)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        if 'evd' in query_params:
+            # Remove evd parameter
+            del query_params['evd']
+            # Reconstruct URL without evd
+            new_query = urllib.parse.urlencode(query_params, doseq=True)
+            clean_url = urllib.parse.urlunparse((
+                parsed.scheme, parsed.netloc, parsed.path,
+                parsed.params, new_query, parsed.fragment
+            ))
+            # Remove trailing ? if no query params remain
+            if clean_url.endswith('?'):
+                clean_url = clean_url[:-1]
+            logger.info(f"   🧹 Cleaned URL: removed evd parameter -> {clean_url}")
+            url = clean_url
         # Check if this is an NGA exhibition - use specialized scraper
         event_data = None
         if 'nga.gov' in url.lower() and '/exhibitions/' in url.lower():
@@ -2028,7 +2167,7 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     image_url=image_url,
                     source='website',
                     source_url=url,
-                    is_selected=False,
+                    is_selected=True,  # Show events from quick link discovery
                     language=language
                 )
                 
@@ -2514,14 +2653,16 @@ def _extract_date(page_text, url):
     from datetime import date
     import calendar
     
-    # First, try to extract from URL parameter (e.g., evd=202601311530)
-    url_date_match = re.search(r'evd=(\d{8})', url)
+    # First, try to extract from URL parameter (e.g., evd=202601311530 or evd=202512161900)
+    # evd can be 8 digits (YYYYMMDD) or 12 digits (YYYYMMDDHHMM)
+    url_date_match = re.search(r'evd=(\d{8,12})', url)
     if url_date_match:
-        date_str = url_date_match.group(1)  # YYYYMMDD
+        evd_value = url_date_match.group(1)
         try:
-            year = int(date_str[0:4])
-            month = int(date_str[4:6])
-            day = int(date_str[6:8])
+            # Extract date (first 8 digits)
+            year = int(evd_value[0:4])
+            month = int(evd_value[4:6])
+            day = int(evd_value[6:8])
             return date(year, month, day)
         except (ValueError, IndexError):
             pass

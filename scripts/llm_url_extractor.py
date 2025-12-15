@@ -61,8 +61,45 @@ Important:
 - Extract days as lowercase (monday, tuesday, etc.)
 - Use null for missing fields, not empty strings"""
         else:
-            # Try with just the URL (LLM might know about common venues/events)
-            prompt = f"""I need to extract event information from this URL, but the website is blocking web scrapers: {url}
+            # Check if this is an Instagram URL
+            is_instagram = 'instagram.com' in url.lower() or 'instagr.am' in url.lower()
+            
+            if is_instagram:
+                # Special prompt for Instagram posts
+                prompt = f"""Extract event information from this Instagram post URL: {url}
+
+Please visit or analyze this Instagram post and extract:
+- The post caption/text content
+- Any images (use the image URL if visible)
+- Event details like dates, times, locations mentioned in the caption
+- The username/handle of the account posting
+
+Return ONLY a valid JSON object with these fields:
+{{
+    "title": "event title extracted from caption (first line or main heading)",
+    "description": "full caption text or event description",
+    "start_date": "YYYY-MM-DD format if date is mentioned, or null",
+    "end_date": "YYYY-MM-DD format if end date is mentioned, or null",
+    "start_time": "HH:MM format (24-hour) if time is mentioned, or null",
+    "end_time": "HH:MM format (24-hour) if end time is mentioned, or null",
+    "location": "location/venue mentioned in caption, or null",
+    "image_url": "URL of the main image from the post, or null",
+    "event_type": "exhibition/tour/workshop/performance/talk/event based on content",
+    "social_media_platform": "instagram",
+    "social_media_url": "{url}",
+    "social_media_handle": "@username if visible, or null"
+}}
+
+Important:
+- Return ONLY valid JSON, no other text
+- Extract the actual caption text from the post
+- Look for dates in formats like "January 15", "1/15/2025", "Jan 15-20", etc.
+- Extract times like "6pm", "6:00 PM", "18:00"
+- If the post is about an event, include all relevant details
+- Use null for missing fields, not empty strings"""
+            else:
+                # Try with just the URL (LLM might know about common venues/events)
+                prompt = f"""I need to extract event information from this URL, but the website is blocking web scrapers: {url}
 
 Based on the URL structure and your knowledge, can you infer what this event might be? This appears to be from a museum or cultural institution.
 

@@ -211,10 +211,18 @@ class VenueEventScraper:
                                 return normalized.lower()
                             
                             # Create a more comprehensive unique key
+                            # For recurring events (same title/URL, different dates/times), include date and time
                             title_clean = event['title'].lower().strip()
                             url_normalized = normalize_url(event.get('url', ''))
                             url_key = url_normalized[:100] if url_normalized else ''  # Use normalized URL
-                            event_key = f"{title_clean}_{url_key}_{venue.id}"
+                            
+                            # Include date and time in key for recurring events (like walk-in tours)
+                            start_date = event.get('start_date')
+                            start_time = event.get('start_time')
+                            date_key = str(start_date) if start_date else ''
+                            time_key = str(start_time) if start_time else ''
+                            
+                            event_key = f"{title_clean}_{url_key}_{date_key}_{time_key}_{venue.id}"
                             
                             # Check if this event is already in unique_events (from this scraping session)
                             if event_key in unique_events:
@@ -222,24 +230,38 @@ class VenueEventScraper:
                                 continue
                             
                             # Also check if this event already exists in self.scraped_events for this venue
-                            # Compare by title and normalized URL
+                            # For recurring events, compare by title + date + time (not just title + URL)
                             is_duplicate = False
                             for existing_event in self.scraped_events:
                                 if (existing_event.get('venue_id') == venue.id and 
                                     existing_event.get('event_type') == event.get('event_type') and
                                     existing_event.get('title', '').lower().strip() == title_clean):
+                                    # For recurring events (like walk-in tours), check date and time too
+                                    existing_date = existing_event.get('start_date')
+                                    existing_time = existing_event.get('start_time')
+                                    
+                                    # If both have dates, they must match to be duplicates
+                                    if start_date and existing_date:
+                                        if str(start_date) != str(existing_date):
+                                            continue  # Different dates = not duplicate
+                                        # Same date, check time
+                                        if start_time and existing_time:
+                                            if str(start_time) != str(existing_time):
+                                                continue  # Different times = not duplicate
+                                    
                                     existing_url = normalize_url(existing_event.get('url', ''))
                                     if url_normalized and existing_url:
                                         # If both have URLs, compare them
                                         if url_normalized == existing_url:
                                             is_duplicate = True
-                                            logger.debug(f"⚠️ Skipped duplicate event (existing): {event['title']} (URL: {url_normalized})")
+                                            logger.debug(f"⚠️ Skipped duplicate event (existing): {event['title']} (URL: {url_normalized}, Date: {start_date}, Time: {start_time})")
                                             break
                                     elif not url_normalized and not existing_url:
-                                        # If neither has URL, compare by title only
-                                        is_duplicate = True
-                                        logger.debug(f"⚠️ Skipped duplicate event (existing, no URL): {event['title']}")
-                                        break
+                                        # If neither has URL, compare by title + date + time
+                                        if str(start_date) == str(existing_date) and str(start_time) == str(existing_time):
+                                            is_duplicate = True
+                                            logger.debug(f"⚠️ Skipped duplicate event (existing, no URL): {event['title']} (Date: {start_date}, Time: {start_time})")
+                                            break
                             
                             if is_duplicate:
                                 continue
@@ -362,27 +384,180 @@ class VenueEventScraper:
             logger.debug(f"   No saved paths found for {venue.name} in additional_info - will use generic scraper/discovery")
         
         # Check if this venue has a specialized scraper
-        # Venues with specialized scrapers: Hirshhorn, OCMA, NGA, Met Museum, etc.
+        # Venues with specialized scrapers: NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, etc.
         # Note: Saved paths take priority over specialized scrapers
-        has_specialized_scraper = False
         venue_url_lower = venue.website_url.lower() if venue.website_url else ''
+        venue_name_lower = venue.name.lower() if venue.name else ''
         
-        specialized_venues = [
-            'hirshhorn.si.edu',
-            'ocma.art',
-            'nga.gov',
-            'metmuseum.org',
-            'si.edu',  # Smithsonian (has specialized scrapers)
-        ]
+        # Try specialized scrapers first (same as admin page)
+        specialized_scraper_used = False
         
-        for specialized_venue in specialized_venues:
-            if specialized_venue in venue_url_lower:
-                has_specialized_scraper = True
-                logger.debug(f"   🎯 Venue has specialized scraper: {specialized_venue}")
-                break
+        # NGA (National Gallery of Art)
+        if 'nga.gov' in venue_url_lower or 'national gallery of art' in venue_name_lower:
+            logger.info(f"🎯 Using specialized NGA scraper for {venue.name}")
+            try:
+                from scripts.nga_comprehensive_scraper import scrape_all_nga_events
+                nga_events = scrape_all_nga_events()
+                if nga_events:
+                    # Ensure venue_id and city_id are set
+                    for event in nga_events:
+                        if not event.get('venue_id'):
+                            event['venue_id'] = venue.id
+                        if not event.get('city_id'):
+                            event['city_id'] = venue.city_id
+                    # Filter by event_type if specified
+                    if event_type:
+                        nga_events = [e for e in nga_events if e.get('event_type', '').lower() == event_type.lower()]
+                    # Filter by time_range
+                    nga_events = self._filter_by_time_range(nga_events, time_range)
+                    # Apply limits
+                    if event_type and event_type.lower() == 'exhibition':
+                        exhibition_events = [e for e in nga_events if e.get('event_type') == 'exhibition']
+                        other_events = [e for e in nga_events if e.get('event_type') != 'exhibition']
+                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                        events = limited_exhibitions + other_events
+                    else:
+                        events = nga_events[:max_events_per_venue]
+                    logger.info(f"✅ NGA scraper found {len(events)} events for {venue.name}")
+                    specialized_scraper_used = True
+                    return events
+            except Exception as e:
+                logger.warning(f"⚠️ NGA specialized scraper failed: {e}, falling back to generic scraper")
+        
+        # SAAM (Smithsonian American Art Museum)
+        elif 'americanart.si.edu' in venue_url_lower or ('smithsonian american art' in venue_name_lower and 'museum' in venue_name_lower):
+            logger.info(f"🎯 Using specialized SAAM scraper for {venue.name}")
+            try:
+                from scripts.saam_scraper import scrape_all_saam_events
+                # Pass venue name to filter events for this specific venue
+                saam_events = scrape_all_saam_events(target_venue_name=venue.name)
+                if saam_events:
+                    # Ensure venue_id and city_id are set
+                    for event in saam_events:
+                        if not event.get('venue_id'):
+                            event['venue_id'] = venue.id
+                        if not event.get('city_id'):
+                            event['city_id'] = venue.city_id
+                    # Filter by event_type if specified
+                    if event_type:
+                        saam_events = [e for e in saam_events if e.get('event_type', '').lower() == event_type.lower()]
+                    # Filter by time_range
+                    saam_events = self._filter_by_time_range(saam_events, time_range)
+                    # Apply limits
+                    if event_type and event_type.lower() == 'exhibition':
+                        exhibition_events = [e for e in saam_events if e.get('event_type') == 'exhibition']
+                        other_events = [e for e in saam_events if e.get('event_type') != 'exhibition']
+                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                        events = limited_exhibitions + other_events
+                    else:
+                        events = saam_events[:max_events_per_venue]
+                    logger.info(f"✅ SAAM scraper found {len(events)} events for {venue.name}")
+                    specialized_scraper_used = True
+                    return events
+            except Exception as e:
+                logger.warning(f"⚠️ SAAM specialized scraper failed: {e}, falling back to generic scraper")
+        
+        # NPG (National Portrait Gallery)
+        elif 'npg.si.edu' in venue_url_lower or 'national portrait gallery' in venue_name_lower:
+            logger.info(f"🎯 Using specialized NPG scraper for {venue.name}")
+            try:
+                from scripts.npg_scraper import scrape_all_npg_events
+                npg_events = scrape_all_npg_events()
+                if npg_events:
+                    # Ensure venue_id and city_id are set
+                    for event in npg_events:
+                        if not event.get('venue_id'):
+                            event['venue_id'] = venue.id
+                        if not event.get('city_id'):
+                            event['city_id'] = venue.city_id
+                    # Filter by event_type if specified
+                    if event_type:
+                        npg_events = [e for e in npg_events if e.get('event_type', '').lower() == event_type.lower()]
+                    # Filter by time_range
+                    npg_events = self._filter_by_time_range(npg_events, time_range)
+                    # Apply limits
+                    if event_type and event_type.lower() == 'exhibition':
+                        exhibition_events = [e for e in npg_events if e.get('event_type') == 'exhibition']
+                        other_events = [e for e in npg_events if e.get('event_type') != 'exhibition']
+                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                        events = limited_exhibitions + other_events
+                    else:
+                        events = npg_events[:max_events_per_venue]
+                    logger.info(f"✅ NPG scraper found {len(events)} events for {venue.name}")
+                    specialized_scraper_used = True
+                    return events
+            except Exception as e:
+                logger.warning(f"⚠️ NPG specialized scraper failed: {e}, falling back to generic scraper")
+        
+        # Asian Art Museum (Smithsonian)
+        elif 'asia.si.edu' in venue_url_lower or ('asian art' in venue_name_lower and 'museum' in venue_name_lower):
+            logger.info(f"🎯 Using specialized Asian Art scraper for {venue.name}")
+            try:
+                from scripts.asian_art_scraper import scrape_all_asian_art_events
+                asian_events = scrape_all_asian_art_events()
+                if asian_events:
+                    # Ensure venue_id and city_id are set
+                    for event in asian_events:
+                        if not event.get('venue_id'):
+                            event['venue_id'] = venue.id
+                        if not event.get('city_id'):
+                            event['city_id'] = venue.city_id
+                    # Filter by event_type if specified
+                    if event_type:
+                        asian_events = [e for e in asian_events if e.get('event_type', '').lower() == event_type.lower()]
+                    # Filter by time_range
+                    asian_events = self._filter_by_time_range(asian_events, time_range)
+                    # Apply limits
+                    if event_type and event_type.lower() == 'exhibition':
+                        exhibition_events = [e for e in asian_events if e.get('event_type') == 'exhibition']
+                        other_events = [e for e in asian_events if e.get('event_type') != 'exhibition']
+                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                        events = limited_exhibitions + other_events
+                    else:
+                        events = asian_events[:max_events_per_venue]
+                    logger.info(f"✅ Asian Art scraper found {len(events)} events for {venue.name}")
+                    specialized_scraper_used = True
+                    return events
+            except Exception as e:
+                logger.warning(f"⚠️ Asian Art specialized scraper failed: {e}, falling back to generic scraper")
+        
+        # African Art Museum (Smithsonian)
+        elif 'africa.si.edu' in venue_url_lower or ('african art' in venue_name_lower and 'museum' in venue_name_lower):
+            logger.info(f"🎯 Using specialized African Art scraper for {venue.name}")
+            try:
+                from scripts.african_art_scraper import scrape_all_african_art_events
+                african_events = scrape_all_african_art_events()
+                if african_events:
+                    # Ensure venue_id and city_id are set
+                    for event in african_events:
+                        if not event.get('venue_id'):
+                            event['venue_id'] = venue.id
+                        if not event.get('city_id'):
+                            event['city_id'] = venue.city_id
+                    # Filter by event_type if specified
+                    if event_type:
+                        african_events = [e for e in african_events if e.get('event_type', '').lower() == event_type.lower()]
+                    # Filter by time_range
+                    african_events = self._filter_by_time_range(african_events, time_range)
+                    # Apply limits
+                    if event_type and event_type.lower() == 'exhibition':
+                        exhibition_events = [e for e in african_events if e.get('event_type') == 'exhibition']
+                        other_events = [e for e in african_events if e.get('event_type') != 'exhibition']
+                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
+                        events = limited_exhibitions + other_events
+                    else:
+                        events = african_events[:max_events_per_venue]
+                    logger.info(f"✅ African Art scraper found {len(events)} events for {venue.name}")
+                    specialized_scraper_used = True
+                    return events
+            except Exception as e:
+                logger.warning(f"⚠️ African Art specialized scraper failed: {e}, falling back to generic scraper")
+        
+        # Hirshhorn uses built-in methods in venue_event_scraper, so it continues below
+        has_specialized_scraper = specialized_scraper_used or 'hirshhorn.si.edu' in venue_url_lower
         
         # For venues WITHOUT specialized scrapers, try generic scraper
-        if not has_specialized_scraper:
+        if not specialized_scraper_used and not has_specialized_scraper:
             logger.info(f"🔍 No specialized scraper for {venue.name}, trying generic scraper...")
             logger.info(f"   URL: {venue.website_url}")
             
@@ -407,7 +582,46 @@ class VenueEventScraper:
                 # Convert generic events to our format and validate them
                 valid_generic_events = []
                 invalid_count = 0
+                skipped_wrong_venue_count = 0
+                
                 for event in generic_events:
+                    # CRITICAL: Check URL domain to determine correct venue BEFORE assigning venue_id
+                    # This prevents assigning events to wrong museums when generic scraper finds events from other venues
+                    event_url = event.get('url') or event.get('source_url') or ''
+                    should_skip = False
+                    
+                    if event_url:
+                        event_url_lower = event_url.lower()
+                        
+                        # Map URL domains to correct venues (specialized museums)
+                        # If event URL belongs to a specialized museum, assign it to that venue or skip it
+                        if 'npg.si.edu' in event_url_lower:
+                            # This is an NPG event - should be handled by NPG scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping NPG event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'nga.gov' in event_url_lower:
+                            # This is an NGA event - should be handled by NGA scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping NGA event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'americanart.si.edu' in event_url_lower:
+                            # This is a SAAM event - should be handled by SAAM scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping SAAM event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'asia.si.edu' in event_url_lower:
+                            # This is an Asian Art event - should be handled by Asian Art scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping Asian Art event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'africa.si.edu' in event_url_lower:
+                            # This is an African Art event - should be handled by African Art scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping African Art event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                    
+                    if should_skip:
+                        skipped_wrong_venue_count += 1
+                        invalid_count += 1
+                        continue
+                    
+                    # Assign venue_id to the current venue (generic scraper's venue)
                     event['venue_id'] = venue.id
                     event['city_id'] = venue.city_id
                     event['source'] = 'website'
@@ -424,6 +638,9 @@ class VenueEventScraper:
                     else:
                         invalid_count += 1
                         logger.debug(f"   ⚠️  Invalid event filtered out: '{event.get('title', 'N/A')}' (date: {event.get('start_date', 'N/A')})")
+                
+                if skipped_wrong_venue_count > 0:
+                    logger.info(f"   ⚠️  Skipped {skipped_wrong_venue_count} events that belong to specialized museums (will be handled by their dedicated scrapers)")
                 
                 logger.info(f"   Validation: {len(valid_generic_events)} valid, {invalid_count} invalid events")
                 
@@ -1096,7 +1313,47 @@ class VenueEventScraper:
                 )
                 # Convert generic events to our format and validate them
                 valid_generic_events = []
+                invalid_count = 0
+                skipped_wrong_venue_count = 0
+                
                 for event in generic_events:
+                    # CRITICAL: Check URL domain to determine correct venue BEFORE assigning venue_id
+                    # This prevents assigning events to wrong museums when generic scraper finds events from other venues
+                    event_url = event.get('url') or event.get('source_url') or ''
+                    should_skip = False
+                    
+                    if event_url:
+                        event_url_lower = event_url.lower()
+                        
+                        # Map URL domains to correct venues (specialized museums)
+                        # If event URL belongs to a specialized museum, skip it (that museum's scraper will handle it)
+                        if 'npg.si.edu' in event_url_lower:
+                            # This is an NPG event - should be handled by NPG scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping NPG event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'nga.gov' in event_url_lower:
+                            # This is an NGA event - should be handled by NGA scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping NGA event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'americanart.si.edu' in event_url_lower:
+                            # This is a SAAM event - should be handled by SAAM scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping SAAM event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'asia.si.edu' in event_url_lower:
+                            # This is an Asian Art event - should be handled by Asian Art scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping Asian Art event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'africa.si.edu' in event_url_lower:
+                            # This is an African Art event - should be handled by African Art scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping African Art event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                    
+                    if should_skip:
+                        skipped_wrong_venue_count += 1
+                        invalid_count += 1
+                        continue
+                    
+                    # Assign venue_id to the current venue (generic scraper's venue)
                     event['venue_id'] = venue.id
                     event['city_id'] = venue.city_id
                     event['source'] = 'website'
@@ -1110,7 +1367,11 @@ class VenueEventScraper:
                     if self._is_valid_event(event):
                         valid_generic_events.append(event)
                     else:
+                        invalid_count += 1
                         logger.debug(f"⚠️ Generic scraper event filtered out: '{event.get('title', 'N/A')}'")
+                
+                if skipped_wrong_venue_count > 0:
+                    logger.info(f"   ⚠️  Skipped {skipped_wrong_venue_count} events that belong to specialized museums (will be handled by their dedicated scrapers)")
                 
                 events.extend(valid_generic_events)
                 if valid_generic_events:

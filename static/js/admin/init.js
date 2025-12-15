@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
-    loadOverviewWithTimeout();
+    // Use window reference to ensure function is accessible
+    if (typeof window.loadOverviewWithTimeout === 'function') {
+        window.loadOverviewWithTimeout();
+    } else if (typeof loadOverviewWithTimeout === 'function') {
+        loadOverviewWithTimeout();
+    }
     
     // Initialize all tables view mode on page load
     updateAllTablesViewMode();
@@ -361,6 +366,15 @@ async function handleEditEvent(event) {
             alert('Event updated successfully!');
             closeModal('editEventModal');
             loadEvents();
+            // Refresh overview stats
+            setTimeout(() => {
+                console.log('🔄 Refreshing overview after event creation...');
+                if (typeof window.loadOverview === 'function') {
+                    window.loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                } else if (typeof loadOverview === 'function') {
+                    loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                }
+            }, 500);
         } else {
             alert('Error: ' + result.error);
         }
@@ -1707,6 +1721,15 @@ async function createEventFromExtractedData() {
             }
             closeModal('imageUploadModal');
             loadEvents();
+            // Refresh overview stats
+            setTimeout(() => {
+                console.log('🔄 Refreshing overview after event creation...');
+                if (typeof window.loadOverview === 'function') {
+                    window.loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                } else if (typeof loadOverview === 'function') {
+                    loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                }
+            }, 500);
         } else {
             alert('Error creating event: ' + result.error);
         }
@@ -1767,6 +1790,15 @@ document.getElementById('createFromVenueForm').addEventListener('submit', async 
             }
             closeModal('createFromVenueModal');
             loadEvents();
+            // Refresh overview stats
+            setTimeout(() => {
+                console.log('🔄 Refreshing overview after event creation...');
+                if (typeof window.loadOverview === 'function') {
+                    window.loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                } else if (typeof loadOverview === 'function') {
+                    loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                }
+            }, 500);
         } else {
             alert('Error creating event: ' + result.error);
         }

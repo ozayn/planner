@@ -16,10 +16,17 @@ function isGenericTourTitle(title) {
 // Track whether to show recurring tours (default: hidden to save space)
 let showRecurringToursAdmin = false;
 
+// Track whether to show events without times (default: hidden)
+let showEventsWithoutTimesAdmin = false;
+
 // Load recurring tours visibility preference from localStorage
 function loadRecurringToursPreference() {
     const savedState = localStorage.getItem('showRecurringToursAdmin');
     showRecurringToursAdmin = (savedState === 'true');
+    
+    // Load events without times preference
+    const savedNoTimesState = localStorage.getItem('showEventsWithoutTimesAdmin');
+    showEventsWithoutTimesAdmin = (savedNoTimesState === 'true');
 }
 
 // Toggle recurring tours visibility in admin
@@ -35,6 +42,24 @@ function toggleRecurringToursVisibilityAdmin() {
     const toggleBtn = document.getElementById('recurringToursToggleBtn');
     if (toggleBtn) {
         toggleBtn.textContent = showRecurringToursAdmin ? '▼ Hide' : '▶ Show';
+    }
+    
+    applyEventFilters(); // Re-apply filters to update display
+}
+
+// Toggle events without times visibility in admin
+function toggleEventsWithoutTimesVisibilityAdmin() {
+    showEventsWithoutTimesAdmin = !showEventsWithoutTimesAdmin;
+    if (showEventsWithoutTimesAdmin) {
+        localStorage.setItem('showEventsWithoutTimesAdmin', 'true');
+    } else {
+        localStorage.removeItem('showEventsWithoutTimesAdmin'); // Remove to allow default false
+    }
+    
+    // Update button text
+    const toggleBtn = document.getElementById('eventsWithoutTimesToggleBtn');
+    if (toggleBtn) {
+        toggleBtn.textContent = showEventsWithoutTimesAdmin ? '▼ Hide' : '▶ Show';
     }
     
     applyEventFilters(); // Re-apply filters to update display
@@ -81,6 +106,12 @@ async function loadEvents() {
         const toggleBtn = document.getElementById('recurringToursToggleBtn');
         if (toggleBtn) {
             toggleBtn.textContent = showRecurringToursAdmin ? '▼ Hide' : '▶ Show';
+        }
+        
+        // Update events without times toggle button
+        const noTimesToggleBtn = document.getElementById('eventsWithoutTimesToggleBtn');
+        if (noTimesToggleBtn) {
+            noTimesToggleBtn.textContent = showEventsWithoutTimesAdmin ? '▼ Hide' : '▶ Show';
         }
         
         // Render the events table
@@ -469,6 +500,22 @@ async function deleteSelectedEvents() {
         // Reload events
         loadEvents();
         
+        // Refresh overview stats after a short delay to ensure database commit completes
+        setTimeout(() => {
+            console.log('🔄 Refreshing overview after event deletion...');
+            if (typeof window.loadOverview === 'function') {
+                window.loadOverview().catch(err => {
+                    console.error('Error refreshing overview:', err);
+                });
+            } else if (typeof loadOverview === 'function') {
+                loadOverview().catch(err => {
+                    console.error('Error refreshing overview:', err);
+                });
+            } else {
+                console.warn('⚠️ loadOverview function not found');
+            }
+        }, 500);
+        
     } catch (error) {
         console.error('Error deleting events:', error);
         alert('❌ Error deleting events: ' + error.message);
@@ -584,6 +631,21 @@ function deleteEvent(id) {
             if (result.success) {
                 alert('Event deleted successfully!');
                 loadEvents(); // Reload data
+                // Refresh overview stats after a short delay to ensure database commit completes
+                setTimeout(() => {
+                    console.log('🔄 Refreshing overview after single event deletion...');
+                    if (typeof window.loadOverview === 'function') {
+                        window.loadOverview().catch(err => {
+                            console.error('Error refreshing overview:', err);
+                        });
+                    } else if (typeof loadOverview === 'function') {
+                        loadOverview().catch(err => {
+                            console.error('Error refreshing overview:', err);
+                        });
+                    } else {
+                        console.warn('⚠️ loadOverview function not found');
+                    }
+                }, 500);
             } else {
                 alert('Error: ' + result.error);
             }
@@ -607,6 +669,15 @@ function applyEventFilters() {
         // Filter out recurring tours if not shown
         if (!showRecurringToursAdmin && event.event_type === 'tour' && isGenericTourTitle(event.title)) {
             return false;
+        }
+        
+        // Filter out events without both start_time and end_time if not shown
+        if (!showEventsWithoutTimesAdmin) {
+            const hasStartTime = event.start_time && event.start_time.trim() !== '';
+            const hasEndTime = event.end_time && event.end_time.trim() !== '';
+            if (!hasStartTime || !hasEndTime) {
+                return false;
+            }
         }
         
         const matchesSearch = !searchTerm || 
@@ -643,6 +714,9 @@ function applyEventFilters() {
     if (venueFilter) activeFilters.push(`Venue: ${venueFilter}`);
     if (!showRecurringToursAdmin) {
         activeFilters.push(`Recurring Tours: Hidden`);
+    }
+    if (!showEventsWithoutTimesAdmin) {
+        activeFilters.push(`Events Without Times: Hidden`);
     }
     
     if (activeFilters.length > 0) {

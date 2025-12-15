@@ -427,6 +427,40 @@
     }
 
     /**
+     * Generate a stable, unique UID for an event
+     * UID must be stable across exports to prevent duplicates in Google Calendar
+     * Format: event-{id}@planner.app
+     * 
+     * CRITICAL: UID is based ONLY on event.id (database primary key) which never changes.
+     * This ensures that even if event properties (title, description, URL, dates) are updated
+     * during scraping, the UID remains the same, allowing Google Calendar to update the
+     * existing event instead of creating duplicates.
+     * 
+     * @param {Object} event - Event object with id
+     * @returns {string} Stable UID for the event
+     */
+    function generateStableUID(event) {
+        // Use ONLY event.id as the UID - it's the database primary key and never changes
+        // Even if title, description, URL, dates, or other properties are updated during scraping,
+        // the event.id remains the same, so the UID stays stable
+        // This allows Google Calendar to properly update existing events when re-importing
+        
+        if (!event.id) {
+            // Fallback: if somehow event.id is missing, generate a hash from stable properties
+            // This should rarely happen, but provides a safety net
+            const stableString = `${event.url || event.source_url || ''}-${event.start_date || ''}`;
+            let hash = 5381;
+            for (let i = 0; i < stableString.length; i++) {
+                hash = ((hash << 5) + hash) + stableString.charCodeAt(i);
+            }
+            const hashStr = Math.abs(hash).toString(16).substring(0, 8);
+            return `event-fallback-${hashStr}@planner.app`;
+        }
+        
+        return `event-${event.id}@planner.app`;
+    }
+
+    /**
      * Generate ICS event string for a single event
      */
     function generateICSEvent(event) {
@@ -468,17 +502,43 @@
             endDateTime = formatDateTimeForICS(event.end_date || event.start_date, event.end_time || event.start_time);
         }
         
-        // Generate unique ID
-        const uid = `event-${event.id}-${Date.now()}@planner`;
+        // Generate stable UID (CRITICAL: must be stable to prevent duplicates in Google Calendar)
+        // UID is based ONLY on event.id, which never changes, so even if properties are updated
+        // during scraping, the UID remains the same, allowing Google Calendar to update the event
+        const uid = generateStableUID(event);
         
         // Build description
         const description = buildEnhancedDescription(event);
         const location = getCalendarLocation(event);
         
+        // SEQUENCE: Increment this when event is updated (helps Google Calendar recognize updates)
+        // For now, we use 1 as default. In the future, we could track this in the database
+        // and increment it when event properties change during scraping
+        const sequence = event.sequence || 1;
+        
+        // LAST-MODIFIED: Timestamp when event was last modified
+        // Use event.updated_at if available, otherwise use current time
+        let lastModified = dtstamp;
+        if (event.updated_at) {
+            // Parse event.updated_at (format: ISO string or date)
+            try {
+                const updatedDate = new Date(event.updated_at);
+                lastModified = formatDateTimeForICS(
+                    updatedDate.toISOString().split('T')[0],
+                    updatedDate.toTimeString().split(' ')[0].substring(0, 8)
+                );
+            } catch (e) {
+                // If parsing fails, use current time
+                lastModified = dtstamp;
+            }
+        }
+        
         // Build ICS event
         let icsEvent = 'BEGIN:VEVENT\r\n';
         icsEvent += `UID:${uid}\r\n`;
         icsEvent += `DTSTAMP:${dtstamp}\r\n`;
+        icsEvent += `LAST-MODIFIED:${lastModified}\r\n`;
+        icsEvent += `SEQUENCE:${sequence}\r\n`;
         
         if (isAllDay) {
             icsEvent += `DTSTART;VALUE=DATE:${startDateTime}\r\n`;

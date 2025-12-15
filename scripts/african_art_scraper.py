@@ -582,10 +582,10 @@ def scrape_all_african_art_events(scraper=None) -> List[Dict]:
 def create_events_in_database(events: List[Dict]) -> tuple:
     """
     Create or update events in the database
+    Uses shared event_database_handler for common logic.
     Returns (created_count, updated_count)
     """
-    created_count = 0
-    updated_count = 0
+    from scripts.event_database_handler import create_events_in_database as shared_create_events
     
     with app.app_context():
         # Get venue
@@ -594,133 +594,29 @@ def create_events_in_database(events: List[Dict]) -> tuple:
             logger.error(f"❌ Venue '{VENUE_NAME}' not found in database")
             return (0, 0)
         
-        for event_data in events:
-            try:
-                # Validate title
-                title = event_data.get('title', '').strip()
-                if not title:
-                    logger.warning(f"   ⚠️  Skipping event: missing title")
-                    continue
-                
-                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                from scripts.utils import is_category_heading
-                if is_category_heading(title):
-                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
-                    continue
-                
-                # Skip non-English language events
-                language = event_data.get('language', 'English')
-                if language and language.lower() != 'english':
-                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
-                    continue
-                
-                # Detect if event is baby-friendly
-                is_baby_friendly = False
-                title_lower = title.lower()
-                description_lower = (event_data.get('description', '') or '').lower()
-                combined_text = f"{title_lower} {description_lower}"
-                
-                baby_keywords = [
-                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
-                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
-                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
-                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
-                    'stroller', 'strollers', 'nursing', 'breastfeeding',
-                    'family program', 'family-friendly', 'family friendly',
-                    'art & play', 'art and play', 'play time', 'playtime',
-                    'children', 'kids', 'little ones', 'young families'
-                ]
-                
-                if any(keyword in combined_text for keyword in baby_keywords):
-                    is_baby_friendly = True
-                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
-                
-                # Find existing event by title and venue
-                existing = Event.query.filter_by(
-                    title=title,
-                    venue_id=venue.id
-                ).first()
-                
-                if existing:
-                    # Update existing event
-                    existing.description = event_data.get('description', existing.description)
-                    existing.event_type = event_data.get('event_type', existing.event_type)
-                    existing.source_url = event_data.get('source_url', existing.source_url)
-                    existing.social_media_url = event_data.get('social_media_url', existing.social_media_url)
-                    existing.image_url = event_data.get('image_url', existing.image_url)
-                    
-                    # Update dates
-                    if event_data.get('start_date'):
-                        existing.start_date = event_data['start_date']
-                    if event_data.get('end_date'):
-                        existing.end_date = event_data['end_date']
-                    
-                    # Update times
-                    if event_data.get('start_time'):
-                        existing.start_time = event_data['start_time']
-                    if event_data.get('end_time'):
-                        existing.end_time = event_data['end_time']
-                    
-                    # Update language and visibility
-                    if event_data.get('language'):
-                        existing.language = event_data['language']
-                    # Ensure non-English events stay hidden
-                    if existing.language and existing.language != 'English':
-                        existing.is_selected = False
-                    elif 'is_selected' in event_data:
-                        existing.is_selected = event_data['is_selected']
-                    
-                    # Update baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
-                        if not existing.is_baby_friendly:
-                            existing.is_baby_friendly = True
-                    
-                    existing.updated_at = datetime.utcnow()
-                    updated_count += 1
-                    logger.info(f"   ✅ Updated: {event_data.get('title')}")
-                else:
-                    # Create new event
-                    new_event = Event(
-                        title=event_data.get('title', 'Untitled Event'),
-                        description=event_data.get('description', ''),
-                        event_type=event_data.get('event_type', 'exhibition'),
-                        venue_id=venue.id,
-                        city_id=venue.city_id,
-                        start_date=event_data.get('start_date'),
-                        end_date=event_data.get('end_date'),
-                        start_time=event_data.get('start_time'),
-                        end_time=event_data.get('end_time'),
-                        source_url=event_data.get('source_url', ''),
-                        social_media_url=event_data.get('social_media_url', ''),
-                        social_media_platform=event_data.get('social_media_platform', 'website'),
-                        organizer=event_data.get('organizer', VENUE_NAME),
-                        image_url=event_data.get('image_url', ''),
-                        language=event_data.get('language', 'English'),
-                        is_selected=event_data.get('is_selected', True)
-                    )
-                    
-                    # Set baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly'):
-                        new_event.is_baby_friendly = is_baby_friendly
-                    
-                    db.session.add(new_event)
-                    created_count += 1
-                    logger.info(f"   ✅ Created: {event_data.get('title')}")
-                    
-            except Exception as e:
-                logger.warning(f"   ⚠️ Error processing event {event_data.get('title', 'Unknown')}: {e}")
-                continue
+        logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
+        logger.info(f"📊 Processing {len(events)} events...")
         
-        db.session.commit()
-        logger.info(f"✅ Created {created_count} new events, updated {updated_count} existing events")
+        # Custom processor for African Art-specific fields
+        def african_art_event_processor(event_data):
+            """Add African Art-specific fields"""
+            event_data['source'] = 'website'
+            event_data['organizer'] = VENUE_NAME
         
-    return (created_count, updated_count)
+        # Use shared handler for all common logic
+        created_count, updated_count, skipped_count = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=logger,
+            custom_event_processor=african_art_event_processor
+        )
+        
+        return (created_count, updated_count)
 
 
-if __name__ == '__main__':
-    # Test scraper
-    scraper = create_scraper()
-    events = scrape_all_african_art_events(scraper)
-    print(f"\n📊 Scraped {len(events)} events")
-    for event in events[:5]:
-        print(f"  - {event.get('title', 'Untitled')}")

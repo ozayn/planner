@@ -4528,7 +4528,7 @@
                     <div class="venue-header">
                         <div class="venue-title">${source.name}</div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="venue-info-btn" onclick="showSourceDetails(${source.id}); event.stopPropagation();" title="View Details">i</button>
+                            <button class="venue-info-btn" onclick="event.stopPropagation(); showSourceDetails(${source.id});" title="View Details">i</button>
                             <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
                                    onchange="toggleSourceSelection(${source.id})">
                         </div>
@@ -4884,8 +4884,24 @@
 
         // Show source details in modal
         window.showSourceDetails = function(sourceId) {
-            const source = allSources.find(s => s.id === sourceId);
-            if (!source) return;
+            // Convert sourceId to number if it's a string
+            const id = typeof sourceId === 'string' ? parseInt(sourceId, 10) : sourceId;
+            
+            console.log('showSourceDetails called with sourceId:', sourceId, 'converted to:', id);
+            console.log('allSources:', allSources);
+            
+            const source = allSources.find(s => {
+                const sourceIdNum = typeof s.id === 'string' ? parseInt(s.id, 10) : s.id;
+                return sourceIdNum === id || s.id == id || s.id === id;
+            });
+            
+            if (!source) {
+                console.error('Source not found for ID:', id, 'Available sources:', allSources.map(s => ({ id: s.id, name: s.name })));
+                alert(`Source not found for ID: ${id}. Please check the console for available sources.`);
+                return;
+            }
+            
+            console.log('Found source:', source);
             
             const sourceTypeFormatted = formatSourceTypeName(source.source_type);
             
@@ -4936,9 +4952,16 @@
             // Show in modal
             const modal = document.getElementById('sourceDetailsModal');
             const modalContent = document.getElementById('sourceDetailsContent');
+            console.log('Modal element:', modal);
+            console.log('Modal content element:', modalContent);
+            
             if (modal && modalContent) {
                 modalContent.innerHTML = detailsHTML;
                 modal.style.display = 'block';
+                console.log('Modal displayed');
+            } else {
+                console.error('Modal or modal content not found!');
+                alert('Could not find source details modal. Please refresh the page.');
             }
         };
         

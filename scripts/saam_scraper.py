@@ -1309,36 +1309,167 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                     walkin_section = heading
                     break
         
-        page_text = soup.get_text()
+        # Normalize whitespace in page text to make regex matching more reliable
+        # BeautifulSoup can split text across elements, so we need to join it properly
+        page_text = ' '.join(soup.get_text().split())
+        
+        # Debug: Log if we found the walk-in section
+        if walkin_section:
+            logger.info(f"   ✅ Found walk-in section heading: {walkin_section.get_text()[:100]}")
+        else:
+            logger.warning(f"   ⚠️  Could not find 'walk-in' section heading on tours page")
+            # Try to find any headings that might contain tour info
+            all_headings = soup.find_all(['h2', 'h3', 'h4', 'h5'])
+            logger.info(f"   Found {len(all_headings)} headings on page")
+            for i, h in enumerate(all_headings[:5]):  # Log first 5 headings
+                logger.info(f"   Heading {i+1}: {h.get_text()[:80]}")
+        
+        # Debug: Check if page text contains key phrases
+        if '12:30' in page_text or '2 p.m.' in page_text or '4 p.m.' in page_text:
+            logger.info(f"   ✅ Page text contains tour times (12:30, 2 p.m., or 4 p.m.)")
+        else:
+            logger.warning(f"   ⚠️  Page text does NOT contain expected tour times")
+        
+        if 'main building' in page_text.lower():
+            logger.info(f"   ✅ Page text contains 'main building'")
+        else:
+            logger.warning(f"   ⚠️  Page text does NOT contain 'main building'")
         
         # Parse walk-in tours for SAAM main building
         # Look for text containing "SAAM's main building" and times
         saam_walkin_text = None
         if walkin_section:
-            # Get the parent container
+            # Get the parent container and normalize text
             container = walkin_section.find_next(['div', 'section', 'ul'])
             if container:
-                container_text = container.get_text()
-                # Find the line about SAAM main building
-                for line in container_text.split('\n'):
-                    if 'SAAM' in line and 'main building' in line.lower() and 'start at' in line.lower():
-                        saam_walkin_text = line
-                        break
+                container_text = ' '.join(container.get_text().split())  # Normalize whitespace
+                # Find the line about SAAM main building - need to get the FULL sentence with all times
+                # The sentence is: "Free, docent-led walk-in tours at SAAM's main building start at 12:30 p.m., 2 p.m., and 4 p.m. daily."
+                # First find where "SAAM's main building" appears
+                saam_pos = container_text.lower().find("saam's main building")
+                if saam_pos == -1:
+                    saam_pos = container_text.lower().find("saam main building")
+                
+                if saam_pos >= 0:
+                    # Get text starting from before "SAAM" to the end of the sentence (next period)
+                    # Look backwards for sentence start (previous period or start of text)
+                    sentence_start = max(0, container_text.rfind('.', 0, saam_pos))
+                    if sentence_start > 0:
+                        sentence_start += 1  # Skip the period
+                    # Look forwards for sentence end (next period after "daily" or similar)
+                    # The sentence ends after "daily" or similar words
+                    sentence_end = container_text.find('.', saam_pos)
+                    # Also check for common sentence endings
+                    for end_marker in ['. Tours', '. Check', '. All']:
+                        marker_pos = container_text.find(end_marker, saam_pos)
+                        if marker_pos > saam_pos and (sentence_end == -1 or marker_pos < sentence_end):
+                            sentence_end = marker_pos
+                    
+                    if sentence_end > saam_pos:
+                        saam_walkin_text = container_text[sentence_start:sentence_end+1].strip()
+                        # Make sure it contains "start at" and times
+                        if 'start at' in saam_walkin_text.lower():
+                            logger.info(f"   ✅ Found SAAM walk-in text in container: {saam_walkin_text[:200]}")
+                        else:
+                            saam_walkin_text = None
+                    else:
+                        saam_walkin_text = None
+                else:
+                    saam_walkin_text = None
+                
+                # Fallback to regex if position search didn't work
+                if not saam_walkin_text:
+                    saam_match = re.search(
+                        r"SAAM'?s?\s+main\s+building[^.]*start\s+at[^.]*\.?",
+                        container_text,
+                        re.IGNORECASE
+                    )
+                    if saam_match:
+                        saam_walkin_text = saam_match.group(0).strip()
+                        # Try to extend to get full sentence with all times
+                        match_start = container_text.find(saam_walkin_text)
+                        next_period = container_text.find('.', match_start + len(saam_walkin_text))
+                        if next_period > match_start:
+                            saam_walkin_text = container_text[match_start:next_period+1].strip()
+                        logger.info(f"   ✅ Found SAAM walk-in text (regex fallback): {saam_walkin_text[:150]}")
+                else:
+                    # Fallback: search for the full sentence containing all times
+                    # The sentence is: "Free, docent-led walk-in tours at SAAM's main building start at 12:30 p.m., 2 p.m., and 4 p.m. daily."
+                    # Find position of "SAAM's main building" or "SAAM main building"
+                    saam_pos = container_text.lower().find("saam")
+                    if saam_pos >= 0:
+                        # Find the sentence start (previous period or start)
+                        sentence_start = max(0, container_text.rfind('.', 0, saam_pos))
+                        if sentence_start > 0:
+                            sentence_start += 1
+                        # Find sentence end - look for "daily" or "Check" followed by period
+                        sentence_end = -1
+                        for end_phrase in ['daily.', 'Check', 'Tours last']:
+                            phrase_pos = container_text.find(end_phrase, saam_pos)
+                            if phrase_pos > saam_pos:
+                                # Find the period after this phrase
+                                period_pos = container_text.find('.', phrase_pos)
+                                if period_pos > phrase_pos:
+                                    sentence_end = period_pos + 1
+                                    break
+                        
+                        if sentence_end == -1:
+                            # Fallback: find next period
+                            sentence_end = container_text.find('.', saam_pos) + 1
+                        
+                        if sentence_end > saam_pos:
+                            saam_walkin_text = container_text[sentence_start:sentence_end].strip()
+                            if 'start at' in saam_walkin_text.lower():
+                                logger.info(f"   ✅ Found SAAM text (position-based): {saam_walkin_text[:200]}")
+                            else:
+                                saam_walkin_text = None
+                        else:
+                            saam_walkin_text = None
+                    else:
+                        saam_walkin_text = None
         
-        # Fallback: search in full page text
+        # Fallback: search in full page text (normalized)
         if not saam_walkin_text:
-            saam_match = re.search(
+            # Try multiple patterns to find SAAM walk-in tour text
+            patterns = [
                 r"SAAM'?s?\s+main\s+building[^.]*start\s+at[^.]*\.?",
-                page_text,
-                re.IGNORECASE
-            )
-            if saam_match:
-                saam_walkin_text = saam_match.group(0)
+                r"Free[^.]*docent-led[^.]*walk-in[^.]*SAAM[^.]*main building[^.]*start\s+at[^.]*\.?",
+                r"main\s+building[^.]*start\s+at\s+12:30[^.]*\.?",
+            ]
+            for pattern in patterns:
+                saam_match = re.search(pattern, page_text, re.IGNORECASE)
+                if saam_match:
+                    saam_walkin_text = saam_match.group(0).strip()
+                    logger.info(f"   ✅ Found SAAM text with fallback pattern: {saam_walkin_text[:100]}")
+                    break
         
         if saam_walkin_text:
+            logger.info(f"   ✅ Found SAAM walk-in tour text: {saam_walkin_text[:150]}...")
             # Extract times (e.g., "12:30 p.m., 2 p.m., and 4 p.m.")
-            times = re.findall(r'(\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?)', saam_walkin_text, re.IGNORECASE)
+            # Handle cases where text might be truncated (e.g., "12:30 p." instead of "12:30 p.m.")
+            times = re.findall(r'(\d{1,2}(?::\d{2})?\s*[ap]\.?m?\.?)', saam_walkin_text, re.IGNORECASE)
+            # Clean up times - if we have "12:30 p." add ".m."
+            cleaned_times = []
+            for t in times:
+                if t.endswith(' p.') or t.endswith(' a.'):
+                    cleaned_times.append(t + 'm.')
+                else:
+                    cleaned_times.append(t)
+            times = cleaned_times
+            logger.info(f"   📅 Found {len(times)} SAAM tour time(s): {times}")
+            if not times:
+                logger.warning(f"   ⚠️  No times extracted from SAAM text: {saam_walkin_text[:200]}")
+                # Try a more lenient pattern
+                times = re.findall(r'(\d{1,2}(?::\d{2})?\s*[ap]\.?m?\.?)', page_text, re.IGNORECASE)
+                if times:
+                    logger.info(f"   🔄 Found times with lenient pattern: {times[:5]}")
+                    # Filter to only times near "main building" or "SAAM"
+                    saam_context = page_text[max(0, page_text.lower().find('main building')-100):page_text.lower().find('main building')+300]
+                    times = re.findall(r'(\d{1,2}(?::\d{2})?\s*[ap]\.?m?\.?)', saam_context, re.IGNORECASE)
+                    logger.info(f"   🔄 Times near 'main building': {times[:5]}")
             
+            saam_tour_count = 0
+            logger.info(f"   🔄 Creating walk-in tour events for {len(times)} time slot(s) over next 30 days...")
             for time_str in times:
                 # Create recurring tour events for each time slot
                 # These happen daily, so we'll create events for the next 30 days
@@ -1368,51 +1499,124 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                             'title': 'Docent-Led Walk-In Tour',
                             'description': 'Free, docent-led walk-in tour at the Smithsonian American Art Museum. Tours last approximately one hour.',
                             'event_type': 'tour',
-                            'start_date': tour_date,
-                            'end_date': tour_date,
-                            'start_time': start_time.strftime('%H:%M'),
-                            'end_time': end_time.strftime('%H:%M'),
+                            'start_date': tour_date,  # This is a date object
+                            'end_date': tour_date,    # This is a date object
+                            'start_time': start_time.strftime('%H:%M'),  # String format 'HH:MM'
+                            'end_time': end_time.strftime('%H:%M'),      # String format 'HH:MM'
                             'organizer': VENUE_NAME,
                             'source_url': SAAM_TOURS_URL,
+                            'url': SAAM_TOURS_URL,  # Also set url field
                             'social_media_platform': 'website',
                             'social_media_url': SAAM_TOURS_URL,
                             'meeting_point': 'Check with the Information Desk when you arrive',
+                            'is_selected': True,  # Make sure tours are visible
+                            'source': 'website',  # Set source field
                         }
                         events.append(event)
+                        saam_tour_count += 1
+                        if saam_tour_count <= 3:  # Log first 3 for debugging
+                            logger.info(f"   📝 Sample SAAM tour event: {event['title']} on {event['start_date']} at {event['start_time']}")
+            
+            logger.info(f"   ✅ Created {saam_tour_count} SAAM walk-in tour events in memory")
+        else:
+            logger.warning(f"   ⚠️  Could not find SAAM walk-in tour information on tours page")
         
         # Parse walk-in tours for Renwick Gallery
         renwick_walkin_text = None
-        if walkin_section:
-            container = walkin_section.find_next(['div', 'section', 'ul'])
-            if container:
-                container_text = container.get_text()
-                # Find the line about Renwick Gallery
-                for line in container_text.split('\n'):
-                    if 'Renwick' in line and 'start at' in line.lower():
-                        renwick_walkin_text = line
-                        break
         
-        # Fallback: search in full page text
+        # Debug: Check if "Renwick" appears anywhere on the page
+        if 'Renwick' in page_text:
+            logger.debug(f"   ✅ Found 'Renwick' mentioned on tours page")
+            # Find the context around Renwick mentions
+            renwick_contexts = []
+            for match in re.finditer(r'Renwick', page_text, re.IGNORECASE):
+                start = max(0, match.start() - 100)
+                end = min(len(page_text), match.end() + 100)
+                context = page_text[start:end].replace('\n', ' ').strip()
+                renwick_contexts.append(context)
+            if renwick_contexts:
+                logger.debug(f"   Renwick contexts found: {len(renwick_contexts)}")
+                for i, ctx in enumerate(renwick_contexts[:3]):  # Log first 3
+                    logger.debug(f"   Context {i+1}: ...{ctx}...")
+        else:
+            logger.warning(f"   ⚠️  'Renwick' not found anywhere on tours page - tours may not be listed")
+        
+        # Try multiple strategies to find Renwick tour information
+        # Strategy 1: Look in walk-in section container
+        if walkin_section:
+            # Get parent container and normalize text
+            container = walkin_section.find_next(['div', 'section', 'ul', 'p'])
+            if container:
+                container_text = ' '.join(container.get_text().split())  # Normalize whitespace
+                # Find the line about Renwick Gallery - try multiple patterns
+                # Also search in the full container text (not just line by line)
+                if 'renwick' in container_text.lower() and ('start' in container_text.lower() or 'noon' in container_text.lower()):
+                    # Extract the relevant portion
+                    renwick_match = re.search(r'[^.]*Renwick[^.]*start\s+at[^.]*\.?', container_text, re.IGNORECASE)
+                    if renwick_match:
+                        renwick_walkin_text = renwick_match.group(0).strip()
+                        logger.debug(f"   Found Renwick text in container: {renwick_walkin_text[:100]}")
+                    else:
+                        # Fallback: just use the container text if it mentions Renwick
+                        for line in container_text.split('.'):
+                            line_lower = line.lower()
+                            if 'renwick' in line_lower and ('start' in line_lower or 'noon' in line_lower):
+                                renwick_walkin_text = line.strip()
+                                logger.debug(f"   Found Renwick line in container: {renwick_walkin_text[:100]}")
+                                break
+        
+        # Strategy 2: Search in full page text with multiple patterns
+        # Actual text format: "Free, docent-led walk-in tours at SAAM's Renwick Gallery start at noon Monday through Saturday"
         if not renwick_walkin_text:
-            renwick_match = re.search(
+            patterns = [
+                r"SAAM'?s?\s+Renwick\s+Gallery[^.]*start\s+at[^.]*\.?",  # Match "SAAM's Renwick Gallery start at"
                 r"Renwick\s+Gallery[^.]*start\s+at[^.]*\.?",
-                page_text,
-                re.IGNORECASE
-            )
-            if renwick_match:
-                renwick_walkin_text = renwick_match.group(0)
+                r"Renwick\s+Gallery[^.]*tour[^.]*\.?",
+                r"Renwick[^.]*start\s+at\s+noon[^.]*\.?",  # Match "Renwick...start at noon"
+                r"Renwick[^.]*noon[^.]*Monday[^.]*\.?",  # Match "Renwick...noon...Monday"
+                r"Renwick[^.]*(\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?)[^.]*\.?",
+            ]
+            for pattern in patterns:
+                renwick_match = re.search(pattern, page_text, re.IGNORECASE)
+                if renwick_match:
+                    renwick_walkin_text = renwick_match.group(0).strip()
+                    logger.debug(f"   Found Renwick text with pattern {pattern}: {renwick_walkin_text[:100]}")
+                    break
+        
+        # Strategy 3: Look for any mention of Renwick near time patterns (expanded context)
+        if not renwick_walkin_text:
+            # Find all mentions of "Renwick" and check nearby text for times
+            renwick_mentions = list(re.finditer(r'Renwick', page_text, re.IGNORECASE))
+            for mention in renwick_mentions:
+                # Get text around the mention (400 chars before and after for more context)
+                start_pos = max(0, mention.start() - 400)
+                end_pos = min(len(page_text), mention.end() + 400)
+                context = page_text[start_pos:end_pos]
+                
+                # Check if this context has time patterns or "start at"
+                if re.search(r'\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?|noon|start\s+at', context, re.IGNORECASE):
+                    renwick_walkin_text = context.strip()
+                    logger.debug(f"   Found Renwick with time context: {renwick_walkin_text[:150]}")
+                    break
         
         if renwick_walkin_text:
+            logger.info(f"   ✅ Found Renwick walk-in tour text: {renwick_walkin_text[:150]}...")
             # Check if it says "noon" or specific times
             if 'noon' in renwick_walkin_text.lower():
                 times = ['12:00 p.m.']
+                logger.info(f"   📅 Detected 'noon' - using time: {times[0]}")
             else:
                 times = re.findall(r'(\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?)', renwick_walkin_text, re.IGNORECASE)
+                logger.info(f"   📅 Found {len(times)} Renwick tour time(s) via regex: {times}")
+            
+            if not times:
+                logger.warning(f"   ⚠️  No times extracted from Renwick text: {renwick_walkin_text[:200]}")
             
             # Check days (Monday through Saturday, no tours on Sundays)
             days_match = re.search(r'(Monday through Saturday|Monday-Saturday|Mon-Sat)', renwick_walkin_text, re.IGNORECASE)
             is_weekdays_only = days_match is not None
             
+            renwick_tour_count = 0
             for time_str in times:
                 from datetime import timedelta
                 today = date.today()
@@ -1446,17 +1650,38 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                         'title': 'Docent-Led Walk-In Tour',
                         'description': 'Free, docent-led walk-in tour at the Renwick Gallery. Tours last approximately one hour.',
                         'event_type': 'tour',
-                        'start_date': tour_date,
-                        'end_date': tour_date,
-                        'start_time': start_time.strftime('%H:%M'),
-                        'end_time': end_time.strftime('%H:%M'),
-                        'organizer': RENWICK_VENUE_NAME,
+                        'start_date': tour_date,  # This is a date object
+                        'end_date': tour_date,    # This is a date object
+                        'start_time': start_time.strftime('%H:%M'),  # String format 'HH:MM'
+                        'end_time': end_time.strftime('%H:%M'),      # String format 'HH:MM'
+                        'organizer': RENWICK_VENUE_NAME,  # This should be "Renwick Gallery"
                         'source_url': SAAM_TOURS_URL,
+                        'url': SAAM_TOURS_URL,  # Also set url field
                         'social_media_platform': 'website',
                         'social_media_url': SAAM_TOURS_URL,
                         'meeting_point': 'Check with the Information Desk when you arrive',
+                        'location': RENWICK_VENUE_NAME,  # Also set location to ensure detection
+                        'venue_name': RENWICK_VENUE_NAME,  # Explicitly set venue_name for detection
+                        'is_selected': True,  # Make sure tours are visible
+                        'source': 'website',  # Set source field
                     }
                     events.append(event)
+                    renwick_tour_count += 1
+                    if renwick_tour_count <= 3:  # Log first 3 for debugging
+                        logger.info(f"   📝 Sample Renwick tour event: {event['title']} on {event['start_date']} at {event['start_time']}")
+            
+            logger.info(f"   ✅ Created {renwick_tour_count} Renwick walk-in tour events in memory")
+        else:
+            logger.warning(f"   ⚠️  Could not find Renwick walk-in tour information on tours page")
+            # Debug: Show what we did find
+            if 'Renwick' in page_text:
+                logger.info(f"   🔍 'Renwick' IS in page text, but patterns didn't match")
+                # Try to find the actual text
+                renwick_snippet = re.search(r'[^.]*Renwick[^.]{0,100}', page_text, re.IGNORECASE)
+                if renwick_snippet:
+                    logger.info(f"   📝 Sample Renwick text found: {renwick_snippet.group(0)[:200]}")
+            else:
+                logger.warning(f"   🔍 'Renwick' NOT found in page text at all")
         
         # Also look for individual tour event links
         tour_links = soup.find_all('a', href=re.compile(r'/events/|/visit/tours'))
@@ -1487,6 +1712,11 @@ def scrape_saam_tours(scraper=None) -> List[Dict]:
                     logger.warning(f"   ⚠️ Error scraping tour {full_url}: {e}")
         
         logger.info(f"   ✅ Found {len(events)} tours (including walk-in tours)")
+        if events:
+            logger.info(f"   📊 Tour breakdown: {len([e for e in events if 'Walk-In Tour' in e.get('title', '')])} walk-in tours, {len([e for e in events if 'Walk-In Tour' not in e.get('title', '')])} other tours")
+            # Log sample tour
+            sample = events[0]
+            logger.info(f"   📝 Sample tour: {sample.get('title')} on {sample.get('start_date')} at {sample.get('start_time')}")
         
     except Exception as e:
         logger.error(f"❌ Error scraping SAAM tours: {e}")
@@ -2524,12 +2754,21 @@ def scrape_all_saam_exhibitions() -> List[Dict]:
     return scrape_saam_exhibitions(scraper)
 
 
-def scrape_all_saam_events() -> List[Dict]:
-    """Main function to scrape all SAAM events (exhibitions, tours, talks, etc.)"""
+def scrape_all_saam_events(target_venue_name: str = None) -> List[Dict]:
+    """
+    Main function to scrape all SAAM events (exhibitions, tours, talks, etc.)
+    
+    Args:
+        target_venue_name: Optional venue name to filter events for (e.g., "Renwick Gallery")
+                          If provided, only events for that venue will be returned.
+    """
     scraper = create_scraper()
     all_events = []
     
-    logger.info("🎨 Starting comprehensive SAAM scraping...")
+    if target_venue_name:
+        logger.info(f"🎨 Starting SAAM scraping for {target_venue_name}...")
+    else:
+        logger.info("🎨 Starting comprehensive SAAM scraping...")
     
     # 1. Scrape exhibitions
     logger.info("📋 Scraping exhibitions...")
@@ -2542,6 +2781,15 @@ def scrape_all_saam_events() -> List[Dict]:
     tours = scrape_saam_tours(scraper)
     all_events.extend(tours)
     logger.info(f"   ✅ Found {len(tours)} tours")
+    if tours:
+        tour_types = {}
+        for tour in tours:
+            tour_type = tour.get('event_type', 'unknown')
+            tour_types[tour_type] = tour_types.get(tour_type, 0) + 1
+        logger.info(f"   📊 Tour breakdown by type: {tour_types}")
+        # Log sample tours
+        for i, tour in enumerate(tours[:3]):
+            logger.info(f"   📝 Sample tour {i+1}: {tour.get('title')} on {tour.get('start_date')} at {tour.get('start_time')}")
     
     # 3. Scrape events (talks, gallery talks, etc.)
     logger.info("🎤 Scraping events (talks, etc.)...")
@@ -2549,395 +2797,163 @@ def scrape_all_saam_events() -> List[Dict]:
     all_events.extend(events)
     logger.info(f"   ✅ Found {len(events)} events")
     
-    logger.info(f"✅ Total SAAM events scraped: {len(all_events)}")
+    # Log final breakdown
+    event_types = {}
+    for event in all_events:
+        event_type = event.get('event_type', 'unknown')
+        event_types[event_type] = event_types.get(event_type, 0) + 1
+    logger.info(f"✅ Total SAAM events scraped: {len(all_events)} (breakdown: {event_types})")
+    
+    # If target_venue_name is specified, filter events for that venue only
+    if target_venue_name:
+        filtered_events = []
+        target_lower = target_venue_name.lower()
+        for event_data in all_events:
+            organizer = event_data.get('organizer', '').lower()
+            location = event_data.get('location', '').lower()
+            title = event_data.get('title', '').lower()
+            venue_name = event_data.get('venue_name', '').lower()
+            
+            # Check if this event belongs to the target venue
+            is_target_venue = (
+                target_lower in organizer or
+                target_lower in location or
+                target_lower in title or
+                target_lower in venue_name
+            )
+            
+            if is_target_venue:
+                filtered_events.append(event_data)
+                logger.debug(f"   ✅ Included for {target_venue_name}: {event_data.get('title', '')[:50]}")
+            else:
+                logger.debug(f"   ⏭️  Excluded (not for {target_venue_name}): {event_data.get('title', '')[:50]}")
+        
+        logger.info(f"📊 Filtered to {len(filtered_events)} events for {target_venue_name} (from {len(all_events)} total)")
+        return filtered_events
+    
     return all_events
 
 
 def create_events_in_database(events: List[Dict]) -> tuple:
     """
     Create or update events in the database.
-    Skips category headings and invalid titles.
-    """
-    from scripts.utils import is_category_heading
-    """
-    Create scraped events in the database with update-or-create logic
+    Uses shared event_database_handler for common logic.
+    Handles SAAM/Renwick venue determination.
     Returns (created_count, updated_count)
     """
+    from scripts.event_database_handler import create_events_in_database as shared_create_events
+    
     with app.app_context():
-        created_count = 0
-        updated_count = 0
-        skipped_count = 0
+        # Group events by venue (SAAM vs Renwick)
+        saam_events = []
+        renwick_events = []
         
         for event_data in events:
-            try:
-                title = event_data.get('title', '').strip()
-                if not title:
-                    continue
-                
-                # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-                if is_category_heading(title):
-                    logger.debug(f"   ⏭️ Skipping category heading: '{title}'")
-                    skipped_count += 1
-                    continue
-                
-                # Determine which venue this event belongs to
-                # Even online events are hosted by SAAM, so we should still assign a venue
-                is_online_event = event_data.get('is_online', False)
-                venue = None
-                venue_name = None
-                
-                # For online events, still try to determine the venue from organizer
-                organizer = event_data.get('organizer', VENUE_NAME)
-                if 'Renwick' in organizer:
-                    venue_name = RENWICK_VENUE_NAME
-                elif 'Online' not in organizer or is_online_event:
-                    # For online events, default to SAAM since they're hosted by SAAM
-                    venue_name = VENUE_NAME
-                
-                if venue_name:
-                    # Find venue
-                    venue = Venue.query.filter(
-                        db.func.lower(Venue.name).like(f'%{venue_name.lower()}%')
-                    ).first()
-                    
-                    # Only skip if it's not an online event and venue not found
-                    # For online events, we'll continue without venue but still assign city
-                    if not venue and not is_online_event:
-                        logger.warning(f"   ⚠️  Venue '{venue_name}' not found, skipping event: {event_data.get('title')}")
-                        continue
-                
-                # Find city
-                city = City.query.filter(
-                    db.func.lower(City.name).like(f'%{CITY_NAME.lower().split(",")[0]}%')
-                ).first()
-                
-                if not city:
-                    logger.warning(f"   ⚠️  City '{CITY_NAME}' not found, skipping event: {event_data.get('title')}")
-                    continue
-                
-                # Validate required fields
-                title = event_data.get('title', '').strip()
-                if not title:
-                    logger.warning(f"   ⚠️  Skipping event: missing title")
-                    continue
-                
-                # Skip non-English language events
-                language = event_data.get('language', 'English')
-                if language and language.lower() != 'english':
-                    logger.debug(f"   ⚠️  Skipping non-English event: '{title}' (language: {language})")
-                    continue
-                
-                # Detect if event is baby-friendly
-                is_baby_friendly = False
-                title_lower = title.lower()
-                description_lower = (event_data.get('description', '') or '').lower()
-                combined_text = f"{title_lower} {description_lower}"
-                
-                baby_keywords = [
-                    'baby', 'babies', 'toddler', 'toddlers', 'infant', 'infants',
-                    'ages 0-2', 'ages 0–2', 'ages 0 to 2', '0-2 years', '0–2 years',
-                    'ages 0-3', 'ages 0–3', 'ages 0 to 3', '0-3 years', '0–3 years',
-                    'bring your own baby', 'byob', 'baby-friendly', 'baby friendly',
-                    'stroller', 'strollers', 'nursing', 'breastfeeding',
-                    'family program', 'family-friendly', 'family friendly',
-                    'art & play', 'art and play', 'play time', 'playtime',
-                    'children', 'kids', 'little ones', 'young families'
-                ]
-                
-                if any(keyword in combined_text for keyword in baby_keywords):
-                    is_baby_friendly = True
-                    logger.info(f"   👶 Detected baby-friendly event: '{title}'")
-                
-                # Handle missing start_date - check if it might be ongoing/permanent
-                if not event_data.get('start_date'):
-                    from scripts.utils import get_ongoing_exhibition_dates, detect_ongoing_exhibition
-                    # Check if event might be ongoing/permanent
-                    description_text = event_data.get('description', '') or ''
-                    title_text = event_data.get('title', '') or ''
-                    is_ongoing = detect_ongoing_exhibition(description_text) or detect_ongoing_exhibition(title_text)
-                    
-                    if is_ongoing:
-                        # Set dates for ongoing exhibition
-                        start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
-                        event_data['start_date'] = start_date_obj
-                        event_data['end_date'] = end_date_obj
-                        logger.info(f"   🔄 Treating '{event_data.get('title')}' as ongoing/permanent exhibition (start: {start_date_obj.isoformat()}, end: {end_date_obj.isoformat()})")
-                    else:
-                        logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': missing start_date")
-                        continue
-                
-                # Parse date
-                if isinstance(event_data['start_date'], date):
-                    event_date = event_data['start_date']
-                else:
-                    try:
-                        event_date = datetime.fromisoformat(str(event_data['start_date'])).date()
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"   ⚠️  Skipping event '{event_data.get('title')}': invalid date format: {e}")
-                        continue
-                
-                # Parse times
-                start_time_obj = None
-                end_time_obj = None
-                if event_data.get('start_time'):
-                    try:
-                        if isinstance(event_data['start_time'], dt_time):
-                            start_time_obj = event_data['start_time']
-                        else:
-                            # Try parsing as HH:MM string
-                            time_str = str(event_data['start_time'])
-                            if ':' in time_str:
-                                parts = time_str.split(':')
-                                start_time_obj = dt_time(int(parts[0]), int(parts[1]))
-                    except (ValueError, TypeError):
-                        pass
-                
-                if event_data.get('end_time'):
-                    try:
-                        if isinstance(event_data['end_time'], dt_time):
-                            end_time_obj = event_data['end_time']
-                        else:
-                            time_str = str(event_data['end_time'])
-                            if ':' in time_str:
-                                parts = time_str.split(':')
-                                end_time_obj = dt_time(int(parts[0]), int(parts[1]))
-                    except (ValueError, TypeError):
-                        pass
-                
-                # Check if event already exists
-                # For recurring events (like walk-in tours), prioritize date-based matching
-                # For unique events, use URL-based matching
-                existing = None
-                source_url = event_data.get('source_url') or event_data.get('url')
-                
-                # First, try to match by title + venue + date (for recurring events)
-                # Include start_time in duplicate check to distinguish between multiple tours on same day
-                query = Event.query.filter_by(
-                    title=event_data.get('title'),
-                    venue_id=venue.id if venue else None,
-                    start_date=event_date,
-                    city_id=city.id
-                )
-                if start_time_obj:
-                    query = query.filter_by(start_time=start_time_obj)
-                existing = query.first()
-                
-                # If not found and we have a unique URL, try URL-based matching
-                # But only if the URL is specific (not a generic page like /visit/tours)
-                if not existing and source_url:
-                    # Skip URL matching for generic/recurring event URLs
-                    generic_urls = ['/visit/tours', '/tours', '/events', '/calendar']
-                    is_generic_url = any(generic in source_url.lower() for generic in generic_urls)
-                    
-                    if not is_generic_url:
-                        existing = Event.query.filter_by(
-                            url=source_url,
-                            city_id=city.id
-                        ).first()
-                
-                # Parse end_date
-                end_date = event_date
-                if event_data.get('end_date'):
-                    if isinstance(event_data['end_date'], date):
-                        end_date = event_data['end_date']
-                    else:
-                        try:
-                            end_date = datetime.fromisoformat(str(event_data['end_date'])).date()
-                        except (ValueError, TypeError):
-                            end_date = event_date
-                
-                if existing:
-                    # Update existing event
-                    updated = False
-                    
-                    if event_data.get('title') and existing.title != event_data.get('title'):
-                        existing.title = event_data.get('title')
-                        updated = True
-                    
-                    if event_data.get('event_type') and existing.event_type != event_data.get('event_type'):
-                        existing.event_type = event_data.get('event_type')
-                        updated = True
-                    
-                    if event_data.get('description') and (not existing.description or len(event_data['description']) > len(existing.description or '')):
-                        existing.description = event_data.get('description')
-                        updated = True
-                    
-                    if source_url and existing.url != source_url:
-                        existing.url = source_url
-                        updated = True
-                    
-                    if event_data.get('image_url') and not existing.image_url:
-                        existing.image_url = event_data.get('image_url')
-                        updated = True
-                    
-                    if event_data.get('meeting_point') and existing.start_location != event_data.get('meeting_point'):
-                        existing.start_location = event_data.get('meeting_point')
-                        updated = True
-                    
-                    if start_time_obj and (not existing.start_time or existing.start_time != start_time_obj):
-                        existing.start_time = start_time_obj
-                        updated = True
-                    
-                    if end_time_obj and (not existing.end_time or existing.end_time != end_time_obj):
-                        existing.end_time = end_time_obj
-                        updated = True
-                    
-                    # Update registration fields
-                    if hasattr(Event, 'is_registration_required'):
-                        if event_data.get('is_registration_required') is not None:
-                            if existing.is_registration_required != event_data.get('is_registration_required'):
-                                existing.is_registration_required = event_data.get('is_registration_required')
-                                updated = True
-                    
-                    if hasattr(Event, 'registration_url') and event_data.get('registration_url'):
-                        if existing.registration_url != event_data.get('registration_url'):
-                            existing.registration_url = event_data.get('registration_url')
-                            updated = True
-                    
-                    if hasattr(Event, 'registration_info') and event_data.get('registration_info'):
-                        if not existing.registration_info or existing.registration_info != event_data.get('registration_info'):
-                            existing.registration_info = event_data.get('registration_info')
-                            updated = True
-                    
-                    # Update pricing fields
-                    if hasattr(Event, 'price') and event_data.get('price') is not None:
-                        if existing.price != event_data.get('price'):
-                            existing.price = event_data.get('price')
-                            updated = True
-                    
-                    if hasattr(Event, 'admission_price') and event_data.get('admission_price') is not None:
-                        if existing.admission_price != event_data.get('admission_price'):
-                            existing.admission_price = event_data.get('admission_price')
-                            updated = True
-                    
-                    # Update online status
-                    if hasattr(Event, 'is_online') and event_data.get('is_online') is not None:
-                        if existing.is_online != event_data.get('is_online'):
-                            existing.is_online = event_data.get('is_online')
-                            updated = True
-                    
-                    # Update city_id if not set (especially for online events)
-                    if city and (not existing.city_id or existing.city_id != city.id):
-                        existing.city_id = city.id
-                        updated = True
-                    
-                    # Update venue_id if not set (for online events that should have venue)
-                    if venue and (not existing.venue_id or existing.venue_id != venue.id):
-                        existing.venue_id = venue.id
-                        updated = True
-                    
-                    # Update baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly') and is_baby_friendly:
-                        if not existing.is_baby_friendly:
-                            existing.is_baby_friendly = True
-                            updated = True
-                    
-                    # Update start_date and end_date (important for ongoing exhibitions)
-                    if event_data.get('start_date'):
-                        event_start_date = event_data['start_date']
-                        if isinstance(event_start_date, str):
-                            try:
-                                event_start_date = datetime.strptime(event_start_date, '%Y-%m-%d').date()
-                            except (ValueError, TypeError):
-                                try:
-                                    event_start_date = datetime.fromisoformat(event_start_date).date()
-                                except (ValueError, TypeError):
-                                    event_start_date = None
-                        
-                        if event_start_date and (not existing.start_date or existing.start_date != event_start_date):
-                            existing.start_date = event_start_date
-                            updated = True
-                            logger.debug(f"   📅 Updated start_date for existing event: {existing.title}")
-                    
-                    if event_data.get('end_date'):
-                        event_end_date = event_data['end_date']
-                        if isinstance(event_end_date, str):
-                            try:
-                                event_end_date = datetime.strptime(event_end_date, '%Y-%m-%d').date()
-                            except (ValueError, TypeError):
-                                try:
-                                    event_end_date = datetime.fromisoformat(event_end_date).date()
-                                except (ValueError, TypeError):
-                                    event_end_date = None
-                        
-                        if event_end_date:
-                            # Always update end_date if it's different (especially important for ongoing exhibitions)
-                            if not existing.end_date or existing.end_date != event_end_date:
-                                existing.end_date = event_end_date
-                                updated = True
-                                logger.debug(f"   📅 Updated end_date for existing event: {existing.title} (new: {event_end_date})")
-                    
-                    if updated:
-                        db.session.commit()
-                        updated_count += 1
-                        logger.info(f"   ✅ Updated: {event_data['title']}")
-                else:
-                    # Create new event
-                    # Set location for online events
-                    location_text = "Online" if is_online_event else (event_data.get('meeting_point') or event_data.get('location') or (venue.name if venue else None))
-                    # For online events, use venue name as organizer (they're still hosted by SAAM)
-                    organizer_text = event_data.get('organizer', (venue.name if venue else VENUE_NAME) if is_online_event else (venue.name if venue else None))
-                    # If organizer is "Online", replace with venue name
-                    if organizer_text == "Online" and venue:
-                        organizer_text = venue.name
-                    elif organizer_text == "Online":
-                        organizer_text = VENUE_NAME
-                    
-                    event = Event(
-                        title=event_data['title'],
-                        description=event_data.get('description'),
-                        start_date=event_date,
-                        end_date=end_date,
-                        start_time=start_time_obj,
-                        end_time=end_time_obj,
-                        start_location=location_text,
-                        venue_id=venue.id if venue else None,
-                        city_id=city.id,  # Always set city - even online events are hosted by SAAM in Washington, DC
-                        event_type=event_data.get('event_type', 'event'),
-                        url=source_url,
-                        image_url=event_data.get('image_url'),
-                        social_media_platform=event_data.get('social_media_platform', 'website'),
-                        social_media_url=source_url,
-                        organizer=organizer_text,
-                    )
-                    
-                    # Add registration fields if they exist
-                    if hasattr(Event, 'is_registration_required'):
-                        event.is_registration_required = event_data.get('is_registration_required', False)
-                    if hasattr(Event, 'registration_url'):
-                        event.registration_url = event_data.get('registration_url')
-                    if hasattr(Event, 'registration_info'):
-                        event.registration_info = event_data.get('registration_info')
-                    
-                    # Add pricing fields if they exist
-                    if hasattr(Event, 'price') and event_data.get('price') is not None:
-                        event.price = event_data.get('price')
-                    if hasattr(Event, 'admission_price') and event_data.get('admission_price') is not None:
-                        event.admission_price = event_data.get('admission_price')
-                    
-                    # Add online status
-                    if hasattr(Event, 'is_online') and event_data.get('is_online') is not None:
-                        event.is_online = event_data.get('is_online')
-                    
-                    # Set baby-friendly flag if detected
-                    if hasattr(Event, 'is_baby_friendly'):
-                        event.is_baby_friendly = is_baby_friendly
-                    
-                    db.session.add(event)
-                    db.session.commit()
-                    created_count += 1
-                    logger.info(f"   ✅ Created: {event_data['title']}")
-                    
-            except Exception as e:
-                logger.error(f"   ❌ Error processing event '{event_data.get('title', 'Unknown')}': {e}")
-                db.session.rollback()
-                continue
+            # Determine venue based on organizer (SAAM-specific logic)
+            organizer = event_data.get('organizer', VENUE_NAME)
+            title = event_data.get('title', '')
+            location = event_data.get('location', '')
+            event_type = event_data.get('event_type', 'unknown')
+            
+            # Check multiple fields for Renwick identification
+            is_renwick = (
+                'Renwick' in organizer or
+                'Renwick' in location or
+                'Renwick' in title or
+                event_data.get('venue_name') == RENWICK_VENUE_NAME
+            )
+            
+            if is_renwick:
+                renwick_events.append(event_data)
+                logger.debug(f"   📍 Classified as Renwick: {title[:50]}... (organizer: {organizer})")
+            else:
+                saam_events.append(event_data)
         
-        if skipped_count > 0:
-            logger.info(f"   ⏭️ Skipped {skipped_count} category heading(s)")
-        if skipped_count > 0:
-            logger.info(f"   ⏭️ Skipped {skipped_count} category heading(s)")
-        return created_count, updated_count
+        # Log detailed breakdown
+        saam_by_type = {}
+        for e in saam_events:
+            et = e.get('event_type', 'unknown')
+            saam_by_type[et] = saam_by_type.get(et, 0) + 1
+        renwick_by_type = {}
+        for e in renwick_events:
+            et = e.get('event_type', 'unknown')
+            renwick_by_type[et] = renwick_by_type.get(et, 0) + 1
+        
+        logger.info(f"📊 Event grouping: {len(saam_events)} SAAM events ({saam_by_type}), {len(renwick_events)} Renwick events ({renwick_by_type})")
+        
+        total_created = 0
+        total_updated = 0
+        
+        # Process SAAM events
+        if saam_events:
+            venue = Venue.query.filter(
+                db.func.lower(Venue.name).like(f'%{VENUE_NAME.lower()}%')
+            ).first()
+            
+            if venue:
+                logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
+                logger.info(f"📊 Processing {len(saam_events)} SAAM events...")
+                
+                def saam_event_processor(event_data):
+                    """Add SAAM-specific fields"""
+                    event_data['source'] = 'website'
+                    # Handle online events
+                    if event_data.get('is_online') and not event_data.get('start_location'):
+                        event_data['start_location'] = 'Online'
+                
+                created, updated, skipped = shared_create_events(
+                    events=saam_events,
+                    venue_id=venue.id,
+                    city_id=venue.city_id,
+                    venue_name=venue.name,
+                    db=db,
+                    Event=Event,
+                    Venue=Venue,
+                    batch_size=5,
+                    logger_instance=logger,
+                    custom_event_processor=saam_event_processor
+                )
+                total_created += created
+                total_updated += updated
+        
+        # Process Renwick events (if any)
+        if renwick_events:
+            logger.info(f"📊 Found {len(renwick_events)} Renwick events to process")
+            renwick_venue = Venue.query.filter(
+                db.func.lower(Venue.name).like('%Renwick%')
+            ).first()
+            
+            if renwick_venue:
+                logger.info(f"✅ Found venue: {renwick_venue.name} (ID: {renwick_venue.id})")
+                logger.info(f"📊 Processing {len(renwick_events)} Renwick events...")
+                
+                def renwick_event_processor(event_data):
+                    """Add Renwick-specific fields"""
+                    event_data['source'] = 'website'
+                    event_data['organizer'] = renwick_venue.name
+                
+                created, updated, skipped = shared_create_events(
+                    events=renwick_events,
+                    venue_id=renwick_venue.id,
+                    city_id=renwick_venue.city_id,
+                    venue_name=renwick_venue.name,
+                    db=db,
+                    Event=Event,
+                    Venue=Venue,
+                    batch_size=5,
+                    logger_instance=logger,
+                    custom_event_processor=renwick_event_processor
+                )
+                total_created += created
+                total_updated += updated
+                logger.info(f"✅ Renwick: Created {created}, Updated {updated}, Skipped {skipped}")
+            else:
+                logger.warning(f"⚠️  Renwick Gallery venue not found in database! {len(renwick_events)} Renwick events will not be saved.")
+                logger.warning(f"   Please ensure 'Renwick Gallery' venue exists in the database.")
+        else:
+            logger.debug(f"ℹ️  No Renwick events found in this batch")
+        
+        return total_created, total_updated
 
 
 if __name__ == '__main__':
