@@ -486,9 +486,10 @@ class VenueEventScraper:
                             event['city_id'] = venue.city_id
                         filtered_saam_events.append(event)
                     
+                    original_count = len(saam_events)
                     saam_events = filtered_saam_events
-                    if len(filtered_saam_events) < len(saam_events):
-                        logger.info(f"   📊 Filtered out {len(saam_events) - len(filtered_saam_events)} events that belong to other venues")
+                    if original_count > len(filtered_saam_events):
+                        logger.info(f"   📊 Filtered out {original_count - len(filtered_saam_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         saam_events = [e for e in saam_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -558,9 +559,10 @@ class VenueEventScraper:
                             event['city_id'] = venue.city_id
                         filtered_npg_events.append(event)
                     
+                    original_count = len(npg_events)
                     npg_events = filtered_npg_events
-                    if len(filtered_npg_events) < len(npg_events):
-                        logger.info(f"   📊 Filtered out {len(npg_events) - len(filtered_npg_events)} events that belong to other venues")
+                    if original_count > len(filtered_npg_events):
+                        logger.info(f"   📊 Filtered out {original_count - len(filtered_npg_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         npg_events = [e for e in npg_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -630,9 +632,10 @@ class VenueEventScraper:
                             event['city_id'] = venue.city_id
                         filtered_asian_events.append(event)
                     
+                    original_count = len(asian_events)
                     asian_events = filtered_asian_events
-                    if len(filtered_asian_events) < len(asian_events):
-                        logger.info(f"   📊 Filtered out {len(asian_events) - len(filtered_asian_events)} events that belong to other venues")
+                    if original_count > len(filtered_asian_events):
+                        logger.info(f"   📊 Filtered out {original_count - len(filtered_asian_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         asian_events = [e for e in asian_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -702,9 +705,10 @@ class VenueEventScraper:
                             event['city_id'] = venue.city_id
                         filtered_african_events.append(event)
                     
+                    original_count = len(african_events)
                     african_events = filtered_african_events
-                    if len(filtered_african_events) < len(african_events):
-                        logger.info(f"   📊 Filtered out {len(african_events) - len(filtered_african_events)} events that belong to other venues")
+                    if original_count > len(filtered_african_events):
+                        logger.info(f"   📊 Filtered out {original_count - len(filtered_african_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         african_events = [e for e in african_events if e.get('event_type', '').lower() == event_type.lower()]
