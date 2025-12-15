@@ -596,11 +596,15 @@ class VenueEventScraper:
                 skipped_wrong_venue_count = 0
                 
                 for event in generic_events:
-                    # CRITICAL: Check URL domain to determine correct venue BEFORE assigning venue_id
+                    # CRITICAL: Check URL domain AND title/organizer to determine correct venue BEFORE assigning venue_id
                     # This prevents assigning events to wrong museums when generic scraper finds events from other venues
                     event_url = event.get('url') or event.get('source_url') or ''
+                    event_title = (event.get('title') or '').lower()
+                    event_organizer = (event.get('organizer') or '').lower()
+                    venue_name_lower = venue.name.lower()
                     should_skip = False
                     
+                    # Check URL domain first
                     if event_url:
                         event_url_lower = event_url.lower()
                         
@@ -630,6 +634,50 @@ class VenueEventScraper:
                             # This is a Hirshhorn event - should be handled by Hirshhorn scraper, not generic
                             logger.debug(f"   ⏭️ Skipping Hirshhorn event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
                             should_skip = True
+                    
+                    # ALSO check title and organizer for venue-specific keywords
+                    # This catches events that don't have URLs or have generic URLs
+                    if not should_skip:
+                        # Check if title contains names of other specialized museums
+                        if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Skipping Hirshhorn event (detected by title): '{event.get('title', 'N/A')}' - belongs to Hirshhorn, not {venue.name}")
+                            should_skip = True
+                        elif 'american art' in event_title and 'american art' not in venue_name_lower and 'renwick' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Skipping SAAM event (detected by title): '{event.get('title', 'N/A')}' - belongs to American Art, not {venue.name}")
+                            should_skip = True
+                        elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Skipping NPG event (detected by title): '{event.get('title', 'N/A')}' - belongs to Portrait Gallery, not {venue.name}")
+                            should_skip = True
+                        elif 'asian art' in event_title and 'asian' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Skipping Asian Art event (detected by title): '{event.get('title', 'N/A')}' - belongs to Asian Art, not {venue.name}")
+                            should_skip = True
+                        elif 'african art' in event_title and 'african' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Skipping African Art event (detected by title): '{event.get('title', 'N/A')}' - belongs to African Art, not {venue.name}")
+                            should_skip = True
+                        elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Skipping NGA event (detected by title): '{event.get('title', 'N/A')}' - belongs to National Gallery, not {venue.name}")
+                            should_skip = True
+                        
+                        # Also check organizer field
+                        if event_organizer:
+                            if 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
+                                logger.info(f"   ⏭️ Skipping Hirshhorn event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                should_skip = True
+                            elif 'american art' in event_organizer and 'american art' not in venue_name_lower and 'renwick' not in venue_name_lower:
+                                logger.info(f"   ⏭️ Skipping SAAM event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                should_skip = True
+                            elif 'portrait gallery' in event_organizer and 'portrait' not in venue_name_lower:
+                                logger.info(f"   ⏭️ Skipping NPG event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                should_skip = True
+                            elif 'asian art' in event_organizer and 'asian' not in venue_name_lower:
+                                logger.info(f"   ⏭️ Skipping Asian Art event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                should_skip = True
+                            elif 'african art' in event_organizer and 'african' not in venue_name_lower:
+                                logger.info(f"   ⏭️ Skipping African Art event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                should_skip = True
+                            elif 'national gallery' in event_organizer and 'national gallery' not in venue_name_lower:
+                                logger.info(f"   ⏭️ Skipping NGA event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                should_skip = True
                     
                     if should_skip:
                         skipped_wrong_venue_count += 1
