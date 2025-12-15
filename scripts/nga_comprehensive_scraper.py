@@ -79,54 +79,60 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
     # Track the original scraper
     current_scraper = scraper
     
+    def recreate_scraper():
+        """Helper to recreate cloudscraper session"""
+        logger.info(f"   🔧 Recreating cloudscraper session...")
+        detected_platform = platform.system().lower()
+        if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
+            platform_name = 'linux'
+        elif detected_platform == 'darwin':
+            platform_name = 'darwin'
+        else:
+            platform_name = 'windows'
+        
+        new_scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': platform_name,
+                'desktop': True
+            }
+        )
+        new_scraper.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0'
+        })
+        # Visit base URL first to establish session
+        try:
+            new_scraper.get(NGA_BASE_URL, timeout=15)
+            time.sleep(2)
+        except:
+            pass
+        return new_scraper
+    
     for attempt in range(max_retries):
         try:
             if attempt > 0:
                 wait_time = delay * (2 ** (attempt - 1))  # Exponential backoff
                 logger.info(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
                 time.sleep(wait_time)
-                
-                # Recreate scraper for fresh session on retry (especially for 403 errors)
-                logger.info(f"   🔧 Recreating cloudscraper session...")
-                detected_platform = platform.system().lower()
-                if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
-                    platform_name = 'linux'
-                elif detected_platform == 'darwin':
-                    platform_name = 'darwin'
-                else:
-                    platform_name = 'windows'
-                
-                current_scraper = cloudscraper.create_scraper(
-                    browser={
-                        'browser': 'chrome',
-                        'platform': platform_name,
-                        'desktop': True
-                    }
-                )
-                current_scraper.headers.update({
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1',
-                    'Sec-Fetch-Dest': 'document',
-                    'Sec-Fetch-Mode': 'navigate',
-                    'Sec-Fetch-Site': 'none',
-                    'Cache-Control': 'max-age=0'
-                })
-                # Visit base URL first to establish session
-                try:
-                    current_scraper.get(NGA_BASE_URL, timeout=15)
-                    time.sleep(2)
-                except:
-                    pass
+                # Recreate scraper for fresh session on retry
+                current_scraper = recreate_scraper()
             
             response = current_scraper.get(url, timeout=20)
             
-            # If we get a 403, retry with fresh session
+            # If we get a 403, recreate scraper and retry
             if response.status_code == 403 and attempt < max_retries - 1:
                 logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, will retry with fresh session...")
+                # Recreate scraper immediately for 403 errors
+                current_scraper = recreate_scraper()
                 continue
             
             response.raise_for_status()
@@ -140,6 +146,9 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
                     logger.error(f"   ❌ Failed to fetch {url} after {max_retries} attempts: {e}")
                 raise
             logger.warning(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
+            # Recreate scraper on exception too
+            if attempt < max_retries - 1:
+                current_scraper = recreate_scraper()
     
     return None
 
@@ -169,6 +178,15 @@ def scrape_all_nga_events():
             import traceback
             logger.error(traceback.format_exc())
             # Continue with other event types even if exhibitions fail
+        
+        # Add delay between different scraping operations to avoid rate limiting
+        import time
+        logger.info("   ⏳ Waiting 3 seconds before scraping tours...")
+        time.sleep(3)
+        
+        # Recreate scraper for tours to get fresh session
+        logger.info("   🔧 Recreating scraper session for tours...")
+        scraper = create_scraper()
         
         # 3. Scrape tours
         logger.info("🔍 Scraping tours...")
