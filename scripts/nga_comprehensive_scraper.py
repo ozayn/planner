@@ -11,6 +11,7 @@ from datetime import datetime, date, time, timedelta
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import cloudscraper
+import platform
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,10 +74,10 @@ def create_scraper():
 def fetch_with_retry(scraper, url, max_retries=3, delay=2):
     """Fetch URL with retry logic and exponential backoff"""
     import time
+    import platform
     
-    if not scraper:
-        logger.error(f"   ❌ Scraper is None, cannot fetch {url}")
-        return None
+    # Track the original scraper
+    current_scraper = scraper
     
     for attempt in range(max_retries):
         try:
@@ -84,18 +85,48 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
                 wait_time = delay * (2 ** (attempt - 1))  # Exponential backoff
                 logger.info(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
                 time.sleep(wait_time)
-            
-            response = scraper.get(url, timeout=20)
-            
-            # If we get a 403, try refreshing the session
-            if response.status_code == 403 and attempt < max_retries - 1:
-                logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, refreshing session...")
-                # Try to re-establish session
+                
+                # Recreate scraper for fresh session on retry (especially for 403 errors)
+                logger.info(f"   🔧 Recreating cloudscraper session...")
+                detected_platform = platform.system().lower()
+                if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
+                    platform_name = 'linux'
+                elif detected_platform == 'darwin':
+                    platform_name = 'darwin'
+                else:
+                    platform_name = 'windows'
+                
+                current_scraper = cloudscraper.create_scraper(
+                    browser={
+                        'browser': 'chrome',
+                        'platform': platform_name,
+                        'desktop': True
+                    }
+                )
+                current_scraper.headers.update({
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'DNT': '1',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Cache-Control': 'max-age=0'
+                })
+                # Visit base URL first to establish session
                 try:
-                    scraper.get(NGA_BASE_URL, timeout=15)
+                    current_scraper.get(NGA_BASE_URL, timeout=15)
                     time.sleep(2)
                 except:
                     pass
+            
+            response = current_scraper.get(url, timeout=20)
+            
+            # If we get a 403, retry with fresh session
+            if response.status_code == 403 and attempt < max_retries - 1:
+                logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, will retry with fresh session...")
                 continue
             
             response.raise_for_status()
@@ -103,6 +134,10 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
             
         except Exception as e:
             if attempt == max_retries - 1:
+                if not scraper:
+                    logger.error(f"   ❌ Scraper is None, cannot fetch {url}")
+                else:
+                    logger.error(f"   ❌ Failed to fetch {url} after {max_retries} attempts: {e}")
                 raise
             logger.warning(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
     
