@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2025-12-11",
+    "created": "2025-12-15",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 207,
-    "last_updated": "2025-12-11 00:07:04"
+    "total_venues": 206,
+    "last_updated": "2025-12-15 15:41:03"
   },
   "venues": {
     "1": {
@@ -527,32 +527,6 @@
       "created_at": "2025-10-08T20:42:31.666553",
       "updated_at": "2025-12-11T00:58:43.616024"
     },
-    "21": {
-      "name": "Newseum",
-      "venue_type": "museum",
-      "address": "555 Pennsylvania Ave NW, Washington, DC 20001",
-      "city_id": 1,
-      "city_name": "Washington",
-      "description": "A museum in Washington offering cultural experiences and entertainment.",
-      "opening_hours": "Currently closed",
-      "holiday_hours": "",
-      "phone_number": "(202) 292-6100",
-      "email": "info@newseum.org",
-      "website_url": "https://www.newseum.com",
-      "ticketing_url": "",
-      "instagram_url": "https://www.instagram.com/newseum",
-      "facebook_url": "https://www.facebook.com/Newseum",
-      "twitter_url": "https://twitter.com/Newseum",
-      "youtube_url": "",
-      "tiktok_url": "",
-      "admission_fee": "",
-      "image_url": "AciIO2d6i_GjmPUsE0qpcmEoCT4i7fYMWmJk0uL428l8bSXt4g_Suzvn2dcY_GgQmLOHue7yel2kHjY5S2XOPITb_2GcEQvGghsq3xOUq9eWT0qsObivor1xkiT-2zQQgfbAC4nvVgAdbLeSlILyySLikxeMaLgtrLCKQmNWjq5NyKIdfJxVtyRbIXF8KpdPF3XMHh8t8vUJ59jLJG3PslZUNPcAVOZon0MXGC_t68kMjA7jYD4WCKHGhQT8QpOizVvBdBT6wpeDe-wDRKprnHI14i3L2B69s5-YWe_mFV9mHsn5QeT4k_T1AvjoVIfy2npXcw_Wu274iFtJUGcPNXz3iSqm01Ybf0iFTQDRYV7CmpjFOssaRgfEIxhzTHsPl97_eqEcUA9Q-eRy-04Si2DEWYxAId9AaLdio_agx0Lq0yVJub4",
-      "latitude": 38.8869,
-      "longitude": -77.0325,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001413\"}",
-      "created_at": "2025-10-08T20:42:31.666574",
-      "updated_at": "2025-12-11T00:58:43.616408"
-    },
     "22": {
       "name": "Rock Creek Park",
       "venue_type": "park",
@@ -601,9 +575,9 @@
       "image_url": "AciIO2fD-eVIdivl7X8bQybHFPBAcuXUCLEDzQWvWv2FYGgyNRNvr23lckncZf0_g91d8MexRSejZmdbrUXxdzP6YLUE4yT5OQaMrUfsEri5klvSWRz1ByXUUWptXR48R8PzItWDJ2jmZTg7VDF-LDKEYTK1inaGp0kA92-VBIJDxrNDmQxamqkEffgEhYaBlvW5N0cWnCmxkOlvyimhHArH2AZf0e_EJKNIaO5s4QnVhxGCw5JYIjgbLP1jooW5JJZ2S6c-acVjiO5AjP_x8WoUJazxLVzE9FWiHIcCzxALcvA-lppiy-8N1Cg-KWVQE62KZ5-lbL6vcsWqPlGVcH4riFVaeNEfsL6D7oKhcSQMy_7-FJ8_UGkCf1b1tiPxq5xyMBIfhqOhUrwu8NX5i5zZyI1WhJyKS7wpB2o2citbKwKV9uFU",
       "latitude": 38.8882,
       "longitude": -77.0199,
-      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001422\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001422\", \"scraping_paths\": {\"exhibitions\": \"/whats-on/exhibitions/\", \"events\": \"/whats-on/events/\", \"tours\": \"/whats-on/tours/\", \"films\": \"/whats-on/events/search/?edan_fq[]=p.event.topics:Films\", \"performances\": \"/whats-on/events/search/?edan_fq[]=p.event.topics:Performances\"}}",
       "created_at": "2025-10-08T20:42:31.666617",
-      "updated_at": "2025-12-11T00:58:43.616946"
+      "updated_at": "2025-12-12T21:26:20.920413"
     },
     "25": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -5369,25 +5343,25 @@
       "address": "401 F Street NW, Washington, DC 20001",
       "city_id": 1,
       "city_name": "Washington",
-      "description": "The National Building Museum is America's leading cultural institution dedicated to the history and impact of the built environment.",
-      "opening_hours": "",
+      "description": "The National Building Museum is America's leading cultural institution dedicated to the history and impact of the built environment. Through exhibitions, educational programs, and special events, the Museum explores architecture, engineering, construction, and design.",
+      "opening_hours": "Thursday–Monday: 10:00 AM–4:00 PM; Closed Tuesday–Wednesday, Thanksgiving, and Christmas",
       "holiday_hours": "",
-      "phone_number": "",
-      "email": "",
+      "phone_number": "202.272.2448",
+      "email": "info@nbm.org",
       "website_url": "https://nbm.org",
       "ticketing_url": "",
-      "instagram_url": "",
-      "facebook_url": "",
-      "twitter_url": "",
-      "youtube_url": "",
+      "instagram_url": "https://www.instagram.com/buildingmuseum",
+      "facebook_url": "https://www.facebook.com/NationalBuildingMuseum",
+      "twitter_url": "https://twitter.com/BuildingMuseum",
+      "youtube_url": "https://www.youtube.com/user/NationalBuildingMuseum",
       "tiktok_url": "",
-      "admission_fee": "",
+      "admission_fee": "$10/Adult, $7/Youth (ages 3–17) & Seniors (65+); Free access to Great Hall and Museum Shop; Building Zone: $3 per person",
       "image_url": "",
-      "latitude": null,
-      "longitude": null,
+      "latitude": 38.8977,
+      "longitude": -77.0175,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions/\", \"events\": \"/programs-events/adult-programs/\"}}",
       "created_at": "2025-12-11T05:05:39.906095",
-      "updated_at": "2025-12-11T05:06:24.968869"
+      "updated_at": "2025-12-11T05:08:13.696530"
     }
   }
 }

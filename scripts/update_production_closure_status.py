@@ -48,7 +48,7 @@ def update_production_closure_status():
         
         # Private venues - OPEN
         'International Spy Museum': 'open',
-        'Newseum': 'open',
+        'Newseum': 'closed',  # Permanently closed in December 2019
         'The Phillips Collection': 'open',
         'Arena Stage': 'open',
         "Ford's Theatre": 'open',
