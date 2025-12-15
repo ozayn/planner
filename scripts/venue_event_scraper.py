@@ -399,6 +399,7 @@ class VenueEventScraper:
             try:
                 from scripts.nga_comprehensive_scraper import scrape_all_nga_events
                 nga_events = scrape_all_nga_events()
+                logger.info(f"📊 NGA scraper returned {len(nga_events) if nga_events else 0} events before filtering")
                 if nga_events:
                     # Ensure venue_id and city_id are set
                     for event in nga_events:
@@ -409,20 +410,24 @@ class VenueEventScraper:
                     # Filter by event_type if specified
                     if event_type:
                         nga_events = [e for e in nga_events if e.get('event_type', '').lower() == event_type.lower()]
+                        logger.info(f"   After event_type filter ({event_type}): {len(nga_events)} events")
                     # Filter by time_range
                     nga_events = self._filter_by_time_range(nga_events, time_range)
+                    logger.info(f"   After time_range filter ({time_range}): {len(nga_events)} events")
                     # Apply limits
                     if event_type and event_type.lower() == 'exhibition':
                         exhibition_events = [e for e in nga_events if e.get('event_type') == 'exhibition']
                         other_events = [e for e in nga_events if e.get('event_type') != 'exhibition']
                         limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
                         events = limited_exhibitions + other_events
+                        logger.info(f"   After exhibition limit ({max_exhibitions_per_venue}): {len(events)} events")
                     else:
                         events = nga_events[:max_events_per_venue]
-                    logger.info(f"✅ NGA scraper found {len(events)} events for {venue.name}")
+                        logger.info(f"   After max_events limit ({max_events_per_venue}): {len(events)} events")
+                    logger.info(f"✅ NGA scraper found {len(events)} events for {venue.name} (after filtering)")
                     return events
                 else:
-                    logger.info(f"⚠️ NGA scraper returned no events for {venue.name}")
+                    logger.info(f"⚠️ NGA scraper returned no events for {venue.name} (empty list)")
                     return []  # Return empty list, don't fall back to generic
             except Exception as e:
                 logger.error(f"❌ NGA specialized scraper failed: {e}, not falling back to generic scraper")
