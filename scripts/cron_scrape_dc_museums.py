@@ -180,9 +180,8 @@ def main():
             venues_failed = 0
             venues_with_events = 0
             
-            # Scrape museums one by one and save immediately after each museum
-            # Each scraper's create_events_in_database function already handles deduplication
-            # and correct venue assignment (we fixed the wrong assignment issue)
+            # Scrape museums one by one using specialized scrapers directly (like admin buttons)
+            # This ensures venue_id is determined from event content, not from which venue is being scraped
             logger.info(f"🔍 Starting to scrape {len(museums)} museums...")
             
             for museum in museums:
@@ -194,121 +193,114 @@ def main():
                     logger.info(f"🏛️  Scraping: {museum.name}")
                     logger.info(f"   URL: {museum.website_url}")
                     
-                    scraped_events = venue_scraper.scrape_venue_events(
-                        venue_ids=[museum.id],
-                        city_id=dc_city.id,
-                        event_type=None,  # All event types
-                        time_range=time_range,
-                        max_exhibitions_per_venue=max_exhibitions_per_venue,
-                        max_events_per_venue=max_events_per_venue
-                    )
+                    venue_url_lower = (museum.website_url or '').lower()
+                    scraped_events = []
                     
-                    if scraped_events:
-                        events_count = len(scraped_events)
-                        total_events_found += events_count
-                        logger.info(f"   ✅ Found {events_count} events")
-                        
-                        # Ensure venue_id and city_id are set for all events
-                        for event in scraped_events:
-                            if not event.get('venue_id'):
-                                event['venue_id'] = museum.id
-                            if not event.get('city_id'):
-                                event['city_id'] = museum.city_id
-                        
-                        # Save events immediately using the appropriate scraper's save function
-                        logger.info(f"   💾 Saving {events_count} events to database...")
-                        venue_url_lower = (museum.website_url or '').lower()
-                        use_specialized_save = False
-                        
-                        if 'nga.gov' in venue_url_lower:
-                            from scripts.nga_comprehensive_scraper import create_events_in_database
-                            try:
+                    # Call specialized scrapers directly (same as admin buttons)
+                    # This bypasses venue_event_scraper.py which was assigning venue_id incorrectly
+                    if 'nga.gov' in venue_url_lower:
+                        from scripts.nga_comprehensive_scraper import scrape_all_nga_events, create_events_in_database
+                        try:
+                            scraped_events = scrape_all_nga_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from NGA scraper")
+                            if scraped_events:
                                 created, updated = create_events_in_database(scraped_events)
                                 saved_count = created
                                 updated_count = updated
                                 skipped_count = len(scraped_events) - created - updated
                                 total_events_saved += saved_count
-                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates (using NGA create_events_in_database)")
-                                use_specialized_save = True
-                            except Exception as e:
-                                logger.warning(f"   ⚠️  Error using NGA create_events_in_database: {e}, falling back to manual save")
-                                import traceback
-                                logger.error(traceback.format_exc())
-                        
-                        elif 'americanart.si.edu' in venue_url_lower:
-                            from scripts.saam_scraper import create_events_in_database
-                            try:
+                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in NGA scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                    
+                    elif 'americanart.si.edu' in venue_url_lower:
+                        from scripts.saam_scraper import scrape_all_saam_events, create_events_in_database
+                        try:
+                            scraped_events = scrape_all_saam_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from SAAM scraper")
+                            if scraped_events:
                                 created, updated = create_events_in_database(scraped_events)
                                 saved_count = created
                                 updated_count = updated
                                 skipped_count = len(scraped_events) - created - updated
                                 total_events_saved += saved_count
-                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates (using SAAM create_events_in_database)")
-                                use_specialized_save = True
-                            except Exception as e:
-                                logger.warning(f"   ⚠️  Error using SAAM create_events_in_database: {e}, falling back to manual save")
-                                import traceback
-                                logger.error(traceback.format_exc())
-                        
-                        elif 'npg.si.edu' in venue_url_lower:
-                            from scripts.npg_scraper import create_events_in_database
-                            try:
+                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in SAAM scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                    
+                    elif 'npg.si.edu' in venue_url_lower:
+                        from scripts.npg_scraper import scrape_all_npg_events, create_events_in_database
+                        try:
+                            scraped_events = scrape_all_npg_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from NPG scraper")
+                            if scraped_events:
                                 created, updated = create_events_in_database(scraped_events)
                                 saved_count = created
                                 updated_count = updated
                                 skipped_count = len(scraped_events) - created - updated
                                 total_events_saved += saved_count
-                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates (using NPG create_events_in_database)")
-                                use_specialized_save = True
-                            except Exception as e:
-                                logger.warning(f"   ⚠️  Error using NPG create_events_in_database: {e}, falling back to manual save")
-                                import traceback
-                                logger.error(traceback.format_exc())
-                        
-                        elif 'asia.si.edu' in venue_url_lower:
-                            from scripts.asian_art_scraper import create_events_in_database
-                            try:
+                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in NPG scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                    
+                    elif 'asia.si.edu' in venue_url_lower:
+                        from scripts.asian_art_scraper import scrape_all_asian_art_events, create_events_in_database
+                        try:
+                            scraped_events = scrape_all_asian_art_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from Asian Art scraper")
+                            if scraped_events:
                                 created, updated = create_events_in_database(scraped_events)
                                 saved_count = created
                                 updated_count = updated
                                 skipped_count = len(scraped_events) - created - updated
                                 total_events_saved += saved_count
-                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates (using Asian Art create_events_in_database)")
-                                use_specialized_save = True
-                            except Exception as e:
-                                logger.warning(f"   ⚠️  Error using Asian Art create_events_in_database: {e}, falling back to manual save")
-                                import traceback
-                                logger.error(traceback.format_exc())
-                        
-                        elif 'africa.si.edu' in venue_url_lower:
-                            from scripts.african_art_scraper import create_events_in_database
-                            try:
+                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in Asian Art scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                    
+                    elif 'africa.si.edu' in venue_url_lower:
+                        from scripts.african_art_scraper import scrape_all_african_art_events, create_events_in_database
+                        try:
+                            scraped_events = scrape_all_african_art_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from African Art scraper")
+                            if scraped_events:
                                 created, updated = create_events_in_database(scraped_events)
                                 saved_count = created
                                 updated_count = updated
                                 skipped_count = len(scraped_events) - created - updated
                                 total_events_saved += saved_count
-                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates (using African Art create_events_in_database)")
-                                use_specialized_save = True
-                            except Exception as e:
-                                logger.warning(f"   ⚠️  Error using African Art create_events_in_database: {e}, falling back to manual save")
-                                import traceback
-                                logger.error(traceback.format_exc())
-                        
-                        # Manual save for museums without specialized create_events_in_database (Hirshhorn, Renwick, etc.)
-                        # Use shared handler for generic scraper events
-                        if not use_specialized_save:
+                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in African Art scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                    
+                    elif 'hirshhorn.si.edu' in venue_url_lower:
+                        # Hirshhorn uses venue_event_scraper (no specialized direct scraper)
+                        scraped_events = venue_scraper.scrape_venue_events(
+                            venue_ids=[museum.id],
+                            city_id=dc_city.id,
+                            event_type=None,
+                            time_range=time_range,
+                            max_exhibitions_per_venue=max_exhibitions_per_venue,
+                            max_events_per_venue=max_events_per_venue
+                        )
+                        if scraped_events:
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from Hirshhorn scraper")
+                            # Save using shared handler for Hirshhorn
                             from scripts.event_database_handler import create_events_in_database as shared_create_events
-                            
-                            logger.info(f"   💾 Saving {len(scraped_events)} events using shared handler...")
-                            
-                            # Custom processor for generic scraper events
                             def generic_event_processor(event_data):
-                                """Add generic scraper-specific fields"""
                                 event_data['source'] = 'website'
                                 if not event_data.get('organizer'):
                                     event_data['organizer'] = museum.name
-                            
                             created, updated, skipped = shared_create_events(
                                 events=scraped_events,
                                 venue_id=museum.id,
@@ -322,12 +314,16 @@ def main():
                                 source_url=museum.website_url,
                                 custom_event_processor=generic_event_processor
                             )
-                            
                             saved_count = created
                             updated_count = updated
                             skipped_count = skipped
                             total_events_saved += saved_count
-                            logger.info(f"   💾 Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates (using shared handler)")
+                            logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                    else:
+                        logger.warning(f"   ⚠️  No specialized scraper for {museum.name}, skipping")
+                    
+                    if scraped_events:
+                        total_events_found += len(scraped_events)
                     else:
                         logger.info(f"   ⚠️  No events found")
                     
