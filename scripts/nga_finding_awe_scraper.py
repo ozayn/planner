@@ -62,6 +62,58 @@ def scrape_all_finding_awe_events(save_incrementally=False):
         
         logger.info(f"🔍 Scraping Finding Awe series from: {FINDING_AWE_URL}")
         
+        # Fetch the main page with retry logic for 403 errors
+        response = None
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    import time
+                    wait_time = 2 * attempt
+                    logger.info(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(wait_time)
+                    # Recreate scraper for fresh session
+                    scraper = cloudscraper.create_scraper(
+                        browser={
+                            'browser': 'chrome',
+                            'platform': 'darwin',
+                            'desktop': True
+                        }
+                    )
+                    scraper.headers.update({
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1'
+                    })
+                    # Visit base URL first to establish session
+                    try:
+                        scraper.get('https://www.nga.gov', timeout=15)
+                        time.sleep(2)
+                    except:
+                        pass
+                
+                response = scraper.get(FINDING_AWE_URL, timeout=20)
+                
+                # Handle 403 errors
+                if response.status_code == 403 and attempt < max_retries - 1:
+                    logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, will retry...")
+                    continue
+                
+                response.raise_for_status()
+                break
+                
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"   ❌ Failed to fetch Finding Awe page after {max_retries} attempts: {e}")
+                    raise
+                logger.warning(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
+        
+        if not response:
+            logger.error(f"   ❌ Could not fetch Finding Awe page")
+            return events if not save_incrementally else (events, total_created, total_updated)
+        
         # Find all event links - check multiple pages if pagination exists
         event_links = []
         page = 1
@@ -76,10 +128,37 @@ def scrape_all_finding_awe_events(save_incrementally=False):
                 url = f"{FINDING_AWE_URL}?page={page}"
             
             try:
-                response = scraper.get(url, timeout=15)
-                response.raise_for_status()
+                # Fetch with retry logic for 403 errors
+                page_response = None
+                for page_attempt in range(3):
+                    try:
+                        if page_attempt > 0:
+                            import time
+                            time.sleep(2 * page_attempt)
+                            # Refresh session
+                            try:
+                                scraper.get('https://www.nga.gov', timeout=15)
+                                time.sleep(1)
+                            except:
+                                pass
+                        
+                        page_response = scraper.get(url, timeout=20)
+                        
+                        if page_response.status_code == 403 and page_attempt < 2:
+                            logger.warning(f"   ⚠️  403 Forbidden on page {page}, attempt {page_attempt + 1}, retrying...")
+                            continue
+                        
+                        page_response.raise_for_status()
+                        break
+                    except Exception as e:
+                        if page_attempt == 2:
+                            logger.warning(f"   ⚠️  Failed to fetch page {page} after 3 attempts: {e}")
+                            raise
                 
-                soup = BeautifulSoup(response.text, 'html.parser')
+                if not page_response:
+                    break
+                
+                soup = BeautifulSoup(page_response.text, 'html.parser')
                 
                 # Find event links on this page
                 page_links = []
@@ -231,8 +310,38 @@ def scrape_individual_event(event_url, scraper=None):
     
     try:
         logger.info(f"   📄 Scraping event: {event_url}")
-        response = scraper.get(event_url, timeout=15)
-        response.raise_for_status()
+        
+        # Fetch with retry logic for 403 errors
+        response = None
+        for attempt in range(3):
+            try:
+                if attempt > 0:
+                    import time
+                    time.sleep(2 * attempt)
+                    # Refresh session if needed
+                    if attempt == 1:
+                        try:
+                            scraper.get('https://www.nga.gov', timeout=15)
+                            time.sleep(1)
+                        except:
+                            pass
+                
+                response = scraper.get(event_url, timeout=20)
+                
+                if response.status_code == 403 and attempt < 2:
+                    logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, retrying...")
+                    continue
+                
+                response.raise_for_status()
+                break
+            except Exception as e:
+                if attempt == 2:
+                    logger.error(f"   ❌ Failed to fetch event page after 3 attempts: {e}")
+                    raise
+                logger.warning(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
+        
+        if not response:
+            return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()

@@ -1,0 +1,30 @@
+Railway Cron Configuration
+==========================
+
+Service: DC Museums Scraper (or add to existing web service)
+
+Start Command:
+python scripts/cron_scrape_dc_museums.py
+
+Cron Schedule:
+25 20 * * 1
+
+This runs every Monday at 8:25 PM UTC
+= 3:25 PM ET (EST) / 4:25 PM ET (EDT)
+
+Note: During daylight saving time (EDT), this will run at 4:25 PM ET.
+To keep it at 3:25 PM ET year-round, update the schedule twice per year:
+- EST (Nov-Mar): 25 20 * * 1 (8:25 PM UTC)
+- EDT (Mar-Nov): 25 19 * * 1 (7:25 PM UTC)
+
+Setup Steps:
+1. Go to Railway Dashboard → Your Project
+2. Either add cron schedule to existing service OR create new service
+3. Settings tab → Cron Schedule section
+4. Enter: 25 20 * * 1
+5. Save
+
+Environment Variables Needed:
+- DATABASE_URL (auto-provided if using Railway Postgres)
+- FLASK_ENV=production
+- Any API keys (GROQ_API_KEY, etc.)
