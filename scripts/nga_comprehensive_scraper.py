@@ -224,7 +224,16 @@ def scrape_all_nga_events():
         # all_events.extend(other_events)
         # logger.info(f"   ✅ Found {len(other_events)} other events")
         
+        # Log breakdown by event type
+        event_types = {}
+        for event in all_events:
+            event_type = event.get('event_type', 'unknown')
+            event_types[event_type] = event_types.get(event_type, 0) + 1
+        
         logger.info(f"✅ Total NGA events scraped: {len(all_events)}")
+        logger.info(f"📊 Event breakdown: {event_types}")
+        if len(finding_awe_events) == 0:
+            logger.warning(f"⚠️  No Finding Awe events were scraped - check if Finding Awe scraper failed or found no events")
         return all_events
         
     except Exception as e:
