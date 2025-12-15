@@ -443,12 +443,52 @@ class VenueEventScraper:
                 # Pass venue name to filter events for this specific venue
                 saam_events = scrape_all_saam_events(target_venue_name=venue.name)
                 if saam_events:
-                    # Ensure venue_id and city_id are set
+                    # CRITICAL: Filter out events that belong to other venues BEFORE assigning venue_id
+                    filtered_saam_events = []
+                    venue_name_lower = venue.name.lower()
+                    
                     for event in saam_events:
+                        event_title = (event.get('title') or '').lower()
+                        event_organizer = (event.get('organizer') or '').lower()
+                        event_url = (event.get('url') or event.get('source_url') or '').lower()
+                        
+                        # Skip events that clearly belong to other venues
+                        should_skip = False
+                        if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from SAAM: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NPG event from SAAM: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'asian art' in event_title and 'asian' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Asian Art event from SAAM: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'african art' in event_title and 'african' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out African Art event from SAAM: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NGA event from SAAM: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from SAAM (by organizer): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from SAAM (by URL): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        
+                        if should_skip:
+                            continue
+                        
+                        # Ensure venue_id and city_id are set only for events that belong to this venue
                         if not event.get('venue_id'):
                             event['venue_id'] = venue.id
                         if not event.get('city_id'):
                             event['city_id'] = venue.city_id
+                        filtered_saam_events.append(event)
+                    
+                    saam_events = filtered_saam_events
+                    if len(filtered_saam_events) < len(saam_events):
+                        logger.info(f"   📊 Filtered out {len(saam_events) - len(filtered_saam_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         saam_events = [e for e in saam_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -475,12 +515,52 @@ class VenueEventScraper:
                 from scripts.npg_scraper import scrape_all_npg_events
                 npg_events = scrape_all_npg_events()
                 if npg_events:
-                    # Ensure venue_id and city_id are set
+                    # CRITICAL: Filter out events that belong to other venues BEFORE assigning venue_id
+                    filtered_npg_events = []
+                    venue_name_lower = venue.name.lower()
+                    
                     for event in npg_events:
+                        event_title = (event.get('title') or '').lower()
+                        event_organizer = (event.get('organizer') or '').lower()
+                        event_url = (event.get('url') or event.get('source_url') or '').lower()
+                        
+                        # Skip events that clearly belong to other venues
+                        should_skip = False
+                        if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from NPG: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'american art' in event_title and 'american art' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out SAAM event from NPG: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'asian art' in event_title and 'asian' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Asian Art event from NPG: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'african art' in event_title and 'african' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out African Art event from NPG: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NGA event from NPG: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from NPG (by organizer): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from NPG (by URL): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        
+                        if should_skip:
+                            continue
+                        
+                        # Ensure venue_id and city_id are set only for events that belong to this venue
                         if not event.get('venue_id'):
                             event['venue_id'] = venue.id
                         if not event.get('city_id'):
                             event['city_id'] = venue.city_id
+                        filtered_npg_events.append(event)
+                    
+                    npg_events = filtered_npg_events
+                    if len(filtered_npg_events) < len(npg_events):
+                        logger.info(f"   📊 Filtered out {len(npg_events) - len(filtered_npg_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         npg_events = [e for e in npg_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -507,12 +587,52 @@ class VenueEventScraper:
                 from scripts.asian_art_scraper import scrape_all_asian_art_events
                 asian_events = scrape_all_asian_art_events()
                 if asian_events:
-                    # Ensure venue_id and city_id are set
+                    # CRITICAL: Filter out events that belong to other venues BEFORE assigning venue_id
+                    filtered_asian_events = []
+                    venue_name_lower = venue.name.lower()
+                    
                     for event in asian_events:
+                        event_title = (event.get('title') or '').lower()
+                        event_organizer = (event.get('organizer') or '').lower()
+                        event_url = (event.get('url') or event.get('source_url') or '').lower()
+                        
+                        # Skip events that clearly belong to other venues
+                        should_skip = False
+                        if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from Asian Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'american art' in event_title and 'american art' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out SAAM event from Asian Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NPG event from Asian Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'african art' in event_title and 'african' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out African Art event from Asian Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NGA event from Asian Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from Asian Art (by organizer): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from Asian Art (by URL): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        
+                        if should_skip:
+                            continue
+                        
+                        # Ensure venue_id and city_id are set only for events that belong to this venue
                         if not event.get('venue_id'):
                             event['venue_id'] = venue.id
                         if not event.get('city_id'):
                             event['city_id'] = venue.city_id
+                        filtered_asian_events.append(event)
+                    
+                    asian_events = filtered_asian_events
+                    if len(filtered_asian_events) < len(asian_events):
+                        logger.info(f"   📊 Filtered out {len(asian_events) - len(filtered_asian_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         asian_events = [e for e in asian_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -539,12 +659,52 @@ class VenueEventScraper:
                 from scripts.african_art_scraper import scrape_all_african_art_events
                 african_events = scrape_all_african_art_events()
                 if african_events:
-                    # Ensure venue_id and city_id are set
+                    # CRITICAL: Filter out events that belong to other venues BEFORE assigning venue_id
+                    filtered_african_events = []
+                    venue_name_lower = venue.name.lower()
+                    
                     for event in african_events:
+                        event_title = (event.get('title') or '').lower()
+                        event_organizer = (event.get('organizer') or '').lower()
+                        event_url = (event.get('url') or event.get('source_url') or '').lower()
+                        
+                        # Skip events that clearly belong to other venues
+                        should_skip = False
+                        if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from African Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'american art' in event_title and 'american art' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out SAAM event from African Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NPG event from African Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'asian art' in event_title and 'asian' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Asian Art event from African Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out NGA event from African Art: '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from African Art (by organizer): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
+                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from African Art (by URL): '{event.get('title', 'N/A')}'")
+                            should_skip = True
+                        
+                        if should_skip:
+                            continue
+                        
+                        # Ensure venue_id and city_id are set only for events that belong to this venue
                         if not event.get('venue_id'):
                             event['venue_id'] = venue.id
                         if not event.get('city_id'):
                             event['city_id'] = venue.city_id
+                        filtered_african_events.append(event)
+                    
+                    african_events = filtered_african_events
+                    if len(filtered_african_events) < len(african_events):
+                        logger.info(f"   📊 Filtered out {len(african_events) - len(filtered_african_events)} events that belong to other venues")
                     # Filter by event_type if specified
                     if event_type:
                         african_events = [e for e in african_events if e.get('event_type', '').lower() == event_type.lower()]
