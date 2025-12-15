@@ -395,6 +395,7 @@ class VenueEventScraper:
         # NGA (National Gallery of Art)
         if 'nga.gov' in venue_url_lower or 'national gallery of art' in venue_name_lower:
             logger.info(f"🎯 Using specialized NGA scraper for {venue.name}")
+            specialized_scraper_used = True  # Mark as used regardless of success/failure
             try:
                 from scripts.nga_comprehensive_scraper import scrape_all_nga_events
                 nga_events = scrape_all_nga_events()
@@ -419,10 +420,15 @@ class VenueEventScraper:
                     else:
                         events = nga_events[:max_events_per_venue]
                     logger.info(f"✅ NGA scraper found {len(events)} events for {venue.name}")
-                    specialized_scraper_used = True
                     return events
+                else:
+                    logger.info(f"⚠️ NGA scraper returned no events for {venue.name}")
+                    return []  # Return empty list, don't fall back to generic
             except Exception as e:
-                logger.warning(f"⚠️ NGA specialized scraper failed: {e}, falling back to generic scraper")
+                logger.error(f"❌ NGA specialized scraper failed: {e}, not falling back to generic scraper")
+                import traceback
+                logger.error(traceback.format_exc())
+                return []  # Return empty list, don't fall back to generic
         
         # SAAM (Smithsonian American Art Museum)
         elif 'americanart.si.edu' in venue_url_lower or ('smithsonian american art' in venue_name_lower and 'museum' in venue_name_lower):
