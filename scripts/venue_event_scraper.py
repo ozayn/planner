@@ -621,6 +621,10 @@ class VenueEventScraper:
                             # This is an African Art event - should be handled by African Art scraper, not generic
                             logger.debug(f"   ⏭️ Skipping African Art event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
                             should_skip = True
+                        elif 'hirshhorn.si.edu' in event_url_lower:
+                            # This is a Hirshhorn event - should be handled by Hirshhorn scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping Hirshhorn event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
                     
                     if should_skip:
                         skipped_wrong_venue_count += 1
@@ -1352,6 +1356,10 @@ class VenueEventScraper:
                         elif 'africa.si.edu' in event_url_lower:
                             # This is an African Art event - should be handled by African Art scraper, not generic
                             logger.debug(f"   ⏭️ Skipping African Art event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
+                            should_skip = True
+                        elif 'hirshhorn.si.edu' in event_url_lower:
+                            # This is a Hirshhorn event - should be handled by Hirshhorn scraper, not generic
+                            logger.debug(f"   ⏭️ Skipping Hirshhorn event found by generic scraper: {event.get('title', 'N/A')} (URL: {event_url})")
                             should_skip = True
                     
                     if should_skip:
