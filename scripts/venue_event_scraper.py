@@ -438,6 +438,7 @@ class VenueEventScraper:
         # SAAM (Smithsonian American Art Museum)
         elif 'americanart.si.edu' in venue_url_lower or ('smithsonian american art' in venue_name_lower and 'museum' in venue_name_lower):
             logger.info(f"🎯 Using specialized SAAM scraper for {venue.name}")
+            specialized_scraper_used = True  # Mark as used regardless of success/failure
             try:
                 from scripts.saam_scraper import scrape_all_saam_events
                 # Pass venue name to filter events for this specific venue
@@ -506,8 +507,16 @@ class VenueEventScraper:
                     logger.info(f"✅ SAAM scraper found {len(events)} events for {venue.name}")
                     specialized_scraper_used = True
                     return events
+                else:
+                    logger.info(f"⚠️ SAAM scraper returned no events for {venue.name}")
+                    specialized_scraper_used = True
+                    return []  # Return empty list, don't fall back to generic
             except Exception as e:
-                logger.warning(f"⚠️ SAAM specialized scraper failed: {e}, falling back to generic scraper")
+                logger.error(f"❌ SAAM specialized scraper failed: {e}, not falling back to generic scraper")
+                import traceback
+                logger.error(traceback.format_exc())
+                specialized_scraper_used = True
+                return []  # Return empty list, don't fall back to generic
         
         # NPG (National Portrait Gallery)
         elif 'npg.si.edu' in venue_url_lower or 'national portrait gallery' in venue_name_lower:
@@ -585,6 +594,7 @@ class VenueEventScraper:
         # Asian Art Museum (Smithsonian)
         elif 'asia.si.edu' in venue_url_lower or ('asian art' in venue_name_lower and 'museum' in venue_name_lower):
             logger.info(f"🎯 Using specialized Asian Art scraper for {venue.name}")
+            specialized_scraper_used = True  # Mark as used regardless of success/failure
             try:
                 from scripts.asian_art_scraper import scrape_all_asian_art_events
                 asian_events = scrape_all_asian_art_events()
@@ -652,8 +662,16 @@ class VenueEventScraper:
                     logger.info(f"✅ Asian Art scraper found {len(events)} events for {venue.name}")
                     specialized_scraper_used = True
                     return events
+                else:
+                    logger.info(f"⚠️ Asian Art scraper returned no events for {venue.name}")
+                    specialized_scraper_used = True
+                    return []  # Return empty list, don't fall back to generic
             except Exception as e:
-                logger.warning(f"⚠️ Asian Art specialized scraper failed: {e}, falling back to generic scraper")
+                logger.error(f"❌ Asian Art specialized scraper failed: {e}, not falling back to generic scraper")
+                import traceback
+                logger.error(traceback.format_exc())
+                specialized_scraper_used = True
+                return []  # Return empty list, don't fall back to generic
         
         # African Art Museum (Smithsonian)
         elif 'africa.si.edu' in venue_url_lower or ('african art' in venue_name_lower and 'museum' in venue_name_lower):
