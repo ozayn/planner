@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive scraper for National Gallery of Art (NGA)
-Scrapes Finding Awe, tours, exhibitions, talks, and other events
+Scrapes Finding Awe, tours, exhibitions, films, talks, and other events
 """
 import os
 import sys
@@ -23,6 +23,10 @@ from app import app, db, Event, Venue, City
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# Import shared progress update function
+from scripts.utils import update_scraping_progress
+
 VENUE_NAME = "National Gallery of Art"
 CITY_NAME = "Washington, DC"
 
@@ -34,6 +38,7 @@ NGA_EXHIBITIONS_URL = 'https://www.nga.gov/calendar?tab=exhibitions'
 NGA_TOURS_URL = 'https://www.nga.gov/calendar?tab=tours'  # Tours are on calendar page with tab parameter
 NGA_TALKS_URL = 'https://www.nga.gov/calendar/talks'
 NGA_LECTURES_URL = 'https://www.nga.gov/calendar/lectures'
+NGA_FILMS_BASE_URL = 'https://www.nga.gov/calendar'  # Films use type parameter
 
 
 def create_scraper():
@@ -154,22 +159,27 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
 
 
 def scrape_all_nga_events():
-    """Scrape all NGA events: Finding Awe, tours, exhibitions, talks, and other events"""
+    """Scrape all NGA events: Finding Awe, tours, exhibitions, films, talks, and other events"""
     all_events = []
+    
+    # Total steps: Finding Awe, Exhibitions, Tours, Films = 4 steps
+    total_steps = 4
     
     try:
         scraper = create_scraper()
         
-        # 1. Scrape Finding Awe events
-        logger.info("🔍 Scraping Finding Awe events...")
+        # 1. Scrape Finding Awe events (only next 30 days by default)
+        update_scraping_progress(1, total_steps, "Scraping Finding Awe events (next 30 days)...", events_found=len(all_events), venue_name=VENUE_NAME)
+        logger.info("🔍 Scraping Finding Awe events (next 30 days)...")
         try:
             from scripts.nga_finding_awe_scraper import scrape_all_finding_awe_events
-            finding_awe_events = scrape_all_finding_awe_events()
+            finding_awe_events = scrape_all_finding_awe_events(max_days_ahead=30)
             if finding_awe_events is None:
                 logger.warning("   ⚠️  Finding Awe scraper returned None, treating as empty list")
                 finding_awe_events = []
             all_events.extend(finding_awe_events)
-            logger.info(f"   ✅ Found {len(finding_awe_events)} Finding Awe events")
+            update_scraping_progress(1, total_steps, f"✅ Found {len(finding_awe_events)} Finding Awe events", events_found=len(all_events), venue_name=VENUE_NAME)
+            logger.info(f"   ✅ Found {len(finding_awe_events)} Finding Awe events (within next 30 days)")
             if len(finding_awe_events) > 0:
                 logger.info(f"   📝 Sample Finding Awe event: {finding_awe_events[0].get('title', 'N/A')}")
         except Exception as e:
@@ -180,10 +190,12 @@ def scrape_all_nga_events():
             finding_awe_events = []
         
         # 2. Scrape exhibitions
+        update_scraping_progress(2, total_steps, "Scraping exhibitions...", events_found=len(all_events), venue_name=VENUE_NAME)
         logger.info("🔍 Scraping exhibitions...")
         try:
             exhibitions = scrape_nga_exhibitions(scraper)
             all_events.extend(exhibitions)
+            update_scraping_progress(2, total_steps, f"✅ Found {len(exhibitions)} exhibitions", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
         except Exception as e:
             logger.error(f"   ❌ Error scraping exhibitions: {e}")
@@ -201,10 +213,12 @@ def scrape_all_nga_events():
         scraper = create_scraper()
         
         # 3. Scrape tours
+        update_scraping_progress(3, total_steps, "Scraping tours...", events_found=len(all_events), venue_name=VENUE_NAME)
         logger.info("🔍 Scraping tours...")
         try:
             tours = scrape_nga_tours(scraper)
             all_events.extend(tours)
+            update_scraping_progress(3, total_steps, f"✅ Found {len(tours)} tours", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info(f"   ✅ Found {len(tours)} tours")
         except Exception as e:
             logger.error(f"   ❌ Error scraping tours: {e}")
@@ -212,13 +226,27 @@ def scrape_all_nga_events():
             logger.error(traceback.format_exc())
             # Continue even if tours fail
         
-        # 4. Scrape talks/lectures (DISABLED FOR NOW - focusing on tours)
+        # 4. Scrape films
+        update_scraping_progress(4, total_steps, "Scraping films...", events_found=len(all_events), venue_name=VENUE_NAME)
+        logger.info("🔍 Scraping films...")
+        try:
+            films = scrape_nga_films(scraper)
+            all_events.extend(films)
+            update_scraping_progress(4, total_steps, f"✅ Found {len(films)} films", events_found=len(all_events), venue_name=VENUE_NAME)
+            logger.info(f"   ✅ Found {len(films)} films")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping films: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Continue even if films fail
+        
+        # 5. Scrape talks/lectures (DISABLED FOR NOW - focusing on tours)
         # logger.info("🔍 Scraping talks and lectures...")
         # talks = scrape_nga_talks(scraper)
         # all_events.extend(talks)
         # logger.info(f"   ✅ Found {len(talks)} talks/lectures")
         
-        # 5. Scrape other calendar events (DISABLED FOR NOW - focusing on tours)
+        # 6. Scrape other calendar events (DISABLED FOR NOW - focusing on tours)
         # logger.info("🔍 Scraping other calendar events...")
         # other_events = scrape_nga_calendar_events(scraper)
         # all_events.extend(other_events)
@@ -648,8 +676,27 @@ def scrape_nga_tours(scraper):
         logger.info(f"   ✅ Found {len(tour_links)} tour event links within next month (skipped {skipped_future} future tours)")
         
         # Scrape each tour event page
+        total_tours = len(tour_links)
         for idx, tour_url in enumerate(tour_links, 1):
             try:
+                # Update progress during tour scraping
+                if total_tours > 0 and idx % max(1, total_tours // 5) == 0:  # Update every 20% or at least once
+                    try:
+                        import json
+                        progress_file = os.path.join(project_root, 'scraping_progress.json')
+                        if os.path.exists(progress_file):
+                            with open(progress_file, 'r') as f:
+                                progress_data = json.load(f)
+                            progress_data.update({
+                                'message': f'Scraping tours... ({idx}/{total_tours})',
+                                'timestamp': datetime.now().isoformat(),
+                                'events_found': len(events) if 'events' in locals() else 0
+                            })
+                            with open(progress_file, 'w') as f:
+                                json.dump(progress_data, f)
+                    except Exception:
+                        pass
+                
                 logger.info(f"   📄 Scraping tour {idx}/{len(tour_links)}: {tour_url}")
                 event_data = scrape_nga_tour_page(tour_url, scraper)
                 if event_data:
@@ -828,6 +875,270 @@ def scrape_nga_tour_page(tour_url, scraper):
         
     except Exception as e:
         logger.error(f"Error scraping tour page {tour_url}: {e}")
+        return None
+
+
+def scrape_nga_films(scraper):
+    """Scrape NGA films from the calendar page with date range (current date to one month from now)"""
+    events = []
+    
+    try:
+        # Calculate date range: today to one month from now
+        today = date.today()
+        one_month_later = today + timedelta(days=30)
+        
+        # Format dates as YYYY-MM-DD
+        visit_start = today.strftime('%Y-%m-%d')
+        visit_end = one_month_later.strftime('%Y-%m-%d')
+        
+        # Build films URL with type parameter for films (103026) and date range
+        films_url = f"{NGA_FILMS_BASE_URL}?type[103026]=103026&visit_start={visit_start}&visit_end={visit_end}&tab=all"
+        
+        logger.info(f"   📅 Scraping films from {visit_start} to {visit_end}")
+        logger.info(f"   📄 Fetching films from: {films_url}")
+        
+        response = fetch_with_retry(scraper, films_url, max_retries=3, delay=2)
+        if not response:
+            logger.warning(f"   ⚠️  Failed to fetch films page after retries")
+            return events
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find all film event links - they use the same pattern as tours (calendar URLs with evd parameter)
+        film_links = []
+        all_links = soup.find_all('a', href=True)
+        
+        for link in all_links:
+            href = link.get('href', '')
+            
+            # Look for calendar event links with evd parameter (these are individual film events)
+            if '/calendar/' in href and '?evd=' in href:
+                full_url = href if href.startswith('http') else urljoin(NGA_BASE_URL, href)
+                
+                # Extract date from evd parameter to verify it's within our range
+                parsed_url = urlparse(full_url)
+                from urllib.parse import parse_qs
+                query_params = parse_qs(parsed_url.query) if parsed_url.query else {}
+                
+                if 'evd' in query_params and query_params['evd']:
+                    evd_value = query_params['evd'][0]
+                    if len(evd_value) >= 8:  # At least YYYYMMDD
+                        try:
+                            year = int(evd_value[0:4])
+                            month = int(evd_value[4:6])
+                            day = int(evd_value[6:8])
+                            film_date = date(year, month, day)
+                            
+                            # Only include films within the date range
+                            if film_date >= today and film_date <= one_month_later:
+                                if full_url not in film_links:
+                                    film_links.append(full_url)
+                        except (ValueError, IndexError):
+                            # If we can't parse the date, include it anyway
+                            if full_url not in film_links:
+                                film_links.append(full_url)
+                else:
+                    # No evd parameter, include it anyway
+                    if full_url not in film_links:
+                        film_links.append(full_url)
+        
+        logger.info(f"   ✅ Found {len(film_links)} film event links within date range")
+        
+        # Scrape each film event page
+        total_films = len(film_links)
+        for idx, film_url in enumerate(film_links, 1):
+            try:
+                # Update progress during film scraping
+                if total_films > 0 and idx % max(1, total_films // 5) == 0:  # Update every 20% or at least once
+                    try:
+                        import json
+                        progress_file = os.path.join(project_root, 'scraping_progress.json')
+                        if os.path.exists(progress_file):
+                            with open(progress_file, 'r') as f:
+                                progress_data = json.load(f)
+                            progress_data.update({
+                                'message': f'Scraping films... ({idx}/{total_films})',
+                                'timestamp': datetime.now().isoformat(),
+                                'events_found': len(events) if 'events' in locals() else 0
+                            })
+                            with open(progress_file, 'w') as f:
+                                json.dump(progress_data, f)
+                    except Exception:
+                        pass
+                
+                logger.info(f"   📄 Scraping film {idx}/{len(film_links)}: {film_url}")
+                event_data = scrape_nga_film_page(film_url, scraper)
+                if event_data:
+                    # Double-check the date is within range
+                    if event_data.get('start_date'):
+                        try:
+                            event_date = datetime.fromisoformat(event_data['start_date']).date()
+                            if event_date >= today and event_date <= one_month_later:
+                                events.append(event_data)
+                                logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')} ({event_date})")
+                            else:
+                                logger.info(f"   ⏭️  Skipped film outside date range: {event_data.get('title', 'Unknown')} ({event_date})")
+                        except (ValueError, TypeError):
+                            # If we can't parse the date, include it anyway
+                            events.append(event_data)
+                            logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                    else:
+                        # No date, include it anyway
+                        events.append(event_data)
+                        logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                else:
+                    logger.warning(f"   ⚠️  No data extracted from: {film_url}")
+            except Exception as e:
+                logger.warning(f"   ⚠️  Error scraping film {film_url}: {e}")
+                continue
+                
+    except Exception as e:
+        logger.error(f"Error scraping NGA films: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return events
+
+
+def scrape_nga_film_page(film_url, scraper):
+    """Scrape a single NGA film page - similar to tour page scraping"""
+    try:
+        # Clean URL: remove evd parameter for canonical URL (same as tours)
+        import urllib.parse
+        parsed = urllib.parse.urlparse(film_url)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        if 'evd' in query_params:
+            del query_params['evd']
+            new_query = urllib.parse.urlencode(query_params, doseq=True)
+            clean_url = urllib.parse.urlunparse((
+                parsed.scheme, parsed.netloc, parsed.path,
+                parsed.params, new_query, parsed.fragment
+            ))
+            if clean_url.endswith('?'):
+                clean_url = clean_url[:-1]
+            canonical_url = clean_url
+        else:
+            canonical_url = film_url
+        
+        response = fetch_with_retry(scraper, film_url, max_retries=2, delay=1)
+        if not response:
+            return None
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        page_text = soup.get_text()
+        
+        # Extract title - prioritize OG title and title tag over H1
+        title = None
+        
+        # First try OG title (most reliable)
+        og_title = soup.find('meta', property='og:title')
+        if og_title and og_title.get('content'):
+            title = og_title.get('content').strip()
+        
+        # Then try title tag
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.get_text(strip=True)
+        
+        # Last resort: try H1 (but skip if it's "Global Search" or other navigation)
+        if not title:
+            h1 = soup.find('h1')
+            if h1:
+                h1_text = h1.get_text(strip=True)
+                # Skip common navigation H1s
+                if h1_text.lower() not in ['global search', 'menu', 'directions']:
+                    title = h1_text
+        
+        # Clean title: remove venue name suffix
+        if title:
+            from scripts.utils import clean_event_title
+            title = clean_event_title(title)
+        
+        if not title:
+            logger.warning(f"   ⚠️  No title found for {film_url}")
+            return None
+        
+        # Extract description using shared utility function
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=2000)
+        
+        # Extract date and time - first try HTML time element (most reliable), then page text
+        event_date = None
+        start_time = None
+        end_time = None
+        
+        # Try to get from <time datetime=""> attribute first (most reliable)
+        time_elem = soup.find('time', class_='datetime')
+        if time_elem and time_elem.get('datetime'):
+            try:
+                from datetime import datetime as dt
+                datetime_str = time_elem.get('datetime')
+                # Parse ISO format: "2025-12-03T11:00:00-05:00"
+                dt_obj = dt.fromisoformat(datetime_str.replace('Z', '+00:00'))
+                event_date = dt_obj.date()
+                start_time = dt_obj.time()
+                logger.info(f"   📅 Extracted from <time datetime>: {event_date} {start_time}")
+                
+                # For end time, get parent's text (end time is in next sibling)
+                parent = time_elem.parent
+                if parent:
+                    parent_text = parent.get_text()
+                    # Look for end time pattern: "– 12:00 p.m."
+                    end_time_match = re.search(r'[–-]\s*(\d{1,2}):(\d{2})\s+([ap])\.?m\.?', parent_text, re.IGNORECASE)
+                    if end_time_match:
+                        end_hour = int(end_time_match.group(1))
+                        end_min = int(end_time_match.group(2))
+                        end_ampm = end_time_match.group(3).upper()
+                        if end_ampm == 'P' and end_hour != 12:
+                            end_hour += 12
+                        elif end_ampm == 'A' and end_hour == 12:
+                            end_hour = 0
+                        end_time = time(end_hour, end_min)
+                        logger.info(f"   ⏰ Extracted end time from parent text: {end_time}")
+            except Exception as e:
+                logger.debug(f"   Could not parse time element datetime: {e}")
+        
+        # If we didn't get times from HTML element, use page text extraction
+        if not event_date or not start_time or not end_time:
+            event_date, start_time, end_time = extract_event_datetime(page_text, film_url)
+        
+        # Extract location
+        location = extract_tour_location(page_text, soup)
+        
+        # Extract image
+        image_url = None
+        og_image = soup.find('meta', property='og:image')
+        if og_image:
+            image_url = og_image.get('content', '').strip()
+        
+        # Extract registration info
+        is_registration_required, registration_url, registration_info = extract_registration_info(page_text, soup)
+        
+        # Set event type to 'film'
+        event_type = 'film'
+        
+        event_data = {
+            'title': title,
+            'description': description,
+            'start_date': event_date.isoformat() if event_date else None,
+            'end_date': event_date.isoformat() if event_date else None,
+            'start_time': start_time.isoformat() if start_time else None,
+            'end_time': end_time.isoformat() if end_time else None,
+            'location': location,
+            'url': canonical_url,  # Use cleaned URL without evd parameter
+            'image_url': image_url,
+            'event_type': event_type,
+            'is_online': False,
+            'is_registration_required': is_registration_required,
+            'registration_url': registration_url,
+            'registration_info': registration_info,
+        }
+        
+        return event_data
+        
+    except Exception as e:
+        logger.error(f"Error scraping film page {film_url}: {e}")
         return None
 
 

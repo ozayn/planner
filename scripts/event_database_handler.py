@@ -287,10 +287,21 @@ def update_existing_event(existing, event_data: Dict, venue_id: int, logger) -> 
             existing.start_location = 'Online'
             updated_fields.append('start_location')
     
+    # Update source_url and social_media_url if provided
+    if 'source_url' in event_data and event_data.get('source_url') and event_data.get('source_url') != existing.source_url:
+        existing.source_url = event_data['source_url']
+        updated = True
+        updated_fields.append('source_url')
+    
+    if 'social_media_url' in event_data and event_data.get('social_media_url') and event_data.get('social_media_url') != existing.social_media_url:
+        existing.social_media_url = event_data['social_media_url']
+        updated = True
+        updated_fields.append('social_media_url')
+    
     # Update other fields as needed
     for field in ['start_time', 'end_time', 'end_date', 'start_location', 'end_location',
                   'meeting_point', 'price', 'is_registration_required', 'registration_url',
-                  'is_baby_friendly']:
+                  'is_baby_friendly', 'organizer', 'social_media_platform', 'social_media_handle']:
         if field in event_data and hasattr(existing, field):
             new_value = event_data[field]
             

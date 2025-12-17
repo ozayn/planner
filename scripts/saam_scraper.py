@@ -24,6 +24,9 @@ from scripts.utils import detect_ongoing_exhibition, get_ongoing_exhibition_date
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import shared progress update function
+from scripts.utils import update_scraping_progress
+
 VENUE_NAME = "Smithsonian American Art Museum"
 RENWICK_VENUE_NAME = "Renwick Gallery"
 CITY_NAME = "Washington"
@@ -2765,21 +2768,28 @@ def scrape_all_saam_events(target_venue_name: str = None) -> List[Dict]:
     scraper = create_scraper()
     all_events = []
     
+    # Total steps: Exhibitions, Tours, Events = 3 steps
+    total_steps = 3
+    
     if target_venue_name:
         logger.info(f"🎨 Starting SAAM scraping for {target_venue_name}...")
     else:
         logger.info("🎨 Starting comprehensive SAAM scraping...")
     
     # 1. Scrape exhibitions
+    update_scraping_progress(1, total_steps, "Scraping exhibitions...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("📋 Scraping exhibitions...")
     exhibitions = scrape_saam_exhibitions(scraper)
     all_events.extend(exhibitions)
+    update_scraping_progress(1, total_steps, f"✅ Found {len(exhibitions)} exhibitions", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
     
     # 2. Scrape tours
+    update_scraping_progress(2, total_steps, "Scraping tours...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("🚶 Scraping tours...")
     tours = scrape_saam_tours(scraper)
     all_events.extend(tours)
+    update_scraping_progress(2, total_steps, f"✅ Found {len(tours)} tours", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(tours)} tours")
     if tours:
         tour_types = {}
@@ -2792,9 +2802,11 @@ def scrape_all_saam_events(target_venue_name: str = None) -> List[Dict]:
             logger.info(f"   📝 Sample tour {i+1}: {tour.get('title')} on {tour.get('start_date')} at {tour.get('start_time')}")
     
     # 3. Scrape events (talks, gallery talks, etc.)
+    update_scraping_progress(3, total_steps, "Scraping events (talks, etc.)...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("🎤 Scraping events (talks, etc.)...")
     events = scrape_saam_events(scraper)
     all_events.extend(events)
+    update_scraping_progress(3, total_steps, f"✅ Found {len(events)} events", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(events)} events")
     
     # Log final breakdown

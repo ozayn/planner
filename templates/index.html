@@ -6061,8 +6061,9 @@
                         ${event.source ? `<div style="margin-bottom: 8px;"><strong>Source:</strong> ${event.source}</div>` : ''}
                         ${event.organizer ? `<div style="margin-bottom: 8px;"><strong>Organizer:</strong> ${event.organizer}</div>` : ''}
                     </div>
+                    ${event.source_url ? `<div style="margin-bottom: 10px;"><strong>Source URL:</strong> <a href="${event.source_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.source_url}</a></div>` : ''}
                     ${event.url ? `<div style="margin-bottom: 10px;"><strong>Event URL:</strong> <a href="${event.url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.url}</a></div>` : ''}
-                    ${event.source_url && event.source_url !== event.url ? `<div style="margin-bottom: 10px;"><strong>Source URL:</strong> <a href="${event.source_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.source_url}</a></div>` : ''}
+                    ${event.social_media_url && event.social_media_url !== event.url && event.social_media_url !== event.source_url ? `<div style="margin-bottom: 10px;"><strong>Social Media URL:</strong> <a href="${event.social_media_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.social_media_url}</a></div>` : ''}
                     ${event.image_url ? `<div style="margin-bottom: 10px;"><strong>Image:</strong> <a href="${event.image_url}" target="_blank" style="color: #1976d2; word-break: break-all;">View Image</a></div>` : ''}
                 </div>
             `;
@@ -6755,7 +6756,9 @@
                         <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🔗 Additional Info</h4>
                         <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Source', event.source)}
-                            ${addField('URL', event.url, true)}
+                            ${addField('Source URL', event.source_url, true)}
+                            ${addField('Event URL', event.url, true)}
+                            ${addField('Social Media URL', event.social_media_url, true)}
                             ${addField('Registration URL', event.registration_url, true, 'Register / Get Tickets')}
                             ${event.image_url && getImageUrl(event.image_url) ? `
                                 <div style="margin-top: 10px;">

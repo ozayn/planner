@@ -1822,6 +1822,7 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
         event.city_id = city_id_event
         event.source = 'website'
         event.source_url = event_data.get('source_url', '')
+        event.social_media_url = event_data.get('social_media_url', '')
         event.organizer = event_data.get('organizer', '')
         
         if hasattr(Event, 'is_registration_required'):

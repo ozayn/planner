@@ -2502,7 +2502,6 @@ function showScrapingProgressModal(sourceName = 'Scraping') {
                     <div style="background: #e5e7eb; border-radius: 10px; height: 30px; overflow: hidden; position: relative;">
                         <div id="progressBar" style="background: linear-gradient(90deg, #3b82f6, #8b5cf6); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;"></div>
                     </div>
-                    <div id="progressPercentage" style="text-align: center; margin-top: 8px; font-weight: bold; color: #4a5568; font-size: 1.125rem;">0%</div>
                 </div>
                 <div id="progressMessage" style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6; font-size: 0.9375rem; line-height: 1.5; color: #1e40af;">
                     Starting...
@@ -2551,7 +2550,6 @@ function showScrapingProgressModal(sourceName = 'Scraping') {
         }
         // Reset progress display when starting new scraping
         const progressBar = document.getElementById('progressBar');
-        const progressPercentage = document.getElementById('progressPercentage');
         const progressMessage = document.getElementById('progressMessage');
         const eventsFound = document.getElementById('eventsFound');
         const eventsSaved = document.getElementById('eventsSaved');
@@ -2560,9 +2558,6 @@ function showScrapingProgressModal(sourceName = 'Scraping') {
         if (progressBar) {
             progressBar.style.width = '0%';
             progressBar.textContent = '';
-        }
-        if (progressPercentage) {
-            progressPercentage.textContent = '0%';
         }
         if (progressMessage) {
             progressMessage.textContent = 'Starting...';
@@ -2690,7 +2685,6 @@ async function pollScrapingProgress() {
 
 function updateScrapingProgress(progress) {
     const progressBar = document.getElementById('progressBar');
-    const progressPercentage = document.getElementById('progressPercentage');
     const progressMessage = document.getElementById('progressMessage');
     const eventsFound = document.getElementById('eventsFound');
     const eventsSaved = document.getElementById('eventsSaved');
@@ -2702,9 +2696,6 @@ function updateScrapingProgress(progress) {
     const percentage = Math.min(100, Math.max(0, progress.percentage || progress.progress || 0));
     progressBar.style.width = percentage + '%';
     progressBar.textContent = percentage >= 5 ? percentage + '%' : ''; // Only show text if bar is wide enough
-    if (progressPercentage) {
-        progressPercentage.textContent = percentage + '%';
-    }
     
     // Build a more detailed message
     let message = progress.message || 'Processing...';

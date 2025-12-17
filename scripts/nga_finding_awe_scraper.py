@@ -7,7 +7,8 @@ import os
 import sys
 import re
 import logging
-from datetime import datetime, date, time
+import time as time_module
+from datetime import datetime, date, time, timedelta
 from bs4 import BeautifulSoup
 import cloudscraper
 
@@ -25,12 +26,14 @@ FINDING_AWE_URL = 'https://www.nga.gov/calendar/finding-awe'
 VENUE_NAME = "National Gallery of Art"
 CITY_NAME = "Washington, DC"
 
-def scrape_all_finding_awe_events(save_incrementally=False):
+def scrape_all_finding_awe_events(save_incrementally=False, max_days_ahead=30):
     """Scrape all Finding Awe events from the series page
     
     Args:
         save_incrementally: If True, save events in batches as they're scraped.
                           If False, return all events for batch saving later.
+        max_days_ahead: Maximum number of days ahead to scrape events (default: 30 days = 1 month).
+                       Set to None to scrape all events regardless of date.
     
     Returns:
         If save_incrementally=True: (events_list, total_created, total_updated)
@@ -41,6 +44,15 @@ def scrape_all_finding_awe_events(save_incrementally=False):
     batch_size = 5
     total_created = 0
     total_updated = 0
+    
+    # Calculate date range for filtering
+    today = date.today()
+    if max_days_ahead is not None:
+        cutoff_date = today + timedelta(days=max_days_ahead)
+        logger.info(f"📅 Filtering Finding Awe events: only events from {today} to {cutoff_date} (next {max_days_ahead} days)")
+    else:
+        cutoff_date = None
+        logger.info(f"📅 Scraping all Finding Awe events (no date filter)")
     
     try:
         # Create a cloudscraper session to bypass bot detection
@@ -68,10 +80,9 @@ def scrape_all_finding_awe_events(save_incrementally=False):
         for attempt in range(max_retries):
             try:
                 if attempt > 0:
-                    import time
                     wait_time = 2 * attempt
                     logger.info(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
-                    time.sleep(wait_time)
+                    time_module.sleep(wait_time)
                     # Recreate scraper for fresh session
                     scraper = cloudscraper.create_scraper(
                         browser={
@@ -90,7 +101,7 @@ def scrape_all_finding_awe_events(save_incrementally=False):
                     # Visit base URL first to establish session
                     try:
                         scraper.get('https://www.nga.gov', timeout=15)
-                        time.sleep(2)
+                        time_module.sleep(2)
                     except:
                         pass
                 
@@ -133,12 +144,11 @@ def scrape_all_finding_awe_events(save_incrementally=False):
                 for page_attempt in range(3):
                     try:
                         if page_attempt > 0:
-                            import time
-                            time.sleep(2 * page_attempt)
+                            time_module.sleep(2 * page_attempt)
                             # Refresh session
                             try:
                                 scraper.get('https://www.nga.gov', timeout=15)
-                                time.sleep(1)
+                                time_module.sleep(1)
                             except:
                                 pass
                         
@@ -220,8 +230,7 @@ def scrape_all_finding_awe_events(save_incrementally=False):
                 page += 1
                 
                 # Small delay between pages to be respectful
-                import time
-                time.sleep(1)
+                time_module.sleep(1)
                 
             except Exception as e:
                 if page == 1:
@@ -234,12 +243,93 @@ def scrape_all_finding_awe_events(save_incrementally=False):
         
         logger.info(f"   Found {len(event_links)} unique Finding Awe event links across {page - 1} page(s)")
         
+        # Pre-filter event links by date from URL evd parameter (if available) to avoid scraping old events
+        if cutoff_date is not None:
+            filtered_event_links = []
+            skipped_old = 0
+            skipped_future = 0
+            
+            for event_url in event_links:
+                # Try to extract date from evd parameter in URL
+                import urllib.parse
+                parsed_url = urllib.parse.urlparse(event_url)
+                query_params = urllib.parse.parse_qs(parsed_url.query)
+                
+                if 'evd' in query_params and query_params['evd']:
+                    evd_value = query_params['evd'][0]
+                    if len(evd_value) >= 8:  # At least YYYYMMDD
+                        try:
+                            year = int(evd_value[0:4])
+                            month = int(evd_value[4:6])
+                            day = int(evd_value[6:8])
+                            event_date = date(year, month, day)
+                            
+                            # Only include events within the date range
+                            if event_date >= today and event_date <= cutoff_date:
+                                filtered_event_links.append(event_url)
+                            elif event_date < today:
+                                skipped_old += 1
+                            else:
+                                skipped_future += 1
+                        except (ValueError, IndexError):
+                            # If we can't parse the date, include it anyway (will be filtered after scraping)
+                            filtered_event_links.append(event_url)
+                else:
+                    # No evd parameter, include it anyway (will be filtered after scraping)
+                    filtered_event_links.append(event_url)
+            
+            event_links = filtered_event_links
+            logger.info(f"   📅 Pre-filtered to {len(event_links)} events within date range (skipped {skipped_old} old, {skipped_future} future)")
+        
         # Extract events from links
+        total_links = len(event_links)
         for idx, event_url in enumerate(event_links):
             try:
+                # Update progress during Finding Awe scraping
+                if total_links > 0:
+                    try:
+                        # Update progress with current event count
+                        # Note: We don't change step here, just update message and events_found
+                        import json
+                        progress_file = os.path.join(project_root, 'scraping_progress.json')
+                        if os.path.exists(progress_file):
+                            with open(progress_file, 'r') as f:
+                                progress_data = json.load(f)
+                            progress_data.update({
+                                'message': f'Scraping Finding Awe events... ({idx+1}/{total_links})',
+                                'timestamp': datetime.now().isoformat(),
+                                'events_found': len(events)
+                            })
+                            with open(progress_file, 'w') as f:
+                                json.dump(progress_data, f)
+                    except Exception:
+                        pass  # Don't fail if progress update fails
+                
                 logger.info(f"   📄 Scraping ({idx+1}/{len(event_links)}): {event_url}")
                 event_data = scrape_individual_event(event_url, scraper)
                 if event_data:
+                    # Filter by date if max_days_ahead is set
+                    if cutoff_date is not None:
+                        event_start_date = None
+                        if event_data.get('start_date'):
+                            try:
+                                event_start_date = datetime.fromisoformat(event_data['start_date']).date()
+                            except (ValueError, TypeError):
+                                # Try parsing as string date
+                                try:
+                                    event_start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                                except:
+                                    pass
+                        
+                        # Only include events within the date range
+                        if event_start_date:
+                            if event_start_date < today or event_start_date > cutoff_date:
+                                logger.info(f"   ⏭️  Skipped event outside date range: {event_data.get('title', 'Unknown')} ({event_start_date})")
+                                continue
+                        else:
+                            # If no date found, include it anyway (better to have it than miss it)
+                            logger.debug(f"   ⚠️  Event has no date, including anyway: {event_data.get('title', 'Unknown')}")
+                    
                     events.append(event_data)
                     logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
                     
@@ -316,13 +406,12 @@ def scrape_individual_event(event_url, scraper=None):
         for attempt in range(3):
             try:
                 if attempt > 0:
-                    import time
-                    time.sleep(2 * attempt)
+                    time_module.sleep(2 * attempt)
                     # Refresh session if needed
                     if attempt == 1:
                         try:
                             scraper.get('https://www.nga.gov', timeout=15)
-                            time.sleep(1)
+                            time_module.sleep(1)
                         except:
                             pass
                 

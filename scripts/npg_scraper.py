@@ -25,6 +25,10 @@ from app import app, db, Event, Venue, City
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# Import shared progress update function
+from scripts.utils import update_scraping_progress
+
 VENUE_NAME = "National Portrait Gallery"
 CITY_NAME = "Washington"
 
@@ -1148,30 +1152,41 @@ def scrape_all_npg_events() -> List[Dict]:
     scraper = create_scraper()
     all_events = []
     
+    # Total steps: Exhibitions, Tours, Events, Programs = 4 steps
+    total_steps = 4
+    
     logger.info("🖼️ Starting comprehensive NPG scraping...")
     
     # 1. Scrape exhibitions
+    update_scraping_progress(1, total_steps, "Scraping exhibitions...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("📋 Scraping exhibitions...")
     exhibitions = scrape_npg_exhibitions(scraper)
     all_events.extend(exhibitions)
+    update_scraping_progress(1, total_steps, f"✅ Found {len(exhibitions)} exhibitions", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
     
     # 2. Scrape tours (recurring daily tours)
+    update_scraping_progress(2, total_steps, "Scraping tours...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("🚶 Scraping tours...")
     tours = scrape_npg_tours(scraper)
     all_events.extend(tours)
+    update_scraping_progress(2, total_steps, f"✅ Found {len(tours)} tours", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(tours)} tours")
     
     # 3. Scrape events (talks, etc.)
+    update_scraping_progress(3, total_steps, "Scraping events (talks, etc.)...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("🎤 Scraping events (talks, etc.)...")
     events = scrape_npg_events(scraper)
     all_events.extend(events)
+    update_scraping_progress(3, total_steps, f"✅ Found {len(events)} events", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(events)} events")
     
     # 4. Scrape programs
+    update_scraping_progress(4, total_steps, "Scraping programs...", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info("📚 Scraping programs...")
     programs = scrape_npg_programs(scraper)
     all_events.extend(programs)
+    update_scraping_progress(4, total_steps, f"✅ Found {len(programs)} programs", events_found=len(all_events), venue_name=VENUE_NAME)
     logger.info(f"   ✅ Found {len(programs)} programs")
     
     logger.info(f"✅ Total NPG events scraped: {len(all_events)}")

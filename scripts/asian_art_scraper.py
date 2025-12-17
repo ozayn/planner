@@ -26,6 +26,10 @@ from app import app, db, Event, Venue, City
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# Import shared progress update function
+from scripts.utils import update_scraping_progress
+
 VENUE_NAME = "Smithsonian National Museum of Asian Art"
 CITY_NAME = "Washington"
 
@@ -1206,6 +1210,10 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
                 event_data = scrape_event_detail(scraper, full_url)
                 
                 if event_data:
+                    # Always ensure URL is set to the canonical full_url (ensures consistency)
+                    event_data['source_url'] = full_url
+                    event_data['social_media_url'] = full_url
+                    
                     # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
                     if listing_data.get('start_date'):
                         event_data['start_date'] = listing_data['start_date']
@@ -1400,6 +1408,10 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
             if event_data:
                 # Set event type to 'film'
                 event_data['event_type'] = 'film'
+                
+                # Always ensure URL is set to the canonical full_url (ensures consistency)
+                event_data['source_url'] = full_url
+                event_data['social_media_url'] = full_url
                 
                 # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
                 if listing_data.get('start_date'):
@@ -1596,6 +1608,10 @@ def scrape_asian_art_performances(scraper=None) -> List[Dict]:
                 # Set event type to 'performance'
                 event_data['event_type'] = 'performance'
                 
+                # Always ensure URL is set to the canonical full_url (ensures consistency)
+                event_data['source_url'] = full_url
+                event_data['social_media_url'] = full_url
+                
                 # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
                 if listing_data.get('start_date'):
                     event_data['start_date'] = listing_data['start_date']
@@ -1647,14 +1663,19 @@ def scrape_all_asian_art_events() -> List[Dict]:
     """
     all_events = []
     
+    # Total steps: Exhibitions, Events, Films, Performances = 4 steps
+    total_steps = 4
+    
     try:
         scraper = create_scraper()
         
         # Scrape exhibitions
         try:
+            update_scraping_progress(1, total_steps, "Scraping exhibitions...", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info("🔍 Scraping exhibitions...")
             exhibitions = scrape_asian_art_exhibitions(scraper)
             all_events.extend(exhibitions)
+            update_scraping_progress(1, total_steps, f"✅ Found {len(exhibitions)} exhibitions", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
         except Exception as e:
             logger.error(f"   ❌ Error scraping exhibitions: {e}")
@@ -1664,9 +1685,11 @@ def scrape_all_asian_art_events() -> List[Dict]:
         
         # Scrape events (talks, tours, programs)
         try:
+            update_scraping_progress(2, total_steps, "Scraping events (talks, tours, programs)...", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info("🔍 Scraping events...")
             events = scrape_asian_art_events(scraper)
             all_events.extend(events)
+            update_scraping_progress(2, total_steps, f"✅ Found {len(events)} events", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info(f"   ✅ Found {len(events)} events")
         except Exception as e:
             logger.error(f"   ❌ Error scraping events: {e}")
@@ -1676,9 +1699,11 @@ def scrape_all_asian_art_events() -> List[Dict]:
         
         # Scrape films
         try:
+            update_scraping_progress(3, total_steps, "Scraping films...", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info("🔍 Scraping films...")
             films = scrape_asian_art_films(scraper)
             all_events.extend(films)
+            update_scraping_progress(3, total_steps, f"✅ Found {len(films)} films", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info(f"   ✅ Found {len(films)} films")
         except Exception as e:
             logger.error(f"   ❌ Error scraping films: {e}")
@@ -1688,9 +1713,11 @@ def scrape_all_asian_art_events() -> List[Dict]:
         
         # Scrape performances
         try:
+            update_scraping_progress(4, total_steps, "Scraping performances...", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info("🔍 Scraping performances...")
             performances = scrape_asian_art_performances(scraper)
             all_events.extend(performances)
+            update_scraping_progress(4, total_steps, f"✅ Found {len(performances)} performances", events_found=len(all_events), venue_name=VENUE_NAME)
             logger.info(f"   ✅ Found {len(performances)} performances")
         except Exception as e:
             logger.error(f"   ❌ Error scraping performances: {e}")

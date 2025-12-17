@@ -1293,6 +1293,70 @@ def validate_database_schema() -> Dict[str, Any]:
         }
 
 # File utilities
+def update_scraping_progress(step, total_steps, message, events_found=0, events_saved=0, events_updated=0, venue_name=None):
+    """Update scraping progress file for real-time tracking
+    
+    Args:
+        step: Current step number (1-based)
+        total_steps: Total number of steps
+        message: Progress message to display
+        events_found: Number of events found so far
+        events_saved: Number of events saved to database
+        events_updated: Number of events updated in database
+        venue_name: Name of venue being scraped (optional)
+    """
+    try:
+        import json
+        from datetime import datetime
+        
+        # Get project root (parent of scripts directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        progress_file = os.path.join(project_root, 'scraping_progress.json')
+        
+        # Read existing progress or create new
+        if os.path.exists(progress_file):
+            with open(progress_file, 'r') as f:
+                progress_data = json.load(f)
+        else:
+            progress_data = {
+                'current_step': 1,
+                'total_steps': total_steps,
+                'percentage': 0,
+                'message': 'Starting...',
+                'timestamp': datetime.now().isoformat(),
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'venues_processed': 0,
+                'total_venues': 1,
+                'current_venue': venue_name or 'Unknown',
+                'recent_events': []
+            }
+        
+        # Update progress
+        progress_data.update({
+            'current_step': step,
+            'total_steps': total_steps,
+            'percentage': min(int((step / total_steps) * 100), 99),  # Cap at 99% until complete
+            'message': message,
+            'timestamp': datetime.now().isoformat(),
+            'events_found': events_found if events_found > 0 else progress_data.get('events_found', 0),
+            'events_saved': events_saved if events_saved > 0 else progress_data.get('events_saved', 0),
+            'events_updated': events_updated if events_updated > 0 else progress_data.get('events_updated', 0),
+        })
+        
+        # Update venue name if provided
+        if venue_name:
+            progress_data['current_venue'] = venue_name
+        
+        with open(progress_file, 'w') as f:
+            json.dump(progress_data, f)
+    except Exception as e:
+        # Don't fail if progress update fails - just log it
+        import logging
+        logging.getLogger(__name__).debug(f"Could not update progress file: {e}")
+
+
 def ensure_directory_exists(path: str) -> bool:
     """Ensure a directory exists, create if it doesn't"""
     try:
