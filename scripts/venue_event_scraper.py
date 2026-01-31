@@ -516,72 +516,60 @@ class VenueEventScraper:
                 from scripts.npg_scraper import scrape_all_npg_events
                 npg_events = scrape_all_npg_events()
                 if npg_events:
-                    # CRITICAL: Filter out events that belong to other venues BEFORE assigning venue_id
                     filtered_npg_events = []
                     venue_name_lower = venue.name.lower()
-                    
                     for event in npg_events:
                         event_title = (event.get('title') or '').lower()
                         event_organizer = (event.get('organizer') or '').lower()
                         event_url = (event.get('url') or event.get('source_url') or '').lower()
-                        
-                        # Skip events that clearly belong to other venues
                         should_skip = False
                         if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from NPG: '{event.get('title', 'N/A')}'")
                             should_skip = True
                         elif 'american art' in event_title and 'american art' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out SAAM event from NPG: '{event.get('title', 'N/A')}'")
                             should_skip = True
                         elif 'asian art' in event_title and 'asian' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Asian Art event from NPG: '{event.get('title', 'N/A')}'")
                             should_skip = True
                         elif 'african art' in event_title and 'african' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out African Art event from NPG: '{event.get('title', 'N/A')}'")
                             should_skip = True
                         elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NGA event from NPG: '{event.get('title', 'N/A')}'")
                             should_skip = True
-                        elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from NPG (by organizer): '{event.get('title', 'N/A')}'")
-                            should_skip = True
-                        elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from NPG (by URL): '{event.get('title', 'N/A')}'")
-                            should_skip = True
-                        
-                        if should_skip:
-                            continue
-                        
-                        # Ensure venue_id and city_id are set only for events that belong to this venue
-                        if not event.get('venue_id'):
-                            event['venue_id'] = venue.id
-                        if not event.get('city_id'):
-                            event['city_id'] = venue.city_id
+                        if should_skip: continue
+                        if not event.get('venue_id'): event['venue_id'] = venue.id
+                        if not event.get('city_id'): event['city_id'] = venue.city_id
                         filtered_npg_events.append(event)
-                    
-                    original_count = len(npg_events)
                     npg_events = filtered_npg_events
-                    if original_count > len(filtered_npg_events):
-                        logger.info(f"   📊 Filtered out {original_count - len(filtered_npg_events)} events that belong to other venues")
-                    # Filter by event_type if specified
                     if event_type:
                         npg_events = [e for e in npg_events if e.get('event_type', '').lower() == event_type.lower()]
-                    # Filter by time_range
                     npg_events = self._filter_by_time_range(npg_events, time_range)
-                    # Apply limits
                     if event_type and event_type.lower() == 'exhibition':
                         exhibition_events = [e for e in npg_events if e.get('event_type') == 'exhibition']
                         other_events = [e for e in npg_events if e.get('event_type') != 'exhibition']
-                        limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
-                        events = limited_exhibitions + other_events
+                        events = exhibition_events[:max_exhibitions_per_venue] + other_events
                     else:
                         events = npg_events[:max_events_per_venue]
                     logger.info(f"✅ NPG scraper found {len(events)} events for {venue.name}")
-                    specialized_scraper_used = True
                     return events
+                return []
             except Exception as e:
                 logger.warning(f"⚠️ NPG specialized scraper failed: {e}, falling back to generic scraper")
-        
+
+        # Suns Cinema
+        elif 'sunscinema.com' in venue_url_lower or 'suns cinema' in venue_name_lower:
+            logger.info(f"🎯 Using specialized Suns Cinema scraper for {venue.name}")
+            try:
+                from scripts.suns_cinema_scraper import scrape_all_suns_cinema_events
+                suns_events = scrape_all_suns_cinema_events()
+                if suns_events:
+                    for event in suns_events:
+                        if not event.get('venue_id'): event['venue_id'] = venue.id
+                        if not event.get('city_id'): event['city_id'] = venue.city_id
+                    events = self._filter_by_time_range(suns_events, time_range)
+                    logger.info(f"✅ Suns Cinema scraper found {len(events)} events for {venue.name}")
+                    return events
+                return []
+            except Exception as e:
+                logger.warning(f"⚠️ Suns Cinema specialized scraper failed: {e}, falling back to generic scraper")
+
         # Asian Art Museum (Smithsonian)
         elif 'asia.si.edu' in venue_url_lower or ('asian art' in venue_name_lower and 'museum' in venue_name_lower):
             logger.info(f"🎯 Using specialized Asian Art scraper for {venue.name}")

@@ -8306,6 +8306,74 @@ def scrape_npg():
             'events_updated': 0
         }), 500
 
+@app.route('/api/admin/scrape-suns-cinema', methods=['POST'])
+def scrape_suns_cinema_endpoint():
+    """Scrape all Suns Cinema movie showtimes and upcoming screenings."""
+    try:
+        app_logger.info("Starting Suns Cinema scraping...")
+        
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting Suns Cinema scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'Suns Cinema',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Import the Suns Cinema scraper
+        from scripts.suns_cinema_scraper import scrape_all_suns_cinema_events
+        
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 30,
+            'message': 'Scraping movie showtimes from Suns Cinema...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Scrape events
+        events = scrape_all_suns_cinema_events()
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,
+            'percentage': 100,
+            'message': f'✅ Suns Cinema scraping completed! Found {len(events)} screenings.',
+            'events_found': len(events),
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'message': f"Found {len(events)} screenings at Suns Cinema"
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error scraping Suns Cinema: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/admin/scrape-asian-art', methods=['POST'])
 def scrape_asian_art():
     """Scrape all Asian Art Museum events: exhibitions, tours, talks, and other events."""
