@@ -537,7 +537,11 @@ function displayExtractedData(data) {
     content.innerHTML = `
         <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px;">
             <strong>Title:</strong> <span>${data.title || 'Not found'}</span>
-            <strong>Description:</strong> <span>${data.description ? data.description.substring(0, 100) + '...' : 'Not found'}</span>
+            <strong>Description:</strong> 
+            <div>
+                <span id="preview-desc" class="description-text collapsed">${data.description || 'Not found'}</span>
+                ${data.description && data.description.length > 100 ? `<a href="javascript:void(0)" class="more-link" onclick="toggleAdminDescription('preview-desc', this)">More</a>` : ''}
+            </div>
             <strong>Schedule:</strong> <span>${data.schedule_info || 'Not detected'}</span>
             <strong>Start Time:</strong> <span>${data.start_time || 'Not found'}</span>
             <strong>End Time:</strong> <span>${data.end_time || 'Not found'}</span>
@@ -882,7 +886,12 @@ function displayScrapedData(result) {
                 <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px;">
                     <strong>Event ${index + 1}:</strong> ${event.title || 'Untitled'}<br>
                     <small>📅 ${event.start_date || 'No date'} ${event.start_time || ''}</small><br>
-                    ${event.description ? `<small>📝 ${event.description.substring(0, 100)}...</small>` : ''}
+                    ${event.description ? `
+                        <div style="margin-top: 4px;">
+                            <small id="event-res-${index}" class="description-text collapsed">📝 ${event.description}</small>
+                            ${event.description.length > 100 ? `<a href="javascript:void(0)" class="more-link" onclick="toggleAdminDescription('event-res-${index}', this)">More</a>` : ''}
+                        </div>
+                    ` : ''}
                 </div>
             `;
         });

@@ -305,7 +305,13 @@ function renderEventsMobileCards(data) {
                     ${dateTimeStr ? `<div class="event-card-field"><span class="field-label">📅 When:</span> <span class="field-value">${dateTimeStr}</span></div>` : ''}
                     ${venueName ? `<div class="event-card-field"><span class="field-label">🏛️ Venue:</span> <span class="field-value">${venueName}</span></div>` : ''}
                     ${cityName ? `<div class="event-card-field"><span class="field-label">🌍 City:</span> <span class="field-value">${cityName}</span></div>` : ''}
-                    ${description ? `<div class="event-card-field event-card-description"><span class="field-label">📝 Description:</span> <span class="field-value">${description.substring(0, 100)}${description.length > 100 ? '...' : ''}</span></div>` : ''}
+                    ${description ? `
+                        <div class="event-card-field event-card-description">
+                            <span class="field-label">📝 Description:</span> 
+                            <span id="card-desc-${item.id}" class="field-value description-text collapsed">${description}</span>
+                            ${description.length > 100 ? `<a href="javascript:void(0)" class="more-link" onclick="toggleAdminDescription('card-desc-${item.id}', this)">More</a>` : ''}
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="event-card-actions">
                     ${generateActionButtons(item.id, 'events')}
@@ -854,10 +860,16 @@ function formatFieldValue(fieldName, value, config = {}) {
         
         case 'description':
         case 'tour_info':
-            if (value.length > 100) {
-                return `<span title="${value}">${value.substring(0, 100)}...</span>`;
+            if (value && value.length > 100) {
+                const uniqueId = 'desc-' + Math.random().toString(36).substr(2, 9);
+                return `
+                    <div class="description-container">
+                        <span id="${uniqueId}" class="description-text collapsed">${value}</span>
+                        <a href="javascript:void(0)" class="more-link" onclick="toggleAdminDescription('${uniqueId}', this)">More</a>
+                    </div>
+                `;
             }
-            return value;
+            return value || '';
         
         case 'additional_info':
             try {
@@ -888,10 +900,16 @@ function formatFieldValue(fieldName, value, config = {}) {
                 // If not JSON, treat as regular text
             }
             
-            if (value.length > 100) {
-                return `<span title="${value}">${value.substring(0, 100)}...</span>`;
+            if (value && value.length > 100) {
+                const uniqueId = 'info-' + Math.random().toString(36).substr(2, 9);
+                return `
+                    <div class="description-container">
+                        <span id="${uniqueId}" class="description-text collapsed">${value}</span>
+                        <a href="javascript:void(0)" class="more-link" onclick="toggleAdminDescription('${uniqueId}', this)">More</a>
+                    </div>
+                `;
             }
-            return value;
+            return value || '';
         
         case 'venue_count':
         case 'event_count':
@@ -1129,4 +1147,22 @@ function attachTableEventListeners(tableBody, tableType) {
             }
         }
     });
+}
+
+/**
+ * Toggles description expansion in admin tables
+ * @param {string} id - The ID of the description element
+ * @param {HTMLElement} btn - The "More/Less" link element
+ */
+function toggleAdminDescription(id, btn) {
+    const el = document.getElementById(id);
+    if (el.classList.contains('collapsed')) {
+        el.classList.remove('collapsed');
+        el.classList.add('expanded');
+        btn.textContent = 'Less';
+    } else {
+        el.classList.remove('expanded');
+        el.classList.add('collapsed');
+        btn.textContent = 'More';
+    }
 }

@@ -1421,6 +1421,33 @@
             font-size: 0.9rem;
             line-height: 1.5;
             margin-bottom: 15px;
+            position: relative;
+        }
+
+        .event-description.collapsed {
+            max-height: 4.5em; /* Approximately 3 lines */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .read-more-link {
+            display: inline-block;
+            color: #3b82f6;
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: color 0.2s;
+        }
+
+        .read-more-link:hover {
+            color: #2563eb;
+            text-decoration: underline;
         }
 
         .event-actions {
@@ -5952,9 +5979,14 @@
                         ` : ''}
                     </div>
                     
-                    <div class="event-description">
+                    <div class="event-description ${event.description && event.description.length > 150 ? 'collapsed' : ''}" id="desc-${event.id}">
                         ${event.description || 'No description available.'}
                     </div>
+                    ${event.description && event.description.length > 150 ? `
+                        <button class="read-more-link" onclick="toggleDescription(${event.id}, this)" id="btn-${event.id}">
+                            Read More
+                        </button>
+                    ` : ''}
                     
                     <div class="event-actions">
                         ${event.url && event.url !== event.source_url ? `
@@ -5994,6 +6026,18 @@
             
             updateExportSelectedButton();
             updateSelectAllButton();
+        }
+
+        // Toggle description expansion
+        function toggleDescription(eventId, btn) {
+            const desc = document.getElementById(`desc-${eventId}`);
+            if (desc.classList.contains('collapsed')) {
+                desc.classList.remove('collapsed');
+                btn.textContent = 'Read Less';
+            } else {
+                desc.classList.add('collapsed');
+                btn.textContent = 'Read More';
+            }
         }
 
         // Update export selected button
