@@ -1199,6 +1199,7 @@ def get_events():
     city_id = request.args.get('city_id')
     time_range = request.args.get('time_range', 'this_week')
     event_type = request.args.get('event_type')
+    include_unselected = request.args.get('include_unselected', 'false').lower() == 'true'
     
     if not city_id:
         return jsonify({'error': 'City ID is required'}), 400
@@ -1266,10 +1267,9 @@ def get_events():
         else:
             tour_filter = tour_filter & (Event.city_id == city_id)
         
-        tour_query = Event.query.filter(
-            tour_filter,
-            Event.is_selected == True
-        )
+        tour_query = Event.query.filter(tour_filter)
+        # Show all events by default (both selected and unselected)
+        # Users can filter by is_selected on the frontend if needed
         
         # Only filter by date if not "all"
         if time_range != 'all':
@@ -1288,10 +1288,8 @@ def get_events():
         else:
             exhibition_filter = exhibition_filter & (Event.city_id == city_id)
         
-        exhibition_query = Event.query.filter(
-            exhibition_filter,
-            Event.is_selected == True
-        )
+        exhibition_query = Event.query.filter(exhibition_filter)
+        # Show all events by default (both selected and unselected)
         
         # Only filter by date if not "all"
         if time_range == 'all':
@@ -1316,9 +1314,9 @@ def get_events():
     if not event_type or event_type == 'festival':
         festival_query = Event.query.filter(
             Event.event_type == 'festival',
-            Event.city_id == city_id,
-            Event.is_selected == True
+            Event.city_id == city_id
         )
+        # Show all events by default (both selected and unselected)
         
         # Only filter by date if not "all"
         if time_range != 'all':
@@ -1333,9 +1331,9 @@ def get_events():
     if not event_type or event_type == 'photowalk':
         photowalk_query = Event.query.filter(
             Event.event_type == 'photowalk',
-            Event.city_id == city_id,
-            Event.is_selected == True
+            Event.city_id == city_id
         )
+        # Show all events by default (both selected and unselected)
         
         # Only filter by date if not "all"
         if time_range != 'all':
@@ -1355,10 +1353,8 @@ def get_events():
         else:
             other_filter = Event.city_id == city_id
         
-        other_events = Event.query.filter(
-            other_filter,
-            Event.is_selected == True
-        )
+        other_events = Event.query.filter(other_filter)
+        # Show all events by default (both selected and unselected)
         
         # Only filter by date if not "all"
         if time_range != 'all':
@@ -2919,6 +2915,12 @@ def auth_logout():
 def admin():
     """Admin interface"""
     return render_template('admin.html', session=session)
+
+@app.route('/admin/vipassana')
+@login_required
+def admin_vipassana():
+    """Vipassana scraper admin page with separate database"""
+    return render_template('admin/vipassana.html', session=session)
 
 
 @app.route('/test-admin')
@@ -5184,6 +5186,38 @@ def clear_events():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/clear-past-events', methods=['POST'])
+def clear_past_events():
+    """Delete all events that have ended in the past"""
+    try:
+        today = date.today()
+        
+        # Build query for past events
+        # 1. Event has an end_date and end_date < today
+        # 2. Event has no end_date and start_date < today
+        # AND Event is not permanent
+        query = Event.query.filter(
+            db.or_(
+                db.and_(Event.end_date.isnot(None), Event.end_date < today),
+                db.and_(Event.end_date.is_(None), Event.start_date < today)
+            ),
+            Event.is_permanent == False
+        )
+        
+        # Count and delete
+        past_events_count = query.count()
+        query.delete(synchronize_session=False)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted {past_events_count} past events from database'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/clear-venues', methods=['POST'])
 def clear_venues():
     """Clear all venues from database"""
@@ -6934,6 +6968,19 @@ def generate_ical_event(event_data):
     import uuid
     event_id = str(uuid.uuid4())
     
+    # Extract recurrence info from description if present (and remove the marker)
+    description = event_data.get('description', '')
+    is_recurring_from_desc = False
+    recurrence_rule_from_desc = ''
+    if description:
+        import re
+        recurrence_match = re.search(r'\[RECURRING:\s*([^\]]+)\](.*)', description, re.DOTALL)
+        if recurrence_match:
+            is_recurring_from_desc = True
+            recurrence_rule_from_desc = recurrence_match.group(1).strip()
+            # Remove the recurrence marker from description
+            description = re.sub(r'\[RECURRING:[^\]]+\]\s*', '', description).strip()
+    
     # Build enhanced description with additional information
     description_parts = []
     
@@ -6949,8 +6996,8 @@ def generate_ical_event(event_data):
         if not venue_lower or (start_loc_lower != venue_lower and venue_lower not in start_loc_lower and start_loc_lower not in venue_lower):
             description_parts.insert(0, f"Meeting Location: {start_location.strip()}")
     
-    if event_data.get('description'):
-        description_parts.append(event_data['description'])
+    if description:
+        description_parts.append(description)
     
     # Add event type
     if event_data.get('event_type'):
@@ -7006,6 +7053,17 @@ def generate_ical_event(event_data):
         dtstart_line = f"DTSTART;TZID={timezone_str}:{start_datetime_str}"
         dtend_line = f"DTEND;TZID={timezone_str}:{end_datetime_str}"
     
+    # Check if this is a recurring event
+    # Use the recurrence info we extracted from description above
+    is_recurring = event_data.get('is_recurring', False) or is_recurring_from_desc
+    recurrence_rule = event_data.get('recurrence_rule', '') or recurrence_rule_from_desc
+    
+    # Build RRULE line if this is a recurring event
+    rrule_line = ''
+    if is_recurring and recurrence_rule:
+        # Format: RRULE:FREQ=DAILY (no end date = forever)
+        rrule_line = f"RRULE:{recurrence_rule}\n"
+    
     ical_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Event Planner//Event Planner//EN
@@ -7014,7 +7072,7 @@ BEGIN:VEVENT
 UID:{event_id}@eventplanner.com
 {dtstart_line}
 {dtend_line}
-SUMMARY:{event_data['title']}
+{rrule_line}SUMMARY:{event_data['title']}
 DESCRIPTION:{enhanced_description}
 LOCATION:{calendar_location}
 END:VEVENT
@@ -9065,6 +9123,506 @@ def scrape_websters():
         except:
             pass
         
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/scrape-vipassana', methods=['POST'])
+def scrape_vipassana():
+    """Scrape all virtual Vipassana meditation events from dhamma.org."""
+    try:
+        app_logger.info("Starting Vipassana virtual events scraping...")
+        
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 3,
+            'percentage': 5,
+            'message': 'Starting Vipassana virtual events scraping...',
+            'timestamp': datetime.now().isoformat(),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'Vipassana Meditation (Virtual)',
+            'recent_events': []
+        }
+        
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Import the Vipassana scraper
+        from scripts.vipassana_scraper import scrape_vipassana_events, create_events_in_database
+        
+        # Update progress - scraping events
+        progress_data.update({
+            'current_step': 1,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 20,
+            'message': 'Scraping Vipassana virtual events...'
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Scrape all Vipassana events
+        try:
+            events = scrape_vipassana_events()
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_vipassana_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            # Return empty list to continue with error handling
+            events = []
+        
+        if not events:
+            progress_data.update({
+                'current_step': 3,
+                'total_steps': 3,  # Ensure total_steps is always included
+                'percentage': 100,
+                'message': '❌ No Vipassana events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0
+            }), 404
+        
+        # Update progress - saving events
+        progress_data.update({
+            'current_step': 3,
+            'percentage': 80,
+            'message': f'Saving {len(events)} events to database...',
+            'events_found': len(events)
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        # Create events in database
+        created_count = create_events_in_database(events)
+        skipped_count = len(events) - created_count
+        
+        # Update progress - complete
+        progress_data.update({
+            'current_step': 3,
+            'total_steps': 3,  # Ensure total_steps is always included
+            'percentage': 100,
+            'message': f'✅ Vipassana scraping completed! Found {len(events)} events, created {created_count} new, {skipped_count} already existed',
+            'events_saved': created_count,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None, 'location': e.get('location_name')} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+        
+        app_logger.info(f"Vipassana scraping completed: found {len(events)} events, created {created_count} new events, skipped {skipped_count} duplicates")
+        
+        message = f"Found {len(events)} Vipassana events"
+        if created_count > 0:
+            message += f", created {created_count} new events"
+        if skipped_count > 0:
+            message += f", {skipped_count} already existed"
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'events_skipped': skipped_count,
+            'message': message
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error in Vipassana scraping: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        
+        # Update progress with error
+        try:
+            progress_data = {
+                'percentage': 100,
+                'message': f'❌ Error: {str(e)}',
+                'error': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+        except:
+            pass
+        
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/vipassana/scrape', methods=['POST'])
+@login_required
+def scrape_vipassana_separate():
+    """Scrape Vipassana events into separate database"""
+    try:
+        app_logger.info("Starting Vipassana scraping (separate database)...")
+        
+        # Import the separate database
+        from scripts.vipassana_database import vipassana_app, vipassana_db, VipassanaEvent, init_vipassana_database
+        from scripts.vipassana_scraper import scrape_vipassana_events
+        
+        # Initialize database if needed
+        init_vipassana_database()
+        
+        # Scrape events
+        try:
+            events = scrape_vipassana_events()
+            app_logger.info(f"Scraper returned {len(events) if events else 0} events")
+        except Exception as scrape_error:
+            app_logger.error(f"Error in scrape_vipassana_events: {scrape_error}")
+            import traceback
+            app_logger.error(traceback.format_exc())
+            
+            # Check if it's a 401 error
+            error_str = str(scrape_error).lower()
+            if '401' in error_str or 'authorization required' in error_str:
+                return jsonify({
+                    'success': False,
+                    'error': 'The page returned 401 Authorization Required. This means the page requires authentication or has IP-based access control.',
+                    'events_found': 0,
+                    'events_saved': 0,
+                    'suggestion': 'Please verify that the URL https://www.dhamma.org/en/os/locations/virtual_events is publicly accessible in your browser. If it requires login, you may need to provide credentials or use a different approach.'
+                }), 401
+            
+            events = []
+        
+        if not events:
+            app_logger.warning("No events found by scraper")
+            # Check if page might be JavaScript-rendered
+            try:
+                import cloudscraper
+                test_scraper = cloudscraper.create_scraper()
+                test_response = test_scraper.get('https://www.dhamma.org/en/os/locations/virtual_events', timeout=10)
+                page_size = len(test_response.text)
+                page_preview = test_response.text[:1000].lower()
+                
+                is_js_rendered = (
+                    page_size < 5000 or
+                    'react' in page_preview or
+                    'vue' in page_preview or
+                    'loading' in page_preview
+                )
+                
+                error_msg = 'No events found. The scraper couldn\'t extract schedule information from the page.'
+                suggestion = 'Please click the "Debug Scraper" button to see what the scraper found on the page.'
+                
+                if is_js_rendered:
+                    error_msg += ' The page appears to load content dynamically via JavaScript, which the scraper cannot access.'
+                    suggestion += ' The page might require a browser-based scraper (like Selenium) to access JavaScript-rendered content.'
+            except Exception as check_error:
+                app_logger.debug(f"Could not check if page is JS-rendered: {check_error}")
+                error_msg = 'No events found. The scraper couldn\'t extract schedule information from the page.'
+                suggestion = 'Please click the "Debug Scraper" button to see what the scraper found on the page.'
+            
+            return jsonify({
+                'success': False,
+                'error': error_msg,
+                'events_found': 0,
+                'events_saved': 0,
+                'suggestion': suggestion
+            }), 404
+        
+        # Save to separate database
+        created_count = 0
+        with vipassana_app.app_context():
+            for event_data in events:
+                try:
+                    # Extract day_of_week before removing it
+                    day_of_week = event_data.get('day_of_week', 'Daily')
+                    
+                    # Remove internal fields
+                    event_data.pop('is_english', None)
+                    event_data.pop('day_of_week', None)
+                    
+                    # Check if event already exists
+                    existing = VipassanaEvent.query.filter_by(
+                        title=event_data.get('title'),
+                        start_time=datetime.strptime(event_data['start_time'], '%H:%M').time() if event_data.get('start_time') else None,
+                        day_of_week=day_of_week
+                    ).first()
+                    
+                    if existing:
+                        continue
+                    
+                    # Create new event
+                    event = VipassanaEvent(
+                        title=event_data.get('title', ''),
+                        description=event_data.get('description', ''),
+                        start_date=datetime.fromisoformat(event_data['start_date']).date(),
+                        end_date=datetime.fromisoformat(event_data.get('end_date', event_data['start_date'])).date(),
+                        start_time=datetime.strptime(event_data['start_time'], '%H:%M').time() if event_data.get('start_time') else None,
+                        end_time=datetime.strptime(event_data['end_time'], '%H:%M').time() if event_data.get('end_time') else None,
+                        url=event_data.get('url'),
+                        zoom_link=event_data.get('zoom_link'),
+                        zoom_password=event_data.get('zoom_password'),
+                        timezone=event_data.get('timezone'),
+                        location_name=event_data.get('location_name'),
+                        day_of_week=day_of_week,
+                        recurrence_rule=event_data.get('recurrence_rule', 'FREQ=DAILY')
+                    )
+                    
+                    vipassana_db.session.add(event)
+                    vipassana_db.session.commit()
+                    created_count += 1
+                except Exception as e:
+                    app_logger.error(f"Error saving event: {e}")
+                    vipassana_db.session.rollback()
+                    continue
+        
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created_count,
+            'message': f'Found {len(events)} events, created {created_count} new events'
+        })
+        
+    except Exception as e:
+        app_logger.error(f"Error in Vipassana scraping (separate DB): {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/vipassana/debug', methods=['GET'])
+@login_required
+def debug_vipassana_scraper():
+    """Debug endpoint to see what the scraper finds"""
+    try:
+        from scripts.vipassana_scraper import _get_vipassana_credentials
+        import cloudscraper
+        from bs4 import BeautifulSoup
+        from requests.auth import HTTPBasicAuth
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        VIPASSANA_URL = 'https://www.dhamma.org/en/os/locations/virtual_events'
+        
+        # Get credentials for authentication
+        username, password = _get_vipassana_credentials()
+        auth = None
+        if username and password:
+            auth = HTTPBasicAuth(username, password)
+        
+        # Fetch the page with authentication
+        scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': 'darwin',
+                'desktop': True
+            }
+        )
+        scraper.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',  # Let requests handle decompression
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Referer': 'https://www.dhamma.org/'
+        })
+        
+        response = scraper.get(VIPASSANA_URL, timeout=30, auth=auth)
+        
+        # Check if response is actually HTML
+        content_type = response.headers.get('Content-Type', '')
+        logger.info(f"Response Content-Type: {content_type}")
+        logger.info(f"Response status: {response.status_code}")
+        
+        # Try to get the text - requests should handle decompression automatically
+        try:
+            html_content = response.text
+            # Check if it looks like binary data
+            if len(html_content) > 0:
+                first_chars = html_content[:100]
+                # If it's mostly non-printable characters, it might be binary
+                printable_count = sum(1 for c in first_chars if c.isprintable() or c in '\n\r\t')
+                if printable_count < len(first_chars) * 0.5:
+                    logger.warning("Response appears to be binary/compressed")
+                    # Try to get raw content
+                    raw_content = response.content
+                    logger.info(f"Raw content length: {len(raw_content)}")
+                    logger.info(f"Raw content first 100 bytes: {raw_content[:100]}")
+                    # Try different decompression
+                    import gzip
+                    try:
+                        html_content = gzip.decompress(raw_content).decode('utf-8')
+                        logger.info("Successfully decompressed with gzip")
+                    except:
+                        try:
+                            import zlib
+                            html_content = zlib.decompress(raw_content).decode('utf-8')
+                            logger.info("Successfully decompressed with zlib")
+                        except:
+                            html_content = raw_content.decode('utf-8', errors='replace')
+                            logger.warning("Using raw content with error replacement")
+        except Exception as e:
+            logger.error(f"Error processing response: {e}")
+            html_content = response.content.decode('utf-8', errors='replace')
+        
+        # Check content type and encoding
+        content_type = response.headers.get('Content-Type', '')
+        content_encoding = response.headers.get('Content-Encoding', '')
+        
+        # Try to decode the response properly
+        try:
+            # If it's compressed, requests should handle it automatically, but let's check
+            if content_encoding:
+                # Response should already be decompressed by requests/cloudscraper
+                pass
+            
+            # Try to decode as text
+            if hasattr(response, 'text'):
+                html_content = response.text
+            else:
+                # Try to decode manually
+                html_content = response.content.decode('utf-8', errors='ignore')
+        except Exception as decode_error:
+            # If decoding fails, try different encodings
+            try:
+                html_content = response.content.decode('latin-1', errors='ignore')
+            except:
+                html_content = response.content.decode('utf-8', errors='replace')
+        
+        # Only parse as HTML if it looks like HTML
+        if html_content.strip().startswith('<') or '<html' in html_content[:200].lower():
+            soup = BeautifulSoup(html_content, 'html.parser')
+        else:
+            # Create empty soup if not HTML
+            soup = BeautifulSoup('', 'html.parser')
+            logger.warning("Response doesn't appear to be HTML - skipping parsing")
+        
+        # Get some basic info
+        page_title = soup.find('title')
+        page_text = soup.get_text()
+        page_text_sample = page_text[:2000]  # Show more content
+        
+        # Count various elements
+        tables = len(soup.find_all('table'))
+        divs = len(soup.find_all('div'))
+        links = len(soup.find_all('a', href=True))
+        zoom_links = soup.find_all('a', href=lambda x: x and ('zoom' in x.lower() or 'zoom.us' in x.lower()) if x else False)
+        teams_links = soup.find_all('a', href=lambda x: x and ('teams' in x.lower() or 'microsoft' in x.lower()) if x else False)
+        meet_links = soup.find_all('a', href=lambda x: x and 'meet' in x.lower() if x else False)
+        
+        # Extract actual zoom/teams links
+        zoom_urls = [link.get('href', '') for link in zoom_links[:10]]
+        teams_urls = [link.get('href', '') for link in teams_links[:10]]
+        meet_urls = [link.get('href', '') for link in meet_links[:10]]
+        
+        # Look for timezone patterns
+        import re
+        timezone_matches = []
+        tz_patterns = [
+            r'([A-Z]{2}),\s*([^\(]+)\s*\(([^\)]+)\)',  # "SE, Central European Time (CET)"
+            r'(EST|EDT|PST|PDT|CST|CDT|MST|MDT|UTC|GMT|CET|CEST|IST|ICT|JST)',
+            r'(Eastern|Central|Mountain|Pacific|European|Indochina|India)\s+(Standard|Daylight)?\s*Time',
+        ]
+        for pattern in tz_patterns:
+            matches = re.findall(pattern, page_text, re.I)
+            timezone_matches.extend([str(m) for m in matches[:10]])  # First 10 matches
+        
+        # Look for day+time patterns
+        day_time_matches = re.findall(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)s?\s+(\d{1,2}):?(\d{2})?\s*(a\.?m\.?|p\.?m\.?|AM|PM)', page_text, re.I)
+        
+        # Look for "Click to Join" or similar patterns
+        join_patterns = re.findall(r'(click\s+to\s+join|join\s+meeting|join\s+link|meeting\s+link)', page_text, re.I)
+        
+        return jsonify({
+            'page_title': page_title.get_text() if page_title else 'No title',
+            'page_size': len(html_content),
+            'status_code': response.status_code,
+            'content_type': content_type,
+            'content_encoding': content_encoding,
+            'has_auth': bool(auth),
+            'raw_content_preview': html_content[:500] if len(html_content) > 0 else 'Empty content',
+            'is_html': html_content.strip().startswith('<') or '<html' in html_content[:200].lower(),
+            'elements_found': {
+                'tables': tables,
+                'divs': divs,
+                'links': links,
+                'zoom_links': len(zoom_links),
+                'teams_links': len(teams_links),
+                'meet_links': len(meet_links)
+            },
+            'zoom_urls': zoom_urls,
+            'teams_urls': teams_urls,
+            'meet_urls': meet_urls,
+            'timezone_matches': list(set(timezone_matches))[:15],  # Remove duplicates
+            'day_time_matches': [f"{m[0]} {m[1]}:{m[2] or '00'} {m[3]}" for m in day_time_matches[:15]],
+            'join_patterns': list(set(join_patterns))[:10],
+            'page_text_sample': page_text_sample
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/admin/vipassana/events', methods=['GET'])
+@login_required
+def get_vipassana_events():
+    """Get all Vipassana events from separate database"""
+    try:
+        from scripts.vipassana_database import vipassana_app, VipassanaEvent, init_vipassana_database
+        
+        # Initialize database if needed
+        init_vipassana_database()
+        
+        with vipassana_app.app_context():
+            events = VipassanaEvent.query.order_by(VipassanaEvent.created_at.desc()).all()
+            events_data = [event.to_dict() for event in events]
+            
+            return jsonify(events_data)
+    except Exception as e:
+        app_logger.error(f"Error getting Vipassana events: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        # Return empty array on error instead of error object
+        return jsonify([])
+
+@app.route('/api/admin/vipassana/events/<int:event_id>', methods=['DELETE'])
+@login_required
+def delete_vipassana_event(event_id):
+    """Delete a Vipassana event from separate database"""
+    try:
+        from scripts.vipassana_database import vipassana_app, vipassana_db, VipassanaEvent, init_vipassana_database
+        
+        # Initialize database if needed
+        init_vipassana_database()
+        
+        with vipassana_app.app_context():
+            event = VipassanaEvent.query.get(event_id)
+            if not event:
+                return jsonify({
+                    'success': False,
+                    'error': 'Event not found'
+                }), 404
+            
+            event_title = event.title
+            vipassana_db.session.delete(event)
+            vipassana_db.session.commit()
+            
+            app_logger.info(f"Deleted Vipassana event: {event_title} (ID: {event_id})")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Event "{event_title}" deleted successfully'
+            })
+    except Exception as e:
+        app_logger.error(f"Error deleting Vipassana event: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
         return jsonify({
             'success': False,
             'error': str(e)

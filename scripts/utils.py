@@ -221,25 +221,94 @@ def check_venue_duplicate(name, city_id, exclude_id=None):
         return None, None
 
 # Field cleaning utilities
+def is_navigation_text(title: str) -> bool:
+    """
+    Check if a title is clearly navigation/menu text rather than an actual event title.
+    
+    Args:
+        title: The title to check
+        
+    Returns:
+        True if the title appears to be navigation text, False otherwise
+    """
+    if not title:
+        return False
+    
+    title = title.strip()
+    
+    # Length check: legitimate event titles are rarely longer than 200 characters
+    # Navigation text concatenated together can be much longer
+    if len(title) > 200:
+        return True
+    
+    title_lower = title.lower().strip()
+    
+    # Navigation keywords that indicate this is menu/navigation text
+    navigation_keywords = [
+        'exhibits', 'exhibitions', 'group visits', 'field trips', 'events', 
+        'current events', 'press', 'about us', 'about', 'buy gift cards', 
+        'gift cards', 'contact', 'buy tickets', 'tickets', 'visit', 'visits',
+        'hours', 'admission', 'directions', 'parking', 'accessibility',
+        'shop', 'store', 'membership', 'donate', 'support', 'news', 'blog',
+        'search', 'menu', 'navigation', 'skip to', 'home', 'main', 'site map'
+    ]
+    
+    # Count how many navigation keywords appear in the title
+    keyword_count = sum(1 for keyword in navigation_keywords if keyword in title_lower)
+    
+    # If title contains 3+ navigation keywords, it's likely navigation text
+    if keyword_count >= 3:
+        return True
+    
+    # Check for patterns that indicate navigation (repeated phrases, etc.)
+    # If the same word appears multiple times, it's likely navigation
+    words = title_lower.split()
+    if len(words) > 5:
+        word_counts = {}
+        for word in words:
+            word_counts[word] = word_counts.get(word, 0) + 1
+        # If any word appears 2+ times in a long title, it might be navigation
+        if max(word_counts.values()) >= 2 and keyword_count >= 2:
+            return True
+    
+    # Check if title is just a list of navigation items (no actual event name)
+    # Pattern: multiple capitalized words that are all navigation keywords
+    if len(words) >= 5:
+        navigation_word_count = sum(1 for word in words if word in navigation_keywords)
+        if navigation_word_count >= len(words) * 0.6:  # 60%+ are navigation words
+            return True
+    
+    return False
+
+
 def clean_event_title(title: str) -> str:
     """
     Clean event title by removing venue name suffixes.
     Removes patterns like "| National Gallery of Art", "- Museum Name", etc.
     
+    Also validates that the title is not navigation text.
+    
     Args:
         title: The event title to clean
         
     Returns:
-        Cleaned title with venue name suffixes removed
+        Cleaned title with venue name suffixes removed, or None if title is invalid
     """
     if not title:
         return title
     
     title = title.strip()
     
+    # Check if this is navigation text - if so, return None to indicate invalid title
+    if is_navigation_text(title):
+        return None
+    
     # Split on pipe character and take first part
     if '|' in title:
         title = title.split('|')[0].strip()
+        # Re-check after splitting in case the first part is still navigation
+        if is_navigation_text(title):
+            return None
     
     # Remove common venue name suffix patterns (case-insensitive)
     # Pattern: | Venue Name or - Venue Name at the end
@@ -255,7 +324,13 @@ def clean_event_title(title: str) -> str:
     for pattern in patterns:
         title = re.sub(pattern, '', title, flags=re.IGNORECASE)
     
-    return title.strip()
+    title = title.strip()
+    
+    # Final validation check after cleaning
+    if is_navigation_text(title):
+        return None
+    
+    return title
 
 
 def detect_ongoing_exhibition(text: str) -> bool:
@@ -584,7 +659,7 @@ def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
             except ValueError:
                 pass
     
-    # Try single date pattern
+    # Try single date pattern with full month name
     single_pattern = r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})'
     match = re.search(single_pattern, date_string)
     if match:
@@ -595,6 +670,49 @@ def parse_date_range(date_string: str) -> Optional[Dict[str, date]]:
         except ValueError:
             try:
                 single_date = datetime.strptime(date_str, '%B %d %Y').date()
+                return {'start_date': single_date, 'end_date': None}
+            except ValueError:
+                pass
+    
+    # Try abbreviated month name pattern (e.g., "Jan 16, 2025" or "Jan 16 2025")
+    abbrev_pattern = r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(20\d{2})'
+    match = re.search(abbrev_pattern, date_string, re.IGNORECASE)
+    if match:
+        month_abbrev = match.group(1).lower()[:3]
+        day = int(match.group(2))
+        year = int(match.group(3))
+        month_map = {
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        }
+        month = month_map.get(month_abbrev)
+        if month:
+            try:
+                single_date = date(year, month, day)
+                return {'start_date': single_date, 'end_date': None}
+            except ValueError:
+                pass
+    
+    # Try pattern without year (assume current year or next year if month has passed)
+    no_year_pattern = r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})'
+    match = re.search(no_year_pattern, date_string, re.IGNORECASE)
+    if match:
+        month_abbrev = match.group(1).lower()[:3]
+        day = int(match.group(2))
+        month_map = {
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        }
+        month = month_map.get(month_abbrev)
+        if month:
+            # Use current year, or next year if the month has already passed
+            today = date.today()
+            year = today.year
+            try:
+                test_date = date(year, month, day)
+                if test_date < today:
+                    year += 1
+                single_date = date(year, month, day)
                 return {'start_date': single_date, 'end_date': None}
             except ValueError:
                 pass

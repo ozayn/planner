@@ -3,7 +3,7 @@
     "version": "1.0",
     "created": "2025-12-15",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 206,
+    "total_venues": 205,
     "last_updated": "2025-12-15 15:41:03"
   },
   "venues": {
@@ -4660,32 +4660,6 @@
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"https://visit.mcachicago.org/exhibitions/\", \"events\": \"https://visit.mcachicago.org/events/\", \"tours\": \"https://visit.mcachicago.org/events/#tours\", \"talks\": \"https://visit.mcachicago.org/events/\"}}",
       "created_at": "2025-12-03T22:14:47.204770",
       "updated_at": "2025-12-11T04:49:43.748431"
-    },
-    "188": {
-      "name": "Museum of Illusions Chicago",
-      "venue_type": "museum",
-      "address": "25 E Washington St, Chicago, IL 60602",
-      "city_id": 5,
-      "city_name": "Chicago",
-      "description": "Museum of Illusions Chicago is an interactive museum featuring optical illusions, holograms, and mind-bending exhibits for all ages.",
-      "opening_hours": "10:00 AM - 8:00 PM (Mon-Thu), 10:00 AM - 9:00 PM (Fri-Sat), 10:00 AM - 7:00 PM (Sun)",
-      "holiday_hours": "",
-      "phone_number": "(312) 300-0010",
-      "email": "info@museumofillusions.com",
-      "website_url": "http://moichicago.com/",
-      "ticketing_url": "",
-      "instagram_url": "https://www.instagram.com/museumofillusions",
-      "facebook_url": "https://www.facebook.com/museumofillusions",
-      "twitter_url": "",
-      "youtube_url": "",
-      "tiktok_url": "",
-      "admission_fee": "$35 online / $40 at door (adults), $28 online / $33 at door (children 5-12), $32 online / $37 at door (military/seniors), Free for children under 5",
-      "image_url": "",
-      "latitude": 41.8827,
-      "longitude": -87.6274,
-      "additional_info": "",
-      "created_at": "2025-12-03T22:14:47.205027",
-      "updated_at": "2025-12-11T00:58:43.650393"
     },
     "189": {
       "name": "Ukrainian Institute of Modern Art",

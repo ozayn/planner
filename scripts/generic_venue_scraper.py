@@ -29,6 +29,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import Timeout, ConnectionError, RequestException
+import requests.exceptions
 from urllib3.exceptions import NameResolutionError, NewConnectionError
 
 # Add parent directory to path
@@ -210,11 +211,24 @@ class GenericVenueScraper:
                 
             except (NameResolutionError, NewConnectionError) as e:
                 logger.error(f"❌ DNS resolution failed for {url}: {e}")
-                return None
+                if attempt == max_retries - 1:
+                    return None
+                continue
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"⏱️  Timeout error for {url} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    return None
+                continue
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"🔌 Connection error for {url} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    return None
+                continue
             except Exception as e:
                 if attempt == max_retries - 1:
                     if use_cloudscraper or not CLOUDSCRAPER_AVAILABLE:
-                        raise
+                        logger.error(f"❌ Failed to fetch {url} after {max_retries} attempts: {e}")
+                        return None  # Return None instead of raising to prevent crashes
                     # Last attempt: try cloudscraper if we haven't already
                     logger.info(f"   ⚠️  Final attempt with cloudscraper for {url}")
                     try:
@@ -222,8 +236,9 @@ class GenericVenueScraper:
                         response = scraper.get(url, timeout=20, verify=False)
                         response.raise_for_status()
                         return response
-                    except:
-                        raise
+                    except Exception as cloudscraper_error:
+                        logger.error(f"❌ Cloudscraper also failed for {url}: {cloudscraper_error}")
+                        return None  # Return None instead of raising
                 logger.debug(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
         
         return None
@@ -307,9 +322,15 @@ class GenericVenueScraper:
             r'(\w+day),?\s+(\w{3})\.?\s+(\d{1,2})\s*\|\s*(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})',  # "Wed, Dec 17 | 12:00–12:30"
             r'(\w+day),?\s+(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*[–—\-]\s*(\d{1,2}):(\d{2})',  # "Wed, Dec 17, 2025 | 12:00–12:30"
             r'(\w+day,?\s+)?(\w+)\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
-            # Abbreviated month formats
+            # Abbreviated month formats with year
             r'(\w+day,?\s+)?(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "Dec. 5, 2025" or "Dec 5, 2025"
             r'(\w{3})\.?\s+(\d{1,2}),?\s+(\d{4})',  # "Dec 5, 2025" (no day of week)
+            # Abbreviated month formats WITHOUT year (e.g., "Jan 16" or "Jan 16,")
+            r'(\w+day,?\s+)?(\w{3})\.?\s+(\d{1,2})(?:\s|,|$)',  # "Wed, Jan 16" or "Jan 16" or "Jan 16,"
+            r'(\w{3})\.?\s+(\d{1,2})(?:\s|,|$)',  # "Jan 16" or "Jan 16," (no day of week, no year)
+            # Full month name formats WITHOUT year (e.g., "January 16" or "January 16,")
+            r'(\w+day,?\s+)?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:\s|,|$)',  # "Wednesday, January 16" or "January 16"
+            r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:\s|,|$)',  # "January 16" or "January 16,"
             # Date ranges (museum exhibitions often use these)
             r'(\w+)\s+(\d{1,2})\s*[–-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23 - August 23, 2026"
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})\s*[–-]\s*(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # "May 23, 2026 - August 23, 2026"
@@ -2252,16 +2273,60 @@ Important:
                 except:
                     pass
             
-            # Pattern: "December 5, 2025" (single date)
+            # Pattern: "December 5, 2025" (single date with year)
             if len(groups) >= 3:
                 try:
-                    month = self._month_name_to_num(groups[1] if len(groups) > 1 else groups[0])
-                    day = int(groups[2] if len(groups) > 2 else groups[1])
-                    year = int(groups[3] if len(groups) > 3 else groups[2])
+                    # Try to find which group is the month, day, and year
+                    # Groups can be in different orders depending on pattern
+                    month = None
+                    day = None
+                    year = None
                     
-                    start_date = date(year, month, day)
-                    return start_date, None
-                except:
+                    # Check if we have a year (4-digit number)
+                    for i, g in enumerate(groups):
+                        if g and str(g).isdigit() and len(str(g)) == 4:
+                            year = int(g)
+                            # Month and day should be before or after
+                            if i > 0:
+                                month_str = groups[i-2] if i >= 2 else groups[0]
+                                day_str = groups[i-1] if i >= 1 else groups[1]
+                            else:
+                                # Year is first, so month and day come after
+                                month_str = groups[1] if len(groups) > 1 else None
+                                day_str = groups[2] if len(groups) > 2 else None
+                            
+                            if month_str and day_str:
+                                month = self._month_name_to_num(month_str)
+                                day = int(day_str)
+                            
+                            if month and day and year:
+                                start_date = date(year, month, day)
+                                return start_date, None
+                            break
+                    
+                    # If no year found, try parsing without year (e.g., "Jan 16" or "January 16")
+                    # Look for month name and day
+                    for i, g in enumerate(groups):
+                        if g and not str(g).isdigit():
+                            # This might be a month name
+                            month = self._month_name_to_num(g)
+                            if month and i + 1 < len(groups):
+                                day_str = groups[i + 1]
+                                if day_str and str(day_str).isdigit():
+                                    day = int(day_str)
+                                    # No year - use current year or next year if month has passed
+                                    today = date.today()
+                                    year = today.year
+                                    if month < today.month or (month == today.month and day < today.day):
+                                        year = today.year + 1
+                                    
+                                    try:
+                                        start_date = date(year, month, day)
+                                        return start_date, None
+                                    except ValueError:
+                                        pass
+                except (ValueError, IndexError, TypeError) as e:
+                    logger.debug(f"Error parsing date groups: {e}, groups: {groups}")
                     pass
             
             # Pattern: MM/DD/YYYY
@@ -2388,20 +2453,25 @@ Important:
         
         date_string = date_string.strip()
         
+        # Handle concatenated dates with time (e.g., "January 15, 20267:30 pm" -> "January 15, 2026")
+        # Add space before time patterns if year is directly followed by time
+        date_string = re.sub(r'(\d{4})(\d{1,2}:\d{2})', r'\1 \2', date_string)  # "20267:30" -> "2026 7:30"
+        date_string = re.sub(r'(\d{4})([ap]m)', r'\1 \2', date_string, flags=re.IGNORECASE)  # "20267pm" -> "2026 7pm"
+        
         # Try common date formats (including British format: "2 October 2025")
         date_formats = [
             '%d %B %Y',       # 2 October 2025 (British format - try first for Tate)
             '%d %b %Y',       # 2 Oct 2025 (British format abbreviated)
-            '%B %d, %Y',      # November 25, 2025 (American format)
-            '%b %d, %Y',      # Nov 25, 2025 (American format abbreviated)
-            '%B %d %Y',       # November 25 2025 (American format without comma)
-            '%b %d %Y',       # Nov 25 2025 (American format abbreviated without comma)
-            '%Y-%m-%d',       # 2025-11-25
-            '%m/%d/%Y',       # 11/25/2025
-            '%d/%m/%Y',       # 25/11/2025
-            '%B %Y',          # November 2025
-            '%b %Y',          # Nov 2025
-            '%Y',             # 2025
+            '%B %d, %Y',      # January 15, 2026 (American format with comma)
+            '%B %d %Y',       # January 15 2026 (American format without comma)
+            '%b %d, %Y',      # Jan 15, 2026 (American format abbreviated with comma)
+            '%b %d %Y',       # Jan 15 2026 (American format abbreviated without comma)
+            '%Y-%m-%d',       # 2026-01-15
+            '%m/%d/%Y',       # 01/15/2026
+            '%d/%m/%Y',       # 15/01/2026
+            '%B %Y',          # January 2026
+            '%b %Y',          # Jan 2026
+            '%Y',             # 2026
         ]
         
         for fmt in date_formats:
@@ -2430,8 +2500,9 @@ Important:
             except (ValueError, IndexError):
                 pass
         
-        # Pattern 2: "Month Day, Year" (American format: "October 2, 2025")
-        pattern1 = rf'{month_pattern}\s+{day_pattern},?\s+{year_pattern}'
+        # Pattern 2: "Month Day, Year" (American format: "October 2, 2025" or "January 15, 20267:30 pm")
+        # Handle concatenated time by matching year before any digits that follow
+        pattern1 = rf'{month_pattern}\s+{day_pattern},?\s+{year_pattern}(?:\d|:|[ap]m)?'
         match = re.search(pattern1, date_string, re.IGNORECASE)
         if match:
             try:
@@ -3465,7 +3536,236 @@ Important:
             view_containers = soup.select('.view-events, .events-list, .programs-list, [class*="view-events"], [class*="events-list"]')
             logger.info(f"   Found {len(view_containers)} view containers")
             for container in view_containers:
-                # Find all links to individual event pages inside the container
+                # Pattern: Events with dates in headings/elements near links (common across many sites)
+                # This works for sites where dates appear in h2/h3/h4/div/span elements near event links
+                # Try to find event blocks first (each event has a date element and a link)
+                event_blocks = []
+                
+                # Look for date headings (h2, h3) that contain dates
+                # Find all headings and check their text for date patterns
+                # Also check div, span, p, time elements that might contain dates
+                all_elements = container.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span', 'p', 'time'])
+                date_elements = []
+                # Pattern to match dates (handles concatenated time like "January 15, 20267:30 pm")
+                date_pattern = re.compile(r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}', re.I)
+                for elem in all_elements:
+                    elem_text = elem.get_text(strip=True)
+                    # Check if element contains a date pattern
+                    if date_pattern.search(elem_text):
+                        # Make sure it's not too long (likely not a date if it's a long paragraph)
+                        if len(elem_text) < 100:  # Dates are typically short, even with concatenated time
+                            date_elements.append(elem)
+                
+                for date_elem in date_elements:
+                    # Find the next link after this date element
+                    # Strategy 1: Find next link element
+                    next_link = date_elem.find_next('a', href=True)
+                    if next_link:
+                        event_blocks.append((date_elem, next_link))
+                        continue
+                    
+                    # Strategy 2: Look in same parent container
+                    if date_elem.parent:
+                        parent_links = date_elem.parent.find_all('a', href=True, limit=3)
+                        if parent_links:
+                            # Prefer links that look like event links
+                            for link in parent_links:
+                                link_text = link.get_text(strip=True)
+                                if link_text and len(link_text) > 5:
+                                    event_blocks.append((date_elem, link))
+                                    break
+                    
+                    # Strategy 3: Look in next sibling
+                    if date_elem.next_sibling:
+                        next_sib_links = []
+                        if hasattr(date_elem.next_sibling, 'find_all'):
+                            next_sib_links = date_elem.next_sibling.find_all('a', href=True, limit=1)
+                        elif hasattr(date_elem.next_sibling, 'name') and date_elem.next_sibling.name == 'a':
+                            next_sib_links = [date_elem.next_sibling]
+                        if next_sib_links:
+                            event_blocks.append((date_elem, next_sib_links[0]))
+                
+                # Track processed URLs to avoid duplicates
+                processed_urls = set()
+                
+                # If we found event blocks with dates, process those
+                if event_blocks:
+                    logger.debug(f"   Found {len(event_blocks)} event blocks with date elements")
+                    for date_elem, link in event_blocks:
+                        try:
+                            href = link.get('href', '')
+                            link_text = link.get_text(strip=True)
+                            
+                            if not link_text or len(link_text) < 3:
+                                continue
+                            
+                            # Extract date from the date element (could be heading, div, span, etc.)
+                            date_text = date_elem.get_text(strip=True)
+                            # Use flexible date patterns that work for various formats
+                            date_patterns = [
+                                r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})',
+                                r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),\s+(\d{4})',
+                                r'(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})',  # British format
+                                r'(\d{1,2})/(\d{1,2})/(\d{4})',  # MM/DD/YYYY or DD/MM/YYYY
+                            ]
+                            
+                            start_date = None
+                            for pattern in date_patterns:
+                                match = re.search(pattern, date_text, re.IGNORECASE)
+                                if match:
+                                    # Handle different pattern formats
+                                    if len(match.groups()) == 3:
+                                        if match.group(1).isdigit() and len(match.group(1)) <= 2:
+                                            # Could be British format (day month year) or American (month day year)
+                                            # Try both interpretations
+                                            try:
+                                                day = int(match.group(1))
+                                                month_str = match.group(2)
+                                                year = int(match.group(3))
+                                                # Try as American format first
+                                                date_str = f"{month_str} {day}, {year}"
+                                                start_date = self._parse_single_date_string(date_str)
+                                                if not start_date:
+                                                    # Try as British format
+                                                    date_str = f"{day} {month_str} {year}"
+                                                    start_date = self._parse_single_date_string(date_str)
+                                            except (ValueError, IndexError):
+                                                pass
+                                        else:
+                                            # Standard American format
+                                            month_str = match.group(1)
+                                            day = match.group(2)
+                                            year = match.group(3)
+                                            date_str = f"{month_str} {day}, {year}"
+                                            start_date = self._parse_single_date_string(date_str)
+                                    
+                                    if start_date:
+                                        logger.debug(f"   📅 Extracted date from date element: {start_date}")
+                                        break
+                            
+                            # Skip if href is just the listing page
+                            if href in ['/events/', '/events', base_url, urljoin(base_url, '/events/')]:
+                                continue
+                            
+                            # Process this event
+                            title = link_text
+                            full_url = urljoin(base_url, href)
+                            
+                            # Skip if this is just the listing page
+                            if full_url == base_url or '/events/' in full_url and full_url.endswith('/events/'):
+                                continue
+                            
+                            # Validate title
+                            if not self._is_valid_event_title(title, full_url):
+                                logger.debug(f"   ⏭️  Skipping: invalid title '{title[:50]}'")
+                                continue
+                            
+                            # Check time range filter
+                            if start_date and not self._is_in_time_range(start_date, time_range):
+                                logger.debug(f"   ⏭️  Skipping: date {start_date} not in {time_range}")
+                                continue
+                            
+                            # Extract image
+                            image_url = self._extract_image(link, base_url)
+                            if not image_url and link.parent:
+                                image_url = self._extract_image(link.parent, base_url)
+                            
+                            # Detect if family/kid-friendly
+                            is_family_friendly = self._detect_family_friendly(title, '', link)
+                            
+                            # If we still don't have a date, try visiting the individual event page (fallback)
+                            # This is a common pattern: dates are on individual pages, not listing pages
+                            if not start_date and full_url and full_url != base_url and full_url != urljoin(base_url, '/events/'):
+                                try:
+                                    logger.debug(f"   📅 No date found on listing page, trying event page: {full_url}")
+                                    event_response = self._fetch_with_retry(full_url, base_url=base_url)
+                                    if not event_response:
+                                        logger.debug(f"   ⚠️  Could not fetch event page for date extraction: {full_url}")
+                                    elif event_response.status_code == 200:
+                                        event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                                        
+                                        # Strategy 1: Look for date patterns in headings (common pattern)
+                                        # This handles cases like "January 15, 20267:30 pm" where date and time are concatenated
+                                        date_headings = event_soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+                                        for heading in date_headings:
+                                            heading_text = heading.get_text(strip=True)
+                                            # Check if heading contains a date pattern (even if concatenated with time)
+                                            if date_pattern.search(heading_text):
+                                                # Extract just the date part (before time if present)
+                                                # Pattern: "January 15, 2026" or "January 15, 20267:30 pm"
+                                                date_match = date_pattern.search(heading_text)
+                                                if date_match:
+                                                    # Get the date portion (might include time, but parser will handle it)
+                                                    date_part = heading_text[:date_match.end() + 10]  # Get date + a bit more
+                                                    # Try to extract clean date string
+                                                    clean_date_match = re.search(r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})', date_part, re.IGNORECASE)
+                                                    if clean_date_match:
+                                                        clean_date_str = clean_date_match.group(1)
+                                                        parsed_date = self._parse_single_date_string(clean_date_str)
+                                                        if parsed_date:
+                                                            start_date = parsed_date
+                                                            logger.debug(f"   📅 Extracted date from event page heading: {start_date} (from '{heading_text[:50]}')")
+                                                            break
+                                                # Also try parsing the whole heading text (parser handles concatenated time)
+                                                if not start_date:
+                                                    parsed_date = self._parse_single_date_string(heading_text)
+                                                    if parsed_date:
+                                                        start_date = parsed_date
+                                                        logger.debug(f"   📅 Extracted date from event page heading (full text): {start_date}")
+                                                        break
+                                        
+                                        # Strategy 2: Look for dates in common date selectors
+                                        if not start_date:
+                                            event_date_text = self._extract_text(event_soup, [
+                                                'h2', 'h3', '.date', '.event-date', '[itemprop="startDate"]',
+                                                'time[datetime]', '.schedule', '.when', '.datetime'
+                                            ])
+                                            if event_date_text:
+                                                parsed_dates = self._parse_dates_and_times(event_date_text, event_soup, base_url)
+                                                if parsed_dates[0]:  # start_date
+                                                    start_date = parsed_dates[0]
+                                                    end_date = parsed_dates[1]
+                                                    logger.debug(f"   📅 Extracted date from event page selectors: {start_date}")
+                                        
+                                        # Strategy 3: Look for date patterns anywhere in the page (last resort)
+                                        if not start_date:
+                                            page_text = event_soup.get_text()
+                                            for pattern in date_patterns:
+                                                match = re.search(pattern, page_text, re.IGNORECASE)
+                                                if match:
+                                                    # Extract a reasonable snippet around the match
+                                                    start_pos = max(0, match.start() - 20)
+                                                    end_pos = min(len(page_text), match.end() + 20)
+                                                    date_snippet = page_text[start_pos:end_pos]
+                                                    parsed_date = self._parse_single_date_string(date_snippet)
+                                                    if parsed_date:
+                                                        start_date = parsed_date
+                                                        logger.debug(f"   📅 Extracted date from event page text: {start_date}")
+                                                        break
+                                except Exception as e:
+                                    logger.debug(f"   ⚠️  Error fetching event page for date: {e}")
+                            
+                            # Create event dict
+                            event = {
+                                'title': title,
+                                'url': full_url,
+                                'start_date': start_date.isoformat() if start_date else None,
+                                'end_date': end_date.isoformat() if end_date else None,
+                                'event_type': self._detect_museum_event_type(title, '', link, full_url),
+                                'is_family_friendly': is_family_friendly,
+                                'image_url': image_url
+                            }
+                            
+                            events.append(event)
+                            processed_urls.add(full_url)
+                            logger.info(f"   ✅ Extracted event from date element: '{title[:50]}' (date: {start_date}, url: {full_url[:60]})")
+                            
+                        except Exception as e:
+                            logger.debug(f"   ⚠️  Error processing event block: {e}")
+                            continue
+                
+                # Also find all links to individual event pages inside the container (fallback)
+                # Skip links we already processed from date headings
                 event_links = container.find_all('a', href=True)
                 logger.debug(f"   Found {len(event_links)} links in view container")
                 for link in event_links:
@@ -3483,7 +3783,28 @@ Important:
                         has_event_pattern = any(pattern in href.lower() for pattern in ['/events/', '/event/', '/programs/', '/program/'])
                         has_date_in_text = bool(re.search(r'[A-Z][a-z]+\s+\d{1,2}', link_text))  # Check for date pattern in text
                         
-                        if has_event_pattern or has_date_in_text:
+                        # Skip if href is just the listing page itself (not an individual event)
+                        if href in ['/events/', '/events', base_url, urljoin(base_url, '/events/')]:
+                            logger.debug(f"   ⏭️  Skipping: href is listing page, not individual event (href: {href[:50]})")
+                            continue
+                        
+                        # For MCA Chicago and similar sites, we need to check if this is actually a link to an individual event
+                        # Individual event URLs typically have more path segments (e.g., /events/event-name/)
+                        is_individual_event = False
+                        if has_event_pattern:
+                            # Check if it's a full event URL (has more than just /events/)
+                            path_parts = [p for p in href.split('/') if p]
+                            if len(path_parts) > 1 and 'events' in path_parts:  # e.g., /events/alex-tatarsky/
+                                is_individual_event = True
+                        
+                        if (has_event_pattern and is_individual_event) or has_date_in_text:
+                            full_url = urljoin(base_url, href)
+                            
+                            # Skip if we already processed this URL from date headings
+                            if full_url in processed_urls:
+                                logger.debug(f"   ⏭️  Skipping: already processed from date heading (url: {full_url[:60]})")
+                                continue
+                            
                             logger.debug(f"   🔍 Processing link: {link_text[:80]} (href: {href[:60]})")
                             
                             # Extract title and date from link text (handle messy formats like "ToursCollections Highlights TourDecember 8, 2025")
@@ -3491,6 +3812,92 @@ Important:
                             title = link_text
                             start_date = None
                             end_date = None
+                            
+                            # MCA Chicago pattern: Dates are often in sibling elements, not in link text
+                            # Check parent container and siblings for dates like "January 15, 2026"
+                            if not start_date and link.parent:
+                                # Look in parent container for date elements (h2, div, span with dates)
+                                parent_text = link.parent.get_text(separator=' ', strip=True) if hasattr(link.parent, 'get_text') else ''
+                                # Look for date patterns in parent text: "January 15, 2026" or "Jan 15, 2026"
+                                parent_date_patterns = [
+                                    r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})',
+                                    r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),\s+(\d{4})',
+                                ]
+                                for pattern in parent_date_patterns:
+                                    match = re.search(pattern, parent_text, re.IGNORECASE)
+                                    if match:
+                                        # Reconstruct date string
+                                        month_str = match.group(1)
+                                        day = match.group(2)
+                                        year = match.group(3)
+                                        date_str = f"{month_str} {day}, {year}"
+                                        start_date = self._parse_single_date_string(date_str)
+                                        if start_date:
+                                            logger.debug(f"   📅 Extracted date from parent container: {start_date}")
+                                            break
+                                
+                                # Also check siblings (dates are often in adjacent elements like h2, h3, div)
+                                if not start_date:
+                                    # Check previous siblings (dates often come before the link)
+                                    current = link.parent
+                                    for _ in range(5):  # Check up to 5 previous siblings
+                                        if not current:
+                                            break
+                                        prev_sibling = current.previous_sibling
+                                        # Also check previous element (not just text sibling)
+                                        if not prev_sibling and current.parent:
+                                            # Try finding previous element in parent
+                                            all_children = list(current.parent.children) if hasattr(current.parent, 'children') else []
+                                            try:
+                                                current_idx = all_children.index(current)
+                                                if current_idx > 0:
+                                                    prev_sibling = all_children[current_idx - 1]
+                                            except (ValueError, AttributeError):
+                                                pass
+                                        
+                                        if prev_sibling and hasattr(prev_sibling, 'get_text'):
+                                            sibling_text = prev_sibling.get_text(strip=True)
+                                            # Look for date patterns
+                                            for pattern in parent_date_patterns:
+                                                match = re.search(pattern, sibling_text, re.IGNORECASE)
+                                                if match:
+                                                    month_str = match.group(1)
+                                                    day = match.group(2)
+                                                    year = match.group(3)
+                                                    date_str = f"{month_str} {day}, {year}"
+                                                    start_date = self._parse_single_date_string(date_str)
+                                                    if start_date:
+                                                        logger.debug(f"   📅 Extracted date from previous sibling: {start_date}")
+                                                        break
+                                            if start_date:
+                                                break
+                                        
+                                        # Move to next level up
+                                        if current and hasattr(current, 'parent'):
+                                            current = current.parent
+                                        else:
+                                            break
+                                
+                                # Also check for dates in the same parent but in different child elements
+                                if not start_date and link.parent:
+                                    # Look for h2, h3, or div elements with dates in the parent
+                                    if hasattr(link.parent, 'find_all'):
+                                        date_elements = link.parent.find_all(['h2', 'h3', 'div', 'span'], string=re.compile(r'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec', re.I))
+                                        for date_elem in date_elements:
+                                            date_text = date_elem.get_text(strip=True)
+                                            for pattern in parent_date_patterns:
+                                                match = re.search(pattern, date_text, re.IGNORECASE)
+                                                if match:
+                                                    month_str = match.group(1)
+                                                    day = match.group(2)
+                                                    year = match.group(3)
+                                                    date_str = f"{month_str} {day}, {year}"
+                                                    start_date = self._parse_single_date_string(date_str)
+                                                    if start_date:
+                                                        logger.debug(f"   📅 Extracted date from date element in parent: {start_date}")
+                                                        break
+                                            if start_date:
+                                                break
                             
                             # First, try to extract date range (e.g., "Nov 28 – Dec 31" or "November 28 – December 31")
                             # Look for date ranges anywhere in the string (not just at the end)
@@ -3537,9 +3944,22 @@ Important:
                                     break
                             
                             if date_match:
+                                # Clean date string - remove commas and normalize
+                                date_str = date_str.replace(',', '').strip()
+                                # Handle "January 15 2026" format (with or without comma)
                                 start_date = self._parse_single_date_string(date_str)
                                 if start_date:
                                     logger.debug(f"   📅 Extracted date from link text: {start_date}")
+                                else:
+                                    # Try parsing with comma if it wasn't in the original match
+                                    if ',' not in date_str and len(date_str.split()) == 3:
+                                        # Format might be "January 15 2026" - try adding comma
+                                        parts = date_str.split()
+                                        if len(parts) == 3:
+                                            date_str_with_comma = f"{parts[0]} {parts[1]}, {parts[2]}"
+                                            start_date = self._parse_single_date_string(date_str_with_comma)
+                                            if start_date:
+                                                logger.debug(f"   📅 Extracted date (with comma): {start_date}")
                             
                             # Clean up title - remove event type prefixes like "Tours", "Talks", "Family", "Art Making", etc.
                             title = re.sub(r'^(Tours|Talks|Workshops|Lectures|Programs|Events|Family|Art Making|Members)\s*', '', title, flags=re.IGNORECASE).strip()
@@ -3651,6 +4071,60 @@ Important:
                                             logger.debug(f"   ⚠️  No image found on event page either: {full_url[:60]}")
                                 except Exception as e:
                                     logger.debug(f"   ⚠️  Error fetching event page for image: {e}")
+                            
+                            # If we still don't have a date, try visiting the individual event page
+                            if not start_date and full_url and full_url != base_url and full_url != urljoin(base_url, '/events/'):
+                                try:
+                                    logger.debug(f"   📅 No date found on listing page, trying event page: {full_url}")
+                                    event_response = self._fetch_with_retry(full_url, base_url=base_url)
+                                    if not event_response:
+                                        logger.debug(f"   ⚠️  Could not fetch event page for date extraction: {full_url}")
+                                    elif event_response.status_code == 200:
+                                        event_soup = BeautifulSoup(event_response.content, 'html.parser')
+                                        # Look for dates on the event page - check h2 headings first (common pattern)
+                                        # Find all headings and check their text for date patterns
+                                        all_headings = event_soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+                                        date_pattern_check = re.compile(r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}', re.I)
+                                        
+                                        for heading in all_headings:
+                                            heading_text = heading.get_text(strip=True)
+                                            # Check if heading contains a date pattern (handles concatenated time like "January 15, 20267:30 pm")
+                                            if date_pattern_check.search(heading_text):
+                                                # Extract just the date part
+                                                date_match = date_pattern_check.search(heading_text)
+                                                if date_match:
+                                                    # Get the date portion
+                                                    date_part = heading_text[:date_match.end()]
+                                                    # Try to extract clean date string
+                                                    clean_date_match = re.search(r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})', date_part, re.IGNORECASE)
+                                                    if clean_date_match:
+                                                        clean_date_str = clean_date_match.group(1)
+                                                        parsed_date = self._parse_single_date_string(clean_date_str)
+                                                        if parsed_date:
+                                                            start_date = parsed_date
+                                                            logger.debug(f"   📅 Extracted date from event page heading: {start_date} (from '{heading_text[:50]}')")
+                                                            break
+                                                # Also try parsing the whole heading text (parser handles concatenated time)
+                                                if not start_date:
+                                                    parsed_date = self._parse_single_date_string(heading_text)
+                                                    if parsed_date:
+                                                        start_date = parsed_date
+                                                        logger.debug(f"   📅 Extracted date from event page heading (full text): {start_date}")
+                                                        break
+                                        # If no date in headings, try other selectors
+                                        if not start_date:
+                                            event_date_text = self._extract_text(event_soup, [
+                                                'h2', 'h3', '.date', '.event-date', '[itemprop="startDate"]',
+                                                'time[datetime]', '.schedule', '.when'
+                                            ])
+                                            if event_date_text:
+                                                parsed_dates = self._parse_dates_and_times(event_date_text, event_soup, base_url)
+                                                if parsed_dates[0]:  # start_date
+                                                    start_date = parsed_dates[0]
+                                                    end_date = parsed_dates[1]
+                                                    logger.debug(f"   📅 Extracted date from event page: {start_date}")
+                                except Exception as e:
+                                    logger.debug(f"   ⚠️  Error fetching event page for date: {e}")
                             
                             # Create event dict
                             event = {

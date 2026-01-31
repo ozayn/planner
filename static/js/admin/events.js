@@ -522,6 +522,48 @@ async function deleteSelectedEvents() {
     }
 }
 
+async function deletePastEvents() {
+    if (!confirm('Are you sure you want to delete all past events? This will delete events that have already ended, but will keep ongoing exhibitions and permanent collections.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/clear-past-events', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${result.message}`);
+            // Reload events
+            if (typeof loadEvents === 'function') {
+                loadEvents();
+            } else if (typeof window.loadEvents === 'function') {
+                window.loadEvents();
+            }
+            
+            // Refresh overview stats after a short delay
+            setTimeout(() => {
+                console.log('🔄 Refreshing overview after past events deletion...');
+                if (typeof window.loadOverview === 'function') {
+                    window.loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                } else if (typeof loadOverview === 'function') {
+                    loadOverview().catch(err => console.error('Error refreshing overview:', err));
+                }
+            }, 500);
+        } else {
+            alert('❌ Failed to delete past events: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error deleting past events:', error);
+        alert('❌ Error deleting past events: ' + error.message);
+    }
+}
+
 function updateBulkExportButton() {
     const selectedCount = document.querySelectorAll('.event-checkbox:checked').length;
     const bulkExportBtn = document.getElementById('bulkExportBtn');

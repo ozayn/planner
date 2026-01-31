@@ -2015,6 +2015,63 @@ async function startWebstersScraping() {
     }
 }
 
+async function startVipassanaScraping() {
+    showScrapingProgressModal('Vipassana Virtual Events');
+    
+    try {
+        const response = await fetch('/api/admin/scrape-vipassana', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, try to get text
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Progress modal will be updated via polling
+            // Auto-close after a delay
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
+        } else {
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
+        }
+    } catch (error) {
+        console.error('Vipassana scraping error:', error);
+        // Check if error is JSON parsing error
+        if (error.message && error.message.includes('JSON')) {
+            updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else {
+            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        }
+        closeScrapingProgressModal();
+    }
+}
+
 async function startDCEmbassyEventbriteScraping() {
     showScrapingProgressModal('DC Embassy Events (Eventbrite)');
     

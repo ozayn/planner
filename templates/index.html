@@ -5412,10 +5412,14 @@
                 };
                 
                 filteredEvents = filteredEvents.filter(event => {
-                    if (!event.event_type) return false;
+                    // If event has no event_type, include it (don't exclude based on missing type)
+                    if (!event.event_type) return true;
                     
                     // Get content types for this event type
                     const eventContentTypes = eventTypeToContentType[event.event_type] || [];
+                    
+                    // If event type is not in mapping, include it (don't exclude unknown types)
+                    if (eventContentTypes.length === 0) return true;
                     
                     // Check if any of the event's content types match selected content types
                     return eventContentTypes.some(contentType => 
@@ -5473,8 +5477,9 @@
                         return true;
                     });
                 } else {
-                    // If no venues are selected, only show events without venue_id (from sources)
-                    filteredEvents = filteredEvents.filter(event => !event.venue_id);
+                    // If no venues are selected, show ALL events from the city (both with and without venue_id)
+                    // This allows events to be visible even when venues haven't been selected yet
+                    // filteredEvents remains unchanged - show all events
                 }
             }
             // If allVenues.length === 0, show all events (no venue filtering yet)
@@ -5482,8 +5487,9 @@
             // Filter by event type if filters are selected
             if (selectedEventTypeFilters.size > 0) {
                 filteredEvents = filteredEvents.filter(event => {
-                    // If no event_type, exclude it when filtering
-                    if (!event.event_type) return false;
+                    // If no event_type, include it (don't exclude events with missing type)
+                    // This ensures events without event_type are still visible
+                    if (!event.event_type) return true;
                     return selectedEventTypeFilters.has(event.event_type);
                 });
             }

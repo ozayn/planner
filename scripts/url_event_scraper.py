@@ -2667,39 +2667,68 @@ def _extract_date(page_text, url):
         except (ValueError, IndexError):
             pass
     
-    # Try to extract from page text (e.g., "Saturday, Jan 31, 2026")
+    # Try to extract from page text (e.g., "Saturday, Jan 31, 2026" or "Jan 16" or "January 16, 2025")
     date_patterns = [
         # NGA format: "Saturday, Jan 31, 2026"
-        r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),\s+(\d{4})',
-        # Standard format: "January 31, 2026"
-        r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),\s+(\d{4})',
+        r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
+        # Standard format with full month: "January 31, 2026" or "January 31 2026"
+        r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})',
+        # Abbreviated month: "Jan 31, 2026" or "Jan 31 2026"
+        r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
+        # Abbreviated month without year (assume current or next year): "Jan 16" or "Jan 16,"
+        r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:\s|,|$)',
         # ISO format: "2026-01-31"
         r'(\d{4})-(\d{2})-(\d{2})',
     ]
     
     month_names = {
         'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        'jul': 7, 'aug': 8, 'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    }
+    
+    month_names_full = {
+        'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+        'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
     }
     
     for pattern in date_patterns:
         match = re.search(pattern, page_text, re.IGNORECASE)
         if match:
             try:
-                if len(match.groups()) == 3:
-                    # Month name format
-                    month_name = match.group(1).lower()[:3]
-                    day = int(match.group(2))
-                    year = int(match.group(3))
+                groups = match.groups()
+                if len(groups) == 3:
+                    # Check if first group is a month name
+                    first_group = groups[0].lower()
+                    if first_group in month_names_full or first_group[:3] in month_names:
+                        # Month name format with year
+                        month_name = first_group[:3] if first_group[:3] in month_names else first_group
+                        day = int(groups[1])
+                        year = int(groups[2])
+                        month = month_names.get(month_name) or month_names_full.get(first_group)
+                        if month:
+                            return date(year, month, day)
+                    elif groups[0].isdigit():
+                        # ISO format
+                        year = int(groups[0])
+                        month = int(groups[1])
+                        day = int(groups[2])
+                        return date(year, month, day)
+                elif len(groups) == 2:
+                    # Abbreviated month without year (e.g., "Jan 16")
+                    month_name = groups[0].lower()[:3]
+                    day = int(groups[1])
                     month = month_names.get(month_name)
                     if month:
-                        return date(year, month, day)
-                elif len(match.groups()) == 3 and match.group(1).isdigit():
-                    # ISO format
-                    year = int(match.group(1))
-                    month = int(match.group(2))
-                    day = int(match.group(3))
-                    return date(year, month, day)
+                        # Use current year, or next year if the month has already passed
+                        today = date.today()
+                        year = today.year
+                        try:
+                            test_date = date(year, month, day)
+                            if test_date < today:
+                                year += 1
+                            return date(year, month, day)
+                        except ValueError:
+                            pass
             except (ValueError, IndexError):
                 continue
     

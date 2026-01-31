@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Vipassana Scraper - Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        .vipassana-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .vipassana-header {
+            margin-bottom: 30px;
+        }
+        .vipassana-header h1 {
+            font-size: 24px;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+        .vipassana-header p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .scraper-controls {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 123, 255, 0.1);
+        }
+        .scraper-controls h2 {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .scraper-button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .scraper-button:hover {
+            background: #357abd;
+        }
+        .scraper-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .events-table {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        .events-table h2 {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        th {
+            background: rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            color: #374151;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4a90e2;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="vipassana-container">
+        <a href="/admin" class="back-link">← Back to Admin</a>
+        
+        <div class="vipassana-header">
+            <h1>Vipassana Meditation Events Scraper</h1>
+            <p>This page uses a separate database for testing. Events scraped here won't appear in the main database.</p>
+            <p style="background: #fef3c7; padding: 10px; border-radius: 6px; color: #92400e; font-size: 13px; margin-top: 10px;">
+                <strong>Authentication Required:</strong> This page requires login credentials. 
+                Set <code>VIPASSANA_USERNAME</code> and <code>VIPASSANA_PASSWORD</code> (or <code>DHAMMA_USERNAME</code>/<code>DHAMMA_PASSWORD</code>) 
+                in your <code>.env</code> file.
+            </p>
+        </div>
+
+        <div class="scraper-controls">
+            <h2>Scraper Controls</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button id="scrapeButton" class="scraper-button" onclick="startScraping()">Scrape Vipassana Events</button>
+                <button id="debugButton" class="scraper-button" onclick="debugScraper()" style="background: #6b7280;">Debug Scraper</button>
+            </div>
+            <div id="statusMessage"></div>
+            <div id="debugInfo" style="margin-top: 15px; display: none; background: #f3f4f6; padding: 15px; border-radius: 8px; font-size: 12px; font-family: monospace; max-height: 400px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="events-table">
+            <h2>Scraped Events</h2>
+            <div id="eventsContainer">
+                <p style="color: #6b7280;">No events scraped yet. Click "Scrape Vipassana Events" to begin.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function startScraping() {
+            const button = document.getElementById('scrapeButton');
+            const statusDiv = document.getElementById('statusMessage');
+            const eventsContainer = document.getElementById('eventsContainer');
+            
+            button.disabled = true;
+            statusDiv.innerHTML = '<div class="status-message status-info">Scraping in progress... Please wait.</div>';
+            
+            try {
+                const response = await fetch('/api/admin/vipassana/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.innerHTML = `<div class="status-message status-success">✅ Success! Found ${result.events_found} events, created ${result.events_saved} new events.</div>`;
+                    loadEvents();
+                } else {
+                    let errorMsg = result.error || 'Unknown error';
+                    if (result.suggestion) {
+                        errorMsg += '<br><br><small>' + result.suggestion + '</small>';
+                    }
+                    statusDiv.innerHTML = `<div class="status-message status-error">❌ Error: ${errorMsg}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status-message status-error">❌ Error: ${error.message}</div>`;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function loadEvents() {
+            const eventsContainer = document.getElementById('eventsContainer');
+            
+            try {
+                const response = await fetch('/api/admin/vipassana/events');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Ensure we have an array
+                const events = Array.isArray(data) ? data : [];
+                
+                if (events.length === 0) {
+                    eventsContainer.innerHTML = '<p style="color: #6b7280;">No events found in database.</p>';
+                    return;
+                }
+                
+                let html = '<table><thead><tr><th>Title</th><th>Day</th><th>Time</th><th>Timezone</th><th>Link</th><th>Actions</th></tr></thead><tbody>';
+                
+                events.forEach(event => {
+                    const link = event.zoom_link || event.url || 'N/A';
+                    const linkHtml = link !== 'N/A' ? `<a href="${link}" target="_blank">Join</a>` : 'N/A';
+                    html += `<tr id="event-row-${event.id}">
+                        <td>${escapeHtml(event.title)}</td>
+                        <td>${event.day_of_week || 'Daily'}</td>
+                        <td>${event.start_time || 'N/A'}</td>
+                        <td>${escapeHtml(event.timezone || 'N/A')}</td>
+                        <td>${linkHtml}</td>
+                        <td>
+                            <button onclick="deleteEvent(${event.id}, '${escapeHtml(event.title).replace(/'/g, "\\'")}')" 
+                                    style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                eventsContainer.innerHTML = html;
+            } catch (error) {
+                eventsContainer.innerHTML = `<p style="color: #dc3545;">Error loading events: ${error.message}</p>`;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function deleteEvent(eventId, eventTitle) {
+            if (!confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/vipassana/events/${eventId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Remove the row from the table
+                    const row = document.getElementById(`event-row-${eventId}`);
+                    if (row) {
+                        row.remove();
+                    }
+                    
+                    // Show success message
+                    const statusDiv = document.getElementById('statusMessage');
+                    statusDiv.innerHTML = `<div class="status-message status-success">✅ ${result.message}</div>`;
+                    
+                    // Reload events to refresh the table (in case there are no more events)
+                    setTimeout(() => {
+                        loadEvents();
+                    }, 500);
+                } else {
+                    const statusDiv = document.getElementById('statusMessage');
+                    statusDiv.innerHTML = `<div class="status-message status-error">❌ Error: ${result.error || 'Failed to delete event'}</div>`;
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.innerHTML = `<div class="status-message status-error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function debugScraper() {
+            const debugDiv = document.getElementById('debugInfo');
+            const statusDiv = document.getElementById('statusMessage');
+            
+            debugDiv.style.display = 'block';
+            debugDiv.innerHTML = '<div class="status-message status-info">Fetching debug information...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/vipassana/debug');
+                const data = await response.json();
+                
+                if (data.error) {
+                    debugDiv.innerHTML = `<div class="status-message status-error">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                let html = '<strong>Page Information:</strong><br>';
+                html += `Title: ${escapeHtml(data.page_title)}<br>`;
+                html += `Page Size: ${data.page_size} characters<br>`;
+                html += `Status Code: ${data.status_code || 'N/A'}<br>`;
+                html += `Content-Type: ${escapeHtml(data.content_type || 'N/A')}<br>`;
+                html += `Content-Encoding: ${escapeHtml(data.content_encoding || 'N/A')}<br>`;
+                html += `Has Auth: ${data.has_auth ? 'Yes' : 'No'}<br>`;
+                html += `Is HTML: ${data.is_html ? 'Yes' : 'No'}<br><br>`;
+                
+                if (data.raw_content_preview) {
+                    html += '<strong>Raw Content Preview (first 500 chars):</strong><br>';
+                    html += `<pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto; background: #f3f4f6; padding: 10px; border-radius: 4px;">${escapeHtml(data.raw_content_preview)}</pre><br>`;
+                }
+                
+                html += '<strong>Elements Found:</strong><br>';
+                html += `Tables: ${data.elements_found.tables}<br>`;
+                html += `Divs: ${data.elements_found.divs}<br>`;
+                html += `Links: ${data.elements_found.links}<br>`;
+                html += `Zoom Links: ${data.elements_found.zoom_links}<br>`;
+                html += `Teams Links: ${data.elements_found.teams_links}<br><br>`;
+                
+                html += '<strong>Timezone Matches (first 10):</strong><br>';
+                if (data.timezone_matches && data.timezone_matches.length > 0) {
+                    data.timezone_matches.forEach(match => {
+                        html += `- ${escapeHtml(String(match))}<br>`;
+                    });
+                } else {
+                    html += 'None found<br>';
+                }
+                html += '<br>';
+                
+                html += '<strong>Day+Time Matches (first 10):</strong><br>';
+                if (data.day_time_matches && data.day_time_matches.length > 0) {
+                    data.day_time_matches.forEach(match => {
+                        html += `- ${escapeHtml(String(match))}<br>`;
+                    });
+                } else {
+                    html += 'None found<br>';
+                }
+                html += '<br>';
+                
+                html += '<strong>Zoom URLs Found:</strong><br>';
+                if (data.zoom_urls && data.zoom_urls.length > 0) {
+                    data.zoom_urls.forEach(url => {
+                        html += `- <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</a><br>`;
+                    });
+                } else {
+                    html += 'None found<br>';
+                }
+                html += '<br>';
+                
+                html += '<strong>Teams URLs Found:</strong><br>';
+                if (data.teams_urls && data.teams_urls.length > 0) {
+                    data.teams_urls.forEach(url => {
+                        html += `- <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</a><br>`;
+                    });
+                } else {
+                    html += 'None found<br>';
+                }
+                html += '<br>';
+                
+                html += '<strong>Join Patterns Found:</strong><br>';
+                if (data.join_patterns && data.join_patterns.length > 0) {
+                    data.join_patterns.forEach(pattern => {
+                        html += `- ${escapeHtml(pattern)}<br>`;
+                    });
+                } else {
+                    html += 'None found<br>';
+                }
+                html += '<br>';
+                
+                html += '<strong>Page Text Sample (first 2000 chars):</strong><br>';
+                html += `<pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 300px; overflow-y: auto;">${escapeHtml(data.page_text_sample)}</pre>`;
+                
+                debugDiv.innerHTML = html;
+                statusDiv.innerHTML = '<div class="status-message status-success">Debug information loaded. Check the details below.</div>';
+            } catch (error) {
+                debugDiv.innerHTML = `<div class="status-message status-error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Load events on page load
+        loadEvents();
+    </script>
+</body>
+</html>

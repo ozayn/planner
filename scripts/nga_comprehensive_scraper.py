@@ -392,9 +392,13 @@ def scrape_nga_exhibition_page(exhibition_url, scraper):
             h1 = soup.find('h1')
             if h1:
                 h1_text = h1.get_text(strip=True)
-                # Skip generic H1s
+                # Skip generic H1s and validate it's not navigation text
                 if h1_text.lower() not in ['global search', 'search', 'menu', 'navigation']:
-                    title = h1_text
+                    from scripts.utils import clean_event_title
+                    # Clean and validate the H1 title
+                    cleaned_h1 = clean_event_title(h1_text)
+                    if cleaned_h1:  # Only use if cleaning didn't return None (meaning it's valid)
+                        title = cleaned_h1
         
         if not title:
             return None
