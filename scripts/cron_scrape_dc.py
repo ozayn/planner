@@ -179,6 +179,17 @@ def main():
             
             venues_processed = len(venue_ids) - venues_failed
             
+            # --- PAST EVENTS CLEANUP ---
+            logger.info("")
+            logger.info("🧹 Starting cleanup of past events...")
+            try:
+                from scripts.cron_clear_past_events import clear_past_events
+                deleted_count = clear_past_events()
+                logger.info(f"✅ Cleanup finished: deleted {deleted_count} events.")
+            except Exception as e:
+                logger.error(f"⚠️  Cleanup failed: {e}")
+            # ---------------------------
+            
             # Scrape sources (optional - for non-venue events)
             logger.info("🔍 Scraping event sources...")
             try:

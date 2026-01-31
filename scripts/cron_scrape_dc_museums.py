@@ -453,6 +453,18 @@ def main():
             logger.info(f"   Venues failed: {venues_failed}")
             logger.info(f"   Total events found: {total_events_found}")
             logger.info(f"   Total events saved: {total_events_saved}")
+            
+            # --- PAST EVENTS CLEANUP ---
+            logger.info("")
+            logger.info("🧹 Starting cleanup of past events...")
+            try:
+                from scripts.cron_clear_past_events import clear_past_events
+                deleted_count = clear_past_events()
+                logger.info(f"✅ Cleanup finished: deleted {deleted_count} events.")
+            except Exception as e:
+                logger.error(f"⚠️  Cleanup failed: {e}")
+            # ---------------------------
+            
             logger.info(f"   Duration: {duration}")
             logger.info(f"   Completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
             logger.info("=" * 80)
