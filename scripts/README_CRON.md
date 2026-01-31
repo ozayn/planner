@@ -5,7 +5,7 @@ This guide explains how to set up weekly cronjobs to automatically scrape Washin
 ## Available Scripts
 
 1. **`cron_scrape_dc.py`** - Scrapes ALL venues in DC (museums, galleries, embassies, etc.)
-2. **`cron_scrape_dc_museums.py`** - Scrapes ONLY museums in DC (focused on museums)
+2. **`cron_scrape_dc_museums.py`** - Scrapes ONLY museums and Suns Cinema in DC (focused on museums)
 3. **`cron_clear_past_events.py`** - Deletes events that have already ended (once a week)
 
 ## Scripts Overview
@@ -14,14 +14,15 @@ This guide explains how to set up weekly cronjobs to automatically scrape Washin
 Scrapes all active venues in Washington DC:
 - All venues (museums, galleries, embassies, etc.)
 - Uses specialized scrapers for museums (NGA, SAAM, NPG, etc.)
+- Includes Suns Cinema movie screenings
 - Scrapes event sources (Instagram pages, websites, etc.)
 - Save events to the database
 - Log results for monitoring
 
 ### `cron_scrape_dc_museums.py` - Museums Only
-Scrapes only museums in Washington DC:
-- Filters to museums only (by name and venue type)
-- Uses specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, etc.)
+Scrapes only museums and Suns Cinema in Washington DC:
+- Filters to museums and Suns Cinema (by name and venue type)
+- Uses specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema)
 - More focused logging per museum
 - Ideal for museum-specific scraping schedules
 
@@ -159,7 +160,7 @@ tail -f logs/cron_scrape_dc_museums_$(date +%Y%m%d).log
 1. **Finds Washington DC** in the database
 2. **Gets all active venues** (skips closed venues like Newseum)
 3. **Scrapes venues** using:
-   - Specialized scrapers for NGA, SAAM, NPG, Asian Art, African Art
+   - Specialized scrapers for NGA, SAAM, NPG, Asian Art, African Art, Suns Cinema
    - Generic scraper for other venues
    - Built-in methods for Hirshhorn
 4. **Scrapes event sources** (Instagram, websites, etc.)
@@ -170,7 +171,7 @@ tail -f logs/cron_scrape_dc_museums_$(date +%Y%m%d).log
 1. **Finds Washington DC** in the database
 2. **Filters to museums only** (by name and venue type keywords)
 3. **Scrapes each museum individually** with detailed logging:
-   - Specialized scrapers for NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn
+   - Specialized scrapers for NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema
    - Generic scraper for other museums
 4. **Saves events** to database (skips duplicates)
 5. **Logs results** with per-museum statistics

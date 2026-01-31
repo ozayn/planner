@@ -63,6 +63,8 @@ def has_specialized_scraper(venue):
         ('african art', 'africa.si.edu'),
         # Hirshhorn
         ('hirshhorn', 'hirshhorn.si.edu'),
+        # Suns Cinema
+        ('suns cinema', 'sunscinema.com'),
     ]
     
     for name_keyword, url_keyword in specialized_museums:
@@ -319,6 +321,19 @@ def main():
                             skipped_count = skipped
                             total_events_saved += saved_count
                             logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                    
+                    elif 'sunscinema.com' in venue_url_lower:
+                        from scripts.suns_cinema_scraper import scrape_all_suns_cinema_events
+                        try:
+                            scraped_events = scrape_all_suns_cinema_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from Suns Cinema scraper")
+                            # Note: suns_cinema_scraper handles its own database saving, so we just track the count
+                            saved_count = len(scraped_events)
+                            total_events_saved += saved_count
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in Suns Cinema scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
                     else:
                         logger.warning(f"   ⚠️  No specialized scraper for {museum.name}, skipping")
                     
