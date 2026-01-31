@@ -133,16 +133,28 @@ def scrape_movie_details(scraper, movie_url: str) -> Dict:
             details['found_times'] = [f"{t[0]} {t[1]}" for t in time_matches]
 
         # Construct enhanced description
-        enhanced_parts = []
-        if details['director']: enhanced_parts.append(f"🎬 **Director:** {details['director']}")
-        if details['starring']: enhanced_parts.append(f"🌟 **Starring:** {details['starring']}")
-        if details['language']: enhanced_parts.append(f"🗣️ **Language:** {details['language']}")
-        if details['run_time']: enhanced_parts.append(f"⏱️ **Run Time:** {details['run_time']} min")
-        
-        if details['description']:
-            enhanced_parts.append(f"\n{details['description']}")
+        meta_info = []
+        if details['director']:
+            # Shorten "Director" to "Dir." for a more professional, cinematic feel
+            meta_info.append(f"Dir. {details['director']}")
+        if details['language']:
+            meta_info.append(details['language'])
+        if details['run_time']:
+            meta_info.append(f"{details['run_time']} min")
             
-        details['full_description'] = "\n".join(enhanced_parts)
+        header = " • ".join(meta_info)
+        
+        enhanced_parts = []
+        if header:
+            enhanced_parts.append(header)
+        if details['starring']:
+            enhanced_parts.append(f"Cast: {details['starring']}")
+            
+        if details['description']:
+            # Use double newlines for clear separation
+            enhanced_parts.append(details['description'])
+            
+        details['full_description'] = "\n\n".join(enhanced_parts)
         
         movie_details_cache[movie_url] = details
         return details
