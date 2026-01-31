@@ -4,6 +4,12 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 
 ## 🚨 **IMPORTANT REMINDERS**
 
+### **🎨 Design Principles & UI Preferences**
+- **❌ NO DARK BUTTONS**: Avoid using dark background colors for buttons (especially in the admin panel).
+- **✅ Light/Pastel Theme**: Prefer light, translucent (`rgba`), or pastel background colors with dark text.
+- **Minimalist Style**: Maintain an airy, modern, and minimalist aesthetic.
+- **Hover Transitions**: Most buttons should be light by default and only become fully saturated on hover.
+
 ### **🔑 Critical Setup Steps**
 - **⚠️ ALWAYS activate virtual environment first**: `source venv/bin/activate && python`
 - **❌ NEVER use `python3` directly**: Causes "no module named bs4" and other dependency errors

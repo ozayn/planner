@@ -93,6 +93,13 @@ The African Art Museum scraper is not correctly extracting date ranges and image
 - `templates/admin.html` - Button and JavaScript function (lines ~1990, ~8936-8957)
 
 ### Next Steps to Fix
+
+## Design Principles
+
+- **❌ NO DARK BUTTONS**: Avoid using dark background colors for buttons (especially in the admin panel).
+- **✅ Light/Pastel Theme**: Prefer light, translucent (`rgba`), or pastel background colors with dark text.
+- **Minimalist Style**: Maintain an airy, modern, and minimalist aesthetic.
+- **Hover Transitions**: Most buttons should be light by default and only become fully saturated on hover.
 1. Debug why date ranges aren't being extracted from listing page HTML
 2. Verify container detection logic for finding exhibition cards
 3. Test date range parsing with actual HTML from listing page

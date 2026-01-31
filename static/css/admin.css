@@ -444,18 +444,37 @@ body {
 }
 
 .add-button[style*="background: #dc3545"],
-.add-button[style*="background:#dc3545"] {
+.add-button[style*="background:#dc3545"],
+.add-button[style*="background: #ef4444"],
+.add-button[style*="background:#ef4444"] {
     background: rgba(220, 53, 69, 0.08) !important;
     color: #dc3545 !important;
     border-color: rgba(220, 53, 69, 0.2) !important;
 }
 
 .add-button[style*="background: #dc3545"]:hover,
-.add-button[style*="background:#dc3545"]:hover {
+.add-button[style*="background:#dc3545"]:hover,
+.add-button[style*="background: #ef4444"]:hover,
+.add-button[style*="background:#ef4444"]:hover {
     background: #dc3545 !important;
     color: white !important;
     border-color: #dc3545 !important;
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+}
+
+.add-button[style*="background: #fbbf24"],
+.add-button[style*="background:#fbbf24"] {
+    background: rgba(251, 191, 36, 0.08) !important;
+    color: #d97706 !important;
+    border-color: rgba(251, 191, 36, 0.2) !important;
+}
+
+.add-button[style*="background: #fbbf24"]:hover,
+.add-button[style*="background:#fbbf24"]:hover {
+    background: #fbbf24 !important;
+    color: #000 !important;
+    border-color: #fbbf24 !important;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3) !important;
 }
 
 .add-button[style*="background: #3b82f6"],
