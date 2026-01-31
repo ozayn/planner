@@ -6,6 +6,7 @@ This guide explains how to set up weekly cronjobs to automatically scrape Washin
 
 1. **`cron_scrape_dc.py`** - Scrapes ALL venues in DC (museums, galleries, embassies, etc.)
 2. **`cron_scrape_dc_museums.py`** - Scrapes ONLY museums in DC (focused on museums)
+3. **`cron_clear_past_events.py`** - Deletes events that have already ended (once a week)
 
 ## Scripts Overview
 
@@ -23,6 +24,13 @@ Scrapes only museums in Washington DC:
 - Uses specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, etc.)
 - More focused logging per museum
 - Ideal for museum-specific scraping schedules
+
+### `cron_clear_past_events.py` - Database Cleanup
+Automatically deletes events that have ended:
+- Identifies events where end date is in the past
+- Skips permanent collections and ongoing exhibitions
+- Keeps the database clean and performing well
+- Recommended to run weekly
 
 ## Setup Instructions
 
@@ -73,6 +81,11 @@ crontab -e
 **All venues - every day at 2 AM:**
 ```bash
 0 2 * * * cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_scrape_dc.py >> logs/cron_scrape_dc.log 2>&1
+```
+
+**Clear past events - every Sunday at 4 AM:**
+```bash
+0 4 * * 0 cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_clear_past_events.py >> logs/cron_clear_past_events.log 2>&1
 ```
 
 #### Option B: Using a Shell Script Wrapper

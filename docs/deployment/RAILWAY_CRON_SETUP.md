@@ -60,6 +60,7 @@ Railway supports scheduled tasks through cron jobs. You can set up a cron schedu
 | Weekly (Monday 2 AM UTC) | `0 2 * * 1` | Every Monday at 2:00 AM UTC (9 PM Sunday EST) |
 | Weekly (Sunday 3 AM UTC) | `0 3 * * 0` | Every Sunday at 3:00 AM UTC (10 PM Saturday EST) |
 | Daily (2 AM UTC) | `0 2 * * *` | Every day at 2:00 AM UTC |
+| **Weekly Cleanup (Sun 4 AM UTC)** | `0 4 * * 0` | Every Sunday at 4:00 AM UTC (Database Cleanup) |
 | Twice Weekly (Mon & Thu 2 AM UTC) | `0 2 * * 1,4` | Monday and Thursday at 2:00 AM UTC |
 | Every 12 Hours | `0 */12 * * *` | Every 12 hours (must be at least 5 minutes apart) |
 
@@ -78,6 +79,12 @@ Railway supports scheduled tasks through cron jobs. You can set up a cron schedu
 - Longer execution time
 - More comprehensive coverage
 - **Start Command**: `python scripts/cron_scrape_dc.py`
+
+### `cron_clear_past_events.py`
+- Automatically deletes expired events
+- Keeps database clean
+- Recommended to run weekly
+- **Start Command**: `python scripts/cron_clear_past_events.py`
 
 ## Testing the Cronjob
 
