@@ -1147,7 +1147,8 @@ def update_json_with_new_venue(venue, city):
 @app.route('/')
 def index():
     """Main page with city selection and time filtering"""
-    return render_template('index.html')
+    ga_id = os.getenv('GOOGLE_ANALYTICS_ID')
+    return render_template('index.html', google_analytics_id=ga_id)
 
 
 @app.route('/favicon.ico')

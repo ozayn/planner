@@ -12,13 +12,15 @@
     <title>Planner</title>
     
     <!-- Option 2: Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XFHC9L698Z"></script>
+    {% if google_analytics_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_analytics_id }}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-XFHC9L698Z');
+      gtag('config', '{{ google_analytics_id }}');
     </script>
+    {% endif %}
 
     <!-- Option 1: Built-in Visit Tracker -->
     <script>
