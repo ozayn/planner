@@ -10,6 +10,38 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Planner</title>
+    
+    <!-- Option 2: Google Analytics (Placeholder - Replace G-XXXXXXXXXX with your actual ID) -->
+    <!-- 
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    -->
+
+    <!-- Option 1: Built-in Visit Tracker -->
+    <script>
+        (function() {
+            window.addEventListener('load', function() {
+                // Wait for city ID to be available if possible
+                setTimeout(function() {
+                    const cityId = localStorage.getItem('selected_city_id') || '';
+                    fetch('/api/log-visit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            city_id: cityId,
+                            page_path: window.location.pathname
+                        })
+                    }).catch(err => console.debug('Visit tracking skipped'));
+                }, 2000); // Small delay to allow initial city load
+            });
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         /* Cache bust: v2.6 - Enhanced NGA detection with gallery pattern - 2025-01-24 */

@@ -275,6 +275,19 @@ def migrate_events_schema():
             """)
             railway_columns = {row[0]: row[1] for row in railway_cursor.fetchall()}
             
+            # Ensure visits table exists
+            railway_cursor.execute("""
+                CREATE TABLE IF NOT EXISTS visits (
+                    id SERIAL PRIMARY KEY,
+                    city_id INTEGER REFERENCES cities(id) ON DELETE SET NULL,
+                    ip_address VARCHAR(100),
+                    user_agent VARCHAR(500),
+                    referrer VARCHAR(500),
+                    page_path VARCHAR(200),
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                )
+            """)
+            
             # Define expected columns (based on current Event model)
             # This should match all columns in the Event model definition
             expected_columns = [
@@ -916,6 +929,32 @@ class Source(db.Model):
             except (ValueError, SyntaxError):
                 # If all else fails, treat as comma-separated string
                 return [item.strip() for item in self.event_types.split(',') if item.strip()]
+
+class Visit(db.Model):
+    """Tracking website visits"""
+    __tablename__ = 'visits'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    city_id = db.Column(db.Integer, db.ForeignKey('cities.id', ondelete='SET NULL'))
+    ip_address = db.Column(db.String(100))
+    user_agent = db.Column(db.String(500))
+    referrer = db.Column(db.String(500))
+    page_path = db.Column(db.String(200))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    city = db.relationship('City', backref='visits')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'city_id': self.city_id,
+            'city_name': self.city.name if self.city else 'Main Page',
+            'ip_address': self.ip_address,
+            'timestamp': self.timestamp.isoformat(),
+            'user_agent': self.user_agent,
+            'referrer': self.referrer
+        }
     
     def __repr__(self):
         return f"<Source {self.name} ({self.source_type})>"
@@ -1154,6 +1193,74 @@ def get_public_stats():
             'sources': 0,
             'events': 0
         }), 500
+
+@app.route('/api/log-visit', methods=['POST'])
+def log_visit():
+    """Log a website visit"""
+    try:
+        data = request.get_json() or {}
+        city_id = data.get('city_id')
+        page_path = data.get('page_path', '/')
+        
+        # Get client info
+        # Use X-Forwarded-For for Railway/Proxy
+        if request.headers.get('X-Forwarded-For'):
+            ip_address = request.headers.get('X-Forwarded-For').split(',')[0]
+        else:
+            ip_address = request.remote_addr
+            
+        user_agent = request.headers.get('User-Agent')
+        referrer = request.headers.get('Referer')
+        
+        # Create visit record
+        visit = Visit(
+            city_id=city_id if city_id and str(city_id).isdigit() else None,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            referrer=referrer,
+            page_path=page_path
+        )
+        
+        db.session.add(visit)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        app_logger.error(f"Error logging visit: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/visit-stats')
+def get_visit_stats():
+    """Get visit statistics for the admin panel"""
+    try:
+        from sqlalchemy import func
+        
+        # Total visits
+        total_visits = Visit.query.count()
+        
+        # Visits in the last 24 hours
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        recent_visits = Visit.query.filter(Visit.timestamp >= yesterday).count()
+        
+        # Visits by city
+        city_stats = db.session.query(
+            City.name, func.count(Visit.id)
+        ).join(City, Visit.city_id == City.id, isouter=True).group_by(City.name).all()
+        
+        city_data = [{'city': name or 'Main Page', 'count': count} for name, count in city_stats]
+        
+        # Recent visits list
+        latest_visits = Visit.query.order_by(Visit.timestamp.desc()).limit(20).all()
+        
+        return jsonify({
+            'total': total_visits,
+            'recent_24h': recent_visits,
+            'by_city': city_data,
+            'latest': [v.to_dict() for v in latest_visits]
+        })
+    except Exception as e:
+        app_logger.error(f"Error getting visit stats: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sources')
 def get_sources():
@@ -4260,6 +4367,12 @@ def load_all_data_to_database():
         # Step 1: Create tables if they don't exist
         try:
             db.create_all()
+            # Explicitly create visits table if it doesn't exist (for SQLite)
+            if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
+                from sqlalchemy import inspect
+                inspector = db.inspect(db.engine)
+                if 'visits' not in inspector.get_table_names():
+                    Visit.__table__.create(db.engine)
             app_logger.info("✅ Database tables created/verified")
         except Exception as e:
             app_logger.error(f"Error creating tables: {e}")

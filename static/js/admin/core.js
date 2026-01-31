@@ -55,6 +55,9 @@ window.loadOverview = async function loadOverview() {
                 '<p>Events</p>' +
             '</div>';
         
+        // Load visit stats
+        loadVisitStats();
+        
         // Log the update for debugging
         console.log(`✅ Overview updated: ${eventsCount} events, ${citiesCount} cities, ${venuesCount} venues, ${sourcesCount} sources`);
         
@@ -315,5 +318,70 @@ function loadSectionData(sectionName) {
                 renderSourcesTable();
             }
             break;
+    }
+}
+
+/**
+ * Loads visit statistics and displays them in the overview
+ */
+async function loadVisitStats() {
+    const statsGrid = document.getElementById('statsGrid');
+    if (!statsGrid) return;
+
+    try {
+        const response = await fetch('/api/admin/visit-stats');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        
+        // Add visit stat cards
+        const visitCards = 
+            '<div class="stat-card" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">' +
+                '<h3 style="color: #10b981;">' + (data.total || 0) + '</h3>' +
+                '<p>Total Visits</p>' +
+            '</div>' +
+            '<div class="stat-card" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2);">' +
+                '<h3 style="color: #3b82f6;">' + (data.recent_24h || 0) + '</h3>' +
+                '<p>Visits (24h)</p>' +
+            '</div>';
+            
+        statsGrid.innerHTML += visitCards;
+        
+        // Add a detailed visits table if we're in the overview section
+        let detailsContainer = document.getElementById('visitDetailsContainer');
+        if (!detailsContainer) {
+            detailsContainer = document.createElement('div');
+            detailsContainer.id = 'visitDetailsContainer';
+            detailsContainer.style.marginTop = '30px';
+            document.getElementById('overview').appendChild(detailsContainer);
+        }
+        
+        let cityRows = data.by_city.map(c => 
+            '<tr><td>' + c.city + '</td><td>' + c.count + '</td></tr>'
+        ).join('');
+        
+        detailsContainer.innerHTML = 
+            '<h3 style="font-size: 1.1rem; margin-bottom: 15px;">Visits by City</h3>' +
+            '<table class="data-table" style="margin-bottom: 30px;">' +
+                '<thead><tr><th>City</th><th>Visits</th></tr></thead>' +
+                '<tbody>' + cityRows + '</tbody>' +
+            '</table>' +
+            '<h3 style="font-size: 1.1rem; margin-bottom: 15px;">Latest 20 Visits</h3>' +
+            '<table class="data-table">' +
+                '<thead><tr><th>Time</th><th>City</th><th>IP</th></tr></thead>' +
+                '<tbody>' + 
+                    data.latest.map(v => {
+                        const date = new Date(v.timestamp);
+                        return '<tr>' +
+                            '<td>' + date.toLocaleString() + '</td>' +
+                            '<td>' + v.city_name + '</td>' +
+                            '<td>' + v.ip_address + '</td>' +
+                        '</tr>';
+                    }).join('') +
+                '</tbody>' +
+            '</table>';
+            
+    } catch (error) {
+        console.error('Error loading visit stats:', error);
     }
 }
