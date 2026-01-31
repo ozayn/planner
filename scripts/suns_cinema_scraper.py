@@ -204,7 +204,7 @@ def scrape_suns_cinema() -> List[Dict]:
                     dummy_dt = datetime.combine(today, p_time)
                     e_time = (dummy_dt + timedelta(minutes=details['run_time'])).time()
                 events.append({
-                    'title': title, 'start_date': today, 'start_time': p_time, 'end_time': e_time,
+                    'title': title, 'start_date': today, 'end_date': today, 'start_time': p_time, 'end_time': e_time,
                     'event_type': 'film', 'venue_name': VENUE_NAME, 'city_name': CITY_NAME,
                     'description': f"[SOLD OUT] {details.get('full_description', '')}" if is_sold_out else details.get('full_description', ""),
                     'image_url': details['image_url'], 'url': movie_url, 'source': 'website'
@@ -241,7 +241,7 @@ def scrape_suns_cinema() -> List[Dict]:
                         dummy_dt = datetime.combine(event_date, p_time)
                         e_time = (dummy_dt + timedelta(minutes=details['run_time'])).time()
                     events.append({
-                        'title': title, 'start_date': event_date, 'start_time': p_time, 'end_time': e_time,
+                        'title': title, 'start_date': event_date, 'end_date': event_date, 'start_time': p_time, 'end_time': e_time,
                         'event_type': 'film', 'venue_name': VENUE_NAME, 'city_name': CITY_NAME,
                         'description': details.get('full_description', f"Upcoming screening at Suns Cinema"),
                         'image_url': details['image_url'], 'url': movie_url, 'source': 'website'
