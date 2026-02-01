@@ -518,8 +518,8 @@ class City(db.Model):
             'country': self.country,
             'display_name': display_name,
             'timezone': self.timezone,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
         }
 
 class Venue(db.Model):
@@ -624,8 +624,8 @@ class Venue(db.Model):
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
             'city_timezone': self._get_city_timezone(),
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
         }
     
     def _get_city_timezone(self):
@@ -833,8 +833,8 @@ class Event(db.Model):
             'social_media_page_name': self.social_media_page_name,
             'social_media_posted_by': self.social_media_posted_by,
             'social_media_url': self.social_media_url,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
         }
     
     def _get_city_timezone(self):
@@ -902,15 +902,15 @@ class Source(db.Model):
             'covered_cities': self.covered_cities,
             'event_types': self._parse_event_types(),
             'is_active': self.is_active,
-            'last_checked': self.last_checked.isoformat() if self.last_checked else None,
-            'last_event_found': self.last_event_found.isoformat() if self.last_event_found else None,
+            'last_checked': self.last_checked.isoformat() + 'Z' if self.last_checked else None,
+            'last_event_found': self.last_event_found.isoformat() + 'Z' if self.last_event_found else None,
             'events_found_count': self.events_found_count,
             'reliability_score': self.reliability_score,
             'posting_frequency': self.posting_frequency,
             'notes': self.notes,
             'scraping_pattern': self.scraping_pattern,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
         }
     
     def _parse_event_types(self):
@@ -951,7 +951,7 @@ class Visit(db.Model):
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else 'Main Page',
             'ip_address': self.ip_address,
-            'timestamp': self.timestamp.isoformat(),
+            'timestamp': self.timestamp.isoformat() + 'Z',
             'user_agent': self.user_agent,
             'referrer': self.referrer,
             'page_path': self.page_path
@@ -2582,7 +2582,7 @@ def trigger_scraping():
             'total_steps': 3,
             'percentage': 10,
             'message': f'Starting scraping for {city_name} ({", ".join(scraping_summary)})...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'venues_processed': 0,
@@ -2747,7 +2747,7 @@ def trigger_scraping():
         # Save scraped events to file for loading
         scraped_data = {
             "metadata": {
-                "scraped_at": datetime.now().isoformat(),
+                "scraped_at": datetime.utcnow().isoformat() + 'Z',
                 "total_events": len(events_scraped),
                 "scraper_version": "3.0",
                 "venue_ids": venue_ids,
@@ -7443,7 +7443,7 @@ def scrape_finding_awe():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting Finding Awe scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -7547,7 +7547,7 @@ def scrape_finding_awe():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -7571,7 +7571,7 @@ def scrape_nga():
             'total_steps': 5,
             'percentage': 5,
             'message': 'Starting NGA scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -7677,7 +7677,7 @@ def scrape_nga():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -7701,7 +7701,7 @@ def scrape_saam():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting SAAM scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -7808,7 +7808,7 @@ def scrape_saam():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -8301,7 +8301,7 @@ def scrape_npg():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting NPG scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -8406,7 +8406,7 @@ def scrape_npg():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -8433,7 +8433,7 @@ def scrape_suns_cinema_endpoint():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting Suns Cinema scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -8501,7 +8501,7 @@ def scrape_asian_art():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting Asian Art Museum scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -8609,7 +8609,7 @@ def scrape_asian_art():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -8637,7 +8637,7 @@ def scrape_african_art():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting African Art Museum scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -8744,7 +8744,7 @@ def scrape_african_art():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -8771,7 +8771,7 @@ def scrape_hirshhorn():
             'total_steps': 3,
             'percentage': 10,
             'message': 'Starting Hirshhorn Museum scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'venues_processed': 0,
@@ -9193,7 +9193,7 @@ def scrape_websters():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting Webster\'s Bookstore Cafe scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -9299,7 +9299,7 @@ def scrape_websters():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
@@ -9323,7 +9323,7 @@ def scrape_vipassana():
             'total_steps': 3,
             'percentage': 5,
             'message': 'Starting Vipassana virtual events scraping...',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
             'events_updated': 0,
@@ -9429,7 +9429,7 @@ def scrape_vipassana():
                 'percentage': 100,
                 'message': f'❌ Error: {str(e)}',
                 'error': True,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
             }
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
