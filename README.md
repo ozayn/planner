@@ -724,7 +724,7 @@ DATABASE_URL=sqlite:///instance/events.db
 The app uses a comprehensive database schema supporting:
 - Cities with timezone information
 - Venues with opening hours
-- Multiple event types (tours, exhibitions, festivals, photowalks)
+- Multiple event types (tours, exhibitions, festivals, photowalks, workshops)
 - Polymorphic event inheritance
 - Calendar integration tracking
 

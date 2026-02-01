@@ -1474,7 +1474,7 @@ def get_events():
     
     # Handle other event types (talk, music, food, workshop, community_event, etc.)
     # These should be included when event_type is empty or matches
-    if not event_type or event_type not in ['tour', 'exhibition', 'festival', 'photowalk']:
+    if not event_type or event_type not in ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk']:
         if venue_ids:
             other_filter = or_(Event.city_id == city_id, Event.venue_id.in_(venue_ids))
         else:
@@ -1496,7 +1496,7 @@ def get_events():
         else:
             # Exclude the types we already handled above
             other_events = other_events.filter(
-                ~Event.event_type.in_(['tour', 'exhibition', 'festival', 'photowalk'])
+                ~Event.event_type.in_(['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk'])
             )
         
         other_events = other_events.all()

@@ -4,7 +4,7 @@
 **Global Event Discovery Platform** | Full-Stack Web Application
 
 ## Project Overview
-Developed a production-ready event discovery and planning platform that aggregates cultural events (museum tours, exhibitions, festivals) across 25+ cities worldwide. The application intelligently extracts event information from multiple sources including Instagram screenshots, venue websites, and event URLs using a hybrid AI-powered processing system.
+Developed a production-ready event discovery and planning platform that aggregates cultural events (museum tours, exhibitions, festivals, workshops) across 25+ cities worldwide. The application intelligently extracts event information from multiple sources including Instagram screenshots, venue websites, and event URLs using a hybrid AI-powered processing system.
 
 ## Key Technical Achievements
 

@@ -11,7 +11,7 @@ This document describes the current database schema for the Planner application.
 The database uses a **unified events architecture** with three main tables:
 - `cities`: Geographic locations
 - `venues`: Cultural institutions and locations  
-- `events`: **Single unified table** for all event types (tours, exhibitions, festivals, photowalks)
+- `events`: **Single unified table** for all event types (tours, exhibitions, festivals, photowalks, workshops)
 
 **Important**: There are NO separate tables for different event types. All events are stored in the unified `events` table.
 
