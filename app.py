@@ -1472,7 +1472,46 @@ def get_events():
         photowalk_events = photowalk_query.all()
         events.extend([event.to_dict() for event in photowalk_events])
     
-    # Handle other event types (talk, music, food, workshop, community_event, etc.)
+    if not event_type or event_type == 'film':
+        film_query = Event.query.filter(
+            Event.event_type == 'film',
+            Event.city_id == city_id
+        )
+        if time_range != 'all':
+            film_query = film_query.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
+        film_events = film_query.all()
+        events.extend([event.to_dict() for event in film_events])
+
+    if not event_type or event_type == 'workshop':
+        workshop_query = Event.query.filter(
+            Event.event_type == 'workshop',
+            Event.city_id == city_id
+        )
+        if time_range != 'all':
+            workshop_query = workshop_query.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
+        workshop_events = workshop_query.all()
+        events.extend([event.to_dict() for event in workshop_events])
+
+    if not event_type or event_type == 'talk':
+        talk_query = Event.query.filter(
+            Event.event_type == 'talk',
+            Event.city_id == city_id
+        )
+        if time_range != 'all':
+            talk_query = talk_query.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
+        talk_events = talk_query.all()
+        events.extend([event.to_dict() for event in talk_events])
+    
+    # Handle other event types (music, food, community_event, etc.)
     # These should be included when event_type is empty or matches
     if not event_type or event_type not in ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk']:
         if venue_ids:

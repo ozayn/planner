@@ -3205,8 +3205,25 @@
                 updateStatus();
                 handleCitySelection();
             });
-            eventTypeSelect.addEventListener('change', updateStatus);
-            eventTypeSelectStep2.addEventListener('change', updateStatus);
+            
+            // Re-fetch events when type changes
+            eventTypeSelect.addEventListener('change', function() {
+                updateStatus();
+                const cityId = citySelect.value;
+                const timeRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
+                if (cityId) {
+                    loadEvents(cityId, timeRange, this.value);
+                }
+            });
+            
+            eventTypeSelectStep2.addEventListener('change', function() {
+                updateStatus();
+                const cityId = citySelect.value;
+                const timeRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
+                if (cityId) {
+                    loadEvents(cityId, timeRange, this.value);
+                }
+            });
             
             // Baby-friendly filter is now handled as a button in the event type filter section
             // The filtering logic is integrated into displayUnifiedEvents()
@@ -5463,25 +5480,30 @@
             if (selectedContentTypes.length > 0) {
                 // Map event types to content types
                 const eventTypeToContentType = {
-                    'exhibition': ['art_exhibitions', 'visual_arts', 'gallery_openings'],
-                    'film': ['film_screenings'],
-                    'talk': ['lectures'],
-                    'workshop': ['workshops', 'photography_workshops'],
+                    'exhibition': ['art_exhibitions', 'visual_arts', 'gallery_openings', 'artist_showcases'],
+                    'film': ['film_screenings', 'cinema'],
+                    'talk': ['lectures', 'talks', 'conversations'],
+                    'workshop': ['workshops', 'photography_workshops', 'education', 'classes'],
                     'performance': ['music', 'concerts', 'theater', 'dance', 'performances'],
                     'festival': ['festivals', 'community_events'],
                     'photowalk': ['photowalks', 'photography', 'street_photography', 'art_walks'],
                     'event': ['cultural_events', 'free_events', 'local_news', 'community_events'],
-                    'tour': ['cultural_events']
+                    'tour': ['cultural_events', 'tours']
                 };
                 
                 filteredEvents = filteredEvents.filter(event => {
-                    // If event has no event_type, include it (don't exclude based on missing type)
+                    // If a specific event type tab is selected at the top, ignore content sidebar filter for this event
+                    if (selectedEventTypeFilters.size > 0 && selectedEventTypeFilters.has(event.event_type)) {
+                        return true;
+                    }
+
+                    // If event has no event_type, include it
                     if (!event.event_type) return true;
                     
                     // Get content types for this event type
                     const eventContentTypes = eventTypeToContentType[event.event_type] || [];
                     
-                    // If event type is not in mapping, include it (don't exclude unknown types)
+                    // If event type is not in mapping, include it
                     if (eventContentTypes.length === 0) return true;
                     
                     // Check if any of the event's content types match selected content types
