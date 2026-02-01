@@ -55,9 +55,6 @@ window.loadOverview = async function loadOverview() {
                 '<p>Events</p>' +
             '</div>';
         
-        // Load visit stats
-        loadVisitStats();
-        
         // Log the update for debugging
         console.log(`✅ Overview updated: ${eventsCount} events, ${citiesCount} cities, ${venuesCount} venues, ${sourcesCount} sources`);
         
@@ -318,15 +315,20 @@ function loadSectionData(sectionName) {
                 renderSourcesTable();
             }
             break;
+        case 'visits':
+            loadVisitStats();
+            break;
     }
 }
 
 /**
- * Loads visit statistics and displays them in the overview
+ * Loads visit statistics and displays them in the visits section
  */
 async function loadVisitStats() {
-    const statsGrid = document.getElementById('statsGrid');
-    if (!statsGrid) return;
+    const visitStatsGrid = document.getElementById('visitStatsGrid');
+    const visitDetailsContainer = document.getElementById('visitDetailsContainer');
+    
+    if (!visitStatsGrid || !visitDetailsContainer) return;
 
     try {
         const response = await fetch('/api/admin/visit-stats');
@@ -335,7 +337,7 @@ async function loadVisitStats() {
         const data = await response.json();
         
         // Add visit stat cards
-        const visitCards = 
+        visitStatsGrid.innerHTML = 
             '<div class="stat-card" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">' +
                 '<h3 style="color: #10b981;">' + (data.total || 0) + '</h3>' +
                 '<p>Total Visits</p>' +
@@ -344,23 +346,12 @@ async function loadVisitStats() {
                 '<h3 style="color: #3b82f6;">' + (data.recent_24h || 0) + '</h3>' +
                 '<p>Visits (24h)</p>' +
             '</div>';
-            
-        statsGrid.innerHTML += visitCards;
-        
-        // Add a detailed visits table if we're in the overview section
-        let detailsContainer = document.getElementById('visitDetailsContainer');
-        if (!detailsContainer) {
-            detailsContainer = document.createElement('div');
-            detailsContainer.id = 'visitDetailsContainer';
-            detailsContainer.style.marginTop = '30px';
-            document.getElementById('overview').appendChild(detailsContainer);
-        }
         
         let cityRows = data.by_city.map(c => 
             '<tr><td>' + c.city + '</td><td>' + c.count + '</td></tr>'
         ).join('');
         
-        detailsContainer.innerHTML = 
+        visitDetailsContainer.innerHTML = 
             '<h3 style="font-size: 1.1rem; margin-bottom: 15px;">Visits by City</h3>' +
             '<table class="data-table" style="margin-bottom: 30px;">' +
                 '<thead><tr><th>City</th><th>Visits</th></tr></thead>' +
@@ -384,5 +375,6 @@ async function loadVisitStats() {
             
     } catch (error) {
         console.error('Error loading visit stats:', error);
+        visitDetailsContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Error loading stats: ' + error.message + '</p>';
     }
 }
