@@ -1264,6 +1264,24 @@ def get_visit_stats():
         app_logger.error(f"Error getting visit stats: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/clear-visits', methods=['POST'])
+def clear_visits():
+    """Clear all visit records from the database"""
+    try:
+        # Delete all records from the visits table
+        num_deleted = db.session.query(Visit).delete()
+        db.session.commit()
+        
+        app_logger.info(f"Admin cleared {num_deleted} visit records")
+        return jsonify({
+            'success': True, 
+            'message': f'Successfully deleted {num_deleted} visit records.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error clearing visits: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/sources')
 def get_sources():
     """Get sources for a specific city"""

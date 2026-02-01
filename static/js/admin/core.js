@@ -378,3 +378,33 @@ async function loadVisitStats() {
         visitDetailsContainer.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Error loading stats: ' + error.message + '</p>';
     }
 }
+
+/**
+ * Clears all visit records after confirmation
+ */
+async function clearVisits() {
+    if (!confirm('Are you sure you want to delete ALL visit records? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/clear-visits', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Visits cleared successfully.');
+            loadVisitStats(); // Refresh the view
+        } else {
+            alert('Error: ' + (data.error || 'Failed to clear visits.'));
+        }
+    } catch (error) {
+        console.error('Error clearing visits:', error);
+        alert('An error occurred while clearing visits.');
+    }
+}
