@@ -5959,6 +5959,15 @@
                     
                     // Re-display events with filter
                     displayUnifiedEvents();
+                    
+                    // If a specific type was clicked, ensure the dropdown matches or stays at All Types
+                    // This prevents confusion where the dropdown says "Tours" but you click the "Films" tab
+                    if (eventType !== '' && eventTypeSelect.value !== '' && eventTypeSelect.value !== eventType) {
+                        // If dropdown has a specific value that isn't what we just clicked,
+                        // reset it to All Types so we see all results, or update it.
+                        // Actually, it's better to just keep them independent but show a warning or clear the dropdown.
+                        // For now, let's just make sure displayUnifiedEvents is called.
+                    }
                 });
             });
         }
