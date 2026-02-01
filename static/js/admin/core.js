@@ -368,13 +368,14 @@ async function loadVisitStats() {
             '</table>' +
             '<h3 style="font-size: 1.1rem; margin-bottom: 15px;">Latest 20 Visits</h3>' +
             '<table class="data-table">' +
-                '<thead><tr><th>Time</th><th>City</th><th>IP</th></tr></thead>' +
+                '<thead><tr><th>Time</th><th>City</th><th>Path</th><th>IP</th></tr></thead>' +
                 '<tbody>' + 
                     data.latest.map(v => {
                         const date = new Date(v.timestamp);
                         return '<tr>' +
                             '<td>' + date.toLocaleString() + '</td>' +
                             '<td>' + v.city_name + '</td>' +
+                            '<td><small>' + (v.page_path || '/') + '</small></td>' +
                             '<td>' + v.ip_address + '</td>' +
                         '</tr>';
                     }).join('') +

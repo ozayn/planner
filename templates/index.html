@@ -28,7 +28,7 @@
             window.addEventListener('load', function() {
                 // Wait for city ID to be available if possible
                 setTimeout(function() {
-                    const cityId = localStorage.getItem('selected_city_id') || '';
+                    const cityId = localStorage.getItem('lastSelectedCityId') || '';
                     fetch('/api/log-visit', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

@@ -953,11 +953,12 @@ class Visit(db.Model):
             'ip_address': self.ip_address,
             'timestamp': self.timestamp.isoformat(),
             'user_agent': self.user_agent,
-            'referrer': self.referrer
+            'referrer': self.referrer,
+            'page_path': self.page_path
         }
     
     def __repr__(self):
-        return f"<Source {self.name} ({self.source_type})>"
+        return f"<Visit {self.id} (City: {self.city_id})>"
 
 # OAuth Helper Functions
 def is_admin_email(email):
