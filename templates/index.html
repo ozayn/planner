@@ -5059,8 +5059,7 @@
                 // Reload events with new date range
                 loadEvents(cityId, dateRange, eventType);
             } else {
-                console.log('Cannot reload events - missing city or event type selection');
-                console.log(`citySelect.value: ${citySelect.value}, eventTypeSelectStep2.value: ${eventTypeSelectStep2.value}`);
+                // Silently return if missing city or event type selection
             }
         }
 
@@ -5406,7 +5405,6 @@
             if (modal && modalContent) {
                 modalContent.innerHTML = detailsHTML;
                 modal.style.display = 'block';
-                console.log('Modal displayed');
             } else {
                 console.error('Modal or modal content not found!');
                 alert('Could not find source details modal. Please refresh the page.');
@@ -5703,7 +5701,6 @@
 
                 // If we still don't have a cityId, we can't load events
                 if (!cityId || cityId === 'undefined') {
-                    console.log('loadEvents: No valid cityId provided or found, skipping');
                     return;
                 }
 
@@ -5799,11 +5796,9 @@
             
             // Combine both event sources and remove duplicates by ID
             // Filter extracted events based on showExtractedEvents setting
-            console.log('displayUnifiedEvents: showExtractedEvents =', showExtractedEvents, 'allEvents count =', allEvents.length, 'discoveredEvents count =', discoveredEvents.length);
             const eventsToCombine = showExtractedEvents 
                 ? [...allEvents, ...discoveredEvents]
                 : [...discoveredEvents]; // Only show newly discovered events if extracted events are hidden
-            console.log('displayUnifiedEvents: eventsToCombine count =', eventsToCombine.length);
             
             const combinedEvents = [];
             const eventIds = new Set();
