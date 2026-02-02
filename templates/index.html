@@ -5600,8 +5600,23 @@
                     if (!event.event_type) return true;
                     return selectedEventTypeFilters.has(event.event_type);
                 });
+            } else {
+                // DEFAULT VIEW (All types): Hide exhibitions unless explicitly selected in content sidebar
+                // This addresses the issue of exhibitions taking up too much space
+                const dropdownEventType = (document.getElementById('eventTypeSelectStep2')?.value || 
+                                           document.getElementById('eventTypeSelect')?.value || '');
+                
+                if (dropdownEventType === '') {
+                    const selectedContentTypes = getSelectedContentTypes();
+                    const exhibitionContentTypes = ['art_exhibitions', 'visual_arts', 'gallery_openings', 'artist_showcases'];
+                    const explicitlyWantsExhibitions = selectedContentTypes.length > 0 && 
+                        selectedContentTypes.some(type => exhibitionContentTypes.includes(type));
+                    
+                    if (!explicitlyWantsExhibitions) {
+                        filteredEvents = filteredEvents.filter(event => event.event_type !== 'exhibition');
+                    }
+                }
             }
-            // If selectedEventTypeFilters is empty, show all events (no filtering)
             
             // Filter by baby-friendly if filter is active
             if (babyFriendlyFilterActive) {
