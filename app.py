@@ -1342,7 +1342,12 @@ def get_events():
     if not city_id:
         return jsonify({'error': 'City ID is required'}), 400
     
-    city = db.session.get(City, city_id)
+    try:
+        city_id_int = int(city_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid City ID format'}), 400
+        
+    city = db.session.get(City, city_id_int)
     if not city:
         return jsonify({'error': 'City not found'}), 404
     

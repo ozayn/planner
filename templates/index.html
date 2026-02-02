@@ -1750,6 +1750,10 @@
                 display: block;
             }
 
+            body.force-desktop .mobile-view-toggle {
+                display: none !important;
+            }
+
             .mobile-view-toggle.show-events {
                 background: rgba(255,255,255,0.95);
                 color: rgba(0,0,0,0.8);
@@ -2563,9 +2567,6 @@
             </div>
             <div class="header-controls">
                 <button class="header-pill-btn" onclick="document.body.classList.remove('wizard-completed'); document.getElementById('wizardStep1').classList.add('active'); document.getElementById('wizardStep2').classList.remove('active'); document.getElementById('wizardProgressBar').style.width='50%';">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
                     Change City
                 </button>
             </div>
@@ -5683,12 +5684,34 @@
         // Load events from API
         async function loadEvents(cityId, timeRange, eventType) {
             try {
-                const params = new URLSearchParams({
-                    city_id: cityId,
-                    time_range: timeRange,
-                    event_type: eventType,
-                    _t: Date.now() // Cache busting
-                });
+                // If arguments are missing, try to get them from current UI state
+                if (!cityId) {
+                    cityId = document.getElementById('citySelect').value;
+                }
+                
+                if (!timeRange) {
+                    timeRange = document.getElementById('dateRangeSelect') ? 
+                                document.getElementById('dateRangeSelect').value : 
+                                'this_week';
+                }
+                
+                if (eventType === undefined) {
+                    eventType = document.getElementById('eventTypeSelectStep2') ? 
+                                document.getElementById('eventTypeSelectStep2').value : 
+                                '';
+                }
+
+                // If we still don't have a cityId, we can't load events
+                if (!cityId || cityId === 'undefined') {
+                    console.log('loadEvents: No valid cityId provided or found, skipping');
+                    return;
+                }
+
+                const params = new URLSearchParams();
+                params.append('city_id', cityId);
+                if (timeRange) params.append('time_range', timeRange);
+                if (eventType) params.append('event_type', eventType);
+                params.append('_t', Date.now()); // Cache busting
 
                 // Add custom dates if custom range is selected
                 if (timeRange === 'custom') {
@@ -5706,6 +5729,12 @@
 
                 const apiUrl = `/api/events?${params}`;
                 const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server returned ${response.status}`);
+                }
+                
                 const events = await response.json();
                 
                 allEvents = events;
@@ -7407,6 +7436,37 @@
             if (document.body.classList.contains('force-desktop')) {
                 document.body.classList.remove('force-desktop');
                 localStorage.removeItem('forceDesktopView');
+                
+                // Reset mobile view panels when switching back to mobile
+                if (window.innerWidth <= 768) {
+                    const eventsPanel = document.getElementById('discoveredEventsPanel');
+                    const venuesPanel = document.getElementById('venuesPanel');
+                    const controlPanel = document.getElementById('controlPanel');
+                    const toggleBtn = document.getElementById('mobileViewToggle');
+                    const closeBtn = document.getElementById('mobileCloseEventsBtn');
+                    
+                    if (eventsPanel) {
+                        eventsPanel.style.removeProperty('display');
+                        eventsPanel.style.removeProperty('position');
+                        eventsPanel.style.removeProperty('top');
+                        eventsPanel.style.removeProperty('left');
+                        eventsPanel.style.removeProperty('right');
+                        eventsPanel.style.removeProperty('bottom');
+                        eventsPanel.style.removeProperty('width');
+                        eventsPanel.style.removeProperty('height');
+                        eventsPanel.style.removeProperty('z-index');
+                        eventsPanel.style.removeProperty('background');
+                        eventsPanel.classList.remove('mobile-active');
+                    }
+                    if (venuesPanel) venuesPanel.classList.remove('mobile-hidden');
+                    if (controlPanel) controlPanel.classList.remove('mobile-hidden');
+                    if (toggleBtn) {
+                        toggleBtn.textContent = 'View Events';
+                        toggleBtn.classList.remove('show-events');
+                    }
+                    if (closeBtn) closeBtn.style.display = 'none';
+                    sessionStorage.removeItem('mobileEventsActive');
+                }
             } else {
                 enableDesktopView();
             }
@@ -7474,8 +7534,8 @@
             document.body.classList.add('wizard-completed');
             sessionStorage.setItem('wizardCompleted', 'true');
             
-            // Ensure events are loaded
-            if (typeof loadEvents === 'function') {
+            // Ensure events are loaded if not already triggered by sync
+            if (typeof loadEvents === 'function' && (!wizardEventTypeSelect || !wizardEventTypeSelect.value)) {
                 loadEvents();
             }
             
@@ -7500,7 +7560,7 @@
             setupMobileWizard();
             
             // Restore mobile events view if it was active
-            if (window.innerWidth <= 768 && sessionStorage.getItem('mobileEventsActive') === 'true') {
+            if (window.innerWidth <= 768 && !document.body.classList.contains('force-desktop') && sessionStorage.getItem('mobileEventsActive') === 'true') {
                 if (window.toggleMobileView) {
                     // Small delay to ensure panels are rendered
                     setTimeout(window.toggleMobileView, 100);
