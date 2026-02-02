@@ -2469,6 +2469,7 @@
                     <button id="wizardSkip2" class="wizard-btn skip-btn" onclick="completeWizard()">Skip</button>
                     <button id="wizardNext2" class="wizard-btn" onclick="completeWizard()">Show Events</button>
                 </div>
+                <button class="desktop-view-btn" onclick="enableDesktopView()">Desktop View</button>
             </div>
         </div>
     </div>
@@ -7284,6 +7285,12 @@
 
 
         // Mobile Wizard Logic
+        function enableDesktopView() {
+            document.body.classList.add('force-desktop');
+            localStorage.setItem('forceDesktopView', 'true');
+            if (typeof loadEvents === 'function') loadEvents();
+        }
+
         function setupMobileWizard() {
             const citySelectStep1 = document.getElementById('citySelectStep1');
             const wizardNext1 = document.getElementById('wizardNext1');
@@ -7360,6 +7367,12 @@
         // Initialize time selector when page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeTimeSelector();
+            
+            // Apply desktop view if previously enabled
+            if (localStorage.getItem('forceDesktopView') === 'true') {
+                document.body.classList.add('force-desktop');
+            }
+            
             setupMobileWizard();
             
             // Add export button listener
@@ -7389,8 +7402,31 @@
     </script>
 
     <!-- Mobile View Toggle Button -->
-    <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
-        View Events
-    </button>
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+        <button id="mobileDesktopToggle" class="mobile-view-toggle" style="display: none; background: rgba(255,255,255,0.9); color: #374151; font-size: 0.75rem; padding: 8px 16px;" onclick="if(document.body.classList.contains('force-desktop')){ document.body.classList.remove('force-desktop'); localStorage.removeItem('forceDesktopView'); } else { enableDesktopView(); }">
+            Toggle Desktop
+        </button>
+        <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
+            View Events
+        </button>
+    </div>
+    
+    <script>
+        // Update the toggle button display
+        function updateDesktopToggleButton() {
+            const btn = document.getElementById('mobileDesktopToggle');
+            if (window.innerWidth <= 768) {
+                btn.style.display = 'block';
+                btn.textContent = document.body.classList.contains('force-desktop') ? 'Mobile View' : 'Desktop View';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+        window.addEventListener('resize', updateDesktopToggleButton);
+        document.addEventListener('DOMContentLoaded', updateDesktopToggleButton);
+        // Also update when class changes
+        const observer = new MutationObserver(updateDesktopToggleButton);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    </script>
 </body>
 </html>
