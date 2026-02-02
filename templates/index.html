@@ -7326,10 +7326,11 @@
 
             // Check if wizard should be shown
             const isMobile = window.innerWidth <= 768;
-            const citySelected = localStorage.getItem('lastSelectedCityId');
             
-            // On mobile, show wizard if no city is selected OR if it's the first time
-            if (isMobile && !citySelected) {
+            // On mobile, show wizard if they haven't completed it in this session
+            const wizardSessionCompleted = sessionStorage.getItem('wizardCompleted');
+            
+            if (isMobile && !wizardSessionCompleted) {
                 document.body.classList.remove('wizard-completed');
             } else {
                 document.body.classList.add('wizard-completed');
@@ -7349,6 +7350,7 @@
             }
             
             document.body.classList.add('wizard-completed');
+            sessionStorage.setItem('wizardCompleted', 'true');
             
             // Ensure events are loaded
             if (typeof loadEvents === 'function') {
