@@ -3566,9 +3566,14 @@
             const selectedVenueTypes = getSelectedVenueTypes();
             const priceFilters = getSelectedPriceFilters();
             
-            let filteredVenues = allVenues.filter(venue => 
-                selectedVenueTypes.includes(venue.venue_type)
-            );
+            let filteredVenues = allVenues;
+            
+            // Only filter by type if some (but not all) are selected
+            if (selectedVenueTypes.length > 0) {
+                filteredVenues = filteredVenues.filter(venue => 
+                    selectedVenueTypes.includes(venue.venue_type)
+                );
+            }
             
             // Apply price filter - include venues that match any selected price type
             if (priceFilters.length > 0 && priceFilters.length < 2) {
