@@ -2250,12 +2250,235 @@
                 transform: scale(0.98);
             }
         }
+        /* Mobile Wizard Styles */
+        .mobile-wizard {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            z-index: 10001;
+            padding: 40px 24px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-wizard {
+                display: flex;
+            }
+            
+            body.wizard-completed .mobile-wizard {
+                display: none;
+            }
+        }
+
+        .wizard-step {
+            display: none;
+            width: 100%;
+            max-width: 450px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        .wizard-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .wizard-content h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .wizard-content p {
+            font-size: 1.125rem;
+            color: #6b7280;
+            margin-bottom: 40px;
+            max-width: 320px;
+        }
+
+        .wizard-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: #f3f4f6;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #111827;
+            width: 50%;
+            transition: width 0.4s ease;
+        }
+
+        .wizard-btn {
+            width: 100%;
+            padding: 18px;
+            background: #111827;
+            color: #ffffff;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .wizard-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .wizard-btn:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .wizard-actions {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            margin-top: 24px;
+        }
+
+        .wizard-actions .wizard-btn {
+            margin-top: 0;
+        }
+
+        .skip-btn {
+            background: transparent;
+            color: #6b7280;
+            border: 2px solid #f3f4f6;
+            box-shadow: none;
+        }
+
+        .skip-btn:hover {
+            background: #f9fafb;
+            border-color: #e5e7eb;
+            box-shadow: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Adjust Step 1 and 2 inputs for Wizard */
+        #citySelectStep1, #eventTypeSelectStep2 {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: 2px solid #f3f4f6;
+            background: #f9fafb;
+            font-size: 1.125rem;
+            color: #111827;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 20px;
+        }
+
+        #citySelectStep1:focus, #eventTypeSelectStep2:focus {
+            outline: none;
+            border-color: #111827;
+            background: #ffffff;
+        }
+
+        .change-city-btn {
+            display: none;
+            margin: 8px auto 0;
+            padding: 6px 12px;
+            background: #f3f4f6;
+            color: #4b5563;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .change-city-btn {
+                display: block;
+            }
+        }
+
     </style>
 </head>
 <body>
+    <div id="mobileWizard" class="mobile-wizard">
+        <!-- Progress Bar -->
+        <div class="wizard-progress">
+            <div class="progress-bar" id="wizardProgressBar" style="width: 50%;"></div>
+        </div>
+
+        <!-- Step 1: City Selection -->
+        <div id="wizardStep1" class="wizard-step active">
+            <div class="wizard-content">
+                <h2>Choose your city</h2>
+                <p>Select a city to discover local events and venues.</p>
+                <div class="form-group" style="width: 100%;">
+                    <select id="citySelectStep1">
+                        <option value="">Select a city...</option>
+                    </select>
+                </div>
+                <button id="wizardNext1" class="wizard-btn" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Optional Filtering -->
+        <div id="wizardStep2" class="wizard-step">
+            <div class="wizard-content">
+                <h2>What are you into?</h2>
+                <p>Optional: Choose an event type to filter your results.</p>
+                <div class="form-group" style="width: 100%;">
+                    <select id="eventTypeSelectStep2">
+                        <option value="">All Event Types</option>
+                        <option value="tour">Tours</option>
+                        <option value="exhibition">Exhibitions</option>
+                        <option value="festival">Festivals</option>
+                        <option value="photowalk">Photowalks</option>
+                        <option value="film">Films</option>
+                        <option value="workshop">Workshops</option>
+                        <option value="talk">Talks</option>
+                        <option value="music">Music</option>
+                    </select>
+                </div>
+                <div class="wizard-actions">
+                    <button id="wizardSkip2" class="wizard-btn skip-btn" onclick="completeWizard()">Skip</button>
+                    <button id="wizardNext2" class="wizard-btn" onclick="completeWizard()">Show Events</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>Planner</h1>
+            <button class="change-city-btn" onclick="document.body.classList.remove('wizard-completed'); document.getElementById('wizardStep1').classList.add('active'); document.getElementById('wizardStep2').classList.remove('active'); document.getElementById('wizardProgressBar').style.width='50%';">
+                Change City
+            </button>
         </div>
 
         <div class="main-content">
@@ -3105,6 +3328,9 @@
                 });
                 
                 citySelect.innerHTML = '<option value="">Select a city...</option>';
+                const citySelectStep1 = document.getElementById('citySelectStep1');
+                if (citySelectStep1) citySelectStep1.innerHTML = '<option value="">Select a city...</option>';
+
                 sortedCities.forEach(city => {
                     const option = document.createElement('option');
                     option.value = city.id;
@@ -3115,12 +3341,23 @@
                         option.textContent = city.display_name;
                     }
                     citySelect.appendChild(option);
+                    
+                    if (citySelectStep1) {
+                        const optionClone = option.cloneNode(true);
+                        citySelectStep1.appendChild(optionClone);
+                    }
                 });
                 
                 // Auto-select current city if found
                 if (currentCityId) {
                     citySelect.value = currentCityId;
                     citySelect.dispatchEvent(new Event('change'));
+                    
+                    if (citySelectStep1) {
+                        citySelectStep1.value = currentCityId;
+                        const wizardNext1 = document.getElementById('wizardNext1');
+                        if (wizardNext1) wizardNext1.disabled = false;
+                    }
                 }
             } catch (error) {
                 console.error('Error loading cities:', error);
@@ -7046,9 +7283,84 @@
         }
 
 
+        // Mobile Wizard Logic
+        function setupMobileWizard() {
+            const citySelectStep1 = document.getElementById('citySelectStep1');
+            const wizardNext1 = document.getElementById('wizardNext1');
+            const wizardStep1 = document.getElementById('wizardStep1');
+            const wizardStep2 = document.getElementById('wizardStep2');
+            const wizardProgressBar = document.getElementById('wizardProgressBar');
+            const mainCitySelect = document.getElementById('citySelect');
+
+            if (!citySelectStep1) return;
+
+            // City selection change
+            citySelectStep1.addEventListener('change', () => {
+                if (citySelectStep1.value) {
+                    wizardNext1.disabled = false;
+                } else {
+                    wizardNext1.disabled = true;
+                }
+            });
+
+            // Step 1 -> Step 2
+            wizardNext1.addEventListener('click', () => {
+                if (!citySelectStep1.value) return;
+                
+                // Sync main city select
+                mainCitySelect.value = citySelectStep1.value;
+                mainCitySelect.dispatchEvent(new Event('change'));
+                
+                // Show Step 2
+                wizardStep1.classList.remove('active');
+                wizardStep2.classList.add('active');
+                if (wizardProgressBar) wizardProgressBar.style.width = '100%';
+            });
+
+            // Check if wizard should be shown
+            const isMobile = window.innerWidth <= 768;
+            const citySelected = localStorage.getItem('lastSelectedCityId');
+            
+            // On mobile, show wizard if no city is selected OR if it's the first time
+            if (isMobile && !citySelected) {
+                document.body.classList.remove('wizard-completed');
+            } else {
+                document.body.classList.add('wizard-completed');
+            }
+        }
+
+        function completeWizard() {
+            const wizardEventTypeSelect = document.getElementById('eventTypeSelectStep2');
+            const mainEventTypeSelect = document.getElementById('eventTypeSelect');
+            
+            // Sync event type if selected
+            if (wizardEventTypeSelect && wizardEventTypeSelect.value) {
+                if (mainEventTypeSelect) {
+                    mainEventTypeSelect.value = wizardEventTypeSelect.value;
+                    mainEventTypeSelect.dispatchEvent(new Event('change'));
+                }
+            }
+            
+            document.body.classList.add('wizard-completed');
+            
+            // Ensure events are loaded
+            if (typeof loadEvents === 'function') {
+                loadEvents();
+            }
+            
+            // If on mobile, show the events panel immediately
+            if (window.innerWidth <= 768) {
+                const eventsPanel = document.getElementById('discoveredEventsPanel');
+                if (eventsPanel && !eventsPanel.classList.contains('mobile-active')) {
+                    if (window.toggleMobileView) window.toggleMobileView();
+                }
+            }
+        }
+
         // Initialize time selector when page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeTimeSelector();
+            setupMobileWizard();
             
             // Add export button listener
             const exportDiscoveredBtn = document.getElementById('exportDiscoveredEventsBtn');
