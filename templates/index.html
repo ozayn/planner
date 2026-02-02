@@ -110,14 +110,51 @@
             padding: 16px 0;
             border: none;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .header h1 {
-            font-size: 2rem;
+            font-size: 2.25rem;
             margin-bottom: 4px;
             color: rgba(0,0,0,0.87);
-            font-weight: 300;
-            letter-spacing: -0.03em;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .desktop-toggle-header {
+            display: none;
+            margin-top: 12px;
+            padding: 4px 12px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-toggle-header {
+                display: flex;
+            }
+        }
+
+        .desktop-toggle-header:hover {
+            background: rgba(0, 0, 0, 0.06);
+            color: #111827;
+        }
+
+        .desktop-toggle-header svg {
+            width: 12px;
+            height: 12px;
         }
 
         .header p {
@@ -125,7 +162,7 @@
             color: rgba(0,0,0,0.5);
             font-weight: 400;
             max-width: 400px;
-            margin: 0 auto;
+            margin: 8px auto 0;
         }
 
         .main-content {
@@ -2477,9 +2514,21 @@
     <div class="container">
         <div class="header">
             <h1>Planner</h1>
-            <button class="change-city-btn" onclick="document.body.classList.remove('wizard-completed'); document.getElementById('wizardStep1').classList.add('active'); document.getElementById('wizardStep2').classList.remove('active'); document.getElementById('wizardProgressBar').style.width='50%';">
-                Change City
-            </button>
+            <div class="desktop-toggle-header" id="headerDesktopToggle" onclick="toggleDesktopView()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span id="desktopToggleText">Desktop View</span>
+            </div>
+            <div class="header-controls">
+                <button class="header-pill-btn" onclick="document.body.classList.remove('wizard-completed'); document.getElementById('wizardStep1').classList.add('active'); document.getElementById('wizardStep2').classList.remove('active'); document.getElementById('wizardProgressBar').style.width='50%';">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Change City
+                </button>
+            </div>
         </div>
 
         <div class="main-content">
@@ -7288,7 +7337,18 @@
         function enableDesktopView() {
             document.body.classList.add('force-desktop');
             localStorage.setItem('forceDesktopView', 'true');
+            updateDesktopToggleButton();
             if (typeof loadEvents === 'function') loadEvents();
+        }
+
+        function toggleDesktopView() {
+            if (document.body.classList.contains('force-desktop')) {
+                document.body.classList.remove('force-desktop');
+                localStorage.removeItem('forceDesktopView');
+            } else {
+                enableDesktopView();
+            }
+            updateDesktopToggleButton();
         }
 
         function setupMobileWizard() {
@@ -7405,9 +7465,6 @@
 
     <!-- Mobile View Toggle Button -->
     <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
-        <button id="mobileDesktopToggle" class="mobile-view-toggle" style="display: none; background: rgba(255,255,255,0.9); color: #374151; font-size: 0.75rem; padding: 8px 16px;" onclick="if(document.body.classList.contains('force-desktop')){ document.body.classList.remove('force-desktop'); localStorage.removeItem('forceDesktopView'); } else { enableDesktopView(); }">
-            Toggle Desktop
-        </button>
         <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
             View Events
         </button>
@@ -7416,12 +7473,22 @@
     <script>
         // Update the toggle button display
         function updateDesktopToggleButton() {
-            const btn = document.getElementById('mobileDesktopToggle');
-            if (window.innerWidth <= 768) {
-                btn.style.display = 'block';
-                btn.textContent = document.body.classList.contains('force-desktop') ? 'Mobile View' : 'Desktop View';
+            const headerToggle = document.getElementById('headerDesktopToggle');
+            const toggleText = document.getElementById('desktopToggleText');
+            
+            if (window.innerWidth <= 768 || document.body.classList.contains('force-desktop')) {
+                if (headerToggle) {
+                    headerToggle.style.display = 'flex';
+                    if (document.body.classList.contains('force-desktop')) {
+                        headerToggle.classList.add('is-desktop-mode');
+                        if (toggleText) toggleText.textContent = 'Mobile View';
+                    } else {
+                        headerToggle.classList.remove('is-desktop-mode');
+                        if (toggleText) toggleText.textContent = 'Desktop View';
+                    }
+                }
             } else {
-                btn.style.display = 'none';
+                if (headerToggle) headerToggle.style.display = 'none';
             }
         }
         window.addEventListener('resize', updateDesktopToggleButton);
