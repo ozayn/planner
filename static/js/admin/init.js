@@ -2383,6 +2383,44 @@ async function startAsianArtScraping() {
     }
 }
 
+async function startCultureDCScraping() {
+    showScrapingProgressModal('Culture DC');
+    
+    try {
+        const response = await fetch('/api/admin/scrape-culture-dc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {}
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                if (typeof loadEvents === 'function') loadEvents();
+            }, 2000);
+        } else {
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
+        }
+    } catch (error) {
+        console.error('Culture DC scraping error:', error);
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        closeScrapingProgressModal();
+    }
+}
+
 async function startSunsCinemaScraping() {
     showScrapingProgressModal('Suns Cinema');
     
