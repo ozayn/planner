@@ -3290,11 +3290,11 @@
                 currentCity = selectedOption ? selectedOption.textContent : 'Selected City';
                 
                 // --- RESET STATE FOR NEW CITY ---
-                // 1. Clear city-agnostic filters
+                // Clear filters to ensure all events are shown by default
                 selectedEventTypeFilters.clear();
                 babyFriendlyFilterActive = false;
                 
-                // Reset event type filter button visual states
+                // Reset event type filter buttons to "All"
                 document.querySelectorAll('.event-type-filter-btn').forEach(btn => {
                     if (btn.dataset.eventType === "") {
                         btn.classList.add('active');
@@ -3309,67 +3309,38 @@
                     }
                 });
                 
-                // 2. Clear any manual venue selections from other cities
+                // Clear venue selections and current venues list
                 localStorage.removeItem('mainPageSelectedVenues');
                 selectedVenues.clear();
+                allVenues = []; 
                 
-                // 3. Reset dropdowns
+                // Reset dropdowns
                 if (eventTypeSelect) eventTypeSelect.value = '';
                 if (eventTypeSelectStep2) eventTypeSelectStep2.value = '';
                 
-                // 4. Reset sidebar tabs to all active (default)
-                const allTabs = document.querySelectorAll('.venue-type-tab');
-                allTabs.forEach(tab => tab.classList.add('active'));
+                // Reset ALL sidebar tabs to active (default to show everything)
+                document.querySelectorAll('.venue-type-tab').forEach(tab => tab.classList.add('active'));
                 
-                // 5. Update UI state
+                // Update UI status display
                 updateStatus();
                 // ---------------------------------
 
-                // Auto-select museums and embassies for Washington DC
-                // Check by both city name and city ID (DC is typically city_id 1)
-                const cityName = currentCity.toLowerCase();
-                const cityIdStr = cityId ? String(cityId) : '';
-                const isWashingtonDC = (cityName.includes('washington') && (cityName.includes('dc') || cityName.includes('district') || cityName.includes('columbia'))) 
-                                    || cityIdStr === '1'; // Washington DC is typically city_id 1
-                
-                if (isWashingtonDC) {
-                    // Small delay to ensure DOM is ready
-                    setTimeout(() => {
-                        // Reset all tabs first, then activate specific ones for DC
-                        const venueTypeTabs = document.querySelectorAll('#venueTypesGroup .venue-type-tab');
-                        venueTypeTabs.forEach(tab => tab.classList.remove('active'));
-                        
-                        const museumTab = venueTypesGroup.querySelector('[data-id="venueTypeMuseum"]');
-                        const embassyTab = venueTypesGroup.querySelector('[data-id="venueTypeEmbassy"]');
-                        
-                        if (museumTab) museumTab.classList.add('active');
-                        if (embassyTab) embassyTab.classList.add('active');
-                        
-                        // Update venue counts and filtered display
-                        if (allVenues.length > 0) {
-                            updateVenueCounts();
-                            filterAndDisplayVenues();
-                        }
-                    }, 100);
-                }
-                
                 // Show source type controls when city is selected
                 if (platformGroup) platformGroup.style.display = 'block';
                 if (contentGroup) contentGroup.style.display = 'block';
                 
-                // Load venues for this city
-                await loadVenues();
+                // 1. Load ALL venues for this city first (without type restrictions)
+                // This ensures we have the venue names/data for all events in the city
+                await handleLoadVenues();
                 
-                // Load sources for this city
+                // 2. Load sources for this city
                 await loadSourcesForCity(cityId);
                 
-                // Load existing events from database for this city first
+                // 3. Load existing events from database for this city
                 const timeRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
-                const eventType = ''; // Always start with all event types
-                // Load events even if eventType is empty (shows all event types)
-                await loadEvents(cityId, timeRange, eventType);
+                await loadEvents(cityId, timeRange, '');
                 
-                // Load discovered events for this city (will trigger unified display)
+                // 4. Load discovered events for this city
                 await loadDiscoveredEvents();
             } else {
                 // Clear current city
@@ -4833,6 +4804,8 @@
                 const totalItems = allVenues.length + allSources.length;
                 updateProgress(100, `Complete! Found ${totalItems} items`);
                 
+                // Notifications removed as per user request
+                /*
                 if (allVenues.length > 0 && allSources.length > 0) {
                     showNotification(`Found ${allVenues.length} venues and ${allSources.length} sources! Switch between tabs to view each type.`, 'success');
                 } else if (allVenues.length > 0) {
@@ -4842,6 +4815,7 @@
                 } else {
                     showNotification('No venues or sources found for the selected criteria.', 'info');
                 }
+                */
 
             } catch (error) {
                 console.error('Venue loading error:', error);
