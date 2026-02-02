@@ -3289,6 +3289,42 @@
                 const selectedOption = citySelect.options[citySelect.selectedIndex];
                 currentCity = selectedOption ? selectedOption.textContent : 'Selected City';
                 
+                // --- RESET STATE FOR NEW CITY ---
+                // 1. Clear city-agnostic filters
+                selectedEventTypeFilters.clear();
+                babyFriendlyFilterActive = false;
+                
+                // Reset event type filter button visual states
+                document.querySelectorAll('.event-type-filter-btn').forEach(btn => {
+                    if (btn.dataset.eventType === "") {
+                        btn.classList.add('active');
+                        btn.style.background = 'rgba(0,0,0,0.08)';
+                        btn.style.color = 'rgba(0,0,0,0.87)';
+                        btn.style.fontWeight = '500';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.style.background = 'rgba(255,255,255,0.6)';
+                        btn.style.color = 'rgba(0,0,0,0.6)';
+                        btn.style.fontWeight = '400';
+                    }
+                });
+                
+                // 2. Clear any manual venue selections from other cities
+                localStorage.removeItem('mainPageSelectedVenues');
+                selectedVenues.clear();
+                
+                // 3. Reset dropdowns
+                if (eventTypeSelect) eventTypeSelect.value = '';
+                if (eventTypeSelectStep2) eventTypeSelectStep2.value = '';
+                
+                // 4. Reset sidebar tabs to all active (default)
+                const allTabs = document.querySelectorAll('.venue-type-tab');
+                allTabs.forEach(tab => tab.classList.add('active'));
+                
+                // 5. Update UI state
+                updateStatus();
+                // ---------------------------------
+
                 // Auto-select museums and embassies for Washington DC
                 // Check by both city name and city ID (DC is typically city_id 1)
                 const cityName = currentCity.toLowerCase();
@@ -3299,25 +3335,20 @@
                 if (isWashingtonDC) {
                     // Small delay to ensure DOM is ready
                     setTimeout(() => {
-                        // Activate museum and embassy tabs for Washington DC
-                        // Use querySelector with data-id attribute to find tabs within venueTypesGroup
-                        const venueTypesGroup = document.getElementById('venueTypesGroup');
-                        if (venueTypesGroup) {
-                            const museumTab = venueTypesGroup.querySelector('[data-id="venueTypeMuseum"]');
-                            const embassyTab = venueTypesGroup.querySelector('[data-id="venueTypeEmbassy"]');
-                            
-                            if (museumTab && !museumTab.classList.contains('active')) {
-                                museumTab.classList.add('active');
-                            }
-                            if (embassyTab && !embassyTab.classList.contains('active')) {
-                                embassyTab.classList.add('active');
-                            }
-                            
-                            // Update venue counts if venues are already loaded
-                            if (allVenues.length > 0) {
-                                updateVenueCounts();
-                                filterAndDisplayVenues();
-                            }
+                        // Reset all tabs first, then activate specific ones for DC
+                        const venueTypeTabs = document.querySelectorAll('#venueTypesGroup .venue-type-tab');
+                        venueTypeTabs.forEach(tab => tab.classList.remove('active'));
+                        
+                        const museumTab = venueTypesGroup.querySelector('[data-id="venueTypeMuseum"]');
+                        const embassyTab = venueTypesGroup.querySelector('[data-id="venueTypeEmbassy"]');
+                        
+                        if (museumTab) museumTab.classList.add('active');
+                        if (embassyTab) embassyTab.classList.add('active');
+                        
+                        // Update venue counts and filtered display
+                        if (allVenues.length > 0) {
+                            updateVenueCounts();
+                            filterAndDisplayVenues();
                         }
                     }, 100);
                 }
@@ -3334,7 +3365,7 @@
                 
                 // Load existing events from database for this city first
                 const timeRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
-                const eventType = document.getElementById('eventTypeSelectStep2')?.value || document.getElementById('eventTypeSelect')?.value || '';
+                const eventType = ''; // Always start with all event types
                 // Load events even if eventType is empty (shows all event types)
                 await loadEvents(cityId, timeRange, eventType);
                 
@@ -4724,17 +4755,20 @@
                 return;
             }
 
-            // Get selected venue types (optional for sources-only discovery)
-            const selectedVenueTypes = getSelectedVenueTypes();
-            
             // Check if we have venues OR sources to discover
-            const hasVenueTypes = selectedVenueTypes.length > 0;
-            const hasSources = allSources.length > 0; // Sources are loaded when city is selected
+            const venueTypesGroup = document.getElementById('venueTypesGroup');
+            const activeVenueTabs = venueTypesGroup ? venueTypesGroup.querySelectorAll('.venue-type-tab.active') : [];
+            const hasVenueTypesSelected = activeVenueTabs.length > 0;
+            const hasSources = allSources.length > 0;
             
-            if (!hasVenueTypes && !hasSources) {
+            if (!hasVenueTypesSelected && !hasSources) {
                 showNotification('Please select at least one venue type or ensure sources are available', 'error');
                 return;
             }
+
+            // Get selected venue types (optional for sources-only discovery)
+            const selectedVenueTypes = getSelectedVenueTypes();
+            const hasVenueTypes = selectedVenueTypes.length > 0;
 
             // Update UI
             loadVenuesButton.disabled = true;
