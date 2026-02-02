@@ -3326,6 +3326,9 @@
                 if (platformGroup) platformGroup.style.display = 'block';
                 if (contentGroup) contentGroup.style.display = 'block';
                 
+                // Load venues for this city
+                await loadVenues();
+                
                 // Load sources for this city
                 await loadSourcesForCity(cityId);
                 
@@ -4847,13 +4850,17 @@
 
             // Build HTML with collapsible sections
             let html = '';
-            Object.keys(venuesByType).sort().forEach(venueType => {
+            const venueTypes = Object.keys(venuesByType).sort();
+            
+            venueTypes.forEach(venueType => {
                 const typeVenues = venuesByType[venueType];
                 const typeName = formatVenueTypeName(venueType);
                 const sectionId = `venue-section-${venueType.replace(/[^a-z0-9]/gi, '-')}`;
-                // Check localStorage first, but default to collapsed if not set
+                
+                // Default to expanded (false for isCollapsed) if not set in localStorage
+                // This ensures new users or new venues are visible immediately
                 const savedState = localStorage.getItem(`venue-section-${venueType}`);
-                const isCollapsed = savedState === null ? true : savedState === 'collapsed';
+                const isCollapsed = savedState === 'collapsed'; // Only collapse if explicitly saved as such
                 
                 html += `
                     <div class="venue-type-section">
