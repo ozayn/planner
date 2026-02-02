@@ -65,6 +65,8 @@ def has_specialized_scraper(venue):
         ('hirshhorn', 'hirshhorn.si.edu'),
         # Suns Cinema
         ('suns cinema', 'sunscinema.com'),
+        # Culture DC
+        ('culture dc', 'culturedc.com'),
     ]
     
     for name_keyword, url_keyword in specialized_museums:
@@ -332,6 +334,19 @@ def main():
                             total_events_saved += saved_count
                         except Exception as e:
                             logger.error(f"   ❌ Error in Suns Cinema scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+                    
+                    elif 'culturedc.com' in venue_url_lower:
+                        from scripts.culture_dc_scraper import scrape_all_culture_dc_events
+                        try:
+                            scraped_events = scrape_all_culture_dc_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from Culture DC scraper")
+                            # Note: culture_dc_scraper handles its own database saving
+                            saved_count = len(scraped_events)
+                            total_events_saved += saved_count
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in Culture DC scraper: {e}")
                             import traceback
                             logger.error(traceback.format_exc())
                     else:
