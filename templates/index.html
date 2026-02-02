@@ -166,7 +166,26 @@
         }
 
         .header-controls {
+            display: block;
+        }
+
+        body.force-desktop .header-controls {
             display: none;
+        }
+
+        @media (min-width: 769px) {
+            .header-controls {
+                display: none;
+            }
+            
+            /* If we are NOT forcing desktop on a large screen, we might still want to hide it? 
+               Actually, if we are on a large screen and NOT forcing desktop, we are in "Mobile View" on desktop.
+               In that case, we SHOULD see the header controls. */
+        }
+
+        /* Simplified logic for header controls */
+        .header-controls {
+            display: none; /* Default hidden */
         }
 
         .header-pill-btn {
@@ -190,17 +209,22 @@
             color: #111827;
         }
 
-        .header-pill-btn svg {
-            width: 14px;
-            height: 14px;
-        }
-
+        /* Show on mobile */
         @media (max-width: 768px) {
             .header-controls {
                 display: block;
             }
-            body.force-desktop .header-controls {
-                display: none;
+        }
+
+        /* Hide when forcing desktop (on mobile) */
+        body.force-desktop .header-controls {
+            display: none !important;
+        }
+
+        /* Show on desktop IF NOT forcing desktop (i.e. user requested mobile view on desktop) */
+        @media (min-width: 769px) {
+            body:not(.force-desktop) .header-controls {
+                display: block;
             }
         }
 
@@ -2332,7 +2356,7 @@
         }
         /* Mobile Wizard Styles */
         .mobile-wizard {
-            display: none;
+            display: flex;
             position: fixed;
             top: 0;
             left: 0;
@@ -2347,14 +2371,8 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        @media (max-width: 768px) {
-            .mobile-wizard {
-                display: flex;
-            }
-            
-            body.wizard-completed .mobile-wizard {
-                display: none;
-            }
+        body.wizard-completed .mobile-wizard {
+            display: none;
         }
 
         .wizard-step {
@@ -7453,6 +7471,7 @@
             } else {
                 enableDesktopView();
             }
+            setupMobileWizard();
             updateDesktopToggleButton();
         }
 
@@ -7490,12 +7509,15 @@
             });
 
             // Check if wizard should be shown
-            const isMobile = window.innerWidth <= 768;
-            
-            // On mobile, show wizard if they haven't completed it in this session
+            // Show wizard if:
+            // 1. We are NOT forcing desktop
+            // 2. AND session storage doesn't say it's completed
+            // 3. AND no city is currently selected
+            const isForcingDesktop = document.body.classList.contains('force-desktop');
             const wizardSessionCompleted = sessionStorage.getItem('wizardCompleted');
+            const citySelected = mainCitySelect && mainCitySelect.value;
             
-            if (isMobile && !wizardSessionCompleted) {
+            if (!isForcingDesktop && !wizardSessionCompleted && !citySelected) {
                 document.body.classList.remove('wizard-completed');
             } else {
                 document.body.classList.add('wizard-completed');
