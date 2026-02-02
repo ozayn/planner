@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2025-12-15",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 205,
-    "last_updated": "2025-12-15 15:41:03"
+    "total_venues": 206,
+    "last_updated": "2026-02-02 16:15:00"
   },
   "venues": {
     "1": {
@@ -5336,6 +5336,32 @@
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions/\", \"events\": \"/programs-events/adult-programs/\"}}",
       "created_at": "2025-12-11T05:05:39.906095",
       "updated_at": "2025-12-11T05:08:13.696530"
+    },
+    "216": {
+      "name": "Culture DC",
+      "venue_type": "music_venue",
+      "address": "2006 Fenwick St NE, Washington, DC 20002",
+      "city_id": 1,
+      "city_name": "Washington",
+      "description": "Modular event space in Washington, DC, primarily focused on music and electronic dance music events.",
+      "opening_hours": "Varies by event",
+      "holiday_hours": "",
+      "phone_number": "",
+      "email": "",
+      "website_url": "https://www.culturedc.com",
+      "ticketing_url": "",
+      "instagram_url": "https://www.instagram.com/cultureivycity",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "Varies by event",
+      "image_url": "",
+      "latitude": 38.91493,
+      "longitude": -76.98505,
+      "additional_info": "",
+      "created_at": "2026-02-02T16:15:00.000000",
+      "updated_at": "2026-02-02T16:15:00.000000"
     }
   }
 }
