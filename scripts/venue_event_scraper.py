@@ -2603,6 +2603,11 @@ class VenueEventScraper:
                     'permanent collection', 'permanent exhibition'
                 ])
                 
+                # Double check: if the URL looks like an archive or past events, it's NOT permanent
+                url_path = urlparse(url).path.lower()
+                if any(p in url_path for p in ['/past', '/archive', '/previous', '/recorded']):
+                    is_permanent = False
+                
                 if is_permanent or not date_text:
                     # For permanent exhibitions or exhibitions without date info:
                     # Set start_date to today and end_date to 2 years from now
@@ -3101,6 +3106,12 @@ class VenueEventScraper:
                             # Handle permanent exhibitions without dates
                             if not start_date:
                                 is_permanent = 'ongoing' in date_text.lower() if date_text else False
+                                
+                                # Double check: if the URL looks like an archive or past events, it's NOT permanent
+                                exhibition_url_path = urlparse(exhibition_url).path.lower()
+                                if any(p in exhibition_url_path for p in ['/past', '/archive', '/previous', '/recorded']):
+                                    is_permanent = False
+                                    
                                 if is_permanent:
                                     from datetime import timedelta
                                     start_date = date.today()
@@ -6334,7 +6345,7 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
             'our staff', 'staff',
             'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
             'join us for an event', 'join us', 'join us for', 'join us!',
-            'meet your new favorite artist',
+            'meet your new favorite artist', 'program recordings', 'recordings', 'past programs',
             # Booking/reservation titles
             'book a tour', 'book tour', 'book tours', 'book now', 'reserve a tour',
             'reserve tour', 'reserve tours', 'booking', 'reservations',
