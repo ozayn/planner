@@ -305,7 +305,7 @@ def save_events_to_db(events: List[Dict]):
                     event_type='music',
                     city_id=city.id,
                     venue_id=venue.id,
-                    source='scraper'
+                    source='website'
                 )
                 db.session.add(new_event)
                 added_count += 1
