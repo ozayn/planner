@@ -165,6 +165,45 @@
             margin: 8px auto 0;
         }
 
+        .header-controls {
+            display: none;
+        }
+
+        .header-pill-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #f3f4f6;
+            color: #4b5563;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+
+        .header-pill-btn:hover {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .header-pill-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .header-controls {
+                display: block;
+            }
+            body.force-desktop .header-controls {
+                display: none;
+            }
+        }
+
         .main-content {
             display: grid;
             grid-template-columns: 400px 1fr;
