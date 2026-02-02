@@ -5334,9 +5334,6 @@
             // Convert sourceId to number if it's a string
             const id = typeof sourceId === 'string' ? parseInt(sourceId, 10) : sourceId;
             
-            console.log('showSourceDetails called with sourceId:', sourceId, 'converted to:', id);
-            console.log('allSources:', allSources);
-            
             const source = allSources.find(s => {
                 const sourceIdNum = typeof s.id === 'string' ? parseInt(s.id, 10) : s.id;
                 return sourceIdNum === id || s.id == id || s.id === id;
@@ -5347,8 +5344,6 @@
                 alert(`Source not found for ID: ${id}. Please check the console for available sources.`);
                 return;
             }
-            
-            console.log('Found source:', source);
             
             const sourceTypeFormatted = formatSourceTypeName(source.source_type);
             
@@ -5399,8 +5394,6 @@
             // Show in modal
             const modal = document.getElementById('sourceDetailsModal');
             const modalContent = document.getElementById('sourceDetailsContent');
-            console.log('Modal element:', modal);
-            console.log('Modal content element:', modalContent);
             
             if (modal && modalContent) {
                 modalContent.innerHTML = detailsHTML;
@@ -5573,7 +5566,6 @@
                     // Handle "all" option - use a very high number to effectively remove the limit
                     const maxEvents = maxEventsValue === 'all' ? 9999 : parseInt(maxEventsValue) || 10;
                     requestBody.max_events_per_venue = maxEvents;
-                    console.log(`📊 Frontend: Setting max_events_per_venue to ${maxEvents} from select value: ${maxEventsValue}`);
                     // Also set max_exhibitions_per_venue for backward compatibility with exhibitions
                     if (eventType === 'exhibition' || !eventType) {
                         requestBody.max_exhibitions_per_venue = maxEvents;
@@ -5582,8 +5574,6 @@
                     console.warn('⚠️ Frontend: maxEventsPerVenue select not found, using default 9999 (all)');
                     requestBody.max_events_per_venue = 9999;
                 }
-                
-                console.log('📤 Frontend: Starting streaming scrape...');
                 
                 // Use fetch with streaming for real-time event updates
                 const response = await fetch('/api/scrape-stream', {
@@ -5643,8 +5633,6 @@
                                         
                                         // Sort and display events in real-time
                                         displayUnifiedEvents();
-                                        
-                                        console.log(`✅ Received event ${eventsReceived}: ${newEvent.title}`);
                                     }
                                 } else if (data.type === 'complete') {
                                     updateProgress(100, data.message);
