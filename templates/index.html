@@ -2421,7 +2421,7 @@
         }
 
         /* Adjust Step 1 and 2 inputs for Wizard */
-        #citySelectStep1, #eventTypeSelectStep2 {
+        #citySelectStep1, #wizardEventTypeSelect {
             width: 100%;
             padding: 18px;
             border-radius: 16px;
@@ -2436,7 +2436,7 @@
             background-size: 20px;
         }
 
-        #citySelectStep1:focus, #eventTypeSelectStep2:focus {
+        #citySelectStep1:focus, #wizardEventTypeSelect:focus {
             outline: none;
             border-color: #111827;
             background: #ffffff;
@@ -2476,6 +2476,7 @@
                 <h2>Choose your city</h2>
                 <p>Select a city to discover local events and venues.</p>
                 <div class="form-group" style="width: 100%;">
+                    <label for="citySelectStep1" class="sr-only">City Selection</label>
                     <select id="citySelectStep1">
                         <option value="">Select a city...</option>
                     </select>
@@ -2490,7 +2491,8 @@
                 <h2>What are you into?</h2>
                 <p>Optional: Choose an event type to filter your results.</p>
                 <div class="form-group" style="width: 100%;">
-                    <select id="eventTypeSelectStep2">
+                    <label for="wizardEventTypeSelect" class="sr-only">Event Type</label>
+                    <select id="wizardEventTypeSelect">
                         <option value="">All Event Types</option>
                         <option value="tour">Tours</option>
                         <option value="exhibition">Exhibitions</option>
@@ -2745,8 +2747,14 @@
 
                     <div class="form-group" id="customDateGroup" style="display: none;">
                         <div style="display: flex; gap: 8px; margin-top: 0;">
-                            <input type="date" id="startDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
-                            <input type="date" id="endDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                            <div style="flex: 1;">
+                                <label for="startDate" class="sr-only">Start Date</label>
+                                <input type="date" id="startDate" style="width: 100%; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="endDate" class="sr-only">End Date</label>
+                                <input type="date" id="endDate" style="width: 100%; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                            </div>
                         </div>
                     </div>
 
@@ -2877,8 +2885,14 @@
                 </div>
                 <div id="discoveredCustomDateGroup" style="display: none; margin-top: 12px;">
                     <div style="display: flex; gap: 8px;">
-                        <input type="date" id="discoveredStartDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
-                        <input type="date" id="discoveredEndDate" style="flex: 1; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                        <div style="flex: 1;">
+                            <label for="discoveredStartDate" class="sr-only">Start Date</label>
+                            <input type="date" id="discoveredStartDate" style="width: 100%; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="discoveredEndDate" class="sr-only">End Date</label>
+                            <input type="date" id="discoveredEndDate" style="width: 100%; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); font-size: 0.95rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                        </div>
                     </div>
                 </div>
                 <div style="margin-top: 16px; margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
@@ -7399,7 +7413,7 @@
         }
 
         function completeWizard() {
-            const wizardEventTypeSelect = document.getElementById('eventTypeSelectStep2');
+            const wizardEventTypeSelect = document.getElementById('wizardEventTypeSelect');
             const mainEventTypeSelect = document.getElementById('eventTypeSelect');
             
             // Sync event type if selected
