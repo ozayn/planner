@@ -1194,7 +1194,18 @@ def get_public_stats():
             'venues': 0,
             'sources': 0,
             'events': 0
-        }), 500
+        })
+
+@app.after_request
+def add_header(response):
+    """
+    Disable caching for all routes to ensure the latest UI is always loaded
+    during active development and deployment updates.
+    """
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response, 500
 
 @app.route('/api/log-visit', methods=['POST'])
 def log_visit():

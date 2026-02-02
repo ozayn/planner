@@ -3140,6 +3140,7 @@
                 toggleBtn.textContent = 'View Events';
                 toggleBtn.classList.remove('show-events');
                 if (closeBtn) closeBtn.style.display = 'none';
+                sessionStorage.removeItem('mobileEventsActive');
             } else {
                 // Show events, hide venues/sources
                 eventsPanel.style.setProperty('display', 'block', 'important');
@@ -3158,6 +3159,7 @@
                 toggleBtn.textContent = 'View Venues';
                 toggleBtn.classList.add('show-events');
                 if (closeBtn) closeBtn.style.display = 'flex';
+                sessionStorage.setItem('mobileEventsActive', 'true');
             }
         };
 
@@ -7435,6 +7437,14 @@
             }
             
             setupMobileWizard();
+            
+            // Restore mobile events view if it was active
+            if (window.innerWidth <= 768 && sessionStorage.getItem('mobileEventsActive') === 'true') {
+                if (window.toggleMobileView) {
+                    // Small delay to ensure panels are rendered
+                    setTimeout(window.toggleMobileView, 100);
+                }
+            }
             
             // Add export button listener
             const exportDiscoveredBtn = document.getElementById('exportDiscoveredEventsBtn');
