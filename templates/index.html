@@ -7510,14 +7510,14 @@
 
             // Check if wizard should be shown
             // Show wizard if:
-            // 1. We are NOT forcing desktop
-            // 2. AND session storage doesn't say it's completed
-            // 3. AND no city is currently selected
+            // 1. We are on a small screen (native mobile)
+            // 2. AND we are NOT forcing desktop view
+            // 3. AND session storage doesn't say it's completed
+            const isNativeMobile = window.innerWidth <= 768;
             const isForcingDesktop = document.body.classList.contains('force-desktop');
             const wizardSessionCompleted = sessionStorage.getItem('wizardCompleted');
-            const citySelected = mainCitySelect && mainCitySelect.value;
             
-            if (!isForcingDesktop && !wizardSessionCompleted && !citySelected) {
+            if (isNativeMobile && !isForcingDesktop && !wizardSessionCompleted) {
                 document.body.classList.remove('wizard-completed');
             } else {
                 document.body.classList.add('wizard-completed');
@@ -7562,6 +7562,9 @@
                 document.body.classList.add('force-desktop');
             }
             
+            if (typeof updateDesktopToggleButton === 'function') {
+                updateDesktopToggleButton();
+            }
             setupMobileWizard();
             
             // Restore mobile events view if it was active
@@ -7596,16 +7599,7 @@
             // Mobile view toggle functionality - using onclick attribute, no need for addEventListener
             // The onclick attribute on the button already calls toggleMobileView
         });
-    </script>
 
-    <!-- Mobile View Toggle Button -->
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
-        <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
-            View Events
-        </button>
-    </div>
-    
-    <script>
         // Update the toggle button display
         function updateDesktopToggleButton() {
             const headerToggle = document.getElementById('headerDesktopToggle');
@@ -7626,11 +7620,25 @@
                 if (headerToggle) headerToggle.style.display = 'none';
             }
         }
-        window.addEventListener('resize', updateDesktopToggleButton);
-        document.addEventListener('DOMContentLoaded', updateDesktopToggleButton);
+
+        window.addEventListener('resize', () => {
+            updateDesktopToggleButton();
+            setupMobileWizard();
+        });
+
         // Also update when class changes
-        const observer = new MutationObserver(updateDesktopToggleButton);
+        const observer = new MutationObserver(() => {
+            updateDesktopToggleButton();
+            setupMobileWizard();
+        });
         observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     </script>
+
+    <!-- Mobile View Toggle Button -->
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+        <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
+            View Events
+        </button>
+    </div>
 </body>
 </html>
