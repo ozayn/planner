@@ -6334,6 +6334,7 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
             'our staff', 'staff',
             'now open!', 'exhibition highlights', 'image slideshow', 'gallery', 'slideshow',
             'join us for an event', 'join us', 'join us for', 'join us!',
+            'meet your new favorite artist',
             # Booking/reservation titles
             'book a tour', 'book tour', 'book tours', 'book now', 'reserve a tour',
             'reserve tour', 'reserve tours', 'booking', 'reservations',
@@ -6420,6 +6421,9 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
                 '/essay/', '/essays/',  # Essays
                 '/interview/', '/interviews/',  # Interviews
                 '/podcast/', '/podcasts/',  # Podcasts
+                '/past-programs/',  # Hirshhorn past programs recordings
+                '/explore/past-programs/',  # Hirshhorn past programs recordings
+                '/recording/', '/recordings/',  # Program recordings
             ]
             
             for pattern in non_event_url_patterns:
