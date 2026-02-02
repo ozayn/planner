@@ -1868,6 +1868,10 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
         start_time_str = event_data.get('start_time')
         end_time_str = event_data.get('end_time')
         
+        # Default end_time for music/performance events to 11:59 PM if missing
+        if event_type in ['music', 'performance'] and not end_time_str:
+            end_time_str = '23:59'
+        
         # Update existing event
         if existing_event:
             app_logger.info(f"🔄 Updating existing event: '{title}' (venue_id: {venue_id}, date: {start_date})")

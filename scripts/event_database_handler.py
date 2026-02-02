@@ -500,6 +500,12 @@ def create_events_in_database(
             event_data['venue_id'] = venue_id
             event_data['city_id'] = city_id
             
+            # Default end_time for music/performance events to 11:59 PM if missing
+            if event_data.get('event_type') in ['music', 'performance'] and not event_data.get('end_time'):
+                from datetime import time as dt_time
+                event_data['end_time'] = dt_time(23, 59)
+                logger_instance.debug(f"   🕒 Set default midnight end_time for {event_data.get('event_type')} event: '{title}'")
+            
             # Set source_url if provided
             if source_url and not event_data.get('source_url'):
                 event_data['source_url'] = source_url

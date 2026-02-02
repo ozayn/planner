@@ -285,6 +285,13 @@ def save_events_to_db(events: List[Dict]):
             if existing_event:
                 # Update existing event
                 existing_event.start_time = event_data['start_time']
+                
+                # Default end_time for music/performance events to 11:59 PM if missing
+                if not event_data.get('end_time'):
+                    existing_event.end_time = time(23, 59)
+                else:
+                    existing_event.end_time = event_data.get('end_time')
+                
                 existing_event.url = event_data['url']
                 if event_data['description']:
                     existing_event.description = event_data['description']
@@ -300,6 +307,7 @@ def save_events_to_db(events: List[Dict]):
                     start_date=event_data['start_date'],
                     end_date=event_data['end_date'],
                     start_time=event_data['start_time'],
+                    end_time=event_data.get('end_time') or time(23, 59),
                     url=event_data['url'],
                     image_url=event_data['image_url'],
                     event_type='music',
