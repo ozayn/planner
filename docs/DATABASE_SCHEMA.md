@@ -11,7 +11,7 @@ This document describes the current database schema for the Planner application.
 The database uses a **unified events architecture** with three main tables:
 - `cities`: Geographic locations
 - `venues`: Cultural institutions and locations  
-- `events`: **Single unified table** for all event types (tours, exhibitions, festivals, photowalks, workshops)
+- `events`: **Single unified table** for all event types (tours, exhibitions, festivals, photowalks, workshops, talks, films, music)
 
 **Important**: There are NO separate tables for different event types. All events are stored in the unified `events` table.
 
@@ -122,10 +122,14 @@ The database uses a **unified events architecture** with three main tables:
 The `event_type` field in the events table can have the following values:
 - `tour`: Museum tours, guided walks, etc.
 - `exhibition`: Art exhibitions, museum displays, etc.
-- `festival`: Cultural festivals, music events, etc.
+- `festival`: Cultural festivals, community events, etc.
 - `photowalk`: Photography walks and tours
+- `workshop`: Educational sessions and hands-on classes
+- `talk`: Lectures, author talks, and conversations
+- `film`: Movie screenings and cinematic events
+- `music`: Concerts, live performances, and musical events
 
-**Note**: The API uses singular forms (`tour`, `exhibition`, `festival`, `photowalk`) to match the database values.
+**Note**: The API uses singular forms (`tour`, `exhibition`, `festival`, `photowalk`, `workshop`, `talk`, `film`, `music`) to match the database values.
 
 ## Relationships
 

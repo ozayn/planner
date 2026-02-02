@@ -11,18 +11,14 @@ The application uses SQLite with SQLAlchemy ORM for data persistence.
 - **NLP-Powered Text Normalization**: Intelligent city and country name correction
 - **Automatic Timestamps**: All tables have created_at and updated_at fields
 - **Comprehensive Venue Data**: Social media links, contact info, opening hours
-- **Event Management**: Tours, exhibitions, festivals, photowalks, and workshops
+- **Event Management**: Tours, exhibitions, festivals, photowalks, workshops, talks, films, and music
 - **Geographic Support**: Cities with timezone and state/province information
 
 ### Models
 
 - **City**: Geographic locations with timezone support
 - **Venue**: Physical locations (museums, galleries, etc.)
-- **Event**: Base class for all event types
-- **Tour**: Guided tours at venues
-- **Exhibition**: Museum exhibitions
-- **Festival**: Multi-day events
-- **Photowalk**: Photography events
+- **Event**: Unified model for all event types including tours, exhibitions, festivals, photowalks, workshops, talks, films, and music
 
 ### NLP Integration
 

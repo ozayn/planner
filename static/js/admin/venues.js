@@ -192,6 +192,10 @@ function getEventTypeBadgeClass(eventType) {
         return 'badge-festival';
     } else if (type.includes('workshop') || type.includes('class')) {
         return 'badge-workshop';
+    } else if (type.includes('talk') || type.includes('lecture') || type.includes('reading')) {
+        return 'badge-talk';
+    } else if (type.includes('music') || type.includes('concert') || type.includes('performance')) {
+        return 'badge-music';
     } else if (type.includes('cultural') || type.includes('culture')) {
         return 'badge-cultural';
     } else if (type.includes('film') || type.includes('cinema')) {

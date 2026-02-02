@@ -851,6 +851,28 @@ body {
     margin: 0.125rem;
 }
 
+.badge-music {
+    background: #fff1f2;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    display: inline-block;
+    margin: 0.125rem;
+}
+
+.badge-talk {
+    background: #f0fdfa;
+    color: #0d9488;
+    border: 1px solid #ccfbf1;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    display: inline-block;
+    margin: 0.125rem;
+}
+
 .badge-art {
     background: #fef2f2;
     color: #dc2626;
