@@ -385,9 +385,10 @@ def scrape_npg_exhibitions(scraper=None) -> List[Dict]:
             event = {
                 'title': title,
                 'description': description or f"Exhibition at {VENUE_NAME}",
-                'event_type': 'exhibition',
-                'source_url': exhibition_url or NPG_EXHIBITIONS_URL,
-                'organizer': VENUE_NAME,
+            'event_type': 'exhibition',
+            'url': exhibition_url or NPG_EXHIBITIONS_URL,
+            'source_url': exhibition_url or NPG_EXHIBITIONS_URL,
+            'organizer': VENUE_NAME,
                 'social_media_platform': 'website',
                 'social_media_url': exhibition_url or NPG_EXHIBITIONS_URL,
             }
@@ -645,6 +646,7 @@ def scrape_npg_tours(scraper=None) -> List[Dict]:
                     'start_time': tour_time_str,
                     'end_time': end_time_str,
                     'meeting_point': meeting_point,
+                    'url': NPG_TOURS_URL,
                     'source_url': NPG_TOURS_URL,
                     'organizer': VENUE_NAME,
                     'social_media_platform': 'website',
@@ -780,7 +782,8 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
         price = None
         
         # Extract date pattern: "Thu Dec 4, 2025 5:30pm - 6:30pm" or "Event Date: Thu Dec 4, 2025 5:30pm - 6:30pm"
-        date_time_pattern = r'(?:Event Date:\s*)?(?:([A-Za-z]{3})\s+)?([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*(am|pm)\s*-?\s*(\d{1,2}):(\d{2})\s*(am|pm)'
+        # Support both "am/pm" and "a.m./p.m." and optional spaces
+        date_time_pattern = r'(?:Event Date:\s*)?(?:([A-Za-z]{3})\s+)?([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap]\.?m\.?)\s*(?:[–—-]|to)\s*(\d{1,2}):(\d{2})\s*([ap]\.?m\.?)'
         date_time_match = re.search(date_time_pattern, page_text, re.I)
         
         if date_time_match:
@@ -792,7 +795,7 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
             month_map = {
                 'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
                 'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-                'january': 1, 'february': 2, 'march': 3, 'april': 4,
+                'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5,
                 'june': 6, 'july': 7, 'august': 8, 'september': 9,
                 'october': 10, 'november': 11, 'december': 12
             }
@@ -803,7 +806,7 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
             # Parse start time
             start_hour = int(date_time_match.group(5))
             start_minute = int(date_time_match.group(6))
-            start_am_pm = date_time_match.group(7).lower()
+            start_am_pm = date_time_match.group(7).lower().replace('.', '')
             if start_am_pm == 'pm' and start_hour != 12:
                 start_hour += 12
             elif start_am_pm == 'am' and start_hour == 12:
@@ -813,7 +816,7 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
             # Parse end time
             end_hour = int(date_time_match.group(8))
             end_minute = int(date_time_match.group(9))
-            end_am_pm = date_time_match.group(10).lower()
+            end_am_pm = date_time_match.group(10).lower().replace('.', '')
             if end_am_pm == 'pm' and end_hour != 12:
                 end_hour += 12
             elif end_am_pm == 'am' and end_hour == 12:
@@ -926,6 +929,7 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
             'title': title,
             'description': description or f"Event at {VENUE_NAME}",
             'event_type': event_type,
+            'url': url,
             'source_url': url,
             'organizer': VENUE_NAME,
             'social_media_platform': 'website',
@@ -940,28 +944,10 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
             event['start_date'] = date.today()
         
         if start_time:
-            # Format start time in 12-hour format
-            start_hour_12 = start_time.hour
-            start_am_pm = 'a.m.'
-            if start_hour_12 >= 12:
-                start_am_pm = 'p.m.'
-                if start_hour_12 > 12:
-                    start_hour_12 = start_hour_12 - 12
-            elif start_hour_12 == 0:
-                start_hour_12 = 12
-            event['start_time'] = f"{start_hour_12}:{start_time.minute:02d} {start_am_pm}"
+            event['start_time'] = start_time
         
         if end_time:
-            # Format end time in 12-hour format
-            end_hour_12 = end_time.hour
-            end_am_pm = 'a.m.'
-            if end_hour_12 >= 12:
-                end_am_pm = 'p.m.'
-                if end_hour_12 > 12:
-                    end_hour_12 = end_hour_12 - 12
-            elif end_hour_12 == 0:
-                end_hour_12 = 12
-            event['end_time'] = f"{end_hour_12}:{end_time.minute:02d} {end_am_pm}"
+            event['end_time'] = end_time
         
         if meeting_point:
             event['meeting_point'] = meeting_point
@@ -1003,8 +989,10 @@ def scrape_npg_programs(scraper=None) -> List[Dict]:
         scraper = create_scraper()
     
     events = []
+    processed_titles = set()
+    processed_urls = set()
     
-    # Scrape adult programs
+    # 1. Scrape adult programs
     try:
         logger.info(f"🔍 Scraping NPG adult programs from: {NPG_ADULT_PROGRAMS_URL}")
         response = scraper.get(NPG_ADULT_PROGRAMS_URL, timeout=15)
@@ -1012,138 +1000,91 @@ def scrape_npg_programs(scraper=None) -> List[Dict]:
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Find all program sections/links
-        # Look for headings that might contain program information
+        # Hardcoded recurring programs on adult page
         program_headings = soup.find_all(['h2', 'h3', 'h4'])
-        
-        processed_titles = set()
-        
         for heading in program_headings:
             heading_text = heading.get_text(strip=True)
             heading_lower = heading_text.lower()
             
-            # Look for Conversation Circle (every other Friday)
             if 'conversation circle' in heading_lower:
-                # Check if we've already processed this
-                if 'Conversation Circle' in processed_titles:
-                    continue
+                if 'Conversation Circle' in processed_titles: continue
                 processed_titles.add('Conversation Circle')
-                
-                # Extract details from the page content
                 container = heading.parent or heading.find_next_sibling()
                 if container:
                     container_text = container.get_text()
-                    
-                    # Look for time information
                     time_match = re.search(r'(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)', container_text, re.I)
-                    start_time_str = '10:00 a.m.'
-                    end_time_str = '12:00 p.m.'
-                    if time_match:
-                        start_time_str = f"{time_match.group(1)}:{time_match.group(2)} {time_match.group(3)}"
-                    
-                    # Look for location
-                    location = 'G Street Lobby'
-                    if 'g street' in container_text.lower():
-                        location = 'G Street Lobby'
-                    
-                    # Create events for next 2 months (every other Friday)
+                    start_time_str = f"{time_match.group(1)}:{time_match.group(2)} {time_match.group(3)}" if time_match else '10:00 a.m.'
                     today = date.today()
                     week_count = 0
                     for i in range(60):
                         program_date = today + timedelta(days=i)
-                        if program_date.weekday() == 4:  # Friday
+                        if program_date.weekday() == 4: # Friday
                             week_count += 1
-                            # Every other Friday means even week numbers
                             if week_count % 2 == 1:
-                                event = {
+                                events.append({
                                     'title': 'Conversation Circle',
-                                    'description': 'Every other Friday from 10:00 a.m. to 12:00 p.m. in the G Street Lobby. This program encourages English-language learners to practice conversational skills, learn new vocabulary, and meet friends.',
+                                    'description': 'Every other Friday from 10:00 a.m. to 12:00 p.m. practice conversational skills.',
                                     'event_type': 'program',
-                                    'start_date': program_date,
-                                    'end_date': program_date,
-                                    'start_time': start_time_str,
-                                    'end_time': end_time_str,
-                                    'meeting_point': location,
-                                    'source_url': NPG_ADULT_PROGRAMS_URL,
-                                    'organizer': VENUE_NAME,
-                                    'social_media_platform': 'website',
-                                    'social_media_url': NPG_ADULT_PROGRAMS_URL,
-                                }
-                                events.append(event)
-            
-            # Look for Drawn to Figures (monthly on select Tuesdays)
+                                    'start_date': program_date, 'end_date': program_date,
+                                    'start_time': start_time_str, 'end_time': '12:00 p.m.',
+                                    'meeting_point': 'G Street Lobby',
+                                    'url': NPG_ADULT_PROGRAMS_URL, 'source_url': NPG_ADULT_PROGRAMS_URL,
+                                    'organizer': VENUE_NAME, 'social_media_platform': 'website', 'social_media_url': NPG_ADULT_PROGRAMS_URL,
+                                })
             elif 'drawn to figures' in heading_lower or 'drawn to figure' in heading_lower:
-                if 'Drawn to Figures' in processed_titles:
-                    continue
+                if 'Drawn to Figures' in processed_titles: continue
                 processed_titles.add('Drawn to Figures')
-                
-                container = heading.parent or heading.find_next_sibling()
-                if container:
-                    container_text = container.get_text()
-                    
-                    # Extract time: 11:30 a.m. to 1:30 p.m.
-                    start_time_str = '11:30 a.m.'
-                    end_time_str = '1:30 p.m.'
-                    
-                    # Create events for next 3 months (once per month on Tuesdays)
-                    today = date.today()
-                    tuesday_count = 0
-                    last_month = -1
-                    for i in range(90):
-                        program_date = today + timedelta(days=i)
-                        if program_date.weekday() == 1:  # Tuesday
-                            # Only add if it's a different month
-                            if program_date.month != last_month:
-                                event = {
-                                    'title': 'Drawn to Figures',
-                                    'description': 'Monthly on select Tuesdays from 11:30 a.m. to 1:30 p.m. Join drop-in sketching sessions in the galleries with artist Jill Galloway. Open to artists of all levels, ages 18 and up.',
-                                    'event_type': 'workshop',
-                                    'start_date': program_date,
-                                    'end_date': program_date,
-                                    'start_time': start_time_str,
-                                    'end_time': end_time_str,
-                                    'meeting_point': 'Galleries',
-                                    'source_url': NPG_ADULT_PROGRAMS_URL,
-                                    'organizer': VENUE_NAME,
-                                    'social_media_platform': 'website',
-                                    'social_media_url': NPG_ADULT_PROGRAMS_URL,
-                                }
-                                events.append(event)
-                                last_month = program_date.month
-        
-        # Also look for individual program/event links
-        program_links = soup.find_all('a', href=re.compile(r'/event/|/program'))
-        
-        processed_urls = set()
-        
-        for link in program_links:
-            href = link.get('href', '')
-            if not href:
-                continue
-            
-            full_url = urljoin(NPG_BASE_URL, href)
-            
-            if full_url in processed_urls:
-                continue
-            processed_urls.add(full_url)
-            
-            # Try to scrape program detail if it's an event page
-            if '/event/' in full_url:
-                try:
+                today = date.today()
+                last_month = -1
+                for i in range(90):
+                    program_date = today + timedelta(days=i)
+                    if program_date.weekday() == 1: # Tuesday
+                        if program_date.month != last_month:
+                            events.append({
+                                'title': 'Drawn to Figures',
+                                'description': 'Monthly on select Tuesdays. Join drop-in sketching sessions.',
+                                'event_type': 'workshop',
+                                'start_date': program_date, 'end_date': program_date,
+                                'start_time': '11:30 a.m.', 'end_time': '1:30 p.m.',
+                                'meeting_point': 'Galleries',
+                                'url': NPG_ADULT_PROGRAMS_URL, 'source_url': NPG_ADULT_PROGRAMS_URL,
+                                'organizer': VENUE_NAME, 'social_media_platform': 'website', 'social_media_url': NPG_ADULT_PROGRAMS_URL,
+                            })
+                            last_month = program_date.month
+
+        # Links on adult page
+        for link in soup.find_all('a', href=re.compile(r'/event/|/program')):
+            full_url = urljoin(NPG_BASE_URL, link.get('href', ''))
+            if full_url not in processed_urls:
+                processed_urls.add(full_url)
+                if '/event/' in full_url:
                     program_data = scrape_event_detail(scraper, full_url)
                     if program_data and program_data.get('title') not in processed_titles:
                         events.append(program_data)
                         processed_titles.add(program_data.get('title'))
-                except Exception as e:
-                    logger.debug(f"   ⚠️ Error scraping program {full_url}: {e}")
-        
-        logger.info(f"   ✅ Found {len(events)} adult programs")
-        
     except Exception as e:
         logger.error(f"❌ Error scraping NPG adult programs: {e}")
-        import traceback
-        traceback.print_exc()
-    
+
+    # 2. Scrape family programs
+    try:
+        logger.info(f"🔍 Scraping NPG family programs from: {NPG_FAMILY_PROGRAMS_URL}")
+        response = scraper.get(NPG_FAMILY_PROGRAMS_URL, timeout=15)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Links on family page
+        for link in soup.find_all('a', href=re.compile(r'/event/|/program')):
+            full_url = urljoin(NPG_BASE_URL, link.get('href', ''))
+            if full_url not in processed_urls:
+                processed_urls.add(full_url)
+                if '/event/' in full_url:
+                    program_data = scrape_event_detail(scraper, full_url)
+                    if program_data and program_data.get('title') not in processed_titles:
+                        events.append(program_data)
+                        processed_titles.add(program_data.get('title'))
+    except Exception as e:
+        logger.error(f"❌ Error scraping NPG family programs: {e}")
+
     return events
 
 
