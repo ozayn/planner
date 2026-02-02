@@ -604,7 +604,7 @@
             color: rgba(0,0,0,0.8);
         }
 
-        .filter-section-header label {
+        .filter-section-header span:first-child {
             margin-bottom: 0;
             cursor: pointer;
             flex: 1;
@@ -2560,7 +2560,7 @@
 
                 <div class="form-group" id="venueTypesGroup">
                     <div class="filter-section-header" onclick="toggleFilterSection('venueTypesGroup', event)">
-                        <label>Venue Types</label>
+                        <span>Venue Types</span>
                         <span class="filter-section-toggle">▼</span>
                     </div>
                     <div class="filter-section-content">
@@ -2596,7 +2596,7 @@
                 <!-- Source Platform Types -->
                 <div class="form-group" id="platformsGroup">
                     <div class="filter-section-header" onclick="toggleFilterSection('platformsGroup', event)">
-                        <label>Platforms</label>
+                        <span>Platforms</span>
                         <span class="filter-section-toggle">▼</span>
                     </div>
                     <div class="filter-section-content">
@@ -2629,7 +2629,7 @@
                 <!-- Source Content Types -->
                 <div class="form-group" id="contentGroup">
                     <div class="filter-section-header" onclick="toggleFilterSection('contentGroup', event)">
-                        <label>Content</label>
+                        <span>Content</span>
                         <span class="filter-section-toggle">▼</span>
                     </div>
                     <div class="filter-section-content">
@@ -2661,7 +2661,7 @@
 
                 <div class="form-group" id="priceGroup">
                     <div class="filter-section-header" onclick="toggleFilterSection('priceGroup', event)">
-                        <label>Price</label>
+                        <span>Price</span>
                         <span class="filter-section-toggle">▼</span>
                     </div>
                     <div class="filter-section-content">
@@ -2678,12 +2678,12 @@
 
                 <div class="form-group" id="extractedEventsGroup">
                     <div class="filter-section-header" onclick="toggleFilterSection('extractedEventsGroup', event)">
-                        <label>Events</label>
+                        <span>Events</span>
                         <span class="filter-section-toggle">▼</span>
                     </div>
                     <div class="filter-section-content">
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; color: #374151;">
+                            <label for="showExtractedEvents" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; color: #374151;">
                                 <input type="checkbox" id="showExtractedEvents" checked style="width: 16px; height: 16px; cursor: pointer;">
                                 <span>Show extracted events</span>
                             </label>
@@ -2761,7 +2761,7 @@
                     <!-- Sources Selection (for non-venue events) -->
                     <div id="sourcesSelection" style="display: none;">
                         <div class="form-group">
-                            <label>Event Sources</label>
+                            <span style="font-size: 0.8125rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: block;">Event Sources</span>
                             <div class="sources-container">
                                 <div id="sourcesList" class="sources-list">
                                     <!-- Sources will be loaded here -->
@@ -4054,6 +4054,7 @@
                 const sourceItem = document.createElement('div');
                 sourceItem.className = 'source-item';
                 sourceItem.innerHTML = `
+                    <label for="source_${source.id}" class="sr-only">Select ${source.name}</label>
                     <input type="checkbox" id="source_${source.id}" value="${source.id}">
                     <div class="source-info">
                         <div class="source-name">${source.name}</div>
@@ -4406,6 +4407,7 @@
                 const sourceItem = document.createElement('div');
                 sourceItem.className = 'source-item';
                 sourceItem.innerHTML = `
+                    <label for="source_early_${source.id}" class="sr-only">Select ${source.name}</label>
                     <input type="checkbox" id="source_early_${source.id}" value="${source.id}">
                     <div class="source-info">
                         <div class="source-name">${source.name}</div>
@@ -4923,7 +4925,8 @@
                         <div class="venue-title">${source.name}</div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <button class="venue-info-btn" onclick="event.stopPropagation(); showSourceDetails(${source.id});" title="View Details">i</button>
-                            <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
+                            <label for="source_chk_${source.id}" class="sr-only">Select ${source.name}</label>
+                            <input type="checkbox" id="source_chk_${source.id}" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
                                    onchange="toggleSourceSelection(${source.id})">
                         </div>
                     </div>
@@ -5230,7 +5233,8 @@
                         <div class="venue-title">${venue.name}</div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <button class="venue-info-btn" onclick="showVenueDetails(${venue.id}); event.stopPropagation();" title="View Details">i</button>
-                            <input type="checkbox" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
+                            <label for="venue_chk_${venue.id}" class="sr-only">Select ${venue.name}</label>
+                            <input type="checkbox" id="venue_chk_${venue.id}" class="venue-checkbox" ${isSelected ? 'checked' : ''} 
                                    onchange="toggleVenueSelection(${venue.id})">
                         </div>
                     </div>
@@ -6339,7 +6343,8 @@
                             <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}${isBabyFriendly ? ' <span class="baby-badge" style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; margin-left: 8px;">👶 Baby-Friendly</span>' : ''}</div>
                             <div class="event-venue">${locationDisplay}</div>
                         </div>
-                        <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 
+                        <label for="event_chk_${event.id}" class="sr-only">Select ${event.title}</label>
+                        <input type="checkbox" id="event_chk_${event.id}" class="event-checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleEventSelection(${event.id})">
                     </div>
                     
@@ -6959,7 +6964,8 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                 <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; flex: 1; min-width: 0;">${tourTitle}</div>
-                                <input type="checkbox" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''}
+                                <label for="grouped_tour_chk_${cardId}" class="sr-only">Select all sessions for ${tourTitle}</label>
+                                <input type="checkbox" id="grouped_tour_chk_${cardId}" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''}
                                        onchange="toggleGroupedTourSelection('${tourTitle}', this.checked); event.stopPropagation();"
                                        onclick="event.stopPropagation();"
                                        style="width: 16px; height: 16px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0;">
@@ -6983,7 +6989,8 @@
                                         <div style="font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.date}</div>
                                         <div style="color: #6b7280; font-size: 0.7rem;">${item.time}</div>
                                     </div>
-                                    <input type="checkbox" class="session-checkbox" ${item.isSelected ? 'checked' : ''} 
+                                    <label for="session_chk_${item.eventId}" class="sr-only">Select session on ${item.date} at ${item.time}</label>
+                                    <input type="checkbox" id="session_chk_${item.eventId}" class="session-checkbox" ${item.isSelected ? 'checked' : ''} 
                                            onchange="toggleEventSelection(${item.eventId})"
                                            onclick="event.stopPropagation();"
                                            style="width: 14px; height: 14px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0; margin-left: 6px;">
@@ -7109,7 +7116,8 @@
                         <div class="event-type">${event.event_type || 'Event'}</div>
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation();">
-                        <input type="checkbox" class="event-checkbox" ${isSelected ? 'checked' : ''} 
+                        <label for="discovered_event_chk_${event.id}" class="sr-only">Select ${event.title}</label>
+                        <input type="checkbox" id="discovered_event_chk_${event.id}" class="event-checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleEventSelection(${event.id}); event.stopPropagation();" 
                                style="width: 18px; height: 18px; cursor: pointer; accent-color: rgba(0,0,0,0.5); margin: 0; flex-shrink: 0;">
                         <button class="action-btn calendar-btn" onclick="addDiscoveredEventToCalendar(${event.id}); event.stopPropagation();" title="Add to Calendar">
