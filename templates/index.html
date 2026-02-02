@@ -7508,20 +7508,24 @@
                 if (wizardProgressBar) wizardProgressBar.style.width = '100%';
             });
 
-            // Check if wizard should be shown
-            // Show wizard if:
-            // 1. We are on a small screen (native mobile)
-            // 2. AND we are NOT forcing desktop view
-            // 3. AND session storage doesn't say it's completed
-            const isNativeMobile = window.innerWidth <= 768;
-            const isForcingDesktop = document.body.classList.contains('force-desktop');
-            const wizardSessionCompleted = sessionStorage.getItem('wizardCompleted');
-            
-            if (isNativeMobile && !isForcingDesktop && !wizardSessionCompleted) {
+        // Check if wizard should be shown
+        // Show wizard if:
+        // 1. We are on a small screen (native mobile)
+        // 2. AND we are NOT forcing desktop view
+        // 3. AND session storage doesn't say it's completed
+        const isNativeMobile = window.innerWidth <= 768;
+        const isForcingDesktop = document.body.classList.contains('force-desktop');
+        const wizardSessionCompleted = sessionStorage.getItem('wizardCompleted');
+        
+        if (isNativeMobile && !isForcingDesktop && !wizardSessionCompleted) {
+            if (document.body.classList.contains('wizard-completed')) {
                 document.body.classList.remove('wizard-completed');
-            } else {
+            }
+        } else {
+            if (!document.body.classList.contains('wizard-completed')) {
                 document.body.classList.add('wizard-completed');
             }
+        }
         }
 
         function completeWizard() {
@@ -7625,13 +7629,6 @@
             updateDesktopToggleButton();
             setupMobileWizard();
         });
-
-        // Also update when class changes
-        const observer = new MutationObserver(() => {
-            updateDesktopToggleButton();
-            setupMobileWizard();
-        });
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     </script>
 
     <!-- Mobile View Toggle Button -->
