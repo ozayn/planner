@@ -285,47 +285,64 @@ def extract_event_data_from_url(url):
                 if h1:
                     title = h1.get_text(strip=True)
                 
-                # Extract date/time from page text (format: "Wednesday, December 17, 2025, 10:30am EST")
-                # Also check schema.org structured data for more reliable extraction
-                page_text = soup.get_text()
+                # Extract date/time - normalize nbsp to space for reliable matching
+                page_text = soup.get_text().replace('\xa0', ' ').replace('\u00a0', ' ')
                 start_date = None
                 start_time = None
                 end_time = None
+                page_text_extracted = False
+
+                # Priority 1: Match "Tuesday, February 3, 2026, 10:30am EST" - try page text first (simplest)
+                date_time_pattern = re.compile(
+                    r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+'
+                    r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+'
+                    r'(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+                    re.IGNORECASE
+                )
+                date_time_match = date_time_pattern.search(page_text)
+                if date_time_match:
+                    try:
+                        # Groups: 1=month, 2=day, 3=year, 4=hour, 5=minute, 6=a/p
+                        month_map = {'january':1,'february':2,'march':3,'april':4,'may':5,'june':6,
+                                     'july':7,'august':8,'september':9,'october':10,'november':11,'december':12}
+                        month = month_map[date_time_match.group(1).lower()]
+                        start_date = date(int(date_time_match.group(3)), month, int(date_time_match.group(2)))
+                        hour_12, minute = int(date_time_match.group(4)), int(date_time_match.group(5))
+                        is_pm = date_time_match.group(6).lower() in ('p', 'pm')
+                        hour_24 = hour_12
+                        if is_pm and hour_12 != 12:
+                            hour_24 = hour_12 + 12
+                        elif not is_pm and hour_12 == 12:
+                            hour_24 = 0
+                        elif is_pm and hour_12 == 12:
+                            hour_24 = 12
+                        start_time = f"{hour_12}:{minute:02d} {'PM' if is_pm else 'AM'}"
+                        end_hour_24 = (hour_24 + 1) % 24
+                        end_hour_12 = end_hour_24 if end_hour_24 <= 12 else end_hour_24 - 12
+                        if end_hour_24 == 0:
+                            end_hour_12 = 12
+                        end_time = f"{end_hour_12}:{minute:02d} {'AM' if end_hour_24 < 12 else 'PM'}"
+                        page_text_extracted = True
+                    except (ValueError, IndexError):
+                        pass
                 
-                # For SAAM events, prioritize page text over schema.org (schema.org can be incorrect)
-                # First try page text patterns, then fall back to schema.org if needed
+                # For SAAM events, fall back to page text patterns if element search didn't find it (schema.org can be incorrect)
                 schema_script = soup.find('script', type='application/ld+json')
                 schema_extracted = False
                 
-                # Try page text first for SAAM events
-                page_text_extracted = False
-                
                 # Pattern 1: Full date with time range "Wednesday, December 17, 2025, 1 – 2pm EST"
-                date_time_range_simple = re.compile(
-                    r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap]m)',
-                    re.IGNORECASE
-                )
-                match = date_time_range_simple.search(page_text)
-                if match:
-                    date_str = match.group(2).strip()
-                    try:
-                        parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
-                        if not start_date:
-                            start_date = parsed_date
-                    
-                        if not start_time:
-                            start_hour = int(match.group(3))
-                            end_hour = int(match.group(4))
-                            am_pm = match.group(5).upper()
-                            start_time = f"{start_hour}:00 {am_pm}"
-                            end_time = f"{end_hour}:00 {am_pm}"
-                            page_text_extracted = True
-                    except ValueError:
+                if not page_text_extracted:
+                    date_time_range_simple = re.compile(
+                        r'(\w+day,?\s+)?(\w+\s+\d{1,2},?\s+\d{4}),?\s+(\d{1,2})\s*[–-]\s*(\d{1,2})\s*([ap]m)',
+                        re.IGNORECASE
+                    )
+                    match = date_time_range_simple.search(page_text)
+                    if match:
+                        date_str = match.group(2).strip()
                         try:
-                            parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
+                            parsed_date = datetime.strptime(date_str, "%B %d, %Y").date()
                             if not start_date:
                                 start_date = parsed_date
-                        
                             if not start_time:
                                 start_hour = int(match.group(3))
                                 end_hour = int(match.group(4))
@@ -334,7 +351,19 @@ def extract_event_data_from_url(url):
                                 end_time = f"{end_hour}:00 {am_pm}"
                                 page_text_extracted = True
                         except ValueError:
-                            pass
+                            try:
+                                parsed_date = datetime.strptime(date_str, "%B %d %Y").date()
+                                if not start_date:
+                                    start_date = parsed_date
+                                if not start_time:
+                                    start_hour = int(match.group(3))
+                                    end_hour = int(match.group(4))
+                                    am_pm = match.group(5).upper()
+                                    start_time = f"{start_hour}:00 {am_pm}"
+                                    end_time = f"{end_hour}:00 {am_pm}"
+                                    page_text_extracted = True
+                            except ValueError:
+                                pass
             
                 # Pattern 2: Full date with time range with colons "Wednesday, December 17, 2025, 10:30 – 11:30am EST"
                 if not page_text_extracted:
@@ -567,12 +596,25 @@ def extract_event_data_from_url(url):
                 og_image = soup.find('meta', property='og:image')
                 if og_image and og_image.get('content'):
                     image_url = og_image.get('content')
+
+                # Extract Get Tickets / registration URL
+                registration_url = None
+                for link in soup.find_all('a', href=True):
+                    link_text = link.get_text(strip=True).lower()
+                    href = link.get('href', '')
+                    if 'get tickets' in link_text or 'register' in link_text or 'ticket' in link_text:
+                        if href.startswith('http'):
+                            registration_url = href
+                        else:
+                            from urllib.parse import urljoin
+                            registration_url = urljoin('https://americanart.si.edu', href)
+                        break
             
                 # Determine if online
                 is_online = False
-                if 'virtual' in title.lower() if title else False:
+                if title and 'virtual' in title.lower():
                     is_online = True
-                if location_text and 'online' in location_text.lower():
+                if meeting_point and 'online' in meeting_point.lower():
                     is_online = True
             
                 # Extract price and registration requirement
@@ -631,6 +673,7 @@ def extract_event_data_from_url(url):
                         'is_online': is_online,
                         'price': price,
                         'is_registration_required': is_registration_required,
+                        'registration_url': registration_url,
                         'registration_info': registration_info,
                         'language': 'English',
                     }
@@ -1237,6 +1280,34 @@ def extract_event_data_from_url(url):
         meeting_point = _extract_meeting_point(page_text)
         schedule_info, days_of_week, start_time, end_time = _extract_schedule(page_text)
         start_date = _extract_date(page_text, url)
+
+        # Priority: Drupal event date fields (date-display-start, date-display-end) - most reliable
+        if not start_time or not end_time:
+            field_start, field_end = _extract_time_from_event_date_field(soup)
+            if field_start and not start_time:
+                start_time = field_start
+            if field_end and not end_time:
+                end_time = field_end
+            elif field_start and not end_time:
+                from datetime import timedelta
+                start_dt = datetime.combine(date.today(), field_start)
+                end_time = (start_dt + timedelta(hours=1)).time()
+
+        # Fallback: try JSON-LD for time if not found
+        if (not start_time or not end_time):
+            json_ld_start, json_ld_end = _extract_time_from_json_ld(soup)
+            if json_ld_start and not start_time:
+                start_time = json_ld_start
+            if json_ld_end and not end_time:
+                end_time = json_ld_end
+            elif json_ld_start and not end_time:
+                # Assume 1-hour duration
+                from datetime import timedelta
+                start_dt = datetime.combine(date.today(), json_ld_start)
+                end_dt = start_dt + timedelta(hours=1)
+                end_time = end_dt.time()
+        
+        registration_url = _extract_registration_url(soup, url)
         event_type = _determine_event_type(title, description, page_text, url)
         language = _detect_language(soup, title, description, page_text)
         
@@ -1249,14 +1320,15 @@ def extract_event_data_from_url(url):
             'title': title,
             'description': description,
             'start_date': start_date.isoformat() if start_date else None,
-            'start_time': start_time.isoformat() if start_time else None,
-            'end_time': end_time.isoformat() if end_time else None,
+            'start_time': start_time.strftime('%H:%M') if start_time else None,
+            'end_time': end_time.strftime('%H:%M') if end_time else None,
             'location': meeting_point,
             'image_url': image_url,
             'schedule_info': schedule_info,
             'days_of_week': days_of_week,
             'event_type': event_type,
-            'language': language
+            'language': language,
+            'registration_url': registration_url,
         }
         
         # Add additional images if any
@@ -1469,6 +1541,67 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 days_of_week = []
                 event_type = event_data.get('event_type', 'exhibition')
         
+        # Check if this is a SAAM event - use extract_event_data_from_url which has SAAM-specific logic
+        if not event_data and 'americanart.si.edu' in url.lower() and '/events/' in url.lower():
+            try:
+                logger.info(f"🎯 Detected SAAM event in scrape_event_from_url - using extract_event_data_from_url")
+                event_data = extract_event_data_from_url(url)
+                if event_data and event_data.get('title'):
+                    logger.info(f"✅ Successfully extracted SAAM event data")
+                    # Process same as NPG - extract_event_data_from_url returns strings for start_time/end_time
+                    title = override_data.get('title') if override_data and override_data.get('title') else event_data.get('title')
+                    description = override_data.get('description') if override_data and override_data.get('description') else event_data.get('description')
+                    image_url = override_data.get('image_url') if override_data and override_data.get('image_url') else event_data.get('image_url')
+                    meeting_point = override_data.get('location') if override_data and override_data.get('location') else event_data.get('location')
+                    start_date = None
+                    end_date = None
+                    if override_data and override_data.get('start_date'):
+                        try:
+                            start_date = datetime.strptime(override_data['start_date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    if not start_date and event_data.get('start_date'):
+                        try:
+                            start_date = datetime.strptime(event_data['start_date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    if override_data and override_data.get('end_date'):
+                        try:
+                            end_date = datetime.strptime(override_data['end_date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    if not end_date and event_data.get('end_date'):
+                        try:
+                            end_date = datetime.strptime(event_data['end_date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    if start_date and not end_date:
+                        end_date = start_date
+                    # Parse times from strings like "10:30 AM"
+                    from datetime import time as dt_time
+                    start_time = None
+                    end_time = None
+                    if override_data and override_data.get('start_time'):
+                        start_time = _parse_time_string_npg(override_data['start_time'])
+                    elif event_data.get('start_time'):
+                        start_time = _parse_time_string_npg(str(event_data['start_time']))
+                    if override_data and override_data.get('end_time'):
+                        end_time = _parse_time_string_npg(override_data['end_time'])
+                    elif event_data.get('end_time'):
+                        end_time = _parse_time_string_npg(str(event_data['end_time']))
+                    # For talks: if start_time but no end_time, assume 1 hour duration
+                    if start_time and not end_time and event_data.get('event_type') == 'talk':
+                        from datetime import timedelta
+                        end_time = (datetime.combine(datetime.today(), start_time) + timedelta(hours=1)).time()
+                    schedule_info = None
+                    days_of_week = []
+                    event_type = event_data.get('event_type', 'event')
+                    if start_date:
+                        event_dates = [start_date]
+            except Exception as e:
+                logger.warning(f"SAAM extraction failed: {e}")
+                event_data = None
+
         # Check if this is an NPG event - use extract_event_data_from_url which has NPG-specific logic
         if not event_data and 'npg.si.edu' in url.lower() and '/event/' in url.lower():
             try:
@@ -1686,22 +1819,13 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
             schedule_info = override_data.get('schedule_info')
             days_of_week = override_data.get('days_of_week') or []
             
-            # Parse times from override data
-            from datetime import time as dt_time
-            start_time = None
-            end_time = None
-            if override_data.get('start_time'):
-                try:
-                    parts = override_data['start_time'].split(':')
-                    start_time = dt_time(int(parts[0]), int(parts[1]))
-                except:
-                    pass
-            if override_data.get('end_time'):
-                try:
-                    parts = override_data['end_time'].split(':')
-                    end_time = dt_time(int(parts[0]), int(parts[1]))
-                except:
-                    pass
+            # Parse times from override data (handles "10:30 AM", "10:30", "10:30:00" etc.)
+            start_time = _parse_time_string_npg(override_data.get('start_time')) if override_data.get('start_time') else None
+            end_time = _parse_time_string_npg(override_data.get('end_time')) if override_data.get('end_time') else None
+            # If start_time but no end_time, assume 1 hour duration (common for talks)
+            if start_time and not end_time:
+                from datetime import datetime, timedelta
+                end_time = (datetime.combine(datetime.today(), start_time) + timedelta(hours=1)).time()
             
             # Initialize event_type to None - will be determined later
             event_type = None
@@ -1770,8 +1894,9 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
         # For exhibitions, use the scraped start_date if available, otherwise use period_start
         if event_data and '/exhibitions/' in url.lower() and 'start_date' in locals() and start_date:
             event_dates = [start_date]  # Use the actual exhibition start date
-        # For NPG, OCMA events or when start_date is provided in override_data, use the scraped start_date
+        # For NPG, SAAM, OCMA events or when start_date is provided in override_data, use the scraped start_date
         elif (('npg.si.edu' in url.lower() and '/event/' in url.lower() and 'start_date' in locals() and start_date) or
+              ('americanart.si.edu' in url.lower() and '/events/' in url.lower() and 'start_date' in locals() and start_date) or
               ('ocma.art' in url.lower() and '/calendar/' in url.lower() and 'start_date' in locals() and start_date) or
               ('start_date' in locals() and start_date)):
             event_dates = [start_date]  # Use the actual event start date
@@ -2245,6 +2370,9 @@ def _clean_title(title):
     # Fix missing spaces after periods (e.g., "Mr.John" -> "Mr. John")
     title = re.sub(r"([a-z])\.([A-Z])", r"\1. \2", title)
     
+    # Fix missing space between "Hour" and "Conversation" (e.g., "Art Happy HourConversation" -> "Art Happy Hour Conversation")
+    title = re.sub(r'\b(Hour)([A-Z][a-z])', r'\1 \2', title)
+    
     # Fix missing spaces before capital letters after lowercase (e.g., "wordWord" -> "word Word")
     # But be careful not to break acronyms or proper nouns
     title = re.sub(r"([a-z])([A-Z][a-z])", r"\1 \2", title)
@@ -2260,11 +2388,10 @@ def _clean_title(title):
 
 def _detect_language(soup, title, description, page_text):
     """
-    Detect event language from multiple sources:
-    1. Language tags in HTML (e.g., "En español", "In Spanish")
-    2. Title analysis (NLP detection of Spanish/French/German/etc.)
-    3. Description analysis
-    4. Common language indicators in page content
+    Detect event language from multiple sources. Prefer English default - only return
+    another language when there is STRONG evidence the event itself is in that language.
+    Many museum pages mention "En español" or "Tours in Spanish" as an alternative option
+    - that does NOT mean the main event is in Spanish.
     
     Returns:
         str: Language name (e.g., "Spanish", "English", "French") or "English" as default
@@ -2272,104 +2399,33 @@ def _detect_language(soup, title, description, page_text):
     if not title and not description and not page_text:
         return 'English'  # Default
     
-    # Combine all text for analysis
-    combined_text = f"{title} {description} {page_text}".lower()
+    combined_text = (f"{title} {description}" if title or description else '') + (page_text or '')
+    combined_lower = combined_text.lower()
     
-    # Method 1: Check for explicit language tags in HTML
-    # Look for common language indicators in tags, buttons, badges, etc.
-    language_indicators = {
-        'spanish': [
-            r'\ben\s+español\b',
-            r'\bin\s+spanish\b',
-            r'\bespañol\b',
-            r'\bspanish\b',
-            r'\bvisita\s+en\s+español\b',
-            r'\btour\s+en\s+español\b',
-        ],
-        'french': [
-            r'\ben\s+français\b',
-            r'\bin\s+french\b',
-            r'\bfrançais\b',
-            r'\bfrench\b',
-        ],
-        'german': [
-            r'\bauf\s+deutsch\b',
-            r'\bin\s+german\b',
-            r'\bdeutsch\b',
-            r'\bgerman\b',
-        ],
-    }
-    
-    # Check page HTML for language tags/badges
-    # Look for common patterns: <span>, <div>, <li> with language text
-    for lang, patterns in language_indicators.items():
-        for pattern in patterns:
-            # Check in text content
-            if re.search(pattern, combined_text, re.IGNORECASE):
-                logger.info(f"🌐 Detected language '{lang}' from tag/indicator: {pattern}")
-                return lang.capitalize()
-            
-            # Check in HTML elements (tags, badges, buttons)
-            for tag in ['span', 'div', 'li', 'p', 'a', 'button', 'label']:
-                elements = soup.find_all(tag, string=re.compile(pattern, re.IGNORECASE))
-                if elements:
-                    logger.info(f"🌐 Detected language '{lang}' from HTML tag: {tag}")
-                    return lang.capitalize()
-    
-    # Method 2: NLP-based detection from title/description
-    # Check for common Spanish words and patterns
-    spanish_indicators = [
-        # Common Spanish words
-        r'\b(que|de|la|el|en|y|a|es|son|para|con|por|del|las|los|una|un|este|esta|estos|estas)\b',
-        # Spanish-specific words in event contexts
-        r'\b(visita|galería|galerías|exposición|exposiciones|arte|artista|artistas|museo|museos)\b',
-        r'\b(conversaci[oó]n|conversaciones|charla|charlas|taller|talleres|recorrido|recorridos)\b',
-        r'\b(desde|hasta|actualidad|contemporáneo|contemporánea|moderno|moderna)\b',
-        # Spanish accented characters in context
-        r'[áéíóúñü]',
+    # EXCLUDE: "En español" / "In Spanish" when it's an alternative option (nav, footer, "also available")
+    # These phrases appear on many English museum sites as language toggle or tour options
+    alternative_language_patterns = [
+        r'tours?\s+(?:also\s+)?(?:available\s+)?in\s+(?:spanish|español)',
+        r'(?:also\s+)?in\s+spanish|en\s+español',  # Often in nav: "Visit | En español"
+        r'language\s+options?\s*[:\s]+\s*(?:english|spanish)',
+        r'select\s+language|choose\s+language',
     ]
+    for pattern in alternative_language_patterns:
+        if re.search(pattern, combined_lower):
+            # This page offers language options - don't assume Spanish from "en español" elsewhere
+            pass  # We'll be more conservative below
     
-    french_indicators = [
-        r'\b(visite|galerie|galeries|exposition|expositions|art|artiste|artistes|musée|musées)\b',
-        r'\b(conversation|conversations|conférence|conférences|atelier|ateliers|parcours|parcours)\b',
-        r'[àâäéèêëïîôùûüÿç]',
-    ]
-    
-    german_indicators = [
-        r'\b(besuch|galerie|galerien|ausstellung|ausstellungen|kunst|künstler|künstlerin|museum|museen)\b',
-        r'\b(gespräch|gespräche|vortrag|vorträge|workshop|workshops|rundgang|rundgänge)\b',
-        r'[äöüß]',
-    ]
-    
-    # Count indicators for each language
-    spanish_count = sum(len(re.findall(pattern, combined_text, re.IGNORECASE)) for pattern in spanish_indicators)
-    french_count = sum(len(re.findall(pattern, combined_text, re.IGNORECASE)) for pattern in french_indicators)
-    german_count = sum(len(re.findall(pattern, combined_text, re.IGNORECASE)) for pattern in german_indicators)
-    
-    # Check title specifically (most reliable indicator)
-    title_lower = title.lower() if title else ''
-    title_spanish = sum(len(re.findall(pattern, title_lower, re.IGNORECASE)) for pattern in spanish_indicators)
-    title_french = sum(len(re.findall(pattern, title_lower, re.IGNORECASE)) for pattern in french_indicators)
-    title_german = sum(len(re.findall(pattern, title_lower, re.IGNORECASE)) for pattern in german_indicators)
-    
-    # Weight title more heavily (title is most reliable)
-    total_spanish = spanish_count + (title_spanish * 3)
-    total_french = french_count + (title_french * 3)
-    total_german = german_count + (title_german * 3)
-    
-    # Determine language based on highest count
-    if total_spanish > 2:  # Threshold to avoid false positives
-        logger.info(f"🌐 Detected language 'Spanish' from NLP analysis (score: {total_spanish})")
+    # Method 1: Strong evidence - language is IN THE TITLE (event is clearly in that language)
+    title_lower = (title or '').lower()
+    if re.search(r'\b(en\s+español|in\s+spanish|en\s+español)\b', title_lower):
         return 'Spanish'
-    elif total_french > 2:
-        logger.info(f"🌐 Detected language 'French' from NLP analysis (score: {total_french})")
+    if re.search(r'\b(en\s+français|in\s+french)\b', title_lower):
         return 'French'
-    elif total_german > 2:
-        logger.info(f"🌐 Detected language 'German' from NLP analysis (score: {total_german})")
+    if re.search(r'\b(auf\s+deutsch|in\s+german)\b', title_lower):
         return 'German'
     
-    # Method 3: Check HTML lang attribute
-    html_tag = soup.find('html')
+    # Method 2: HTML lang attribute (page language)
+    html_tag = soup.find('html') if soup else None
     if html_tag and html_tag.get('lang'):
         lang_attr = html_tag.get('lang').lower()
         if lang_attr.startswith('es'):
@@ -2379,7 +2435,43 @@ def _detect_language(soup, title, description, page_text):
         elif lang_attr.startswith('de'):
             return 'German'
     
-    # Default to English
+    # Method 3: NLP - use only RELIABLE indicators (avoid "en", "de", "la", "el" - too many false positives)
+    # Require Spanish-specific words with accents or unambiguous context
+    spanish_indicators = [
+        r'\b(visita\s+guiada|galería|galerías|exposición|exposiciones)\b',
+        r'\b(conversaci[oó]n|charla|taller|recorrido)\b',
+        r'\b(desde|hasta|actualidad|contemporáneo|moderno)\b',
+        # Must have accent - "exposición" not "exhibition"
+        r'[áéíóúñü]',
+    ]
+    french_indicators = [
+        r'\b(visite\s+guidée|galerie|exposition|musée)\b',
+        r'\b(conférence|atelier|parcours)\b',
+        r'[àâäéèêëïîôùûüÿç]',
+    ]
+    # German: Use ONLY German-specific words (exclude "museum" and "workshop" - same in English)
+    german_indicators = [
+        r'\b(ausstellung|kunst|gespräch|vortrag|rundgang|veranstaltung|eintritt|führung)\b',
+        r'[äöüß]',  # German umlauts - strong indicator
+    ]
+    
+    # Higher threshold (5+) - need multiple strong indicators
+    spanish_count = sum(len(re.findall(p, combined_lower, re.IGNORECASE)) for p in spanish_indicators)
+    french_count = sum(len(re.findall(p, combined_lower, re.IGNORECASE)) for p in french_indicators)
+    german_count = sum(len(re.findall(p, combined_lower, re.IGNORECASE)) for p in german_indicators)
+    
+    # For German: also require at least one umlaut (äöüß) - avoids false positives from
+    # English pages that might have "art" matching "Kunst" in a different context
+    has_german_umlaut = bool(re.search(r'[äöüß]', combined_lower))
+    
+    if spanish_count >= 5:
+        return 'Spanish'
+    if french_count >= 5:
+        return 'French'
+    if german_count >= 5 and has_german_umlaut:
+        return 'German'
+    
+    # Default to English - most museum event pages are in English
     return 'English'
 
 
@@ -2580,6 +2672,172 @@ def _extract_meeting_point(page_text):
     return None
 
 
+def _extract_registration_url(soup, base_url):
+    """Extract ticket/registration URL from page links and JSON-LD"""
+    from urllib.parse import urljoin
+    import json
+
+    # Pattern 0: JSON-LD schema.org Event offers.url
+    try:
+        for script in (soup.find_all('script', type='application/ld+json') if soup else []):
+            if script.string:
+                data = json.loads(script.string)
+                for item in (data if isinstance(data, list) else [data]):
+                    if isinstance(item, dict) and item.get('@type') == 'Event':
+                        offers = item.get('offers')
+                        if isinstance(offers, dict) and offers.get('url'):
+                            return offers['url']
+                        if isinstance(offers, list) and offers and isinstance(offers[0], dict):
+                            url = offers[0].get('url')
+                            if url:
+                                return url
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Pattern 1: Links with register/rsvp/ticket in href
+    reg_link = soup.find('a', href=re.compile(r'eventbrite|ticket|register|rsvp|tickets\.nga\.gov|eventive', re.I))
+    if reg_link:
+        href = reg_link.get('href', '')
+        if href and not any(skip in href.lower() for skip in ['facebook.com', 'twitter.com', 'instagram.com']):
+            return href if href.startswith('http') else urljoin(base_url, href)
+
+    # Pattern 2: Check link text for ticket/register keywords
+    for link in soup.find_all('a', href=True):
+        link_text = link.get_text(strip=True).lower()
+        href = link.get('href', '')
+        if any(kw in link_text for kw in ['get tickets', 'buy tickets', 'ticket', 'register', 'rsvp', 'reserve', 'book']) or \
+           any(kw in href.lower() for kw in ['ticket', 'register', 'rsvp', 'eventive', 'eventbrite']):
+            if not any(skip in href.lower() for skip in ['facebook.com', 'twitter.com', 'instagram.com']):
+                return href if href.startswith('http') else urljoin(base_url, href)
+
+    # Pattern 3: "Get Tickets:" or "Register:" followed by URL in page text
+    page_text = soup.get_text()
+    for pattern in [
+        r'(?:Get Tickets|Register|Reserve|Book)[:\s]*(https?://[^\s\n\'"<>]+)',
+        r'(https?://[^\s]*(?:ticket|register|eventbrite|eventive)[^\s]*)',
+    ]:
+        match = re.search(pattern, page_text, re.I)
+        if match:
+            return match.group(1).strip().rstrip('.,;)\'"]')
+
+    return None
+
+
+def _extract_time_from_event_date_field(soup):
+    """
+    Extract start_time and end_time from event date fields.
+    Handles:
+    - Drupal: date-display-start, date-display-end spans
+    - SAAM/Tailwind: div with text-xl/font-medium containing "Tuesday, February 3, 2026, 10:30am EST"
+    """
+    try:
+        # Look for date-display-start and date-display-end (most reliable)
+        start_span = soup.find(class_=re.compile(r'date-display-start'))
+        end_span = soup.find(class_=re.compile(r'date-display-end'))
+        if start_span and end_span:
+            start_text = start_span.get_text(strip=True)  # e.g. "6:30pm"
+            end_text = end_span.get_text(strip=True)      # e.g. "7:30pm"
+            start_time = _parse_time_string_npg(start_text)
+            end_time = _parse_time_string_npg(end_text)
+            if start_time and end_time:
+                return start_time, end_time
+            if start_time:
+                return start_time, None
+
+        # Fallback: SAAM format - "Tuesday, February 3, 2026, 10:30am EST" in text-xl/font-medium div
+        for date_elem in soup.find_all(['div', 'span'], class_=re.compile(r'text-xl|font-medium|event-date')):
+            elem_text = date_elem.get_text(separator=' ', strip=True).replace('\xa0', ' ')
+            time_match = re.search(
+                r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+'
+                r'(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+'
+                r'\d{1,2},?\s+\d{4},?\s+(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+                elem_text, re.IGNORECASE
+            )
+            if time_match:
+                start_t = _parse_time_string_npg(f"{time_match.group(1)}:{time_match.group(2)} {time_match.group(3)}m")
+                if start_t:
+                    from datetime import timedelta
+                    end_t = (datetime.combine(date.today(), start_t) + timedelta(hours=1)).time()
+                    return start_t, end_t
+
+        # Fallback: look for field-name-field-event-date or date-display-single and parse full text
+        date_container = soup.find(class_=re.compile(r'field-name-field-event-date|date-display-single'))
+        if date_container:
+            full_text = date_container.get_text(separator=' ', strip=True)
+            # Pattern: "Wed Feb 4, 2026 6:30pm - 7:30pm" or "6:30pm - 7:30pm"
+            time_match = re.search(
+                r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
+                full_text, re.IGNORECASE
+            )
+            if time_match:
+                start_time = _parse_time_string_npg(f"{time_match.group(1)}:{time_match.group(2)} {time_match.group(3)}m")
+                end_time = _parse_time_string_npg(f"{time_match.group(4)}:{time_match.group(5)} {time_match.group(6)}m")
+                if start_time and end_time:
+                    return start_time, end_time
+    except Exception:
+        pass
+    return None, None
+
+
+def _extract_time_from_json_ld(soup):
+    """Extract start_time and end_time from schema.org JSON-LD Event data"""
+    try:
+        import json
+        scripts = soup.find_all('script', type='application/ld+json')
+        for script in scripts:
+            if not script.string:
+                continue
+            try:
+                data = json.loads(script.string)
+                items = []
+                if isinstance(data, list):
+                    items = data
+                elif isinstance(data, dict):
+                    if data.get('@graph'):
+                        items = data['@graph'] if isinstance(data['@graph'], list) else [data['@graph']]
+                    else:
+                        items = [data]
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    item_type = item.get('@type')
+                    type_list = item_type if isinstance(item_type, list) else [item_type] if item_type else []
+                    if 'Event' not in type_list and item_type != 'Event':
+                        continue
+                    start = item.get('startDate')
+                    end = item.get('endDate')
+                    if start or end:
+                        start_time = _parse_iso_datetime_to_time(start) if start else None
+                        end_time = _parse_iso_datetime_to_time(end) if end else None
+                        return start_time, end_time
+            except (json.JSONDecodeError, TypeError):
+                continue
+    except Exception:
+        pass
+    return None, None
+
+
+def _parse_iso_datetime_to_time(iso_str):
+    """Parse ISO 8601 datetime string to time object"""
+    if not iso_str or not isinstance(iso_str, str):
+        return None
+    try:
+        # Handle "2026-01-31T10:30:00" or "2026-01-31T10:30:00-05:00"
+        from datetime import datetime as dt
+        if 'T' in iso_str:
+            dt_part = iso_str.split('T')[1][:8]  # HH:MM:SS
+            parts = dt_part.split(':')
+            if len(parts) >= 2:
+                return time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+        elif ':' in iso_str:
+            parts = iso_str.split(':')
+            if len(parts) >= 2:
+                return time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
 def _determine_event_type(title, description, page_text, url):
     """Determine event type based on title, description, and page content"""
     # Combine all text for analysis
@@ -2667,8 +2925,10 @@ def _extract_date(page_text, url):
         except (ValueError, IndexError):
             pass
     
-    # Try to extract from page text (e.g., "Saturday, Jan 31, 2026" or "Jan 16" or "January 16, 2025")
+    # Try to extract from page text (e.g., "Saturday, Jan 31, 2026" or "Wed Feb 4, 2026" or "Jan 16")
     date_patterns = [
+        # "Wed Feb 4, 2026" or "Event Date: Wed Feb 4, 2026 6:30pm..."
+        r'(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
         # NGA format: "Saturday, Jan 31, 2026"
         r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
         # Standard format with full month: "January 31, 2026" or "January 31 2026"
@@ -2749,9 +3009,12 @@ def _extract_schedule(page_text):
     
     # Pattern to match day(s) + time range
     # Examples: "Fridays 6:30pm - 7:30pm", "Weekdays 3:00pm", "Monday-Friday 10am-5pm"
+    # Also: "Event Date: Wed Feb 4, 2026 6:30pm - 7:30pm"
     # Also: "Saturday, Jan 31, 2026 | 10:30 a.m. – 12:15 p.m." (NGA format)
     # Also: "December 6, 2025 | 11:30 am–12:30 pm" (Hirshhorn format)
     day_time_patterns = [
+        # "Wed Feb 4, 2026 6:30pm - 7:30pm" - abbreviated day, no pipe, time with pm (no space)
+        r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',
         # Hirshhorn format: "December 6, 2025 | 11:30 am–12:30 pm"
         r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*\|\s*(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',
         # NGA format: "Saturday, Jan 31, 2026 | 10:30 a.m. – 12:15 p.m."
@@ -2765,6 +3028,8 @@ def _extract_schedule(page_text):
         r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*-\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}):(\d{2})\s*([ap]m)',
         # Just time range without day: "11:30 am–12:30 pm"
         r'(\d{1,2}):(\d{2})\s*([ap]m)\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap]m)',
+        # NGA "a.m." format without day: "10:30 a.m. – 12:15 p.m." or "10:30 a.m.–12:15 p.m."
+        r'(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[–—\-]\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?',
     ]
     
     for pattern in day_time_patterns:
@@ -2798,6 +3063,11 @@ def _extract_schedule(page_text):
             else:
                 # Standard format with day
                 day_mentioned = match.group(1).lower() if match.group(1) else None
+                # Map abbreviated days (Mon, Tue, Wed...) to full names
+                day_abbrev_map = {'mon': 'monday', 'tue': 'tuesday', 'wed': 'wednesday', 'thu': 'thursday',
+                                  'fri': 'friday', 'sat': 'saturday', 'sun': 'sunday'}
+                if day_mentioned and day_mentioned in day_abbrev_map:
+                    day_mentioned = day_abbrev_map[day_mentioned]
                 
                 # Parse day(s)
                 if day_mentioned:
@@ -2812,8 +3082,14 @@ def _extract_schedule(page_text):
             
             # Parse start time
             try:
+                # Check if this is "Wed Feb 4, 2026 6:30pm - 7:30pm" format (day abbrev + date + time)
+                if len(match.groups()) >= 10 and day_mentioned and match.group(2) and match.group(2).lower()[:3] in ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']:
+                    # Groups: day_abbrev, month, day_num, year, start_hour, start_min, start_ampm, end_hour, end_min, end_ampm
+                    hour = int(match.group(5))
+                    minute = int(match.group(6))
+                    ampm_raw = match.group(7).upper()
                 # Check if this is the NGA format with date (has more groups)
-                if len(match.groups()) >= 10 and day_mentioned and day_mentioned in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+                elif len(match.groups()) >= 10 and day_mentioned and day_mentioned in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
                     # NGA format: groups are: day, month, day_num, year, start_hour, start_min, start_ampm, end_hour, end_min, end_ampm
                     hour = int(match.group(5))
                     minute = int(match.group(6))

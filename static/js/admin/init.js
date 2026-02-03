@@ -1016,6 +1016,26 @@ async function quickCreateEventFromUrl() {
                     }
                 }
             }
+            // Check for SAAM (Smithsonian American Art Museum) - Washington DC
+            else if (url.includes('americanart.si.edu')) {
+                const dcCity = cities.find(c => 
+                    c.name.toLowerCase().includes('washington') || 
+                    c.name.toLowerCase().includes('dc')
+                );
+                if (dcCity) {
+                    cityId = dcCity.id;
+                    statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Auto-detected Washington DC...</span>';
+                    if (!venueId) {
+                        const venuesResponse = await fetch('/api/admin/venues');
+                        const venues = await venuesResponse.json();
+                        const saamVenue = venues.find(v => 
+                            (v.name.toLowerCase().includes('smithsonian american art') || v.name.toLowerCase().includes('american art museum')) &&
+                            (v.city_id == cityId || v.city_name?.toLowerCase().includes('washington'))
+                        );
+                        if (saamVenue) venueId = saamVenue.id;
+                    }
+                }
+            }
             // Check for OCMA (Orange County Museum of Art) - Irvine
             else if (url.includes('ocma.art') || url.toLowerCase().includes('orange county museum')) {
                 const irvineCity = cities.find(c => 
@@ -1290,23 +1310,30 @@ function displayExtractedData(data) {
     if (data.event_type) html += `<div><strong>Event Type:</strong> ${data.event_type}</div>`;
     if (data.price) html += `<div><strong>Price:</strong> $${data.price}</div>`;
     if (data.organizer) html += `<div><strong>Organizer:</strong> ${data.organizer}</div>`;
-    if (data.url) html += `<div><strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>`;
+    // Deduplicate URLs - show each unique URL once
+    const normalizeUrl = (u) => (u || '').trim().replace(/\/$/, '');
+    const seen = new Set();
+    const uniqueUrls = [];
+    [[data.url, 'URL'], [data.registration_url, 'Registration URL'], [data.social_media_url, 'Social Media URL'], [data.source_url, 'Source URL']].forEach(([url, label]) => {
+        const key = normalizeUrl(url);
+        if (url && key && !seen.has(key)) { seen.add(key); uniqueUrls.push({url, label}); }
+    });
+    uniqueUrls.forEach(({url, label}) => {
+        html += `<div><strong>${uniqueUrls.length > 1 ? label : 'URL'}:</strong> <a href="${url}" target="_blank">${url}</a></div>`;
+    });
     if (data.is_online !== undefined) html += `<div><strong>Online/Virtual:</strong> ${data.is_online ? 'Yes' : 'No'}</div>`;
     if (data.is_registration_required !== undefined) html += `<div><strong>Registration Required:</strong> ${data.is_registration_required ? 'Yes' : 'No'}</div>`;
     if (data.registration_info) html += `<div><strong>Registration Info:</strong> ${data.registration_info}</div>`;
-    if (data.registration_url) html += `<div><strong>Registration URL:</strong> <a href="${data.registration_url}" target="_blank">${data.registration_url}</a></div>`;
     if (data.city) html += `<div><strong>City:</strong> ${data.city}</div>`;
     if (data.state) html += `<div><strong>State:</strong> ${data.state}</div>`;
-    // Social media fields
+    // Social media fields (non-URL)
     if (data.social_media_platform) html += `<div><strong>Social Media Platform:</strong> ${data.social_media_platform}</div>`;
     if (data.social_media_handle) html += `<div><strong>Social Media Handle:</strong> @${data.social_media_handle}</div>`;
     if (data.social_media_page_name) html += `<div><strong>Page/Group Name:</strong> ${data.social_media_page_name}</div>`;
     if (data.social_media_posted_by) html += `<div><strong>Posted By:</strong> ${data.social_media_posted_by}</div>`;
-    if (data.social_media_url) html += `<div><strong>Social Media URL:</strong> <a href="${data.social_media_url}" target="_blank">${data.social_media_url}</a></div>`;
     if (data.country) html += `<div><strong>Country:</strong> ${data.country}</div>`;
     if (data.city_id) html += `<div><strong>City ID:</strong> ${data.city_id}</div>`;
     if (data.source) html += `<div><strong>Source:</strong> ${data.source}</div>`;
-    if (data.source_url) html += `<div><strong>Source URL:</strong> <a href="${data.source_url}" target="_blank">${data.source_url}</a></div>`;
     if (data.instagram_handle) html += `<div><strong>Instagram Handle:</strong> @${data.instagram_handle}</div>`;
     
     html += `<div><strong>Confidence:</strong> ${Math.round(data.confidence * 100)}%</div>`;

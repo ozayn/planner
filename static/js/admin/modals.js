@@ -261,11 +261,18 @@ function generateEventDetailsHTML(event) {
                 <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🔗 Sources & Links</h4>
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     ${addField('Source', event.source)}
-                    ${addField('Source URL', event.source_url, true)}
-                    ${addField('Event URL', event.url, true)}
+                    ${(function() {
+                        const normalizeUrl = (u) => (u || '').trim().replace(/\/$/, '');
+                        const seen = new Set();
+                        const entries = [];
+                        [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL'], [event.registration_url, 'Registration URL']].forEach(([url, label]) => {
+                            const key = normalizeUrl(url);
+                            if (url && key && !seen.has(key)) { seen.add(key); entries.push({url, label}); }
+                        });
+                        return entries.map(({url, label}) => addField(entries.length > 1 ? label : 'URL', url, true)).join('');
+                    })()}
                     ${addField('Social Media Platform', event.social_media_platform)}
                     ${addField('Social Media Handle', event.social_media_handle ? `@${event.social_media_handle}` : null)}
-                    ${addField('Social Media URL', event.social_media_url, true)}
                 </div>
             </div>
         </div>
@@ -277,7 +284,6 @@ function generateEventDetailsHTML(event) {
                     <div style="margin-bottom: 8px;"><strong>Registration Required:</strong> Yes</div>
                     ${addField('Registration Opens Date', event.registration_opens_date)}
                     ${addField('Registration Opens Time', event.registration_opens_time)}
-                    ${addField('Registration URL', event.registration_url, true)}
                     ${addField('Registration Info', event.registration_info)}
                 </div>
             </div>

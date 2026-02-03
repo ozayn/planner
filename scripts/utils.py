@@ -324,6 +324,15 @@ def clean_event_title(title: str) -> str:
     for pattern in patterns:
         title = re.sub(pattern, '', title, flags=re.IGNORECASE)
     
+    # Fix missing space between "Hour" and "Conversation" (e.g., "Art Happy HourConversation" -> "Art Happy Hour Conversation")
+    title = re.sub(r'\b(Hour)([A-Z][a-z])', r'\1 \2', title)
+    
+    # Fix missing spaces before capital letters after lowercase (e.g., "wordWord" -> "word Word")
+    title = re.sub(r"([a-z])([A-Z][a-z])", r"\1 \2", title)
+    
+    # Normalize multiple spaces to single space
+    title = re.sub(r'\s+', ' ', title)
+    
     title = title.strip()
     
     # Final validation check after cleaning

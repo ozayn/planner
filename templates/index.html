@@ -6806,10 +6806,12 @@
                         ${event.organizer ? `<div style="margin-bottom: 8px;"><strong>Organizer:</strong> ${event.organizer}</div>` : ''}
                     </div>
                     ${(function() {
+                        const normalizeUrl = (u) => (u || '').trim().replace(/\/$/, '');
                         const seen = new Set();
                         const urls = [];
-                        [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL']].forEach(([url, label]) => {
-                            if (url && !seen.has(url)) { seen.add(url); urls.push({url, label}); }
+                        [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL'], [event.registration_url, 'Registration URL']].forEach(([url, label]) => {
+                            const key = normalizeUrl(url);
+                            if (url && key && !seen.has(key)) { seen.add(key); urls.push({url, label}); }
                         });
                         return urls.map(({url, label}) => `<div style="margin-bottom: 10px;"><strong>${urls.length > 1 ? label : 'URL'}:</strong> <a href="${url}" target="_blank" style="color: #1976d2; word-break: break-all;">${url}</a></div>`).join('');
                     })()}
@@ -7505,14 +7507,15 @@
                         <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Source', event.source)}
                             ${(function() {
+                                const normalizeUrl = (u) => (u || '').trim().replace(/\/$/, '');
                                 const seen = new Set();
                                 const entries = [];
-                                [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL']].forEach(([url, label]) => {
-                                    if (url && !seen.has(url)) { seen.add(url); entries.push({url, label}); }
+                                [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL'], [event.registration_url, 'Register / Get Tickets']].forEach(([url, label]) => {
+                                    const key = normalizeUrl(url);
+                                    if (url && key && !seen.has(key)) { seen.add(key); entries.push({url, label}); }
                                 });
                                 return entries.map(({url, label}) => addField(entries.length > 1 ? label : 'URL', url, true)).join('');
                             })()}
-                            ${addField('Registration URL', event.registration_url, true, 'Register / Get Tickets')}
                             ${event.image_url && getImageUrl(event.image_url) ? `
                                 <div style="margin-top: 10px;">
                                     <strong style="font-size: 0.875rem;">Image:</strong>

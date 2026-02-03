@@ -3,8 +3,25 @@ import sys
 import json
 import re
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time
 from functools import wraps
+
+
+def _json_serialize_extracted_event(data):
+    """Convert time/date objects to strings for JSON serialization."""
+    if data is None:
+        return None
+    if isinstance(data, time):
+        return data.strftime('%H:%M') if data else None
+    if isinstance(data, date) and not isinstance(data, datetime):
+        return data.isoformat() if data else None
+    if isinstance(data, datetime):
+        return data.isoformat() if data else None
+    if isinstance(data, dict):
+        return {k: _json_serialize_extracted_event(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [_json_serialize_extracted_event(v) for v in data]
+    return data
 
 # Google OAuth imports
 try:
@@ -6781,6 +6798,9 @@ def extract_event_from_url():
         # Add IDs to response
         extracted_data['venue_id'] = venue_id
         extracted_data['city_id'] = city_id
+        
+        # Ensure all time/date objects are JSON-serializable
+        extracted_data = _json_serialize_extracted_event(extracted_data)
         
         return jsonify(extracted_data)
         
