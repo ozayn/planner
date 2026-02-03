@@ -59,12 +59,13 @@
             line-height: 1.6;
         }
 
-        /* Tooltip styling */
+        /* Tooltip styling - disabled on touch devices */
         [title] {
             position: relative;
         }
 
-        [title]:hover::after {
+        @media (hover: hover) and (pointer: fine) {
+            [title]:hover::after {
             content: attr(title);
             position: absolute;
             bottom: 100%;
@@ -84,17 +85,18 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        [title]:hover::before {
-            content: '';
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 2px solid transparent;
-            border-top-color: rgba(255, 255, 255, 0.95);
-            z-index: 1000;
-            pointer-events: none;
-            margin-bottom: -2px;
+            [title]:hover::before {
+                content: '';
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 2px solid transparent;
+                border-top-color: rgba(255, 255, 255, 0.95);
+                z-index: 1000;
+                pointer-events: none;
+                margin-bottom: -2px;
+            }
         }
 
         .container {
@@ -308,20 +310,22 @@
         .mobile-view-toggle {
             display: none;
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: calc(20px + env(safe-area-inset-bottom));
+            right: calc(20px + env(safe-area-inset-right));
             z-index: 10000;
             background: rgba(0,0,0,0.8);
             color: white;
             border: none;
             border-radius: 50px;
-            padding: 12px 24px;
+            padding: 14px 24px;
+            min-height: 44px;
+            min-width: 44px;
             font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             transition: all 0.3s ease;
-            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent;
             pointer-events: auto;
             touch-action: manipulation;
         }
@@ -340,6 +344,18 @@
             display: none;
         }
 
+        .event-type-filter-btn {
+            padding: 8px 14px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.6);
+            color: rgba(0,0,0,0.6);
+            font-size: 0.8125rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
         .event-type-filter-btn:hover {
             border-color: rgba(0,0,0,0.15);
             background: rgba(255,255,255,0.8);
@@ -354,10 +370,59 @@
             font-weight: 500;
         }
 
+        .events-filters {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .events-filter-section {
+            margin-bottom: 16px;
+        }
+
+        .events-filter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .events-filter-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(0, 0, 0, 0.45);
+            margin-bottom: 8px;
+        }
+
+        .event-type-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .events-export-actions {
+                flex-direction: column;
+            }
+
+            .events-export-actions .export-btn {
+                min-height: 44px;
+                width: 100%;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+
+            .custom-date-inputs input[type="date"] {
+                min-height: 44px;
+                font-size: 16px;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+
         .time-selector {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
@@ -545,6 +610,16 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
+            overscroll-behavior: contain;
+        }
+
+        @media (max-width: 768px) {
+            .modal[style*="display: flex"],
+            .modal[style*="display: block"] {
+                display: flex !important;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
         }
 
         .modal-content {
@@ -578,19 +653,23 @@
 
         .close {
             color: #aaa;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             cursor: pointer;
             line-height: 1;
             padding: 0;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
             transition: all 0.2s ease;
             flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .close:hover {
@@ -1635,6 +1714,25 @@
             transition: all 0.3s ease !important;
         }
 
+        @media (max-width: 768px) {
+            .event-card .action-btn {
+                min-height: 44px !important;
+                min-width: 44px !important;
+                padding: 10px 12px !important;
+                font-size: 0.8125rem !important;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+
+            .discovered-event-card .action-btn {
+                min-height: 44px !important;
+                min-width: 44px !important;
+                padding: 10px 12px !important;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+        }
+
         .calendar-btn {
             background: transparent !important;
             color: #6b7280 !important;
@@ -1795,6 +1893,10 @@
                 -webkit-overflow-scrolling: touch;
             }
 
+            #discoveredEventsContainer {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+
             #discoveredEventsPanel.discovered-events.mobile-active,
             .discovered-events.mobile-active {
                 display: block !important;
@@ -1847,14 +1949,27 @@
                 font-size: 0.75rem;
             }
 
+            .events-filters {
+                padding: 14px;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .events-filter-section {
+                margin-bottom: 14px;
+            }
+
+            .events-filter-label {
+                margin-bottom: 10px;
+            }
+
             .time-selector {
                 justify-content: flex-start;
-                gap: 6px;
-                margin-bottom: 12px;
+                gap: 8px;
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                padding-bottom: 4px;
+                padding: 4px 0 8px 0;
+                margin: 0 -4px;
             }
 
             .time-selector::-webkit-scrollbar {
@@ -1862,33 +1977,30 @@
             }
 
             .time-btn {
-                padding: 8px 12px;
-                font-size: 0.75rem;
-                min-height: 36px;
+                padding: 10px 16px;
+                font-size: 0.8125rem;
+                min-height: 44px;
+                min-width: 44px;
                 white-space: nowrap;
                 flex-shrink: 0;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+                touch-action: manipulation;
             }
 
             .event-type-filter {
-                gap: 6px;
-                margin-top: 12px;
-                margin-bottom: 12px;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                padding-bottom: 4px;
-            }
-
-            .event-type-filter::-webkit-scrollbar {
-                display: none;
+                flex-wrap: wrap;
+                gap: 8px;
+                overflow-x: visible;
             }
 
             .event-type-filter-btn {
-                padding: 6px 12px !important;
-                font-size: 0.75rem !important;
-                min-height: 32px;
+                padding: 10px 16px !important;
+                font-size: 0.8125rem !important;
+                min-height: 44px !important;
                 white-space: nowrap;
                 flex-shrink: 0;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+                touch-action: manipulation;
             }
 
             .control-panel,
@@ -1982,8 +2094,14 @@
 
             .venue-card {
                 padding: 14px 16px;
-                min-height: 56px; /* Better touch target */
+                min-height: 56px;
                 -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+                touch-action: manipulation;
+            }
+
+            .venue-checkbox {
+                min-width: 44px;
+                min-height: 44px;
             }
 
             .venue-header {
@@ -2076,10 +2194,12 @@
             .modal-content {
                 width: 95%;
                 max-width: 95%;
-                margin: 5px auto;
-                max-height: 95vh;
+                margin: auto 0 0 0;
+                max-height: 90vh;
                 padding: 16px;
-                border-radius: 12px;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                border-radius: 16px 16px 0 0;
+                align-self: flex-end;
             }
 
             .modal-header {
@@ -2091,15 +2211,18 @@
             }
 
             .close {
-                font-size: 28px;
-                width: 36px;
-                height: 36px;
+                font-size: 24px;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
             }
 
             #eventDetailsContent,
             #venueDetailsContent,
             #sourceDetailsContent {
                 padding: 16px;
+                padding-bottom: env(safe-area-inset-bottom);
             }
 
             .event-details-grid {
@@ -2208,8 +2331,8 @@
                 background: rgba(0,0,0,0.1);
             }
 
-            /* Ensure events panel header is sticky on mobile */
-            .discovered-events.mobile-active > div:first-child {
+            /* Keep header + filters sticky when scrolling events on mobile */
+            .discovered-events.mobile-active .events-panel-header {
                 position: sticky;
                 top: 0;
                 background: #ffffff;
@@ -2219,53 +2342,33 @@
                 border-bottom: 1px solid rgba(0,0,0,0.06);
             }
 
+            .discovered-events.mobile-active .events-panel-header > div:first-child {
+                margin-bottom: 12px;
+            }
+
+            .events-filters {
+                padding: 12px;
+            }
+
             .time-selector {
-                gap: 4px;
-                margin-bottom: 10px;
+                gap: 6px;
             }
 
             .time-btn {
-                padding: 6px 10px;
-                font-size: 0.6875rem;
-                min-height: 32px;
+                padding: 10px 14px;
+                font-size: 0.75rem;
+                min-height: 44px;
+                min-width: 40px;
             }
 
             .event-type-filter {
-                gap: 4px;
-                margin-top: 10px;
-                margin-bottom: 10px;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                padding-bottom: 4px;
-            }
-
-            .event-type-filter::-webkit-scrollbar {
-                display: none;
+                gap: 6px;
             }
 
             .event-type-filter-btn {
-                padding: 5px 10px !important;
-                font-size: 0.6875rem !important;
-                min-height: 28px;
-                white-space: nowrap;
-                flex-shrink: 0;
-            }
-
-            .time-selector {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                padding-bottom: 4px;
-            }
-
-            .time-selector::-webkit-scrollbar {
-                display: none;
-            }
-
-            .time-btn {
-                white-space: nowrap;
-                flex-shrink: 0;
+                padding: 10px 14px !important;
+                font-size: 0.75rem !important;
+                min-height: 44px !important;
             }
 
             .btn {
@@ -2418,6 +2521,7 @@
             background: #ffffff;
             z-index: 10001;
             padding: 40px 24px;
+            padding-bottom: calc(40px + env(safe-area-inset-bottom));
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -2480,6 +2584,7 @@
         .wizard-btn {
             width: 100%;
             padding: 18px;
+            min-height: 44px;
             background: #111827;
             color: #ffffff;
             border: none;
@@ -2487,6 +2592,8 @@
             font-size: 1.125rem;
             font-weight: 600;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
             transition: all 0.2s;
             margin-top: 24px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -2603,6 +2710,17 @@
             width: 14px;
             height: 14px;
             opacity: 0.8;
+        }
+
+        /* Respect reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
 
     </style>
@@ -3004,32 +3122,42 @@
 
             <!-- Unified Events Panel -->
             <div class="discovered-events" id="discoveredEventsPanel" style="grid-column: 2; grid-row: 1 / -1;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h2 style="color: rgba(0,0,0,0.6); margin: 0; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
-                    <button id="mobileCloseEventsBtn" class="mobile-close-btn" style="display: none; background: transparent; border: none; color: rgba(0,0,0,0.6); font-size: 1.5rem; cursor: pointer; padding: 0; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s ease;" title="Close Events" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">×</button>
+                <div class="events-panel-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 style="color: rgba(0,0,0,0.6); margin: 0; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
+                        <button id="mobileCloseEventsBtn" class="mobile-close-btn" style="display: none; background: transparent; border: none; color: rgba(0,0,0,0.6); font-size: 1.5rem; cursor: pointer; padding: 12px; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s ease; -webkit-tap-highlight-color: transparent;" title="Close Events" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">×</button>
+                    </div>
+                <div class="events-filters">
+                    <div class="events-filter-section">
+                        <div class="events-filter-label">When</div>
+                        <div class="time-selector">
+                            <button class="time-btn" data-period="today">Today</button>
+                            <button class="time-btn" data-period="tomorrow">Tomorrow</button>
+                            <button class="time-btn active" data-period="this_week">This Week</button>
+                            <button class="time-btn" data-period="next_week">Next Week</button>
+                            <button class="time-btn" data-period="this_month">This Month</button>
+                            <button class="time-btn" data-period="custom">Custom</button>
+                            <button class="time-btn" data-period="all">All</button>
+                        </div>
+                    </div>
+                    <div class="events-filter-section">
+                        <div class="events-filter-label">Type</div>
+                        <div class="event-type-filter">
+                            <button class="event-type-filter-btn active" data-event-type="">All</button>
+                            <button class="event-type-filter-btn" data-event-type="tour">Tours</button>
+                            <button class="event-type-filter-btn" data-event-type="exhibition">Exhibitions</button>
+                            <button class="event-type-filter-btn" data-event-type="festival">Festivals</button>
+                            <button class="event-type-filter-btn" data-event-type="photowalk">Photowalks</button>
+                            <button class="event-type-filter-btn" data-event-type="film">Films</button>
+                            <button class="event-type-filter-btn" data-event-type="workshop">Workshops</button>
+                            <button class="event-type-filter-btn" data-event-type="talk">Talks</button>
+                            <button class="event-type-filter-btn" data-event-type="music">Music</button>
+                            <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly">👶 Baby-Friendly</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="time-selector">
-                    <button class="time-btn" data-period="today">Today</button>
-                    <button class="time-btn" data-period="tomorrow">Tomorrow</button>
-                    <button class="time-btn active" data-period="this_week">This Week</button>
-                    <button class="time-btn" data-period="next_week">Next Week</button>
-                    <button class="time-btn" data-period="this_month">This Month</button>
-                    <button class="time-btn" data-period="custom">Custom Range</button>
-                    <button class="time-btn" data-period="all">All</button>
                 </div>
-                <div class="event-type-filter" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; margin-bottom: 16px;">
-                    <button class="event-type-filter-btn active" data-event-type="" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.87); font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">All</button>
-                    <button class="event-type-filter-btn" data-event-type="tour" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Tours</button>
-                    <button class="event-type-filter-btn" data-event-type="exhibition" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Exhibitions</button>
-                    <button class="event-type-filter-btn" data-event-type="festival" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Festivals</button>
-                    <button class="event-type-filter-btn" data-event-type="music" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Music</button>
-                    <button class="event-type-filter-btn" data-event-type="photowalk" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Photowalks</button>
-                    <button class="event-type-filter-btn" data-event-type="film" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Films</button>
-                    <button class="event-type-filter-btn" data-event-type="workshop" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Workshops</button>
-                    <button class="event-type-filter-btn" data-event-type="talk" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">Talks</button>
-                    <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly" style="padding: 8px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; background: rgba(255,255,255,0.6); color: rgba(0,0,0,0.6); font-size: 0.8125rem; font-weight: 400; cursor: pointer; transition: all 0.2s ease;">👶 Baby-Friendly</button>
-                </div>
-                <div id="discoveredCustomDateGroup" style="display: none; margin-top: 12px;">
+                <div id="discoveredCustomDateGroup" class="custom-date-inputs" style="display: none; margin-top: 12px;">
                     <div style="display: flex; gap: 8px;">
                         <div style="flex: 1;">
                             <label for="discoveredStartDate" class="sr-only">Start Date</label>
@@ -3041,7 +3169,7 @@
                         </div>
                     </div>
                 </div>
-                <div style="margin-top: 16px; margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="events-export-actions" style="margin-top: 16px; margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
                     <button id="exportDiscoveredEventsBtn" class="export-btn" style="flex: 1; padding: 14px 24px; border-radius: 12px; background: rgba(0,0,0,0.87); color: white; border: none; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" disabled title="Export All Events to Calendar">
                         Export to Calendar
                     </button>
@@ -6677,9 +6805,14 @@
                         ${event.source ? `<div style="margin-bottom: 8px;"><strong>Source:</strong> ${event.source}</div>` : ''}
                         ${event.organizer ? `<div style="margin-bottom: 8px;"><strong>Organizer:</strong> ${event.organizer}</div>` : ''}
                     </div>
-                    ${event.source_url ? `<div style="margin-bottom: 10px;"><strong>Source URL:</strong> <a href="${event.source_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.source_url}</a></div>` : ''}
-                    ${event.url ? `<div style="margin-bottom: 10px;"><strong>Event URL:</strong> <a href="${event.url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.url}</a></div>` : ''}
-                    ${event.social_media_url && event.social_media_url !== event.url && event.social_media_url !== event.source_url ? `<div style="margin-bottom: 10px;"><strong>Social Media URL:</strong> <a href="${event.social_media_url}" target="_blank" style="color: #1976d2; word-break: break-all;">${event.social_media_url}</a></div>` : ''}
+                    ${(function() {
+                        const seen = new Set();
+                        const urls = [];
+                        [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL']].forEach(([url, label]) => {
+                            if (url && !seen.has(url)) { seen.add(url); urls.push({url, label}); }
+                        });
+                        return urls.map(({url, label}) => `<div style="margin-bottom: 10px;"><strong>${urls.length > 1 ? label : 'URL'}:</strong> <a href="${url}" target="_blank" style="color: #1976d2; word-break: break-all;">${url}</a></div>`).join('');
+                    })()}
                     ${event.image_url ? `<div style="margin-bottom: 10px;"><strong>Image:</strong> <a href="${event.image_url}" target="_blank" style="color: #1976d2; word-break: break-all;">View Image</a></div>` : ''}
                 </div>
             `;
@@ -7343,7 +7476,6 @@
                     <div>
                         <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">📋 Basic Information</h4>
                         <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                            <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${event.id}</div>
                             ${addField('Title', event.title)}
                             ${addField('Type', event.event_type)}
                             ${addField('Description', event.description)}
@@ -7372,9 +7504,14 @@
                         <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 0.9375rem;">🔗 Additional Info</h4>
                         <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Source', event.source)}
-                            ${addField('Source URL', event.source_url, true)}
-                            ${addField('Event URL', event.url, true)}
-                            ${addField('Social Media URL', event.social_media_url, true)}
+                            ${(function() {
+                                const seen = new Set();
+                                const entries = [];
+                                [[event.source_url, 'Source URL'], [event.url, 'Event URL'], [event.social_media_url, 'Social Media URL']].forEach(([url, label]) => {
+                                    if (url && !seen.has(url)) { seen.add(url); entries.push({url, label}); }
+                                });
+                                return entries.map(({url, label}) => addField(entries.length > 1 ? label : 'URL', url, true)).join('');
+                            })()}
                             ${addField('Registration URL', event.registration_url, true, 'Register / Get Tickets')}
                             ${event.image_url && getImageUrl(event.image_url) ? `
                                 <div style="margin-top: 10px;">
