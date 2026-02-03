@@ -429,7 +429,7 @@
 
         .discovered-event-card {
             display: flex;
-            align-items: flex-start;
+            align-items: stretch;
             gap: 12px;
             padding: 12px;
             background: white;
@@ -437,6 +437,12 @@
             border: 1px solid rgba(0, 0, 0, 0.06);
             transition: all 0.2s ease;
             cursor: pointer;
+        }
+
+        .discovered-event-card .event-actions {
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
         .discovered-event-card:hover {
@@ -1610,6 +1616,13 @@
         .event-actions {
             display: flex;
             gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .event-actions .calendar-btn {
+            margin-left: auto;
+            flex: 0 !important;
         }
 
         .action-btn {
@@ -1623,17 +1636,17 @@
         }
 
         .calendar-btn {
-            background: rgba(255, 140, 66, 0.1) !important;
-            color: #ff8c42 !important;
-            border: 1px solid rgba(255, 140, 66, 0.2) !important;
-            box-shadow: 0 1px 4px rgba(255, 140, 66, 0.1) !important;
+            background: transparent !important;
+            color: #6b7280 !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            box-shadow: none !important;
         }
 
         .calendar-btn:hover {
-            background: rgba(255, 140, 66, 0.15) !important;
-            color: #ff6b35 !important;
+            background: rgba(0, 0, 0, 0.04) !important;
+            color: #374151 !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2) !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
         }
 
         .info-btn {
@@ -2562,6 +2575,36 @@
             }
         }
 
+        /* Desktop view link - modern pill style */
+        .desktop-view-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding: 10px 20px;
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 24px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .desktop-view-btn:hover {
+            background: rgba(0, 0, 0, 0.04);
+            color: #374151;
+            border-color: rgba(0, 0, 0, 0.12);
+        }
+
+        .desktop-view-btn svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.8;
+        }
+
     </style>
 </head>
 <body>
@@ -2609,7 +2652,12 @@
                     <button id="wizardSkip2" class="wizard-btn skip-btn" onclick="completeWizard()">Skip</button>
                     <button id="wizardNext2" class="wizard-btn" onclick="completeWizard()">Show Events</button>
                 </div>
-                <button class="desktop-view-btn" onclick="enableDesktopView()">Desktop View</button>
+                <button class="desktop-view-btn" onclick="enableDesktopView()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Full layout
+                </button>
             </div>
         </div>
     </div>
@@ -6505,16 +6553,18 @@
                     ` : ''}
                     
                     <div class="event-actions">
-                        ${event.url && event.url !== event.source_url ? `
-                        <button class="action-btn event-link-btn" onclick="window.open('${event.url}', '_blank')" title="View Event Details">
-                            🔗
-                        </button>
-                        ` : ''}
+                        <div style="display: flex; gap: 10px;">
+                            ${event.url && event.url !== event.source_url ? `
+                            <button class="action-btn event-link-btn" onclick="window.open('${event.url}', '_blank')" title="View Event Details">
+                                🔗
+                            </button>
+                            ` : ''}
+                            <button class="action-btn info-btn" onclick="showEventInfo(${event.id})" title="More Info">
+                                ℹ️
+                            </button>
+                        </div>
                         <button class="action-btn calendar-btn" onclick="addToCalendar(${event.id})" title="Add to Google Calendar">
                             🗓️+
-                        </button>
-                        <button class="action-btn info-btn" onclick="showEventInfo(${event.id})" title="More Info">
-                            ℹ️
                         </button>
                     </div>
                 </div>
@@ -7460,6 +7510,8 @@
         // Mobile Wizard Logic
         function enableDesktopView() {
             document.body.classList.add('force-desktop');
+            document.body.classList.add('wizard-completed');
+            sessionStorage.setItem('wizardCompleted', 'true');
             localStorage.setItem('forceDesktopView', 'true');
             updateDesktopToggleButton();
             if (typeof loadEvents === 'function') loadEvents();
