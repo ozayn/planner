@@ -5279,18 +5279,22 @@
                 customDateGroup.style.display = 'none';
             }
             
-            // Reload events if we have a city selected (event type can be empty for "All Types")
+            // Sync time-btn active state when dateRangeSelect changes
+            currentTimePeriod = dateRange;
+            document.querySelectorAll('.time-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.period === dateRange);
+            });
+            
+            // Reload both event sources if we have a city selected
             if (citySelect.value) {
                 const cityId = citySelect.value;
-                const eventType = eventTypeSelectStep2.value || ''; // Allow empty for "All Types"
+                const eventType = eventTypeSelectStep2.value || '';
                 
                 // Show loading state
                 updateProgress(50, 'Updating events for new date range...');
                 
-                // Reload events with new date range
                 loadEvents(cityId, dateRange, eventType);
-            } else {
-                // Silently return if missing city or event type selection
+                loadDiscoveredEvents();
             }
         }
 
@@ -6217,56 +6221,69 @@
                                     document.querySelector('.time-btn.active')?.dataset.period || 
                                     'this_week';
             
-            // Only filter by date if not "all"
+            // Filter by date range when not "all"
             if (currentTimeRange !== 'all') {
-                // Filter out past events, but keep current exhibitions
-                const todayForFilter = new Date();
-                todayForFilter.setHours(0, 0, 0, 0); // Reset to start of day for date comparison
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const pad = (n) => String(n).padStart(2, '0');
+                const toDateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+                const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
                 
-                // Get today's date string in YYYY-MM-DD format for reliable comparison
-                const todayDateStr = todayForFilter.toISOString().split('T')[0];
+                let rangeStart, rangeEnd;
+                if (currentTimeRange === 'today') {
+                    rangeStart = rangeEnd = toDateStr(today);
+                } else if (currentTimeRange === 'tomorrow') {
+                    rangeStart = rangeEnd = toDateStr(addDays(today, 1));
+                } else if (currentTimeRange === 'this_week') {
+                    rangeStart = toDateStr(today);
+                    rangeEnd = toDateStr(addDays(today, 6));
+                } else if (currentTimeRange === 'next_week') {
+                    rangeStart = toDateStr(addDays(today, 7));
+                    rangeEnd = toDateStr(addDays(today, 13));
+                } else if (currentTimeRange === 'this_month') {
+                    rangeStart = toDateStr(today);
+                    rangeEnd = toDateStr(addDays(today, 29));
+                } else if (currentTimeRange === 'next_month') {
+                    rangeStart = toDateStr(addDays(today, 30));
+                    rangeEnd = toDateStr(addDays(today, 59));
+                } else if (currentTimeRange === 'custom') {
+                    const customStart = document.getElementById('discoveredStartDate')?.value || document.getElementById('startDate')?.value;
+                    const customEnd = document.getElementById('discoveredEndDate')?.value || document.getElementById('endDate')?.value;
+                    if (customStart && customEnd) {
+                        rangeStart = customStart;
+                        rangeEnd = customEnd;
+                    } else {
+                        rangeStart = toDateStr(today);
+                        rangeEnd = toDateStr(addDays(today, 6));
+                    }
+                } else {
+                    rangeStart = toDateStr(today);
+                    rangeEnd = toDateStr(addDays(today, 365));
+                }
+                
+                const todayDateStr = toDateStr(today);
                 
                 filteredEvents = filteredEvents.filter(event => {
-                    if (!event.start_date) return false; // Exclude events without dates
-                    
-                    // Parse date string (YYYY-MM-DD) directly to avoid timezone issues
+                    if (!event.start_date) return false;
                     const eventDateStr = event.start_date;
                     if (!eventDateStr) return false;
                     
-                    // Compare date strings directly - more reliable than Date objects
-                    const startDate = new Date(eventDateStr + 'T00:00:00');
-                    startDate.setHours(0, 0, 0, 0);
-                    
-                    // For exhibitions: keep if currently running (started but not ended)
                     if (event.event_type === 'exhibition') {
-                        if (event.end_date) {
-                            const endDate = new Date(event.end_date + 'T23:59:59');
-                            endDate.setHours(23, 59, 59, 999); // End of day
-                            // Keep if it hasn't ended yet
-                            return endDate >= todayForFilter;
-                        } else {
-                            // No end date - keep if it has started
-                            return startDate <= todayForFilter;
-                        }
+                        const eventEndStr = event.end_date || eventDateStr;
+                        return eventDateStr <= rangeEnd && eventEndStr >= rangeStart;
                     } else {
-                        // For other events: only show if start date is today or in the future
-                        // Compare date strings to avoid timezone issues
-                        if (eventDateStr >= todayDateStr) {
-                            // If it's today, check if the event time has passed
-                            if (eventDateStr === todayDateStr && event.start_time) {
-                                const [hours, minutes] = event.start_time.split(':').map(Number);
-                                const eventDateTime = new Date(todayForFilter);
-                                eventDateTime.setHours(hours, minutes, 0, 0);
-                                return eventDateTime >= new Date();
-                            }
-                            // For future dates or today without time, show it
-                            return true;
+                        const inRange = eventDateStr >= rangeStart && eventDateStr <= rangeEnd;
+                        if (!inRange) return false;
+                        if (eventDateStr === todayDateStr && event.start_time) {
+                            const [h, m] = event.start_time.split(':').map(Number);
+                            const eventTime = new Date(today);
+                            eventTime.setHours(h, m || 0, 0, 0);
+                            return eventTime >= new Date();
                         }
-                        return false;
+                        return true;
                     }
                 });
             }
-            // If timeRange is 'all', don't filter by date - show all events
             
             if (filteredEvents.length === 0) {
                 container.innerHTML = `
@@ -6607,11 +6624,25 @@
             return imageData;
         }
 
+        // Get display image for event - use event image or fall back to venue image
+        function getEventDisplayImage(event) {
+            if (event.image_url && (typeof event.image_url === 'string' ? event.image_url.trim() : true)) {
+                return getImageUrl(event.image_url);
+            }
+            if (event.venue_id && typeof allVenues !== 'undefined' && allVenues.length > 0) {
+                const venue = allVenues.find(v => v.id === event.venue_id);
+                if (venue && venue.image_url) {
+                    return getImageUrl(venue.image_url);
+                }
+            }
+            return null;
+        }
+
         // Create event card
         function createEventCard(event) {
             const isSelected = selectedEvents.has(event.id);
-            const imageUrl = getImageUrl(event.image_url);
-            const hasImage = imageUrl && event.image_url; // Only show if we have actual image data
+            const imageUrl = getEventDisplayImage(event);
+            const hasImage = !!imageUrl;
             
             const isOnline = event.is_online || false;
             const isBabyFriendly = event.is_baby_friendly || false;
@@ -6630,7 +6661,7 @@
                     
                     ${hasImage ? `
                     <div style="position: relative; margin-bottom: 15px;">
-                        <a href="${event.image_url || imageUrl}" target="_blank" title="View full image" style="display: block;">
+                        <a href="${imageUrl}" target="_blank" title="View full image" style="display: block;">
                             <img src="${imageUrl}" alt="${event.title}" class="event-image" 
                                  onerror="this.parentElement.parentElement.style.display='none'; this.onerror=null;"
                                  style="cursor: pointer;">
@@ -7017,9 +7048,9 @@
                     
                     // Show/hide custom date inputs
                     if (currentTimePeriod === 'custom') {
-                        customDateGroup.style.display = 'block';
+                        if (customDateGroup) customDateGroup.style.display = 'block';
                         // Set default dates (today to next week) if not already set
-                        if (!discoveredStartDate.value) {
+                        if (discoveredStartDate && !discoveredStartDate.value) {
                             const today = new Date();
                             const nextWeek = new Date(today);
                             nextWeek.setDate(today.getDate() + 7);
@@ -7027,11 +7058,20 @@
                             discoveredEndDate.value = nextWeek.toISOString().split('T')[0];
                         }
                     } else {
-                        customDateGroup.style.display = 'none';
+                        if (customDateGroup) customDateGroup.style.display = 'none';
                     }
                     
-                    // Load discovered events for this period
+                    // Sync dateRangeSelect (used by loadEvents and status) so both event sources use the same filter
+                    const dateRangeSelect = document.getElementById('dateRangeSelect');
+                    if (dateRangeSelect && dateRangeSelect.querySelector(`option[value="${currentTimePeriod}"]`)) {
+                        dateRangeSelect.value = currentTimePeriod;
+                    }
+                    
+                    // Load both event sources with the new time range so the unified display shows correct results
                     loadDiscoveredEvents();
+                    const cityId = citySelect?.value;
+                    const eventType = (document.getElementById('eventTypeSelectStep2') || document.getElementById('eventTypeSelect'))?.value || '';
+                    if (cityId) loadEvents(cityId, currentTimePeriod, eventType);
                 });
             });
             
@@ -7379,8 +7419,8 @@
             const isOnline = event.is_online || false;
             const locationDisplay = isOnline ? '🌐 Online Event' : (event.venue_name || event.start_location || 'Location TBD');
             
-            const imageUrl = getImageUrl(event.image_url);
-            const hasImage = imageUrl && event.image_url; // Only show if we have actual image data
+            const imageUrl = getEventDisplayImage(event);
+            const hasImage = !!imageUrl;
             const isSelected = selectedEvents.has(event.id);
             const isNewEvent = event.is_new || false;
             const isUpdatedEvent = event.is_updated || false;
@@ -7516,12 +7556,12 @@
                                 });
                                 return entries.map(({url, label}) => addField(entries.length > 1 ? label : 'URL', url, true)).join('');
                             })()}
-                            ${event.image_url && getImageUrl(event.image_url) ? `
+                            ${(function(){ const img = getEventDisplayImage(event); return img ? `
                                 <div style="margin-top: 10px;">
                                     <strong style="font-size: 0.875rem;">Image:</strong>
                                     <div style="margin-top: 8px;">
-                                        <a href="${getImageUrl(event.image_url)}" target="_blank" style="display: inline-block;">
-                                            <img src="${getImageUrl(event.image_url)}" 
+                                        <a href="${img}" target="_blank" style="display: inline-block;">
+                                            <img src="${img}" 
                                                  alt="${event.title}" 
                                                  class="event-detail-image"
                                                  onerror="this.parentElement.parentElement.parentElement.style.display='none'; this.onerror=null;"
@@ -7529,7 +7569,7 @@
                                         </a>
                                     </div>
                                 </div>
-                            ` : ''}
+                            ` : '';})()}
                         </div>
                     </div>
                 </div>
