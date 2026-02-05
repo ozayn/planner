@@ -278,7 +278,7 @@ class UnifiedDataManager:
                             # Handle image_url
                             image_url = venue_data.get('image_url', '')
                             if isinstance(image_url, dict):
-                                image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
+                                image_url = f"https://placehold.co/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
                             
                             # Create venue
                             venue = Venue(

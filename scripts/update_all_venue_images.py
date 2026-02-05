@@ -51,7 +51,7 @@ def update_all_venue_images():
                 current_image = venue.get('image_url', '')
                 
                 # Skip if already has a real image (not placeholder)
-                if current_image and not current_image.startswith('https://via.placeholder.com'):
+                if current_image and not current_image.startswith('https://placehold.co'):
                     print(f"   ⏭️  Skipping {venue_name} - already has real image")
                     skipped_count += 1
                     continue

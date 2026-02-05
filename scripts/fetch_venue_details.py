@@ -253,7 +253,7 @@ class LLMVenueDetailSearcher:
         print(f"⚠️  Using fallback details for {venue_name}")
         
         # Use placeholder image URL
-        image_url = f"https://via.placeholder.com/400x300/cccccc/666666?text={quote_plus(venue_name)}"
+        image_url = f"https://placehold.co/400x300/cccccc/666666?text={quote_plus(venue_name)}"
         
         return {
             'image_url': image_url or '',

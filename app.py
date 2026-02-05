@@ -748,22 +748,22 @@ class Event(db.Model):
             if self.start_location and self.start_location.strip():
                 location_name = self.start_location.replace(' ', '+')
                 if self.start_latitude and self.start_longitude:
-                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={location_name.replace('+', '+')}"
+                    image_url = f"https://placehold.co/400x300/667eea/ffffff?text={location_name.replace('+', '+')}"
                 else:
-                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={location_name.replace('+', '+')}"
+                    image_url = f"https://placehold.co/400x300/667eea/ffffff?text={location_name.replace('+', '+')}"
             elif self.venue and self.venue.name and self.venue.name.strip():
                 venue_name = self.venue.name.replace(' ', '+')
                 if self.venue.latitude and self.venue.longitude:
-                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_name.replace('+', '+')}"
+                    image_url = f"https://placehold.co/400x300/667eea/ffffff?text={venue_name.replace('+', '+')}"
                 else:
-                    image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_name.replace('+', '+')}"
+                    image_url = f"https://placehold.co/400x300/667eea/ffffff?text={venue_name.replace('+', '+')}"
             elif self.title and self.title.strip():
                 # Fallback to a generic search
                 title_name = self.title.replace(' ', '+')
-                image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={title_name.replace('+', '+')}"
+                image_url = f"https://placehold.co/400x300/667eea/ffffff?text={title_name.replace('+', '+')}"
             else:
                 # Ultimate fallback
-                image_url = "https://via.placeholder.com/400x300/667eea/ffffff?text=Event"
+                image_url = "https://placehold.co/400x300/667eea/ffffff?text=Event"
         
         # Route external URLs through proxy - keeps images loadable (all scrapers, current + future)
         if image_url and isinstance(image_url, str):
@@ -1672,7 +1672,7 @@ def get_venue_image(photo_reference):
             if response.status_code == 400:
                 app_logger.debug(f"Places Photo API 400 (expired photo ref): {photo_reference[:50]}...")
                 from flask import redirect
-                return redirect('https://via.placeholder.com/400x300/e5e7eb/6b7280?text=Image+unavailable', code=302)
+                return redirect('https://placehold.co/400x300/e5e7eb/6b7280?text=Image+unavailable', code=302)
             app_logger.warning(f"Places Photo API returned {response.status_code}: {response.text[:200]}")
             return jsonify({'error': f'Image fetch failed ({response.status_code})'}), 502
         
@@ -6209,7 +6209,7 @@ def auto_fill_event():
             'start_time': '10:00',
             'end_time': '16:00',
             'url': f"https://example.com/{event_name.lower().replace(' ', '-')}",
-            'image_url': f"https://via.placeholder.com/400x300?text={event_name.replace(' ', '+')}",
+            'image_url': f"https://placehold.co/400x300?text={event_name.replace(' ', '+')}",
             'start_location': 'Main Entrance',
             'end_location': 'Main Entrance',
             'tour_type': 'Guided' if event_type == 'tour' else None,

@@ -134,7 +134,7 @@ def load_venues_data():
                         image_url = venue_data.get('image_url', '')
                         if isinstance(image_url, dict):
                             # If it's still a photo reference dict, convert to placeholder
-                            image_url = f"https://via.placeholder.com/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
+                            image_url = f"https://placehold.co/400x300/667eea/ffffff?text={venue_data.get('name', 'Venue').replace(' ', '+')}"
                         
                         # Create new venue
                         venue = Venue(

@@ -208,7 +208,7 @@ def generate_sample_events():
             
             # Add URL and image
             event["url"] = f"https://example.com/event/{event['id']}"
-            event["image_url"] = f"https://via.placeholder.com/400x300/667eea/ffffff?text={event['title'].replace(' ', '+')}"
+            event["image_url"] = f"https://placehold.co/400x300/667eea/ffffff?text={event['title'].replace(' ', '+')}"
             
             # Add venue association
             if venue_ids:
