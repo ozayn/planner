@@ -30,10 +30,13 @@ CITY_NAME = "Washington, DC"
 
 def create_scraper():
     """Create a cloudscraper session"""
+    import platform as plat
+    detected = plat.system().lower()
+    platform_name = 'linux' if (detected == 'linux' or os.environ.get('RAILWAY_ENVIRONMENT')) else ('darwin' if detected == 'darwin' else 'windows')
     scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
-            'platform': 'darwin',
+            'platform': platform_name,
             'desktop': True
         }
     )

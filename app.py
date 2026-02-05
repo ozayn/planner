@@ -603,6 +603,10 @@ class Venue(db.Model):
             elif isinstance(image_url, str) and len(image_url) > 50 and not image_url.startswith('http'):
                 # Raw photo reference string
                 image_url = f"/api/image/{image_url}"
+            elif isinstance(image_url, str) and image_url.startswith('http'):
+                # External URL - route through proxy to keep at loadable size
+                from scripts.utils import ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_VENUE
+                image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_VENUE)
         
         # Generate Google Maps link for navigation
         maps_link = ""
@@ -761,15 +765,10 @@ class Event(db.Model):
                 # Ultimate fallback
                 image_url = "https://via.placeholder.com/400x300/667eea/ffffff?text=Event"
         
-        # Route external image URLs through proxy to bypass hotlinking restrictions
-        if image_url and isinstance(image_url, str) and image_url.startswith('http'):
-            from urllib.parse import quote
-            # Check if it's from a domain that blocks hotlinking (e.g., hirshhorn.si.edu)
-            blocked_domains = ['hirshhorn.si.edu', 'si.edu']
-            if any(domain in image_url for domain in blocked_domains):
-                # Route through our proxy endpoint
-                encoded_url = quote(image_url, safe='')
-                image_url = f"/api/image-proxy?url={encoded_url}"
+        # Route external URLs through proxy - keeps images loadable (all scrapers, current + future)
+        if image_url and isinstance(image_url, str):
+            from scripts.utils import ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
+            image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_EVENT)
         
         # Generate Google Maps link for navigation
         # Priority: venue coordinates/name > event coordinates > event location
@@ -1669,8 +1668,13 @@ def get_venue_image(photo_reference):
         import requests
         response = requests.get(image_url, timeout=10)
         if not response.ok:
-            app_logger.warning(f"Places Photo API returned {response.status_code}: {response.text[:300]}")
-            return jsonify({'error': f'Image fetch failed ({response.status_code}). Photo refs can expire - refetch from Places API.'}), 502
+            # 400 usually means expired photo_reference - redirect to placeholder instead of failing
+            if response.status_code == 400:
+                app_logger.debug(f"Places Photo API 400 (expired photo ref): {photo_reference[:50]}...")
+                from flask import redirect
+                return redirect('https://via.placeholder.com/400x300/e5e7eb/6b7280?text=Image+unavailable', code=302)
+            app_logger.warning(f"Places Photo API returned {response.status_code}: {response.text[:200]}")
+            return jsonify({'error': f'Image fetch failed ({response.status_code})'}), 502
         
         # Return the image with proper headers
         from flask import Response
@@ -1687,9 +1691,39 @@ def get_venue_image(photo_reference):
         app_logger.error(f"Error fetching image for photo reference {photo_reference}: {e}")
         return jsonify({'error': 'Failed to fetch image'}), 500
 
+# Default max width for proxied images - keeps all images at loadable size (avoids 2MB+ Wharf images etc)
+IMAGE_PROXY_DEFAULT_MAX_WIDTH = 800
+
+def _resize_image_if_needed(content: bytes, content_type: str, max_width: int) -> tuple[bytes, str]:
+    """Resize image to max_width (maintain aspect ratio) if larger. Returns (bytes, content_type)."""
+    if max_width <= 0:
+        return content, content_type
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(content))
+        # Convert RGBA to RGB for JPEG output
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        w, h = img.size
+        if w <= max_width:
+            return content, content_type
+        ratio = max_width / w
+        new_h = int(h * ratio)
+        img = img.resize((max_width, new_h), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=85, optimize=True)
+        return buf.getvalue(), 'image/jpeg'
+    except Exception as e:
+        app_logger.debug(f"Image resize failed, returning original: {e}")
+        return content, content_type
+
+
 @app.route('/api/image-proxy')
 def proxy_external_image():
-    """Proxy external images to bypass hotlinking restrictions (e.g., Cloudflare)"""
+    """Proxy external images to bypass hotlinking restrictions and optionally resize large images."""
     from flask import request
     from urllib.parse import unquote, quote
     import requests
@@ -1699,6 +1733,9 @@ def proxy_external_image():
         image_url = request.args.get('url')
         if not image_url:
             return jsonify({'error': 'Missing url parameter'}), 400
+        
+        # Max width for resizing - always apply to keep images loadable
+        max_width = request.args.get('w', type=int) or request.args.get('max', type=int) or IMAGE_PROXY_DEFAULT_MAX_WIDTH
         
         # Decode the URL if it was encoded
         image_url = unquote(image_url)
@@ -1741,14 +1778,18 @@ def proxy_external_image():
                 app_logger.error(f"Both regular requests and cloudscraper failed for {image_url}: {e}, {e2}")
                 raise e
         
-        # Determine content type
+        content = response.content
         content_type = response.headers.get('Content-Type', 'image/jpeg')
         if not content_type.startswith('image/'):
             content_type = 'image/jpeg'
         
+        # Resize if requested (reduces large images like Wharf's 2MB+ to ~50KB for thumbnails)
+        if max_width > 0:
+            content, content_type = _resize_image_if_needed(content, content_type, max_width)
+        
         # Return the image with proper headers
         return Response(
-            response.content,
+            content,
             mimetype=content_type,
             headers={
                 'Cache-Control': 'public, max-age=86400',  # Cache for 24 hours
@@ -4649,6 +4690,7 @@ def load_all_data_to_database():
                     existing_venue.email = venue_data.get('email', existing_venue.email)
                     existing_venue.tour_info = venue_data.get('tour_info', existing_venue.tour_info)
                     existing_venue.admission_fee = venue_data.get('admission_fee', existing_venue.admission_fee)
+                    existing_venue.additional_info = venue_data.get('additional_info', existing_venue.additional_info)
                     venues_updated += 1
                 else:
                     # Create new venue
@@ -4672,7 +4714,8 @@ def load_all_data_to_database():
                         phone_number=venue_data.get('phone_number', ''),
                         email=venue_data.get('email', ''),
                         tour_info=venue_data.get('tour_info', ''),
-                        admission_fee=venue_data.get('admission_fee', '')
+                        admission_fee=venue_data.get('admission_fee', ''),
+                        additional_info=venue_data.get('additional_info')
                     )
                     db.session.add(venue)
                     venues_added += 1
@@ -7714,26 +7757,30 @@ def scrape_nga():
             json.dump(progress_data, f)
         
         # Scrape all NGA events
+        scrape_error_msg = None
         try:
             events = scrape_all_nga_events()
         except Exception as scrape_error:
+            scrape_error_msg = str(scrape_error)
             app_logger.error(f"Error in scrape_all_nga_events: {scrape_error}")
             import traceback
             app_logger.error(traceback.format_exc())
-            # Return empty list to continue with error handling
             events = []
         
         if not events:
+            err = 'No events found or scraping failed'
+            if scrape_error_msg:
+                err += f' ({scrape_error_msg})'
             progress_data.update({
                 'percentage': 100,
-                'message': '❌ No NGA events found or scraping failed',
+                'message': f'❌ {err}',
                 'error': True
             })
             with open('scraping_progress.json', 'w') as f:
                 json.dump(progress_data, f)
             return jsonify({
                 'success': False,
-                'error': 'No events found or scraping failed',
+                'error': err,
                 'events_found': 0,
                 'events_saved': 0,
                 'events_updated': 0

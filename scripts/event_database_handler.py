@@ -446,7 +446,7 @@ def create_events_in_database(
     error_count = 0
     
     # Import utilities
-    from scripts.utils import is_category_heading
+    from scripts.utils import is_category_heading, ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
     
     for event_data in events:
         try:
@@ -495,6 +495,12 @@ def create_events_in_database(
             # Allow custom event processing (e.g., for venue-specific fields)
             if custom_event_processor:
                 custom_event_processor(event_data)
+            
+            # Ensure image URLs are loadable (all scrapers - current and future)
+            if event_data.get('image_url'):
+                event_data['image_url'] = ensure_loadable_image_url(
+                    event_data['image_url'], max_width=IMAGE_PROXY_MAX_WIDTH_EVENT
+                )
             
             # Ensure venue_id and city_id are set
             event_data['venue_id'] = venue_id

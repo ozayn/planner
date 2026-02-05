@@ -365,15 +365,17 @@ class GenericVenueScraper:
         ]
     
     def scrape_venue_events(self, venue_url: str, venue_name: str = None, 
-                           event_type: str = None, time_range: str = 'this_month') -> List[Dict]:
+                           event_type: str = None, time_range: str = 'this_month',
+                           event_urls: List[str] = None) -> List[Dict]:
         """
         Main method to scrape events from any venue URL.
         
         Args:
-            venue_url: The venue's website URL
+            venue_url: The venue's website URL (base URL for discovery, or main page)
             venue_name: Optional venue name for context
             event_type: Optional filter for event type
             time_range: Time range filter ('today', 'this_week', 'this_month')
+            event_urls: Optional list of direct event page URLs (skips discovery when provided)
             
         Returns:
             List of event dictionaries
@@ -387,9 +389,13 @@ class GenericVenueScraper:
             logger.info(f"   Event type filter: {event_type}")
             logger.info(f"   Time range: {time_range}")
             
-            # Try to find event listing pages
-            event_pages = self._discover_event_pages(venue_url)
-            logger.info(f"   Discovered {len(event_pages)} event pages")
+            # Use provided event URLs (e.g. from venue additional_info) or discover
+            if event_urls:
+                event_pages = list(event_urls)
+                logger.info(f"   Using {len(event_pages)} provided event URL(s) (skipping discovery)")
+            else:
+                event_pages = self._discover_event_pages(venue_url)
+                logger.info(f"   Discovered {len(event_pages)} event pages")
             
             # Scrape each event page
             for i, page_url in enumerate(event_pages, 1):
@@ -412,16 +418,18 @@ class GenericVenueScraper:
                         logger.debug(f"   ⚠️  Error scraping {page_url}: {e}")
                     continue
             
-            # Also scrape the main page (only use LLM if not already used)
-            logger.info(f"   Scraping main page: {venue_url}")
-            main_events = self._scrape_event_page(
-                venue_url, venue_name, event_type, time_range,
-                use_llm_fallback=not llm_fallback_used
-            )
-            if main_events and any(e.get('llm_extracted') for e in main_events):
-                llm_fallback_used = True
-            logger.info(f"      Found {len(main_events)} events on main page")
-            events.extend(main_events)
+            # Also scrape the main page (skip if already in event_pages, e.g. when event_urls provided)
+            main_already_scraped = venue_url.rstrip('/') in [u.rstrip('/') for u in event_pages]
+            if not main_already_scraped:
+                logger.info(f"   Scraping main page: {venue_url}")
+                main_events = self._scrape_event_page(
+                    venue_url, venue_name, event_type, time_range,
+                    use_llm_fallback=not llm_fallback_used
+                )
+                if main_events and any(e.get('llm_extracted') for e in main_events):
+                    llm_fallback_used = True
+                logger.info(f"      Found {len(main_events)} events on main page")
+                events.extend(main_events)
             
             logger.info(f"   Total events before deduplication: {len(events)}")
             

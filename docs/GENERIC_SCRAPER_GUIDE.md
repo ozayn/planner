@@ -129,6 +129,17 @@ The scraper automatically determines event type from title and description:
 3. **Date Parsing**: May not handle all date formats perfectly
 4. **Event Quality**: May extract lower-quality events than specialized scrapers
 
+## Image Handling (All Scrapers)
+
+**All images are automatically kept at a loadable size** – no scraper-specific code needed.
+
+- **Store raw URLs**: Scrapers should store the original `image_url` from the source (og:image, img src, etc.)
+- **Automatic normalization**: When events are saved via `create_events_in_database`, external URLs are routed through `/api/image-proxy?w=400` (resizes 2MB+ images to ~50KB)
+- **Display fallback**: `Event.to_dict()` and `Venue.to_dict()` also normalize, so all images are loadable regardless of creation path
+- **Future scrapers**: Any new scraper using `create_events_in_database` or returning events for display gets this automatically
+
+Optional: use `ensure_loadable_image_url(url)` from `scripts.utils` if building event dicts outside the standard flow.
+
 ## Best Practices
 
 1. **Use Specialized Scrapers First**: Always check for specialized scrapers before using generic

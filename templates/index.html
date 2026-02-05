@@ -6712,7 +6712,7 @@
                     ${hasImage ? `
                     <div style="position: relative; margin-bottom: 15px;">
                         <a href="${imageUrl}" target="_blank" title="View full image" style="display: block;">
-                            <img src="${imageUrl}" alt="${event.title}" class="event-image" 
+                            <img src="${imageUrl}" alt="${event.title}" class="event-image" loading="lazy"
                                  onerror="this.parentElement.parentElement.style.display='none'; this.onerror=null;"
                                  style="cursor: pointer;">
                         </a>
@@ -7483,7 +7483,7 @@
             return `
                 <div class="${cardClass} ${isSelected ? 'selected' : ''}" data-event-id="${event.id}" onclick="showDiscoveredEventDetails(${event.id})" style="cursor: pointer;">
                     ${hasImage ? `
-                    <img src="${imageUrl}" alt="${event.title}" class="event-image-thumb" 
+                    <img src="${imageUrl}" alt="${event.title}" class="event-image-thumb" loading="lazy"
                          onerror="this.style.display='none';">
                     ` : ''}
                     <div class="event-info">

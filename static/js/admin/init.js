@@ -2186,10 +2186,15 @@ async function startNGAScraping() {
     showScrapingProgressModal('National Gallery of Art');
     
     try {
+        // NGA scrape takes 2-5 min - use 6 min timeout to avoid "Failed to fetch"
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 360000);
         const response = await fetch('/api/admin/scrape-nga', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         
         // Check if response is OK before parsing JSON
         if (!response.ok) {
@@ -2229,11 +2234,14 @@ async function startNGAScraping() {
         }
     } catch (error) {
         console.error('NGA scraping error:', error);
-        // Check if error is JSON parsing error
-        if (error.message && error.message.includes('JSON')) {
+        let msg = error.message || 'Unknown error';
+        const isTimeout = error.name === 'AbortError' || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+        if (msg.includes('JSON')) {
             updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else if (isTimeout) {
+            updateScrapingStatus(`❌ Connection failed or timed out (NGA takes 2–5 min). Run from terminal: python scripts/nga_comprehensive_scraper.py`, 'error');
         } else {
-            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+            updateScrapingStatus(`❌ Error: ${msg}`, 'error');
         }
         closeScrapingProgressModal();
     }
@@ -2243,10 +2251,14 @@ async function startSAAMScraping() {
     showScrapingProgressModal('Smithsonian American Art Museum');
     
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 360000);
         const response = await fetch('/api/admin/scrape-saam', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         
         // Check if response is OK before parsing JSON
         if (!response.ok) {
@@ -2286,11 +2298,14 @@ async function startSAAMScraping() {
         }
     } catch (error) {
         console.error('SAAM scraping error:', error);
-        // Check if error is JSON parsing error
-        if (error.message && error.message.includes('JSON')) {
+        let msg = error.message || 'Unknown error';
+        const isTimeout = error.name === 'AbortError' || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+        if (msg.includes('JSON')) {
             updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
+        } else if (isTimeout) {
+            updateScrapingStatus(`❌ Connection failed or timed out. Run from terminal: python -c "from scripts.saam_scraper import scrape_all_saam_events, create_events_in_database; e=scrape_all_saam_events(); create_events_in_database(e) if e else None"`, 'error');
         } else {
-            updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+            updateScrapingStatus(`❌ Error: ${msg}`, 'error');
         }
         closeScrapingProgressModal();
     }

@@ -482,6 +482,22 @@ function generateVenueDetailsHTML(venue) {
             </div>
         </div>
         
+        ${venue.additional_info ? `
+        <div style="margin-bottom: 20px;">
+            <h4 style="margin-bottom: 10px; color: #4a5568;">📋 Additional Info</h4>
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                <pre style="margin: 0; font-size: 0.8125rem; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto;">${(function() {
+                    try {
+                        const info = typeof venue.additional_info === 'string' ? JSON.parse(venue.additional_info) : venue.additional_info;
+                        return JSON.stringify(info, null, 2);
+                    } catch (e) {
+                        return venue.additional_info;
+                    }
+                })()}</pre>
+            </div>
+        </div>
+        ` : ''}
+        
         ${venue.image_url && venue.image_url.trim() ? `
         <div style="margin-bottom: 20px;">
             <h4 style="margin-bottom: 10px; color: #4a5568;">🖼️ Venue Image</h4>

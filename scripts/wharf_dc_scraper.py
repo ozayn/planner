@@ -281,6 +281,7 @@ def scrape_wharf_dc_events():
     with app.app_context():
         dc = City.query.filter(db.func.lower(City.name).like('%washington%')).first()
         if not dc:
+            logger.warning("Wharf DC scraper: Washington DC city not found in database")
             return []
 
         venue = Venue.query.filter(
@@ -289,11 +290,14 @@ def scrape_wharf_dc_events():
         ).first()
 
         if not venue:
+            logger.warning("Wharf DC scraper: Wharf DC venue not found in database (run load-all-data or add venue)")
             return []
 
         event_urls = get_event_urls_from_venue(venue)
+        # Fallback: production DB may not have additional_info with event_paths - use known URL
         if not event_urls:
-            return []
+            event_urls = ['https://www.wharfdc.com/upcoming-events/']
+            logger.debug("Wharf DC: using fallback events URL (venue additional_info missing or empty)")
 
         events = []
         session = requests.Session()

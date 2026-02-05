@@ -13,6 +13,28 @@ from typing import Optional, Dict, List, Tuple, Any
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from urllib.parse import quote
+
+# Image proxy - keeps all external images at loadable size (avoids 2MB+ Wharf images etc)
+# Used by scrapers (via create_events_in_database) and display (Event/Venue to_dict)
+IMAGE_PROXY_MAX_WIDTH_EVENT = 400  # Event cards/thumbnails
+IMAGE_PROXY_MAX_WIDTH_VENUE = 600  # Venue images
+
+def ensure_loadable_image_url(url: Optional[str], max_width: int = IMAGE_PROXY_MAX_WIDTH_EVENT) -> Optional[str]:
+    """
+    Ensure image URL is loadable by routing external URLs through resize proxy.
+    All scrapers (current and future) benefit - store raw URLs; this normalizes at save/display.
+    
+    - External http(s) URLs → /api/image-proxy?url=...&w=400 (resized)
+    - Google refs, /api/image, relative paths → returned as-is (handled elsewhere)
+    """
+    if not url or not isinstance(url, str) or not url.strip():
+        return url
+    url = url.strip()
+    if url.startswith(('http://', 'https://')):
+        return f"/api/image-proxy?url={quote(url, safe='')}&w={max_width}"
+    return url
+
+
 # Import centralized environment configuration
 from scripts.env_config import ensure_env_loaded, get_app_config, get_api_keys, get_available_llm_providers
 

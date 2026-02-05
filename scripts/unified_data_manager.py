@@ -302,6 +302,7 @@ class UnifiedDataManager:
                                 email=venue_data.get('email', ''),
                                 tour_info=venue_data.get('tour_info', ''),
                                 admission_fee=venue_data.get('admission_fee', ''),
+                                additional_info=json.dumps(venue_data['additional_info']) if isinstance(venue_data.get('additional_info'), dict) else venue_data.get('additional_info'),
                                 created_at=datetime.now(),
                                 updated_at=datetime.now()
                             )
