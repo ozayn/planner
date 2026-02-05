@@ -27,9 +27,6 @@ window.loadOverview = async function loadOverview() {
         
         const stats = await response.json();
         
-        // Log for debugging
-        console.log('📊 Overview stats loaded:', stats);
-        
         // Ensure all values are numbers, default to 0 if undefined
         const citiesCount = stats.cities !== undefined ? stats.cities : 0;
         const venuesCount = stats.venues !== undefined ? stats.venues : 0;
@@ -54,9 +51,6 @@ window.loadOverview = async function loadOverview() {
                 '<h3>' + eventsCount + '</h3>' +
                 '<p>Events</p>' +
             '</div>';
-        
-        // Log the update for debugging
-        console.log(`✅ Overview updated: ${eventsCount} events, ${citiesCount} cities, ${venuesCount} venues, ${sourcesCount} sources`);
         
     } catch (error) {
         console.error('Error loading statistics:', error);
