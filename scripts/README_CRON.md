@@ -19,10 +19,12 @@ Scrapes all active venues in Washington DC:
 - Save events to the database
 - Log results for monitoring
 
-### `cron_scrape_dc_museums.py` - Museums Only
-Scrapes only museums and Suns Cinema in Washington DC:
-- Filters to museums and Suns Cinema (by name and venue type)
-- Uses specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema)
+### `cron_scrape_dc_museums.py` - Museums + Webster's
+Scrapes museums, embassies, and Webster's Bookstore Cafe:
+- Filters to museums and Suns Cinema in DC (by name and venue type)
+- Uses specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema, Culture DC)
+- Scrapes embassies with Eventbrite ticketing URLs
+- Scrapes Webster's Bookstore Cafe (State College, PA)
 - More focused logging per museum
 - Ideal for museum-specific scraping schedules
 

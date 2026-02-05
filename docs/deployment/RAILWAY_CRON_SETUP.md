@@ -69,7 +69,7 @@ Railway supports scheduled tasks through cron jobs. You can set up a cron schedu
 ## Which Script to Use?
 
 ### `cron_scrape_dc_museums.py` (Recommended)
-- Scrapes only museums and embassies
+- Scrapes museums, embassies with Eventbrite, and Webster's Bookstore Cafe
 - Faster execution
 - More focused logging
 - **Start Command**: `python scripts/cron_scrape_dc_museums.py`

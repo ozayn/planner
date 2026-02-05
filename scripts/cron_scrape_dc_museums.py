@@ -5,6 +5,7 @@ Cronjob script to scrape Washington DC museums and embassies
 This script is designed to be run from a cronjob and will:
 - Scrape museums with specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn)
 - Scrape embassies with Eventbrite ticketing URLs
+- Scrape Webster's Bookstore Cafe (State College, PA)
 - Save events to the database
 - Log results for monitoring
 
@@ -452,6 +453,24 @@ def main():
                         venues_failed += 1
                         db.session.rollback()
                         continue
+            
+            # Webster's Bookstore Cafe (State College, PA) - specialized scraper
+            logger.info("")
+            logger.info("📚 Scraping Webster's Bookstore Cafe (State College, PA)...")
+            try:
+                from scripts.websters_scraper import scrape_websters_events, create_events_in_database
+                websters_events = scrape_websters_events()
+                if websters_events:
+                    created = create_events_in_database(websters_events)
+                    total_events_saved += created
+                    total_events_found += len(websters_events)
+                    logger.info(f"   ✅ Found {len(websters_events)} events, saved {created} new")
+                else:
+                    logger.info(f"   ⚠️ No events found")
+            except Exception as e:
+                logger.error(f"   ❌ Error in Webster's scraper: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
             
             # Final summary
             end_time = datetime.now()

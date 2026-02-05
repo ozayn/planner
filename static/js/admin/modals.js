@@ -179,9 +179,14 @@ function generateEventDetailsHTML(event) {
         return desc;
     };
     
+    const displayImageUrl = event.image_url || (event.venue_id && window.allVenues && (() => {
+        const v = window.allVenues.find(x => x.id === event.venue_id);
+        return v && v.image_url ? v.image_url : null;
+    })());
+    
     let html = `
         <!-- Event Header with Image -->
-        <div class="event-details-header" style="display: grid; grid-template-columns: ${event.image_url ? '1fr 300px' : '1fr'}; gap: 20px; margin-bottom: 25px;">
+        <div class="event-details-header" style="display: grid; grid-template-columns: ${displayImageUrl ? '1fr 300px' : '1fr'}; gap: 20px; margin-bottom: 25px;">
             <div>
                 <div style="background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; padding: 25px; border-radius: 12px; text-align: center;">
                     <h2 style="margin: 0; font-size: 26px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${event.title || 'Untitled Event'}</h2>
@@ -198,17 +203,20 @@ function generateEventDetailsHTML(event) {
                     </div>
                 ` : ''}
             </div>
-            ${event.image_url ? `
+            ${displayImageUrl ? `
                 <div>
                     <h4 style="margin-bottom: 10px; color: #4a5568; font-size: 14px;">🖼️ Event Image</h4>
-                    <a href="${event.image_url}" target="_blank" style="display: block; text-decoration: none; border-radius: 12px; overflow: hidden;">
-                        <img src="${event.image_url}" alt="${event.title || 'Event'} Image" 
+                    <a href="${displayImageUrl.startsWith('/') ? (window.location.origin || '') + displayImageUrl : displayImageUrl}" target="_blank" style="display: block; text-decoration: none; border-radius: 12px; overflow: hidden; background: #f5f5f5; min-height: 120px;">
+                        <img src="${displayImageUrl.replace(/"/g, '&quot;')}" alt="${(event.title || 'Event').replace(/"/g, '&quot;')}" 
                              style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.2s; background: #f5f5f5;"
-                             onerror="console.error('Failed to load image:', '${event.image_url}'); this.style.background='#f5f5f5'; this.alt='Image unavailable - click to view URL';"
+                             onerror="this.onerror=null; this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
                              onmouseover="this.style.transform='scale(1.02)'"
                              onmouseout="this.style.transform='scale(1)'">
+                        <div class="image-fallback-placeholder" style="display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; background: #f0f0f0; border-radius: 12px; color: #666; font-size: 13px; padding: 16px; text-align: center;">
+                            Image could not be loaded.<br><small>Add GOOGLE_MAPS_API_KEY to .env for venue photos</small>
+                        </div>
                     </a>
-                    <small style="display: block; margin-top: 8px; color: #666; text-align: center;">Click image to view full size</small>
+                    <small style="display: block; margin-top: 8px; color: #666; text-align: center;">Click to open in new tab</small>
                 </div>
             ` : ''}
         </div>

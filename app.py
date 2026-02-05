@@ -735,8 +735,10 @@ class Event(db.Model):
         """Convert event to dictionary with all relevant fields"""
         from urllib.parse import quote
         
-        # Handle image_url - convert photo data to public Google Maps URL (no API key required)
+        # Handle image_url - use venue image as fallback when event has no image
         image_url = self.image_url
+        if (not image_url or (isinstance(image_url, str) and not image_url.strip())) and self.venue and self.venue.image_url:
+            image_url = self.venue.to_dict()['image_url']
         if image_url and isinstance(image_url, dict) and 'photo_reference' in image_url:
             # Generate public Google Maps URL using event location
             if self.start_location and self.start_location.strip():
@@ -1438,7 +1440,7 @@ def get_events():
                 Event.start_date <= end_date
             )
         
-        tour_events = tour_query.options(db.joinedload(Event.city)).all()
+        tour_events = tour_query.options(db.joinedload(Event.city), db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in tour_events])
     
     if not event_type or event_type == 'exhibition':
@@ -1468,7 +1470,7 @@ def get_events():
                 Event.end_date >= start_date
             )
         
-        exhibition_events = exhibition_query.all()
+        exhibition_events = exhibition_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in exhibition_events])
     
     if not event_type or event_type == 'festival':
@@ -1485,7 +1487,7 @@ def get_events():
                 Event.end_date >= start_date
             )
         
-        festival_events = festival_query.all()
+        festival_events = festival_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in festival_events])
     
     if not event_type or event_type == 'photowalk':
@@ -1502,7 +1504,7 @@ def get_events():
                 Event.start_date <= end_date
             )
         
-        photowalk_events = photowalk_query.all()
+        photowalk_events = photowalk_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in photowalk_events])
     
     if not event_type or event_type == 'music':
@@ -1515,7 +1517,7 @@ def get_events():
                 Event.start_date >= start_date,
                 Event.start_date <= end_date
             )
-        music_events = music_query.all()
+        music_events = music_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in music_events])
 
     if not event_type or event_type == 'film':
@@ -1528,7 +1530,7 @@ def get_events():
                 Event.start_date >= start_date,
                 Event.start_date <= end_date
             )
-        film_events = film_query.all()
+        film_events = film_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in film_events])
 
     if not event_type or event_type == 'workshop':
@@ -1541,7 +1543,7 @@ def get_events():
                 Event.start_date >= start_date,
                 Event.start_date <= end_date
             )
-        workshop_events = workshop_query.all()
+        workshop_events = workshop_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in workshop_events])
 
     if not event_type or event_type == 'talk':
@@ -1554,7 +1556,7 @@ def get_events():
                 Event.start_date >= start_date,
                 Event.start_date <= end_date
             )
-        talk_events = talk_query.all()
+        talk_events = talk_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in talk_events])
     
     # Handle other event types (music, food, community_event, etc.)
@@ -1584,7 +1586,7 @@ def get_events():
                 ~Event.event_type.in_(['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music'])
             )
         
-        other_events = other_events.all()
+        other_events = other_events.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in other_events])
     
     return jsonify(events)
@@ -1653,18 +1655,22 @@ def get_venue_image(photo_reference):
             app_logger.warning("Empty photo reference provided to /api/image/ endpoint")
             return jsonify({'error': 'Invalid photo reference'}), 400
         
-        google_maps_api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+        google_maps_api_key = os.getenv('GOOGLE_MAPS_API_KEY') or os.getenv('GOOGLE_API_KEY')
         
         if not google_maps_api_key:
-            return jsonify({'error': 'Google Maps API key not configured'}), 500
+            app_logger.warning("GOOGLE_MAPS_API_KEY (or GOOGLE_API_KEY) not configured - cannot serve venue/event images")
+            return jsonify({'error': 'Google Maps API key not configured. Add GOOGLE_MAPS_API_KEY to .env'}), 500
         
-        # Construct the Google Maps photo URL with API key
-        image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo_reference}&key={google_maps_api_key}"
+        # Construct the Google Maps photo URL with API key (parameter is photo_reference per Google docs)
+        from urllib.parse import quote
+        image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference={quote(photo_reference, safe='-_')}&key={google_maps_api_key}"
         
         # Fetch the image from Google Maps
         import requests
         response = requests.get(image_url, timeout=10)
-        response.raise_for_status()
+        if not response.ok:
+            app_logger.warning(f"Places Photo API returned {response.status_code}: {response.text[:300]}")
+            return jsonify({'error': f'Image fetch failed ({response.status_code}). Photo refs can expire - refetch from Places API.'}), 502
         
         # Return the image with proper headers
         from flask import Response

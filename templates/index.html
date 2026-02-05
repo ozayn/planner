@@ -6216,9 +6216,9 @@
                 });
             }
             
-            // Get current time range filter (if any)
-            const currentTimeRange = document.getElementById('dateRangeSelect')?.value || 
-                                    document.querySelector('.time-btn.active')?.dataset.period || 
+            // Get current time range filter - prefer time-btn (has "all" option) over dateRangeSelect (doesn't)
+            const currentTimeRange = document.querySelector('.time-btn.active')?.dataset.period || 
+                                    document.getElementById('dateRangeSelect')?.value || 
                                     'this_week';
             
             // Filter by date range when not "all"
