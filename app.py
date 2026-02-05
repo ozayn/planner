@@ -1757,10 +1757,9 @@ def proxy_external_image():
         if 'evbuc.com' in image_url.lower():
             return redirect(image_url, code=302)
         
-        # Disable SSL verification warnings
+        # Disable SSL verification warnings (verify=False avoids SSLContext being passed to stat() in some urllib3 versions)
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        ssl_ctx = _create_ssl_context_no_verify()
         
         # Set proper headers to avoid bot detection and hotlinking restrictions
         headers = {
@@ -1773,7 +1772,7 @@ def proxy_external_image():
         
         # Try regular requests first (works well with proper headers)
         try:
-            response = requests.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=ssl_ctx)
+            response = requests.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             # 403/404 = hotlinking blocked (Eventbrite, etc.) - redirect so browser tries directly
@@ -1785,7 +1784,7 @@ def proxy_external_image():
                 import cloudscraper
                 scraper = cloudscraper.create_scraper()
                 app_logger.info(f"Regular request failed, trying cloudscraper for {image_url[:80]}...")
-                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=ssl_ctx)
+                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
                 response.raise_for_status()
             except ImportError:
                 raise e
