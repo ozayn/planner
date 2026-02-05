@@ -14,24 +14,31 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
-# Image proxy - keeps all external images at loadable size (avoids 2MB+ Wharf images etc)
-# Used by scrapers (via create_events_in_database) and display (Event/Venue to_dict)
+# Image proxy - only for domains known to serve huge images (2MB+)
+# Proxying ALL images overloads production (100+ events = 100+ proxy requests)
 IMAGE_PROXY_MAX_WIDTH_EVENT = 400  # Event cards/thumbnails
 IMAGE_PROXY_MAX_WIDTH_VENUE = 600  # Venue images
 
+# Domains that serve very large images - proxy these to resize. Others load directly.
+LARGE_IMAGE_DOMAINS = ('s3.amazonaws.com', 'wharfdc.com', 'hirshhorn.si.edu', 'si.edu')
+
 def ensure_loadable_image_url(url: Optional[str], max_width: int = IMAGE_PROXY_MAX_WIDTH_EVENT) -> Optional[str]:
     """
-    Ensure image URL is loadable by routing external URLs through resize proxy.
-    All scrapers (current and future) benefit - store raw URLs; this normalizes at save/display.
+    Route external URLs through resize proxy ONLY for domains known to serve huge images.
+    Proxying all images overloads production (each event image = 1 server fetch).
     
-    - External http(s) URLs → /api/image-proxy?url=...&w=400 (resized)
-    - Google refs, /api/image, relative paths → returned as-is (handled elsewhere)
+    - Known large domains (Wharf S3, Hirshhorn, etc.) → proxy with resize
+    - Other external URLs → return as-is (browser loads directly)
+    - Google refs, /api/image, relative paths → returned as-is
     """
     if not url or not isinstance(url, str) or not url.strip():
         return url
     url = url.strip()
     if url.startswith(('http://', 'https://')):
-        return f"/api/image-proxy?url={quote(url, safe='')}&w={max_width}"
+        url_lower = url.lower()
+        if any(domain in url_lower for domain in LARGE_IMAGE_DOMAINS):
+            return f"/api/image-proxy?url={quote(url, safe='')}&w={max_width}"
+        return url  # Other domains: load directly, avoid proxy overload
     return url
 
 

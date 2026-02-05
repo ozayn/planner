@@ -3658,11 +3658,16 @@
                 if (!currentCityId) {
                     const lastSelectedCityId = localStorage.getItem('lastSelectedCityId');
                     if (lastSelectedCityId) {
-                        const lastCity = cities.find(c => c.id == lastSelectedCityId);
+                        const lastCity = cities.find(c => c.id == lastSelectedCityId || c.id == parseInt(lastSelectedCityId));
                         if (lastCity) {
-                            currentCityId = lastSelectedCityId;
+                            currentCityId = String(lastCity.id);
                         }
                     }
+                }
+                // Fallback: default to Washington when localStorage has wrong ID (e.g. local vs production)
+                if (!currentCityId) {
+                    const washington = cities.find(c => c.name === 'Washington' && (c.state || '').toLowerCase().includes('columbia'));
+                    if (washington) currentCityId = String(washington.id);
                 }
                 
                 // Get city select element
