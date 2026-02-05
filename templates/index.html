@@ -223,12 +223,7 @@
             display: none !important;
         }
 
-        /* Show on desktop IF NOT forcing desktop (i.e. user requested mobile view on desktop) */
-        @media (min-width: 769px) {
-            body:not(.force-desktop) .header-controls {
-                display: block;
-            }
-        }
+        /* Always hide Change City on desktop - city select is in the control panel */
 
         .main-content {
             display: grid;
@@ -268,6 +263,40 @@
 
         .venues-panel:hover {
             box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+        }
+
+        .discovery-toggle-btn {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 12px 0 0 0;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+        .discovery-toggle-btn:hover {
+            background: rgba(255,255,255,0.95);
+            border-color: rgba(0,0,0,0.12);
+            color: rgba(0,0,0,0.8);
+        }
+        .discovery-toggle-btn.expanded::after {
+            content: ' ▲';
+            font-size: 0.75em;
+        }
+        .discovery-toggle-btn:not(.expanded)::after {
+            content: ' ▼';
+            font-size: 0.75em;
+        }
+        .discovery-options-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0,0,0,0.06);
         }
 
         #venuesContainer {
@@ -2808,6 +2837,11 @@
                     </select>
                 </div>
 
+                <button type="button" id="discoveryOptionsToggle" class="discovery-toggle-btn" title="Scrape new events from venues and sources">
+                    Discovery options
+                </button>
+
+                <div id="discoveryOptionsSection" class="discovery-options-section" style="display: none;">
                 <div class="form-group" id="eventTypeGroup" style="display: none;">
                     <label for="eventTypeSelect">Event Type</label>
                     <select id="eventTypeSelect">
@@ -3038,7 +3072,6 @@
                     </div>
                 </div>
 
-
                 <!-- Progress Section -->
                 <div class="progress-section">
                     <div class="progress-bar">
@@ -3092,6 +3125,7 @@
                         </div>
                     </div>
                 </div>
+                </div><!-- end discoveryOptionsSection -->
             </div>
 
             <!-- Venues & Sources Panel -->
@@ -3814,6 +3848,22 @@
             
             // Add clear filters button
             document.getElementById('clearFiltersButton').addEventListener('click', clearAllFilters);
+
+            // Discovery options toggle
+            const discoveryOptionsToggle = document.getElementById('discoveryOptionsToggle');
+            const discoveryOptionsSection = document.getElementById('discoveryOptionsSection');
+            if (discoveryOptionsToggle && discoveryOptionsSection) {
+                discoveryOptionsToggle.addEventListener('click', function() {
+                    const isExpanded = discoveryOptionsSection.style.display !== 'none';
+                    discoveryOptionsSection.style.display = isExpanded ? 'none' : 'block';
+                    discoveryOptionsToggle.classList.toggle('expanded', !isExpanded);
+                    const venuesPanel = document.getElementById('venuesPanel');
+                    if (venuesPanel) venuesPanel.style.display = isExpanded ? 'none' : 'flex';
+                });
+                // Initially hide venues panel (discovery collapsed by default)
+                const venuesPanel = document.getElementById('venuesPanel');
+                if (venuesPanel) venuesPanel.style.display = 'none';
+            }
             
             // Add extracted events filter checkbox listener
             const showExtractedEventsCheckbox = document.getElementById('showExtractedEvents');
@@ -7292,11 +7342,11 @@
                     <div class="grouped-tour-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleGroupedTourExpansion('${cardId}')">
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; flex: 1; min-width: 0;">${tourTitle}</div>
+                                <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; flex: 1; min-width: 0; line-height: 1.4;">${tourTitle}</div>
                                 <input type="checkbox" id="grouped_tour_chk_${cardId}" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''}
                                        onchange="toggleGroupedTourSelection('${tourTitle}', this.checked); event.stopPropagation();"
                                        onclick="event.stopPropagation();"
-                                       style="width: 16px; height: 16px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0;">
+                                       style="width: 16px; height: 16px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0; align-self: flex-start; margin-top: 2px; margin-left: 8px;">
                             </div>
                             <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 2px;">${locationDisplay}</div>
                             <div style="font-size: 0.75rem; color: #6b7280;">
