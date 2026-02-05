@@ -471,6 +471,24 @@ def main():
                 logger.error(f"   ❌ Error in Webster's scraper: {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+
+            # The Wharf DC - uses venue additional_info event paths + Wharf-specific extraction
+            logger.info("")
+            logger.info("⛵ Scraping The Wharf DC...")
+            try:
+                from scripts.wharf_dc_scraper import scrape_wharf_dc_events, create_events_in_database_wrapper
+                wharf_events = scrape_wharf_dc_events()
+                if wharf_events:
+                    created, updated, skipped = create_events_in_database_wrapper(wharf_events)
+                    total_events_saved += created
+                    total_events_found += len(wharf_events)
+                    logger.info(f"   ✅ Found {len(wharf_events)} events, saved {created} new, updated {updated}")
+                else:
+                    logger.info(f"   ⚠️ No events found")
+            except Exception as e:
+                logger.error(f"   ❌ Error in Wharf DC scraper: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
             
             # Final summary
             end_time = datetime.now()

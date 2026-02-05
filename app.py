@@ -8668,6 +8668,71 @@ def scrape_culture_dc_endpoint():
             'error': str(e)
         }), 500
 
+@app.route('/api/admin/scrape-wharf-dc', methods=['POST'])
+def scrape_wharf_dc_endpoint():
+    """Scrape all Wharf DC events from the upcoming-events listing page."""
+    try:
+        app_logger.info("Starting Wharf DC scraping...")
+
+        # Initialize progress tracking
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 1,
+            'percentage': 5,
+            'message': 'Starting Wharf DC scraping...',
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'venues_processed': 0,
+            'total_venues': 1,
+            'current_venue': 'Wharf DC',
+            'recent_events': []
+        }
+
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        from scripts.wharf_dc_scraper import scrape_wharf_dc_events, create_events_in_database_wrapper
+
+        progress_data.update({'message': 'Scraping events from Wharf DC...'})
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        events = scrape_wharf_dc_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        progress_data.update({
+            'percentage': 100,
+            'message': f'✅ Wharf DC scraping completed! Found {len(events)} events.',
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'recent_events': [{'title': e.get('title', 'Unknown'), 'type': e.get('event_type', 'unknown'), 'date': str(e.get('start_date')) if e.get('start_date') else None, 'time': str(e.get('start_time')) if e.get('start_time') else None} for e in events[:10]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} events at Wharf DC (created: {created}, updated: {updated})"
+        })
+
+    except Exception as e:
+        app_logger.error(f"Error scraping Wharf DC: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/admin/scrape-asian-art', methods=['POST'])
 def scrape_asian_art():
     """Scrape all Asian Art Museum events: exhibitions, tours, talks, and other events."""
