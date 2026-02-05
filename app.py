@@ -1721,10 +1721,19 @@ def _resize_image_if_needed(content: bytes, content_type: str, max_width: int) -
         return content, content_type
 
 
+def _create_ssl_context_no_verify():
+    """Create SSL context that disables verification (avoids 'verify_mode+CERT_NONE when check_hostname enabled' error)."""
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
 @app.route('/api/image-proxy')
 def proxy_external_image():
     """Proxy external images to bypass hotlinking restrictions and optionally resize large images."""
-    from flask import request
+    from flask import request, redirect
     from urllib.parse import unquote, quote
     import requests
     from flask import Response
@@ -1744,9 +1753,14 @@ def proxy_external_image():
         if not image_url.startswith(('http://', 'https://')):
             return jsonify({'error': 'Invalid URL'}), 400
         
+        # Eventbrite (evbuc.com) blocks server requests with 403 - redirect to original URL so browser loads directly
+        if 'evbuc.com' in image_url.lower():
+            return redirect(image_url, code=302)
+        
         # Disable SSL verification warnings
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        ssl_ctx = _create_ssl_context_no_verify()
         
         # Set proper headers to avoid bot detection and hotlinking restrictions
         headers = {
@@ -1759,24 +1773,27 @@ def proxy_external_image():
         
         # Try regular requests first (works well with proper headers)
         try:
-            response = requests.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
+            response = requests.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=ssl_ctx)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            # If regular requests fails, try cloudscraper (for Cloudflare protection)
+            # 403/404 = hotlinking blocked (Eventbrite, etc.) - redirect so browser tries directly
+            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (403, 404):
+                app_logger.debug(f"Proxy blocked ({e.response.status_code}), redirecting to original URL")
+                return redirect(image_url, code=302)
+            # Try cloudscraper for other failures (Cloudflare, etc.)
             try:
                 import cloudscraper
                 scraper = cloudscraper.create_scraper()
-                app_logger.info(f"Regular request failed, trying cloudscraper for {image_url}")
-                # Disable SSL verification for cloudscraper too (fixes SSL certificate errors)
-                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
+                app_logger.info(f"Regular request failed, trying cloudscraper for {image_url[:80]}...")
+                response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=ssl_ctx)
                 response.raise_for_status()
             except ImportError:
-                # cloudscraper not available, re-raise original error
                 raise e
-            except Exception as e2:
-                # cloudscraper also failed, log and raise
-                app_logger.error(f"Both regular requests and cloudscraper failed for {image_url}: {e}, {e2}")
-                raise e
+            except requests.exceptions.RequestException as e2:
+                if hasattr(e2, 'response') and e2.response is not None and e2.response.status_code in (403, 404):
+                    return redirect(image_url, code=302)
+                app_logger.error(f"Both regular requests and cloudscraper failed for {image_url[:80]}...: {e}, {e2}")
+                raise e2
         
         content = response.content
         content_type = response.headers.get('Content-Type', 'image/jpeg')
@@ -8779,6 +8796,58 @@ def scrape_wharf_dc_endpoint():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/admin/scrape-dcparade', methods=['POST'])
+def scrape_dcparade_endpoint():
+    """Scrape DC Chinese New Year Parade from dcparade.com."""
+    try:
+        app_logger.info("Starting DC Parade scraping...")
+
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 1,
+            'percentage': 5,
+            'message': 'Starting DC Chinese New Year Parade scraping...',
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'recent_events': []
+        }
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        from scripts.dcparade_scraper import scrape_dcparade_events, create_events_in_database_wrapper
+
+        events = scrape_dcparade_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        progress_data.update({
+            'percentage': 100,
+            'message': f'✅ DC Parade scraping completed! Found {len(events)} events.',
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'recent_events': [{'title': e.get('title'), 'date': str(e.get('start_date')), 'time': str(e.get('start_time'))} for e in events[:5]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} DC Parade event(s) (created: {created}, updated: {updated})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping DC Parade: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/admin/scrape-asian-art', methods=['POST'])
 def scrape_asian_art():
