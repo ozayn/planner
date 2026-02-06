@@ -476,12 +476,20 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
         # Extract image - try multiple strategies
         image_url = None
         
+        # Strategy 0: Open Graph image (most reliable for sharing/preview)
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            image_url = og_image.get('content', '').strip()
+            if image_url and not image_url.startswith('http'):
+                image_url = urljoin(NPG_BASE_URL, image_url)
+        
         # Strategy 1: Look for hero/feature/main images by class
-        img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|exhibition|header', re.I))
-        if img_elem:
-            img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src')
-            if img_src:
-                image_url = urljoin(NPG_BASE_URL, img_src)
+        if not image_url:
+            img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|exhibition|header', re.I))
+            if img_elem:
+                img_src = img_elem.get('src') or img_elem.get('data-src') or img_elem.get('data-lazy-src')
+                if img_src:
+                    image_url = urljoin(NPG_BASE_URL, img_src)
         
         # Strategy 2: Look for images with keywords in URL (page-header, hero, etc.)
         # Prefer larger image sizes (slides_wide, large) over smaller ones (medium, thumbnail)
@@ -910,19 +918,23 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
         elif 'first thursdays' in title_lower:
             event_type = 'talk'
         
-        # Extract image
+        # Extract image - og:image first (most reliable), then img elements
         image_url = None
-        img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|event', re.I))
-        if not img_elem:
-            # Look for first image in content area
-            main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content', re.I))
-            if main_content:
-                img_elem = main_content.find('img')
-        
-        if img_elem:
-            img_src = img_elem.get('src') or img_elem.get('data-src')
-            if img_src:
-                image_url = urljoin(NPG_BASE_URL, img_src)
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            image_url = og_image.get('content', '').strip()
+            if image_url and not image_url.startswith('http'):
+                image_url = urljoin(NPG_BASE_URL, image_url)
+        if not image_url:
+            img_elem = soup.find('img', class_=re.compile(r'hero|feature|main|event', re.I))
+            if not img_elem:
+                main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content', re.I))
+                if main_content:
+                    img_elem = main_content.find('img')
+            if img_elem:
+                img_src = img_elem.get('src') or img_elem.get('data-src')
+                if img_src:
+                    image_url = urljoin(NPG_BASE_URL, img_src)
         
         # Build event dictionary
         event = {

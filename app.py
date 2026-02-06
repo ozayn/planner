@@ -1740,7 +1740,7 @@ def _create_ssl_context_no_verify():
 def proxy_external_image():
     """Proxy external images to bypass hotlinking restrictions and optionally resize large images."""
     from flask import request, redirect
-    from urllib.parse import unquote, quote
+    from urllib.parse import unquote, quote, urlparse
     import requests
     from flask import Response
     
@@ -1767,13 +1767,17 @@ def proxy_external_image():
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
-        # Set proper headers to avoid bot detection and hotlinking restrictions
+        # Set Referer/Origin based on image domain - Smithsonian sites block hotlinking and require matching referer
+        parsed = urlparse(image_url)
+        origin_base = f"{parsed.scheme}://{parsed.netloc}" if parsed.netloc else 'https://hirshhorn.si.edu'
+        referer = origin_base + '/' if not origin_base.endswith('/') else origin_base
+        
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://hirshhorn.si.edu/',  # Add referer to make request look legitimate (bypasses hotlinking)
-            'Origin': 'https://hirshhorn.si.edu',
+            'Referer': referer,
+            'Origin': origin_base.rstrip('/'),
         }
         
         # Try regular requests first (works well with proper headers)
