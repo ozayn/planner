@@ -6,6 +6,7 @@ Update closure status directly in production database via API
 import requests
 import json
 import sys
+from datetime import datetime
 
 def update_production_closure_status():
     """Update closure status in production database"""
@@ -26,25 +27,25 @@ def update_production_closure_status():
     dc_venues = [v for v in venues if 'Washington' in v.get('city_name', '')]
     print(f"🏛️ Found {len(dc_venues)} DC venues")
     
-    # Define closure status for each venue
+    # Define closure status for each venue (update during government shutdowns)
     closure_status_map = {
-        # Government venues - CLOSED
-        'Smithsonian National Museum of Natural History': 'closed',
-        'Smithsonian National Museum of American History': 'closed',
-        'Smithsonian National Museum of African American History and Culture': 'closed',
-        'Smithsonian National Air and Space Museum': 'closed',
-        'Smithsonian National Museum of the American Indian': 'closed',
-        'Smithsonian Hirshhorn Museum and Sculpture Garden': 'closed',
-        'Smithsonian National Museum of Asian Art': 'closed',
-        'National Gallery of Art': 'closed',
-        'United States Holocaust Memorial Museum': 'closed',
-        'National Zoo': 'closed',
-        'United States Botanic Garden': 'closed',
-        'Capitol Building': 'closed',
-        'White House': 'closed',
-        'Supreme Court': 'closed',
-        'Library of Congress': 'closed',
-        'National Portrait Gallery': 'closed',
+        # Government venues - OPEN (update to 'closed' during government shutdowns)
+        'Smithsonian National Museum of Natural History': 'open',
+        'Smithsonian National Museum of American History': 'open',
+        'Smithsonian National Museum of African American History and Culture': 'open',
+        'Smithsonian National Air and Space Museum': 'open',
+        'Smithsonian National Museum of the American Indian': 'open',
+        'Smithsonian Hirshhorn Museum and Sculpture Garden': 'open',
+        'Smithsonian National Museum of Asian Art': 'open',
+        'National Gallery of Art': 'open',
+        'United States Holocaust Memorial Museum': 'open',
+        'National Zoo': 'open',
+        'United States Botanic Garden': 'open',
+        'Capitol Building': 'open',
+        'White House': 'open',
+        'Supreme Court': 'open',
+        'Library of Congress': 'open',
+        'National Portrait Gallery': 'open',
         
         # Private venues - OPEN
         'International Spy Museum': 'open',
@@ -102,10 +103,16 @@ def update_production_closure_status():
             closure_status = closure_status_map[venue_name]
             
             # Create additional_info with closure status
+            if closure_status == 'closed':
+                closure_reason = 'Closed due to government shutdown. Check website for reopening updates.'
+            elif closure_status == 'open':
+                closure_reason = 'Open - check venue website for current hours.'
+            else:
+                closure_reason = 'Status unknown - please check venue website for current hours.'
             additional_info = {
                 'closure_status': closure_status,
-                'closure_reason': 'Closed due to government shutdown. Check website for reopening updates.' if closure_status == 'closed' else 'Independent venue - typically remains open during government shutdown.' if closure_status == 'open' else 'Status unknown - please check venue website for current hours.',
-                'last_updated': '2025-10-21T21:00:00.000000'
+                'closure_reason': closure_reason,
+                'last_updated': datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
             }
             
             # Update venue via API
