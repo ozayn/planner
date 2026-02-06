@@ -299,11 +299,21 @@ def update_existing_event(existing, event_data: Dict, venue_id: int, logger) -> 
         updated_fields.append('social_media_url')
     
     # Update other fields as needed
-    for field in ['start_time', 'end_time', 'end_date', 'start_location', 'end_location',
-                  'meeting_point', 'price', 'is_registration_required', 'registration_url',
+    for field in ['start_time', 'end_time', 'end_date', 'start_date', 'start_location', 'end_location',
+                  'meeting_point', 'price', 'is_registration_required', 'registration_url', 'registration_info',
                   'is_baby_friendly', 'organizer', 'social_media_platform', 'social_media_handle']:
         if field in event_data and hasattr(existing, field):
             new_value = event_data[field]
+            
+            # Convert date strings to date objects
+            if field in ['start_date', 'end_date'] and isinstance(new_value, str):
+                try:
+                    new_value = datetime.fromisoformat(new_value.replace('Z', '+00:00')).date()
+                except (ValueError, AttributeError):
+                    try:
+                        new_value = datetime.strptime(new_value, '%Y-%m-%d').date()
+                    except ValueError:
+                        continue
             
             # Convert time strings to time objects
             if field in ['start_time', 'end_time'] and isinstance(new_value, str):

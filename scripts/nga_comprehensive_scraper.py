@@ -1079,19 +1079,43 @@ def scrape_nga_nights(scraper):
                                 if event_date < today:
                                     continue
                                 ev_title = f"National Gallery Nights: {name}" if name and 'national gallery nights' not in name.lower() else (name or title)
+                                # Use individual event description (theme-specific); fallback to series
+                                ev_desc = (se.get('description') or '').strip() or series_desc
+                                # Image and registration: scrape from individual event page
+                                ev_url = se.get('url')
+                                ev_image = image_url
+                                ev_reg_info = 'Lottery opens Monday 10am, closes Thursday noon. Additional passes at East Building entrance from 5:30 p.m.'
+                                if ev_url:
+                                    try:
+                                        ev_resp = fetch_with_retry(scraper, ev_url, max_retries=2, delay=1)
+                                        if ev_resp:
+                                            ev_soup = BeautifulSoup(ev_resp.text, 'html.parser')
+                                            ev_text = ev_soup.get_text()
+                                            ev_og = ev_soup.find('meta', property='og:image')
+                                            if ev_og and ev_og.get('content'):
+                                                ev_img = ev_og.get('content', '').strip()
+                                                if 'api.nga.gov/iiif' in ev_img and '/0/default.' not in ev_img:
+                                                    ev_img = ev_img.rstrip('/') + '/0/default.jpg'
+                                                ev_image = ev_img
+                                            # Event-specific lottery dates: "Lottery for registration opens Monday, March 2, at 10:00 a.m. and closes Thursday, March 5, at noon."
+                                            reg_m = re.search(r'(Lottery for registration opens [^.]*(?:a\.m\.|p\.m\.|noon)[^.]*\.)', ev_text)
+                                            if reg_m:
+                                                ev_reg_info = reg_m.group(1).strip() + ' Additional passes at East Building entrance from 5:30 p.m.'
+                                    except Exception:
+                                        pass
                                 events.append({
                                     'title': ev_title,
-                                    'description': series_desc,
+                                    'description': ev_desc,
                                     'start_date': event_date.isoformat(),
                                     'end_date': dt_end.date().isoformat(),
                                     'start_time': dt_start.strftime('%H:%M:%S'),
                                     'end_time': dt_end.strftime('%H:%M:%S'),
                                     'start_location': 'East Building, National Gallery of Art',
                                     'url': se.get('url') or series_url,
-                                    'image_url': image_url,
-                                    'event_type': 'festival',
+                                    'image_url': ev_image,
+                                    'event_type': 'event',  # Themed after-hours program (not multi-day festival)
                                     'is_registration_required': True,
-                                    'registration_info': 'Lottery opens Monday 10am, closes Thursday noon. Additional passes at East Building entrance from 5:30 p.m.',
+                                    'registration_info': ev_reg_info,
                                 })
                                 logger.info(f"   ✅ From JSON-LD: {ev_title}")
                             except (ValueError, TypeError) as e:
@@ -1146,7 +1170,7 @@ def scrape_nga_nights(scraper):
                                     'start_location': 'East Building, National Gallery of Art',
                                     'url': NGA_NIGHTS_URL,
                                     'image_url': image_url,
-                                    'event_type': 'festival',
+                                    'event_type': 'event',
                                     'is_registration_required': True,
                                     'registration_info': 'Lottery opens Monday 10am, closes Thursday noon. Additional passes at East Building entrance from 5:30 p.m.',
                                 })
