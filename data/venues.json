@@ -445,7 +445,7 @@
       "image_url": "AciIO2eZms7MwkRIwjmK-kldbZ25ESqIUtT4yhX0uC8TQrTe-HAryuqHcAngKJXHq7gRBzgba-XDE5l3i-atfC1cLpEWcQDRU_JibaGxbvrPUGNPmy4VmL0yU8-YUlK4ZBYhUaTLhO9pQqTWxz5Kv-8An3CrCKfOSMGZqtL5nytCTSd9YEql4bUEyt4BPJQla1XGojLhySCrLA6f6xLOEM_xZup6LBIE2ahr57dwB0dCwC4E9IO8608SjKZxIgwjGCmC1XiceK7DPJ_mq-jtfWNMH_pAHoTAsUa85NHL8GUqfrXqsDHXGvneGrr6Kw0S7sY7jBvDMp_tJRbsdSXyCzIrHpMrvG0yyz_Qvn-Ab-Swa152BmCSLcPN0FODPFeDyhX1ptzSr8NBrm3rXtisUp8xane2ygBMJUJj67zZ-lbU_dW2gkJm",
       "latitude": 38.8913,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001393\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001393\", \"event_paths\": {\"national_gallery_nights\": \"https://www.nga.gov/calendar/national-gallery-nights\"}}",
       "created_at": "2025-10-08T20:42:31.666490",
       "updated_at": "2026-02-02T21:19:35.653530"
     },

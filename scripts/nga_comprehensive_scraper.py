@@ -6,6 +6,7 @@ Scrapes Finding Awe, tours, exhibitions, films, talks, and other events
 import os
 import sys
 import re
+import json
 import logging
 from datetime import datetime, date, time, timedelta
 from bs4 import BeautifulSoup
@@ -39,6 +40,7 @@ NGA_TOURS_URL = 'https://www.nga.gov/calendar?tab=tours'  # Tours are on calenda
 NGA_TALKS_URL = 'https://www.nga.gov/calendar/talks'
 NGA_LECTURES_URL = 'https://www.nga.gov/calendar/lectures'
 NGA_FILMS_BASE_URL = 'https://www.nga.gov/calendar'  # Films use type parameter
+NGA_NIGHTS_URL = 'https://www.nga.gov/calendar/national-gallery-nights'
 
 
 def create_scraper():
@@ -164,8 +166,8 @@ def scrape_all_nga_events():
     """Scrape all NGA events: Finding Awe, tours, exhibitions, films, talks, and other events"""
     all_events = []
     
-    # Total steps: Finding Awe, Exhibitions, Tours, Films = 4 steps
-    total_steps = 4
+    # Total steps: Finding Awe, Exhibitions, Tours, Films, National Gallery Nights = 5 steps
+    total_steps = 5
     
     try:
         scraper = create_scraper()
@@ -242,7 +244,20 @@ def scrape_all_nga_events():
             logger.error(traceback.format_exc())
             # Continue even if films fail
         
-        # 5. Scrape talks/lectures (DISABLED FOR NOW - focusing on tours)
+        # 5. Scrape National Gallery Nights
+        update_scraping_progress(5, total_steps, "Scraping National Gallery Nights...", events_found=len(all_events), venue_name=VENUE_NAME)
+        logger.info("🔍 Scraping National Gallery Nights...")
+        try:
+            nga_nights = scrape_nga_nights(scraper)
+            all_events.extend(nga_nights)
+            update_scraping_progress(5, total_steps, f"✅ Found {len(nga_nights)} National Gallery Nights", events_found=len(all_events), venue_name=VENUE_NAME)
+            logger.info(f"   ✅ Found {len(nga_nights)} National Gallery Nights events")
+        except Exception as e:
+            logger.error(f"   ❌ Error scraping National Gallery Nights: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        # 6. Scrape talks/lectures (DISABLED FOR NOW - focusing on tours)
         # logger.info("🔍 Scraping talks and lectures...")
         # talks = scrape_nga_talks(scraper)
         # all_events.extend(talks)
@@ -1000,6 +1015,149 @@ def scrape_nga_films(scraper):
                 
     except Exception as e:
         logger.error(f"Error scraping NGA films: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return events
+
+
+def scrape_nga_nights(scraper):
+    """Scrape National Gallery Nights events from the series page (JSON-LD or fallback)."""
+    events = []
+    today = date.today()
+    
+    try:
+        logger.info(f"   📄 Fetching National Gallery Nights from: {NGA_NIGHTS_URL}")
+        response = fetch_with_retry(scraper, NGA_NIGHTS_URL, max_retries=3, delay=2)
+        if not response:
+            logger.warning("   ⚠️  Failed to fetch National Gallery Nights page")
+            return events
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        page_text = soup.get_text()
+        
+        # Extract title, description, image
+        title = "National Gallery Nights"
+        for h1 in soup.find_all('h1'):
+            h1_text = h1.get_text(strip=True)
+            if 'national gallery nights' in h1_text.lower() and len(h1_text) < 50:
+                title = h1_text
+                break
+        
+        from scripts.utils import extract_description_from_soup
+        description = extract_description_from_soup(soup, max_length=1500)
+        if not description:
+            description = "The East Building comes to life in this popular after-hours program. Join us for themed evenings with music, live performances, artmaking, pop-up talks, and more. Registration via lottery (opens Monday 10am, closes Thursday noon). Additional passes at East Building entrance from 5:30 p.m."
+        
+        image_url = None
+        og_image = soup.find('meta', property='og:image')
+        if og_image:
+            image_url = og_image.get('content', '').strip()
+        
+        # 1. Parse JSON-LD EventSeries (page embeds structured data with subEvents)
+        for script in soup.find_all('script', type=re.compile(r'application/ld\+json', re.I)):
+            try:
+                ld = json.loads(script.string or '{}')
+                graph = ld.get('@graph', [ld]) if isinstance(ld, dict) else [ld]
+                for item in graph:
+                    if item.get('@type') == 'EventSeries' and 'national gallery nights' in (item.get('name') or '').lower():
+                        sub_events = item.get('subEvent') or []
+                        series_desc = item.get('description') or description
+                        series_url = item.get('url') or NGA_NIGHTS_URL
+                        for se in sub_events:
+                            if se.get('@type') != 'Event':
+                                continue
+                            start_str = se.get('startDate')
+                            end_str = se.get('endDate')
+                            name = (se.get('name') or '').strip()
+                            if not start_str:
+                                continue
+                            try:
+                                dt_start = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
+                                dt_end = datetime.fromisoformat((end_str or start_str).replace('Z', '+00:00')) if end_str else dt_start
+                                event_date = dt_start.date()
+                                if event_date < today:
+                                    continue
+                                ev_title = f"National Gallery Nights: {name}" if name and 'national gallery nights' not in name.lower() else (name or title)
+                                events.append({
+                                    'title': ev_title,
+                                    'description': series_desc,
+                                    'start_date': event_date.isoformat(),
+                                    'end_date': dt_end.date().isoformat(),
+                                    'start_time': dt_start.strftime('%H:%M:%S'),
+                                    'end_time': dt_end.strftime('%H:%M:%S'),
+                                    'start_location': 'East Building, National Gallery of Art',
+                                    'url': se.get('url') or series_url,
+                                    'image_url': image_url,
+                                    'event_type': 'festival',
+                                    'is_registration_required': True,
+                                    'registration_info': 'Lottery opens Monday 10am, closes Thursday noon. Additional passes at East Building entrance from 5:30 p.m.',
+                                })
+                                logger.info(f"   ✅ From JSON-LD: {ev_title}")
+                            except (ValueError, TypeError) as e:
+                                logger.debug(f"   Skip subEvent date parse: {e}")
+                        if events:
+                            break
+            except (json.JSONDecodeError, TypeError):
+                pass
+            if events:
+                break
+        
+        # 2. Fallback: parse date range from page text and create monthly events
+        if not events:
+            date_range_match = re.search(
+                r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})\s*[–\-]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})',
+                page_text, re.IGNORECASE
+            )
+            month_map = {'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+                         'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+                         'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7, 'aug': 8,
+                         'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+            if date_range_match:
+                try:
+                    start_month_name = date_range_match.group(1).lower().rstrip('.')
+                    start_day = int(date_range_match.group(2))
+                    end_month_name = date_range_match.group(3).lower().rstrip('.')
+                    end_day = int(date_range_match.group(4))
+                    year = int(date_range_match.group(5))
+                    
+                    start_month = month_map.get(start_month_name) or month_map.get(start_month_name[:3])
+                    end_month = month_map.get(end_month_name) or month_map.get(end_month_name[:3])
+                    
+                    if start_month and end_month:
+                        from calendar import monthrange
+                        for month in range(start_month, end_month + 1):
+                            if month == start_month:
+                                day = start_day
+                            elif month == end_month:
+                                day = min(end_day, monthrange(year, month)[1])
+                            else:
+                                day = 9
+                            
+                            event_date = date(year, month, day)
+                            if event_date >= today:
+                                events.append({
+                                    'title': f"{title} - {event_date.strftime('%B %Y')}",
+                                    'description': description,
+                                    'start_date': event_date.isoformat(),
+                                    'end_date': event_date.isoformat(),
+                                    'start_time': '18:00:00',
+                                    'end_time': '21:00:00',
+                                    'start_location': 'East Building, National Gallery of Art',
+                                    'url': NGA_NIGHTS_URL,
+                                    'image_url': image_url,
+                                    'event_type': 'festival',
+                                    'is_registration_required': True,
+                                    'registration_info': 'Lottery opens Monday 10am, closes Thursday noon. Additional passes at East Building entrance from 5:30 p.m.',
+                                })
+                                logger.info(f"   ✅ Created: {title} - {event_date.strftime('%B %Y')}")
+                except (ValueError, IndexError, KeyError) as e:
+                    logger.debug(f"   Could not create events from date range: {e}")
+        
+        logger.info(f"   ✅ Found {len(events)} National Gallery Nights events")
+        
+    except Exception as e:
+        logger.error(f"Error scraping National Gallery Nights: {e}")
         import traceback
         traceback.print_exc()
     
