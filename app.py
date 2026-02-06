@@ -1558,9 +1558,10 @@ def get_events():
         talk_events = talk_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in talk_events])
     
-    # Handle other event types (music, food, community_event, etc.)
+    # Handle other event types (event, food, community_event, performance, etc.)
     # These should be included when event_type is empty or matches
-    if not event_type or event_type not in ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music']:
+    known_types = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music']
+    if not event_type or event_type not in known_types:
         if venue_ids:
             other_filter = or_(Event.city_id == city_id, Event.venue_id.in_(venue_ids))
         else:
@@ -1577,12 +1578,17 @@ def get_events():
             )
         
         # If a specific event_type was provided, filter by it
-        if event_type:
+        if event_type == 'other':
+            # "Other" = event types not in the main categories
+            other_events = other_events.filter(
+                ~Event.event_type.in_(['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'event'])
+            )
+        elif event_type:
             other_events = other_events.filter(Event.event_type == event_type)
         else:
             # Exclude the types we already handled above
             other_events = other_events.filter(
-                ~Event.event_type.in_(['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music'])
+                ~Event.event_type.in_(known_types)
             )
         
         other_events = other_events.options(db.joinedload(Event.venue)).all()

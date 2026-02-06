@@ -2785,6 +2785,7 @@
                     <label for="wizardEventTypeSelect" class="sr-only">Event Type</label>
                     <select id="wizardEventTypeSelect">
                         <option value="">All Event Types</option>
+                        <option value="event">Events</option>
                         <option value="tour">Tours</option>
                         <option value="exhibition">Exhibitions</option>
                         <option value="festival">Festivals</option>
@@ -2793,6 +2794,7 @@
                         <option value="workshop">Workshops</option>
                         <option value="talk">Talks</option>
                         <option value="music">Music</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
                 <div class="wizard-actions">
@@ -2846,6 +2848,7 @@
                     <label for="eventTypeSelect">Event Type</label>
                     <select id="eventTypeSelect">
                         <option value="">All Types</option>
+                        <option value="event">Events</option>
                         <option value="tour">Tours</option>
                         <option value="exhibition">Exhibitions</option>
                         <option value="festival">Festivals</option>
@@ -2853,6 +2856,8 @@
                         <option value="film">Films</option>
                         <option value="workshop">Workshops</option>
                         <option value="talk">Talks</option>
+                        <option value="music">Music</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
 
@@ -3007,6 +3012,7 @@
                         <label for="eventTypeSelectStep2">Event Type</label>
                         <select id="eventTypeSelectStep2">
                             <option value="">All Types</option>
+                            <option value="event">Events</option>
                             <option value="tour">Tours</option>
                             <option value="exhibition">Exhibitions</option>
                             <option value="festival">Festivals</option>
@@ -3015,6 +3021,7 @@
                             <option value="film">Films</option>
                             <option value="workshop">Workshops</option>
                             <option value="talk">Talks</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
@@ -3178,6 +3185,7 @@
                         <div class="events-filter-label">Type</div>
                         <div class="event-type-filter">
                             <button class="event-type-filter-btn active" data-event-type="">All</button>
+                            <button class="event-type-filter-btn" data-event-type="event">Events</button>
                             <button class="event-type-filter-btn" data-event-type="tour">Tours</button>
                             <button class="event-type-filter-btn" data-event-type="exhibition">Exhibitions</button>
                             <button class="event-type-filter-btn" data-event-type="festival">Festivals</button>
@@ -3186,6 +3194,7 @@
                             <button class="event-type-filter-btn" data-event-type="workshop">Workshops</button>
                             <button class="event-type-filter-btn" data-event-type="talk">Talks</button>
                             <button class="event-type-filter-btn" data-event-type="music">Music</button>
+                            <button class="event-type-filter-btn" data-event-type="other">Other</button>
                             <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly">👶 Baby-Friendly</button>
                         </div>
                     </div>
@@ -6160,9 +6169,15 @@
                     'tour': ['cultural_events', 'tours']
                 };
                 
+                const knownEventTypes = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'event'];
+                const isOtherEventType = (et) => !et || !knownEventTypes.includes(et);
                 filteredEvents = filteredEvents.filter(event => {
                     // If a specific event type tab is selected at the top, ignore content sidebar filter for this event
                     if (selectedEventTypeFilters.size > 0 && selectedEventTypeFilters.has(event.event_type)) {
+                        return true;
+                    }
+                    // "Other" = event types not in main categories
+                    if (selectedEventTypeFilters.has('other') && isOtherEventType(event.event_type)) {
                         return true;
                     }
 
@@ -6240,10 +6255,13 @@
             
             // Filter by event type if filters are selected
             if (selectedEventTypeFilters.size > 0) {
+                const knownEventTypes = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'event'];
+                const isOtherEventType = (et) => !et || !knownEventTypes.includes(et);
                 filteredEvents = filteredEvents.filter(event => {
                     // If no event_type, include it (don't exclude events with missing type)
-                    // This ensures events without event_type are still visible
                     if (!event.event_type) return true;
+                    // "Other" = event types not in main categories
+                    if (selectedEventTypeFilters.has('other') && isOtherEventType(event.event_type)) return true;
                     return selectedEventTypeFilters.has(event.event_type);
                 });
             } else {
