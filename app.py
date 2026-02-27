@@ -771,10 +771,13 @@ class Event(db.Model):
             image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_EVENT)
         
         # Generate Google Maps link for navigation
-        # Priority: venue coordinates/name > event coordinates > event location
-        # This ensures venue-based events use the venue for maps, not the specific meeting point
+        # Priority: explicit multi-location events > venue coordinates/name > event coordinates > event location
+        # This keeps venue-based events stable, but respects events that move around.
         maps_link = ""
-        if self.venue and self.venue.latitude and self.venue.longitude:
+        if self.multiple_locations and self.start_location and self.start_location.strip():
+            location_name = self.start_location.replace(' ', '+')
+            maps_link = f"https://www.google.com/maps/search/{location_name}"
+        elif self.venue and self.venue.latitude and self.venue.longitude:
             # Use venue coordinates if available (most accurate)
             maps_link = f"https://www.google.com/maps/@{self.venue.latitude},{self.venue.longitude},17z"
         elif self.venue and self.venue.name and self.venue.name.strip():
@@ -1558,9 +1561,22 @@ def get_events():
         talk_events = talk_query.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in talk_events])
     
+    if not event_type or event_type == 'improv':
+        improv_query = Event.query.filter(
+            Event.event_type == 'improv',
+            Event.city_id == city_id
+        )
+        if time_range != 'all':
+            improv_query = improv_query.filter(
+                Event.start_date >= start_date,
+                Event.start_date <= end_date
+            )
+        improv_events = improv_query.options(db.joinedload(Event.venue)).all()
+        events.extend([event.to_dict() for event in improv_events])
+
     # Handle other event types (event, food, community_event, performance, etc.)
     # These should be included when event_type is empty or matches
-    known_types = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music']
+    known_types = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'improv']
     if not event_type or event_type not in known_types:
         if venue_ids:
             other_filter = or_(Event.city_id == city_id, Event.venue_id.in_(venue_ids))
@@ -8945,6 +8961,101 @@ def scrape_tulipday_endpoint():
         })
     except Exception as e:
         app_logger.error(f"Error scraping Tulip Day: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/scrape-wit-eventbrite', methods=['POST'])
+def scrape_wit_eventbrite_endpoint():
+    """Scrape Washington Improv Theater events from Eventbrite organizer page."""
+    try:
+        app_logger.info("Starting WIT Eventbrite scraping...")
+
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 1,
+            'percentage': 5,
+            'message': 'Starting WIT Eventbrite scraping...',
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'recent_events': []
+        }
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        venue = Venue.query.filter(
+            (Venue.name.ilike('%washington improv%')) |
+            (Venue.ticketing_url.ilike('%eventbrite.com/o/washington-improv-theater%'))
+        ).first()
+
+        if not venue:
+            return jsonify({
+                'success': False,
+                'error': 'Washington Improv Theater venue not found. Load venues from data/venues.json first.'
+            }), 404
+
+        from scripts.eventbrite_scraper import scrape_eventbrite_events_for_venue
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        events = scrape_eventbrite_events_for_venue(venue_id=venue.id, time_range='this_month')
+
+        if not events:
+            progress_data.update({
+                'percentage': 100,
+                'message': '❌ No WIT Eventbrite events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 404
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url=venue.ticketing_url or venue.website_url,
+            custom_event_processor=lambda e: e.update({
+                'source': 'eventbrite',
+                'organizer': venue.name,
+                'multiple_locations': True
+            })
+        )
+
+        progress_data.update({
+            'percentage': 100,
+            'message': f'✅ WIT Eventbrite scraping completed! Found {len(events)} events.',
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'recent_events': [{'title': e.get('title'), 'date': str(e.get('start_date')), 'time': str(e.get('start_time'))} for e in events[:5]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} WIT Eventbrite event(s) (created: {created}, updated: {updated})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping WIT Eventbrite: {e}")
         import traceback
         app_logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500

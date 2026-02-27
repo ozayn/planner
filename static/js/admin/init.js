@@ -2587,6 +2587,53 @@ async function startTulipDayScraping() {
     }
 }
 
+async function startWITScraping() {
+    showScrapingProgressModal('Washington Improv Theater');
+    
+    try {
+        const response = await fetch('/api/admin/scrape-wit-eventbrite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            closeScrapingProgressModal();
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            setTimeout(() => {
+                closeScrapingProgressModal();
+                loadEvents();
+            }, 2000);
+        } else {
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            closeScrapingProgressModal();
+        }
+    } catch (error) {
+        console.error('WIT Eventbrite scraping error:', error);
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        closeScrapingProgressModal();
+    }
+}
+
 async function startSunsCinemaScraping() {
     showScrapingProgressModal('Suns Cinema');
     

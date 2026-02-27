@@ -259,10 +259,17 @@ def update_existing_event(existing, event_data: Dict, venue_id: int, logger) -> 
     
     # Update event_type if more specific
     new_event_type = event_data.get('event_type')
-    if new_event_type and new_event_type != 'event' and existing.event_type == 'event':
-        existing.event_type = new_event_type
-        updated = True
-        updated_fields.append('event_type')
+    if new_event_type:
+        # Allow upgrades from generic types to more specific ones
+        should_update_type = (
+            existing.event_type == 'event' and new_event_type != 'event'
+        ) or (
+            existing.event_type == 'performance' and new_event_type == 'improv'
+        )
+        if should_update_type and new_event_type != existing.event_type:
+            existing.event_type = new_event_type
+            updated = True
+            updated_fields.append('event_type')
     
     # Update URL if different
     if event_data.get('url') and event_data.get('url') != existing.url:
@@ -275,6 +282,16 @@ def update_existing_event(existing, event_data: Dict, venue_id: int, logger) -> 
         existing.image_url = event_data.get('image_url')
         updated = True
         updated_fields.append('image_url')
+
+    # Update price fields if provided
+    if 'price' in event_data and event_data['price'] is not None and event_data['price'] != existing.price:
+        existing.price = event_data['price']
+        updated = True
+        updated_fields.append('price')
+    if 'admission_price' in event_data and event_data['admission_price'] is not None and event_data['admission_price'] != existing.admission_price:
+        existing.admission_price = event_data['admission_price']
+        updated = True
+        updated_fields.append('admission_price')
     
     # Update is_online flag
     if 'is_online' in event_data and event_data['is_online'] != existing.is_online:

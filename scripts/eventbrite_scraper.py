@@ -122,7 +122,7 @@ class EventbriteScraper:
         params = {
             'status': status,
             'order_by': 'start_asc',
-            'expand': 'venue,organizer,category,subcategory,format'
+            'expand': 'venue,organizer,category,subcategory,format,ticket_classes'
         }
         
         if start_date:
@@ -142,8 +142,13 @@ class EventbriteScraper:
                 # Check for next page
                 pagination = data.get('pagination', {})
                 if pagination.get('has_more_items', False):
-                    url = pagination.get('continuation')
-                    params = {}  # Continuation URL includes all params
+                    continuation = pagination.get('continuation')
+                    if continuation:
+                        # Eventbrite uses continuation tokens, not full URLs
+                        url = f'{self.api_base_url}/organizers/{organizer_id}/events/'
+                        params = {'continuation': continuation}
+                    else:
+                        url = None
                 else:
                     url = None
                 
@@ -174,7 +179,7 @@ class EventbriteScraper:
         
         url = f'{self.api_base_url}/events/{event_id}/'
         params = {
-            'expand': 'venue,organizer,format,category,subcategory'
+            'expand': 'venue,organizer,format,category,subcategory,ticket_classes'
         }
         
         try:
@@ -269,10 +274,18 @@ class EventbriteScraper:
             except:
                 pass
         
-        # Extract venue info
-        venue_data = eb_event.get('venue', {})
+        # Extract venue info (prefer full address, fall back to venue name)
+        venue_data = eb_event.get('venue', {}) or {}
         venue_name = venue_data.get('name', '')
-        venue_address = venue_data.get('address', {}).get('localized_area_display', '')
+        venue_address_data = venue_data.get('address', {}) or {}
+        venue_address = (
+            venue_address_data.get('localized_address_display') or
+            venue_address_data.get('address_1') or
+            venue_address_data.get('localized_area_display') or
+            ''
+        )
+        if venue_address_data.get('city') and venue_address_data.get('region'):
+            venue_address = venue_address or f"{venue_address_data.get('city')}, {venue_address_data.get('region')}"
         
         # Extract URL
         event_url = eb_event.get('url', '')
@@ -330,11 +343,16 @@ class EventbriteScraper:
         # STEP 2: If no category match, check title and description keywords
         if not event_type:
             all_text = f"{name_lower} {description_lower}"
+
+            # Improv keywords (explicit category)
+            improv_keywords = ['improv', 'improvisation', 'improv theater', 'improv theatre']
+            if any(keyword in all_text for keyword in improv_keywords):
+                event_type = 'improv'
             
             # Workshop/Class keywords
             workshop_keywords = ['workshop', 'class', 'workshop:', 'masterclass', 'training', 'seminar', 
                                 'workshop at', 'hands-on', 'hands on', 'learning session']
-            if any(keyword in all_text for keyword in workshop_keywords):
+            if not event_type and any(keyword in all_text for keyword in workshop_keywords):
                 event_type = 'workshop'
             
             # Performance/Dance keywords
@@ -362,8 +380,117 @@ class EventbriteScraper:
         # STEP 3: Default to 'event' if nothing matched
         if not event_type:
             event_type = 'event'
+
+        # Organizer-specific override: improv theaters should be tagged as improv
+        organizer_name = eb_event.get('organizer', {}).get('name', '') if isinstance(eb_event.get('organizer'), dict) else ''
+        organizer_lower = organizer_name.lower()
+        if ('improv' in organizer_lower) or ('improv' in name_lower):
+            event_type = 'improv'
         
+        # Extract price (minimum ticket price)
+        price = None
+        is_free = eb_event.get('is_free') is True
+        if is_free:
+            price = 0.0
+        else:
+            # Prefer ticket classes (captures true minimum ticket cost)
+            ticket_classes = eb_event.get('ticket_classes') or []
+            class_prices = []
+            general_admission_prices = []
+            for ticket_class in ticket_classes:
+                if not isinstance(ticket_class, dict):
+                    continue
+                if ticket_class.get('hidden') is True:
+                    continue
+                if ticket_class.get('donation') is True:
+                    continue
+                if ticket_class.get('on_sale_status') not in (None, 'AVAILABLE'):
+                    continue
+                if ticket_class.get('free') is True:
+                    class_prices.append(0.0)
+                    continue
+                cost = ticket_class.get('cost') or {}
+                fee = ticket_class.get('fee') or {}
+                tax = ticket_class.get('tax') or {}
+                major_value = cost.get('major_value')
+                if major_value is not None:
+                    try:
+                        total = float(major_value)
+                        fee_value = fee.get('major_value')
+                        tax_value = tax.get('major_value')
+                        if fee_value is not None:
+                            total += float(fee_value)
+                        if tax_value is not None:
+                            total += float(tax_value)
+                        class_prices.append(total)
+                        name_lower = (ticket_class.get('name') or '').lower()
+                        if 'general' in name_lower or 'admission' in name_lower:
+                            general_admission_prices.append(total)
+                    except (TypeError, ValueError):
+                        pass
+            if general_admission_prices:
+                price = min(general_admission_prices)
+            elif class_prices:
+                price = min(class_prices)
+            else:
+                ticket_availability = eb_event.get('ticket_availability', {}) or {}
+                min_price = ticket_availability.get('minimum_ticket_price') or {}
+                # Eventbrite returns prices as strings in major_value
+                major_value = min_price.get('major_value')
+                if major_value is not None:
+                    try:
+                        price = float(major_value)
+                    except (TypeError, ValueError):
+                        price = None
+
+            # If still missing, fetch event details to get ticket classes
+            if price is None and eb_event.get('id'):
+                try:
+                    details = self.get_event_details(eb_event.get('id'))
+                    detail_classes = (details or {}).get('ticket_classes') or []
+                    class_prices = []
+                    general_admission_prices = []
+                    for ticket_class in detail_classes:
+                        if not isinstance(ticket_class, dict):
+                            continue
+                        if ticket_class.get('hidden') is True or ticket_class.get('donation') is True:
+                            continue
+                        if ticket_class.get('on_sale_status') not in (None, 'AVAILABLE'):
+                            continue
+                        if ticket_class.get('free') is True:
+                            class_prices.append(0.0)
+                            continue
+                        cost = ticket_class.get('cost') or {}
+                        fee = ticket_class.get('fee') or {}
+                        tax = ticket_class.get('tax') or {}
+                        major_value = cost.get('major_value')
+                        if major_value is not None:
+                            try:
+                                total = float(major_value)
+                                fee_value = fee.get('major_value')
+                                tax_value = tax.get('major_value')
+                                if fee_value is not None:
+                                    total += float(fee_value)
+                                if tax_value is not None:
+                                    total += float(tax_value)
+                                class_prices.append(total)
+                                name_lower = (ticket_class.get('name') or '').lower()
+                                if 'general' in name_lower or 'admission' in name_lower:
+                                    general_admission_prices.append(total)
+                            except (TypeError, ValueError):
+                                pass
+                    if general_admission_prices:
+                        price = min(general_admission_prices)
+                    elif class_prices:
+                        price = min(class_prices)
+                except Exception as e:
+                    logger.debug(f"Could not fetch ticket classes for {eb_event.get('id')}: {e}")
+
         # Build our event format
+        registration_info = None
+        if is_free:
+            registration_info = 'Free ticket required (Eventbrite)'
+
         event_data = {
             'title': name,
             'description': description,
@@ -374,7 +501,10 @@ class EventbriteScraper:
             'source_url': event_url,
             'is_registration_required': True,  # Eventbrite events typically require registration
             'registration_url': event_url,
-            'start_location': venue_address or venue_name,
+            'registration_info': registration_info,
+            'price': price,
+            'admission_price': price,
+            'start_location': venue_address or venue_name or None,
         }
         
         # Add dates/times

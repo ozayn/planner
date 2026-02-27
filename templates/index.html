@@ -2791,6 +2791,7 @@
                         <option value="festival">Festivals</option>
                         <option value="photowalk">Photowalks</option>
                         <option value="film">Films</option>
+                        <option value="improv">Improv</option>
                         <option value="workshop">Workshops</option>
                         <option value="talk">Talks</option>
                         <option value="music">Music</option>
@@ -2854,6 +2855,7 @@
                         <option value="festival">Festivals</option>
                         <option value="photowalk">Photowalks</option>
                         <option value="film">Films</option>
+                        <option value="improv">Improv</option>
                         <option value="workshop">Workshops</option>
                         <option value="talk">Talks</option>
                         <option value="music">Music</option>
@@ -3019,6 +3021,7 @@
                             <option value="music">Music</option>
                             <option value="photowalk">Photowalks</option>
                             <option value="film">Films</option>
+                            <option value="improv">Improv</option>
                             <option value="workshop">Workshops</option>
                             <option value="talk">Talks</option>
                             <option value="other">Other</option>
@@ -3191,6 +3194,7 @@
                             <button class="event-type-filter-btn" data-event-type="festival">Festivals</button>
                             <button class="event-type-filter-btn" data-event-type="photowalk">Photowalks</button>
                             <button class="event-type-filter-btn" data-event-type="film">Films</button>
+                            <button class="event-type-filter-btn" data-event-type="improv">Improv</button>
                             <button class="event-type-filter-btn" data-event-type="workshop">Workshops</button>
                             <button class="event-type-filter-btn" data-event-type="talk">Talks</button>
                             <button class="event-type-filter-btn" data-event-type="music">Music</button>
@@ -3275,7 +3279,7 @@
     </div>
 
     <!-- Unified Calendar Export Module -->
-    <script src="/static/js/calendar-export.js"></script>
+    <script src="/static/js/calendar-export.js?v=20260227"></script>
 
     <script>
         // Global variables
@@ -6163,13 +6167,14 @@
                     'workshop': ['workshops', 'photography_workshops', 'education', 'classes'],
                     'performance': ['music', 'concerts', 'theater', 'dance', 'performances'],
                     'music': ['music', 'concerts', 'performances'],
+                    'improv': ['comedy', 'improv', 'performances', 'theater'],
                     'festival': ['festivals', 'community_events'],
                     'photowalk': ['photowalks', 'photography', 'street_photography', 'art_walks'],
                     'event': ['cultural_events', 'free_events', 'local_news', 'community_events'],
                     'tour': ['cultural_events', 'tours']
                 };
                 
-                const knownEventTypes = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'event'];
+                const knownEventTypes = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'improv', 'event'];
                 const isOtherEventType = (et) => !et || !knownEventTypes.includes(et);
                 filteredEvents = filteredEvents.filter(event => {
                     // If a specific event type tab is selected at the top, ignore content sidebar filter for this event
@@ -6255,7 +6260,7 @@
             
             // Filter by event type if filters are selected
             if (selectedEventTypeFilters.size > 0) {
-                const knownEventTypes = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'event'];
+                const knownEventTypes = ['tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'improv', 'event'];
                 const isOtherEventType = (et) => !et || !knownEventTypes.includes(et);
                 filteredEvents = filteredEvents.filter(event => {
                     // If no event_type, include it (don't exclude events with missing type)
@@ -6765,14 +6770,15 @@
                             <span class="event-detail-label">Type:</span>
                             <span class="event-detail-value">${event.event_type || 'Event'}</span>
                         </div>
-                        ${(event.price || event.admission_price !== null && event.admission_price !== undefined) ? `
+                        ${(function() {
+                            const priceDisplay = getEventPriceDisplay(event);
+                            if (!priceDisplay) return '';
+                            return `
                             <div class="event-detail">
-                            <span class="event-detail-label">Price:</span>
-                            <span class="event-detail-value">${event.admission_price !== null && event.admission_price !== undefined ? 
-                                (event.admission_price === 0 ? 'Free' : `$${event.admission_price}`) : 
-                                (event.price === 0 ? 'Free' : `$${event.price}`)}</span>
-                            </div>
-                        ` : ''}
+                                <span class="event-detail-label">Price:</span>
+                                <span class="event-detail-value">${priceDisplay}</span>
+                            </div>`;
+                        })()}
                     </div>
                     
                     <div class="event-description ${event.description && event.description.length > 150 ? 'collapsed' : ''}" id="desc-${event.id}">
@@ -6908,6 +6914,10 @@
                         ${event.event_type ? `<div style="margin-bottom: 8px;"><strong>Type:</strong> ${event.event_type}</div>` : ''}
                         ${event.source ? `<div style="margin-bottom: 8px;"><strong>Source:</strong> ${event.source}</div>` : ''}
                         ${event.organizer ? `<div style="margin-bottom: 8px;"><strong>Organizer:</strong> ${event.organizer}</div>` : ''}
+                        ${(function() {
+                            const priceDisplay = getEventPriceDisplay(event);
+                            return priceDisplay ? `<div style="margin-bottom: 8px;"><strong>Price:</strong> ${priceDisplay}</div>` : '';
+                        })()}
                     </div>
                     ${(function() {
                         const normalizeUrl = (u) => (u || '').trim().replace(/\/$/, '');
@@ -7097,6 +7107,19 @@
             });
             
             return `${startFormatted} - ${endFormatted}`;
+        }
+
+        // Format price consistently (free vs numeric)
+        function getEventPriceDisplay(event) {
+            const rawPrice = (event.admission_price !== null && event.admission_price !== undefined && event.admission_price !== '') ?
+                event.admission_price :
+                (event.price !== null && event.price !== undefined && event.price !== '' ? event.price : null);
+            if (rawPrice === null) return null;
+            const num = Number(rawPrice);
+            if (!Number.isNaN(num)) {
+                return num === 0 ? 'Free' : `$${num.toFixed(2)}`;
+            }
+            return rawPrice === 'Free' ? 'Free' : `$${rawPrice}`;
         }
 
         // Discovered Events functionality
