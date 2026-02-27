@@ -6361,6 +6361,33 @@
                         return true;
                     }
                 });
+            } else {
+                // "All" should still exclude past events
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const pad = (n) => String(n).padStart(2, '0');
+                const todayDateStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+                filteredEvents = filteredEvents.filter(event => {
+                    if (!event.start_date) return false;
+                    const eventDateStr = event.start_date;
+                    if (!eventDateStr) return false;
+
+                    if (event.event_type === 'exhibition') {
+                        const eventEndStr = event.end_date || eventDateStr;
+                        return eventEndStr >= todayDateStr;
+                    }
+
+                    const inFutureOrToday = eventDateStr >= todayDateStr;
+                    if (!inFutureOrToday) return false;
+                    if (eventDateStr === todayDateStr && event.start_time) {
+                        const [h, m] = event.start_time.split(':').map(Number);
+                        const eventTime = new Date(today);
+                        eventTime.setHours(h, m || 0, 0, 0);
+                        return eventTime >= new Date();
+                    }
+                    return true;
+                });
             }
             
             if (filteredEvents.length === 0) {

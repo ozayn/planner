@@ -569,9 +569,97 @@
     }
 
     /**
+     * Parse NGA registration_info to extract lottery open/close dates.
+     * Format: "Lottery for registration opens Monday, March 2, at 10:00 a.m. and closes Thursday, March 5, at noon."
+     * Returns array of { type, date, time, title } or empty array if not parseable.
+     */
+    function parseRegistrationDates(registrationInfo, eventStartDate, eventTitle) {
+        if (!registrationInfo || typeof registrationInfo !== 'string') return [];
+        const text = registrationInfo.trim();
+        if (!text.toLowerCase().includes('lottery') || !text.toLowerCase().includes('opens')) return [];
+
+        const year = eventStartDate ? parseInt(eventStartDate.split('-')[0], 10) : new Date().getFullYear();
+        const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        const tasks = [];
+
+        // Opens: "opens Monday, March 2, at 10:00 a.m."
+        const opensMatch = text.match(/opens\s+\w+,\s+(\w+)\s+(\d+),?\s+at\s+(\d+):(\d+)\s*(a\.m\.|p\.m\.)/i);
+        if (opensMatch) {
+            const month = monthNames.indexOf(opensMatch[1].toLowerCase()) + 1;
+            const day = parseInt(opensMatch[2], 10);
+            let hour = parseInt(opensMatch[3], 10);
+            const minute = parseInt(opensMatch[4] || 0, 10);
+            const ampm = (opensMatch[5] || '').toLowerCase();
+            if (ampm === 'p.m.' && hour < 12) hour += 12;
+            if (ampm === 'a.m.' && hour === 12) hour = 0;
+            const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const timeStr = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
+            tasks.push({ type: 'opens', date: dateStr, time: timeStr, title: `Register: ${eventTitle || 'NGA Event'}` });
+        }
+
+        // Closes: "closes Thursday, March 5, at noon" or "at 12:00 p.m."
+        const closesMatch = text.match(/closes\s+\w+,\s+(\w+)\s+(\d+),?\s+at\s+noon/i) ||
+            text.match(/closes\s+\w+,\s+(\w+)\s+(\d+),?\s+at\s+(\d+):(\d+)\s*(a\.m\.|p\.m\.)/i);
+        if (closesMatch) {
+            const month = monthNames.indexOf(closesMatch[1].toLowerCase()) + 1;
+            const day = parseInt(closesMatch[2], 10);
+            let hour = 12, minute = 0;
+            if (closesMatch[3] && closesMatch[4] !== undefined) {
+                hour = parseInt(closesMatch[3], 10);
+                minute = parseInt(closesMatch[4], 10);
+                if ((closesMatch[5] || '').toLowerCase() === 'p.m.' && hour < 12) hour += 12;
+            }
+            const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const timeStr = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
+            tasks.push({ type: 'closes', date: dateStr, time: timeStr, title: `Register by: ${eventTitle || 'NGA Event'}` });
+        }
+
+        return tasks;
+    }
+
+    /**
+     * Expand NGA events with registration reminder tasks (as short calendar events).
+     * Only for National Gallery of Art events with parseable registration_info.
+     */
+    function expandEventsWithRegistrationTasks(events) {
+        const expanded = [];
+        events.forEach(event => {
+            expanded.push(event);
+            if (event._isRegistrationTask) return;
+            const { isNGA } = detectVenueType(event.venue_name, event.title, event.url, event.start_location);
+            if (!isNGA || !event.registration_info) return;
+
+            const tasks = parseRegistrationDates(event.registration_info, event.start_date, event.title);
+            tasks.forEach((task, i) => {
+                const [h, m] = task.time.split(':').map(Number);
+            const endH = (h + (m + 15 >= 60 ? 1 : 0)) % 24;
+            const endM = (m + 15) % 60;
+            const endTime = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}:00`;
+            expanded.push({
+                    id: `reg-${event.id}-${task.type}`,
+                    title: task.title,
+                    start_date: task.date,
+                    end_date: task.date,
+                    start_time: task.time,
+                    end_time: endTime,
+                    city_timezone: event.city_timezone || 'America/New_York',
+                    venue_name: event.venue_name,
+                    venue_address: event.venue_address,
+                    url: event.url,
+                    description: `Registration reminder for: ${event.title}\n${event.registration_info || ''}`,
+                    event_type: 'event',
+                    _isRegistrationTask: true
+                });
+            });
+        });
+        return expanded;
+    }
+
+    /**
      * Generate ICS content for multiple events
      */
     function generateICS(events, calendarName = 'Planner Events') {
+        const expandedEvents = expandEventsWithRegistrationTasks(events);
         let icsContent = 'BEGIN:VCALENDAR\r\n';
         icsContent += 'VERSION:2.0\r\n';
         icsContent += 'PRODID:-//Event Planner//EN\r\n';
@@ -582,7 +670,7 @@
         
         // Collect unique timezones from events
         const timezones = new Set();
-        events.forEach(event => {
+        expandedEvents.forEach(event => {
             if (event.city_timezone) {
                 timezones.add(event.city_timezone);
             } else if (event.start_time || (event.event_type !== 'exhibition')) {
@@ -597,7 +685,7 @@
         });
         
         // Add events
-        events.forEach(event => {
+        expandedEvents.forEach(event => {
             icsContent += generateICSEvent(event);
         });
         
@@ -606,7 +694,7 @@
     }
 
     /**
-     * Add a single event to calendar (opens Google Calendar)
+     * Add a single event to calendar (opens Google Calendar or downloads ICS with registration tasks)
      */
     function addToCalendar(eventId, eventsArray) {
         const event = eventsArray.find(e => e.id === eventId);
@@ -620,12 +708,31 @@
             return;
         }
 
-        const { startDate, endDate, isAllDay } = parseEventDates(event);
-        const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate, isAllDay);
-        window.open(googleCalendarUrl, '_blank');
-        
-        if (typeof showNotification === 'function') {
-            showNotification('Opening Google Calendar...', 'info');
+        const { isNGA } = detectVenueType(event.venue_name, event.title, event.url, event.start_location);
+        const hasRegistrationTasks = isNGA && event.registration_info &&
+            parseRegistrationDates(event.registration_info, event.start_date, event.title).length > 0;
+
+        if (hasRegistrationTasks) {
+            const icsContent = generateICS([event], event.title);
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `planner_${(event.title || 'event').replace(/[^a-z0-9]/gi, '_').substring(0, 40)}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            if (typeof showNotification === 'function') {
+                showNotification('Downloaded event + registration reminders. Import the .ics file into your calendar.', 'success');
+            }
+        } else {
+            const { startDate, endDate, isAllDay } = parseEventDates(event);
+            const googleCalendarUrl = generateGoogleCalendarUrl(event, startDate, endDate, isAllDay);
+            window.open(googleCalendarUrl, '_blank');
+            if (typeof showNotification === 'function') {
+                showNotification('Opening Google Calendar...', 'info');
+            }
         }
     }
 
@@ -677,6 +784,8 @@
         getCalendarLocation: getCalendarLocation,
         buildEnhancedDescription: buildEnhancedDescription,
         parseEventDates: parseEventDates,
+        parseRegistrationDates: parseRegistrationDates,
+        expandEventsWithRegistrationTasks: expandEventsWithRegistrationTasks,
         detectVenueType: detectVenueType,
         generateVTIMEZONE: generateVTIMEZONE,
         

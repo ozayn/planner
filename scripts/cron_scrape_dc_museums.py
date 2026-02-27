@@ -68,6 +68,8 @@ def has_specialized_scraper(venue):
         ('suns cinema', 'sunscinema.com'),
         # Culture DC
         ('culture dc', 'culturedc.com'),
+        # Tulip Day
+        ('tulip day', 'tulipday.eu'),
     ]
     
     for name_keyword, url_keyword in specialized_museums:
@@ -138,10 +140,19 @@ def main():
                 if is_embassy_with_eventbrite(venue):
                     embassies.append(venue)
                     logger.debug(f"✅ Embassy with Eventbrite: {venue.name}")
+
+            # Washington Improv Theater (Eventbrite organizer)
+            wit_venue = None
+            for venue in all_venues:
+                if 'washington improv theater' in (venue.name or '').lower():
+                    wit_venue = venue
+                    break
             
-            total_venues = len(museums) + len(embassies)
+            total_venues = len(museums) + len(embassies) + (1 if wit_venue else 0)
             logger.info(f"🏛️  Found {len(museums)} museums with specialized scrapers")
             logger.info(f"🏛️  Found {len(embassies)} embassies with Eventbrite links")
+            if wit_venue:
+                logger.info(f"🎭 Found WIT venue for Eventbrite: {wit_venue.name}")
             logger.info(f"📊 Total venues to scrape: {total_venues}")
             
             if total_venues == 0:
@@ -350,6 +361,40 @@ def main():
                             logger.error(f"   ❌ Error in Culture DC scraper: {e}")
                             import traceback
                             logger.error(traceback.format_exc())
+                    
+                    elif 'tulipday.eu' in venue_url_lower:
+                        from scripts.tulipday_scraper import scrape_all_tulipday_events
+                        try:
+                            scraped_events = scrape_all_tulipday_events()
+                            logger.info(f"   ✅ Found {len(scraped_events)} events from Tulip Day scraper")
+                            if scraped_events:
+                                from scripts.event_database_handler import create_events_in_database as shared_create_events
+                                def tulip_event_processor(event_data):
+                                    event_data['source'] = 'website'
+                                    if not event_data.get('organizer'):
+                                        event_data['organizer'] = museum.name
+                                created, updated, skipped = shared_create_events(
+                                    events=scraped_events,
+                                    venue_id=museum.id,
+                                    city_id=museum.city_id,
+                                    venue_name=museum.name,
+                                    db=db,
+                                    Event=Event,
+                                    Venue=Venue,
+                                    batch_size=5,
+                                    logger_instance=logger,
+                                    source_url=museum.website_url,
+                                    custom_event_processor=tulip_event_processor
+                                )
+                                saved_count = created
+                                updated_count = updated
+                                skipped_count = skipped
+                                total_events_saved += saved_count
+                                logger.info(f"   ✅ Saved {saved_count} new events, updated {updated_count}, skipped {skipped_count} duplicates")
+                        except Exception as e:
+                            logger.error(f"   ❌ Error in Tulip Day scraper: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
                     else:
                         logger.warning(f"   ⚠️  No specialized scraper for {museum.name}, skipping")
                     
@@ -429,6 +474,43 @@ def main():
                                     logger.error(f"   ❌ Error saving event '{event_data.get('title', 'N/A')}': {e}")
                                     db.session.rollback()
                                     continue
+
+            # Scrape Washington Improv Theater via Eventbrite
+            if wit_venue:
+                logger.info("")
+                logger.info(f"🎭 Scraping Eventbrite for {wit_venue.name}...")
+                try:
+                    wit_events = eventbrite_scraper.scrape_venue_events(
+                        venue=wit_venue,
+                        time_range=time_range
+                    )
+                    if wit_events:
+                        events_count = len(wit_events)
+                        total_events_found += events_count
+                        logger.info(f"   ✅ Found {events_count} events")
+                        from scripts.event_database_handler import create_events_in_database as shared_create_events
+                        created, updated, skipped = shared_create_events(
+                            events=wit_events,
+                            venue_id=wit_venue.id,
+                            city_id=wit_venue.city_id,
+                            venue_name=wit_venue.name,
+                            db=db,
+                            Event=Event,
+                            Venue=Venue,
+                            batch_size=5,
+                            logger_instance=logger,
+                            source_url=wit_venue.ticketing_url or wit_venue.website_url,
+                            custom_event_processor=lambda e: e.update({'source': 'eventbrite', 'organizer': wit_venue.name})
+                        )
+                        total_events_saved += created
+                        if created > 0:
+                            venues_with_events += 1
+                    else:
+                        logger.info("   ⚠️  No WIT events found")
+                except Exception as e:
+                    logger.error(f"   ❌ Error scraping WIT Eventbrite: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
                             
                             # Final commit for any remaining events (safety net, though they should already be committed)
                             try:
