@@ -20,17 +20,15 @@ IMAGE_PROXY_MAX_WIDTH_EVENT = 400  # Event cards/thumbnails
 IMAGE_PROXY_MAX_WIDTH_VENUE = 600  # Venue images
 
 # Domains that serve very large images - proxy these to resize. Others load directly.
-LARGE_IMAGE_DOMAINS = ('s3.amazonaws.com', 'wharfdc.com', 'hirshhorn.si.edu', 'si.edu')
+LARGE_IMAGE_DOMAINS = ('s3.amazonaws.com', 'wharfdc.com', 'hirshhorn.si.edu', 'si.edu', 'tulipday.eu')
 # Domains that block proxy (403) - never proxy, return raw URL for browser to load directly
 NO_PROXY_DOMAINS = ('evbuc.com', 'eventbrite.com')
 
 def ensure_loadable_image_url(url: Optional[str], max_width: int = IMAGE_PROXY_MAX_WIDTH_EVENT) -> Optional[str]:
     """
-    Route external URLs through resize proxy ONLY for domains known to serve huge images.
-    Proxying all images overloads production (each event image = 1 server fetch).
+    Route external URLs through resize proxy to avoid oversized images.
     
-    - Known large domains (Wharf S3, Hirshhorn, etc.) → proxy with resize
-    - Other external URLs → return as-is (browser loads directly)
+    - External URLs → proxy with resize
     - Google refs, /api/image, relative paths → returned as-is
     """
     if not url or not isinstance(url, str) or not url.strip():
@@ -40,9 +38,7 @@ def ensure_loadable_image_url(url: Optional[str], max_width: int = IMAGE_PROXY_M
         url_lower = url.lower()
         if any(domain in url_lower for domain in NO_PROXY_DOMAINS):
             return url  # Eventbrite etc block proxy - browser loads directly
-        if any(domain in url_lower for domain in LARGE_IMAGE_DOMAINS):
-            return f"/api/image-proxy?url={quote(url, safe='')}&w={max_width}"
-        return url  # Other domains: load directly, avoid proxy overload
+        return f"/api/image-proxy?url={quote(url, safe='')}&w={max_width}"
     return url
 
 
