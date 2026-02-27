@@ -202,6 +202,50 @@ def extract_event_data_from_url(url):
             # Fall through to regular URL scraping as fallback
     
     # Check if this is a SAAM event or exhibition page - use SAAM scraper
+    if 'tulipday.eu' in url.lower():
+        try:
+            logger.info("🎯 Detected Tulip Day page - using Tulip Day scraper")
+            from scripts.tulipday_scraper import scrape_tulipday_event
+            event_data = scrape_tulipday_event()
+            if event_data:
+                start_time_str = None
+                end_time_str = None
+                if event_data.get('start_time'):
+                    start_time_obj = event_data.get('start_time')
+                    if hasattr(start_time_obj, 'strftime'):
+                        start_time_str = start_time_obj.strftime('%H:%M')
+                    else:
+                        start_time_str = str(start_time_obj)
+                if event_data.get('end_time'):
+                    end_time_obj = event_data.get('end_time')
+                    if hasattr(end_time_obj, 'strftime'):
+                        end_time_str = end_time_obj.strftime('%H:%M')
+                    else:
+                        end_time_str = str(end_time_obj)
+                return {
+                    'title': event_data.get('title'),
+                    'description': event_data.get('description'),
+                    'start_date': event_data.get('start_date').isoformat() if event_data.get('start_date') else None,
+                    'end_date': event_data.get('end_date').isoformat() if event_data.get('end_date') else None,
+                    'start_time': start_time_str,
+                    'end_time': end_time_str,
+                    'location': event_data.get('start_location'),
+                    'venue': event_data.get('organizer'),
+                    'event_type': event_data.get('event_type', 'event'),
+                    'image_url': event_data.get('image_url'),
+                    'url': url,
+                    'is_online': False,
+                    'price': None,
+                    'is_registration_required': event_data.get('is_registration_required', False),
+                    'registration_info': event_data.get('registration_info'),
+                    'registration_url': event_data.get('registration_url'),
+                    'language': 'English',
+                }
+        except Exception as e:
+            logger.warning(f"⚠️ Error scraping Tulip Day URL: {e}")
+            # Fall through to generic scraping
+
+    # Check if this is a SAAM event or exhibition page - use SAAM scraper
     if 'americanart.si.edu' in url.lower():
         # Handle SAAM exhibitions
         # Uses the same scrape_exhibition_detail function as the main SAAM scraper

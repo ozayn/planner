@@ -8858,6 +8858,97 @@ def scrape_dcparade_endpoint():
         app_logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/admin/scrape-tulipday', methods=['POST'])
+def scrape_tulipday_endpoint():
+    """Scrape Tulip Day Washington from tulipday.eu."""
+    try:
+        app_logger.info("Starting Tulip Day scraping...")
+
+        progress_data = {
+            'current_step': 1,
+            'total_steps': 1,
+            'percentage': 5,
+            'message': 'Starting Tulip Day scraping...',
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'recent_events': []
+        }
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        from scripts.tulipday_scraper import scrape_all_tulipday_events
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        events = scrape_all_tulipday_events()
+
+        if not events:
+            progress_data.update({
+                'percentage': 100,
+                'message': '❌ No Tulip Day events found or scraping failed',
+                'error': True
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
+            return jsonify({
+                'success': False,
+                'error': 'No events found or scraping failed',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0
+            }), 404
+
+        venue = Venue.query.filter(
+            (Venue.website_url.ilike('%tulipday.eu%')) |
+            (Venue.name.ilike('%tulip day%'))
+        ).first()
+
+        if not venue:
+            return jsonify({
+                'success': False,
+                'error': 'Tulip Day venue not found. Load venues from data/venues.json first.'
+            }), 404
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url=venue.website_url,
+            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+        )
+
+        progress_data.update({
+            'percentage': 100,
+            'message': f'✅ Tulip Day scraping completed! Found {len(events)} events.',
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'recent_events': [{'title': e.get('title'), 'date': str(e.get('start_date')), 'time': str(e.get('start_time'))} for e in events[:5]]
+        })
+        with open('scraping_progress.json', 'w') as f:
+            json.dump(progress_data, f)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} Tulip Day event(s) (created: {created}, updated: {updated})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping Tulip Day: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/admin/scrape-asian-art', methods=['POST'])
 def scrape_asian_art():
     """Scrape all Asian Art Museum events: exhibitions, tours, talks, and other events."""

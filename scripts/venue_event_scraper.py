@@ -553,6 +553,28 @@ class VenueEventScraper:
             except Exception as e:
                 logger.warning(f"⚠️ NPG specialized scraper failed: {e}, falling back to generic scraper")
 
+        # Tulip Day (tulipday.eu)
+        elif 'tulipday.eu' in venue_url_lower or 'tulip day' in venue_name_lower:
+            logger.info(f"🎯 Using specialized Tulip Day scraper for {venue.name}")
+            try:
+                from scripts.tulipday_scraper import scrape_all_tulipday_events
+                tulip_events = scrape_all_tulipday_events()
+                if tulip_events:
+                    for event in tulip_events:
+                        if not event.get('venue_id'):
+                            event['venue_id'] = venue.id
+                        if not event.get('city_id'):
+                            event['city_id'] = venue.city_id
+                    tulip_events = self._filter_by_time_range(tulip_events, time_range)
+                    if event_type:
+                        tulip_events = [e for e in tulip_events if e.get('event_type', '').lower() == event_type.lower()]
+                    events = tulip_events[:max_events_per_venue]
+                    logger.info(f"✅ Tulip Day scraper found {len(events)} events for {venue.name}")
+                    return events
+                return []
+            except Exception as e:
+                logger.warning(f"⚠️ Tulip Day specialized scraper failed: {e}, falling back to generic scraper")
+
         # Suns Cinema
         elif 'sunscinema.com' in venue_url_lower or 'suns cinema' in venue_name_lower:
             logger.info(f"🎯 Using specialized Suns Cinema scraper for {venue.name}")

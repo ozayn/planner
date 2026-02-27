@@ -18,7 +18,7 @@ from urllib.parse import urljoin, urlparse
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from app import app, db, Source, Event, City
+from app import app, db, Source, Event, City, Venue
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -110,6 +110,19 @@ class SourceEventScraper:
         
         try:
             logger.info(f"Scraping website: {source.url}")
+            if 'tulipday.eu' in source.url.lower():
+                from scripts.tulipday_scraper import scrape_all_tulipday_events
+                tulip_events = scrape_all_tulipday_events()
+                if tulip_events:
+                    venue = Venue.query.filter(
+                        (Venue.website_url.ilike('%tulipday.eu%')) |
+                        (Venue.name.ilike('%tulip day%'))
+                    ).first()
+                    if venue:
+                        for event in tulip_events:
+                            event['venue_id'] = venue.id
+                            event['city_id'] = venue.city_id
+                return tulip_events
             response = self.session.get(source.url, timeout=15)
             response.raise_for_status()
             
