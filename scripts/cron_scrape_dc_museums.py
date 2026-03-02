@@ -475,6 +475,30 @@ def main():
                                     db.session.rollback()
                                     continue
 
+                            # Final commit for any remaining events (safety net, though they should already be committed)
+                            try:
+                                db.session.commit()
+                            except Exception as e:
+                                logger.error(f"   ❌ Error in final commit: {e}")
+                                db.session.rollback()
+
+                            total_events_saved += saved_count
+                            logger.info(f"   💾 Saved {saved_count} new events, skipped {skipped_count} duplicates")
+                        else:
+                            logger.info(f"   ⚠️  No events found")
+
+                        venues_processed += 1
+                        if saved_count > 0:
+                            venues_with_events += 1
+
+                    except Exception as e:
+                        logger.error(f"   ❌ Error scraping {embassy.name}: {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+                        venues_failed += 1
+                        db.session.rollback()
+                        continue
+
             # Scrape Washington Improv Theater via Eventbrite
             if wit_venue:
                 logger.info("")
@@ -511,31 +535,7 @@ def main():
                     logger.error(f"   ❌ Error scraping WIT Eventbrite: {e}")
                     import traceback
                     logger.error(traceback.format_exc())
-                            
-                            # Final commit for any remaining events (safety net, though they should already be committed)
-                            try:
-                                db.session.commit()
-                            except Exception as e:
-                                logger.error(f"   ❌ Error in final commit: {e}")
-                                db.session.rollback()
-                            
-                            total_events_saved += saved_count
-                            logger.info(f"   💾 Saved {saved_count} new events, skipped {skipped_count} duplicates")
-                        else:
-                            logger.info(f"   ⚠️  No events found")
-                        
-                        venues_processed += 1
-                        if saved_count > 0:
-                            venues_with_events += 1
-                    
-                    except Exception as e:
-                        logger.error(f"   ❌ Error scraping {embassy.name}: {e}")
-                        import traceback
-                        logger.error(traceback.format_exc())
-                        venues_failed += 1
-                        db.session.rollback()
-                        continue
-            
+
             # Webster's Bookstore Cafe (State College, PA) - specialized scraper
             logger.info("")
             logger.info("📚 Scraping Webster's Bookstore Cafe (State College, PA)...")
