@@ -769,7 +769,7 @@ class Event(db.Model):
         # Exception: npg.si.edu proxy URLs get decoded to raw URL (proxy blocked by Smithsonian from cloud IPs)
         if image_url and isinstance(image_url, str):
             if '/api/image-proxy?' in image_url and 'npg.si.edu' in image_url:
-                app_logger.info("[Event.to_dict] Decoding npg.si.edu proxy URL to direct (bypass proxy)")
+                app_logger.debug("[Event.to_dict] Decoding npg.si.edu proxy URL to direct (bypass proxy)")
                 from urllib.parse import unquote, parse_qs
                 try:
                     parsed = parse_qs(image_url.split('?', 1)[1])
@@ -1711,9 +1711,9 @@ def get_venue_image(photo_reference):
         if not response.ok:
             # 400 usually means expired photo_reference - return transparent pixel (no placeholder)
             if response.status_code == 400:
-                app_logger.info(f"[api/image] Google Places 400 - expired photo ref: {photo_reference[:50]}...")
+                app_logger.debug(f"[api/image] Google Places 400 - expired photo ref: {photo_reference[:50]}...")
                 return _transparent_pixel_response()
-            app_logger.info(f"[api/image] Google Places {response.status_code}: {response.text[:200]}")
+            app_logger.debug(f"[api/image] Google Places {response.status_code}: {response.text[:200]}")
             return _transparent_pixel_response()
         
         # Return the image with proper headers
@@ -1821,7 +1821,7 @@ def proxy_external_image():
         # Log for debugging image load issues (visible in deployed logs)
         parsed_req = urlparse(image_url) if image_url else None
         domain = parsed_req.netloc if parsed_req else 'unknown'
-        app_logger.info(f"[image-proxy] Fetching: {domain} {image_url[:80]}...")
+        app_logger.debug(f"[image-proxy] Fetching: {domain} {image_url[:80]}...")
         
         # Validate that it's an HTTP(S) URL
         if not image_url.startswith(('http://', 'https://')):
@@ -1855,7 +1855,7 @@ def proxy_external_image():
         except requests.exceptions.RequestException as e:
             # 403/404 = hotlinking blocked (Eventbrite, etc.) - redirect so browser tries directly
             if hasattr(e, 'response') and e.response is not None and e.response.status_code in (403, 404):
-                app_logger.info(f"[image-proxy] Blocked {e.response.status_code} from {domain}, redirecting to direct URL")
+                app_logger.debug(f"[image-proxy] Blocked {e.response.status_code} from {domain}, redirecting to direct URL")
                 return redirect(image_url, code=302)
             # Network unreachable/timeout - skip cloudscraper (it will fail the same way)
             if _is_network_unreachable_error(e):
@@ -1865,7 +1865,7 @@ def proxy_external_image():
             try:
                 import cloudscraper
                 scraper = cloudscraper.create_scraper()
-                app_logger.info(f"Regular request failed, trying cloudscraper for {image_url[:80]}...")
+                app_logger.debug(f"Regular request failed, trying cloudscraper for {image_url[:80]}...")
                 response = scraper.get(image_url, headers=headers, timeout=15, allow_redirects=True, verify=False)
                 response.raise_for_status()
             except ImportError:
@@ -1888,7 +1888,7 @@ def proxy_external_image():
         if max_width > 0:
             content, content_type = _resize_image_if_needed(content, content_type, max_width)
         
-        app_logger.info(f"[image-proxy] OK: {domain} ({len(content)} bytes)")
+        app_logger.debug(f"[image-proxy] OK: {domain} ({len(content)} bytes)")
         
         # Return the image with proper headers
         return Response(
@@ -1908,9 +1908,9 @@ def proxy_external_image():
         except NameError:
             domain_err = 'unknown'
         if _is_network_unreachable_error(e):
-            app_logger.info(f"[image-proxy] Network error for {domain_err}: {e}")
+            app_logger.debug(f"[image-proxy] Network error for {domain_err}: {e}")
         else:
-            app_logger.info(f"[image-proxy] Failed for {domain_err}: {e}")
+            app_logger.debug(f"[image-proxy] Failed for {domain_err}: {e}")
         return _transparent_pixel_response()
     except Exception as e:
         app_logger.error(f"Unexpected error proxying image: {e}")
