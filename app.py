@@ -765,22 +765,10 @@ class Event(db.Model):
                 # Ultimate fallback
                 image_url = "https://placehold.co/400x300/667eea/ffffff?text=Event"
         
-        # Route external URLs through proxy - keeps images loadable (all scrapers, current + future)
-        # Exception: npg.si.edu proxy URLs get decoded to raw URL (proxy blocked by Smithsonian from cloud IPs)
-        if image_url and isinstance(image_url, str):
-            if '/api/image-proxy?' in image_url and 'npg.si.edu' in image_url:
-                app_logger.debug("[Event.to_dict] Decoding npg.si.edu proxy URL to direct (bypass proxy)")
-                from urllib.parse import unquote, parse_qs
-                try:
-                    parsed = parse_qs(image_url.split('?', 1)[1])
-                    raw_url = parsed.get('url', [None])[0]
-                    if raw_url:
-                        image_url = unquote(raw_url)
-                except (IndexError, KeyError):
-                    pass
-            if image_url and image_url.startswith(('http://', 'https://')):
-                from scripts.utils import ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
-                image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_EVENT)
+        # Route external URLs through proxy - all images resized
+        if image_url and isinstance(image_url, str) and image_url.startswith(('http://', 'https://')):
+            from scripts.utils import ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
+            image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_EVENT)
         
         # Generate Google Maps link for navigation
         # Priority: explicit multi-location events > venue coordinates/name > event coordinates > event location

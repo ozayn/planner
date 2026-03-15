@@ -18,30 +18,38 @@ ORGANIZER = "Royal Anthos"
 
 
 def _parse_date(text: str) -> Optional[date]:
+    # Pattern 1: "March 15, 2026" or "Date: March 15, 2026"
     match = re.search(
         r"(January|February|March|April|May|June|July|August|September|October|November|December)"
         r"\s+(\d{1,2}),\s*(\d{4})",
         text,
         re.I,
     )
-    if not match:
+    if match:
+        month_name = match.group(1).lower()
+        day = int(match.group(2))
+        year = int(match.group(3))
+        month_map = {
+            "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+            "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+        }
+        month = month_map.get(month_name)
+        if month:
+            return date(year, month, day)
+    # Pattern 2: "2026, March 15" (e.g. "Tulip Day Washington 2026, March 15")
+    match2 = re.search(
+        r"(\d{4}),\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})",
+        text,
+        re.I,
+    )
+    if not match2:
         return None
-    month_name = match.group(1).lower()
-    day = int(match.group(2))
-    year = int(match.group(3))
+    year = int(match2.group(1))
+    month_name = match2.group(2).lower()
+    day = int(match2.group(3))
     month_map = {
-        "january": 1,
-        "february": 2,
-        "march": 3,
-        "april": 4,
-        "may": 5,
-        "june": 6,
-        "july": 7,
-        "august": 8,
-        "september": 9,
-        "october": 10,
-        "november": 11,
-        "december": 12,
+        "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+        "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
     }
     month = month_map.get(month_name)
     if not month:
@@ -100,51 +108,47 @@ def _extract_description(text: str) -> str:
 
 
 def _fetch_html(url: str) -> Optional[str]:
+    # Use simple User-Agent - tulipday.eu blocks Chrome UA from non-browser IPs (403)
     headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "User-Agent": "Mozilla/5.0 (compatible; EventPlanner/1.0; +https://planner.ozayn.com)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://tulipday.eu/",
-        "Connection": "keep-alive",
     }
+    # tulipday.eu has SSL handshake issues with some clients - use verify=False
     try:
-        import requests  # Optional dependency in some local setups
-        response = requests.get(url, timeout=20, headers=headers)
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    except Exception:
+        pass
+    # tulipday.eu has SSL handshake issues - requests with verify=False works
+    try:
+        import requests
+        response = requests.get(url, timeout=25, headers=headers, verify=False)
         response.raise_for_status()
         return response.text
     except Exception as e:
-        logger.warning(f"Tulip Day fetch via requests failed for {url}: {e}")
-        try:
-            import cloudscraper
-            scraper = cloudscraper.create_scraper()
-            response = scraper.get(url, timeout=20, headers=headers)
-            response.raise_for_status()
-            return response.text
-        except Exception as e2:
-            logger.warning(f"Tulip Day fetch via cloudscraper failed for {url}: {e2}")
-        try:
-            import urllib.request
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=20) as f:
-                return f.read().decode("utf-8", errors="ignore")
-        except Exception as e2:
-            logger.warning(f"Tulip Day fetch failed for {url}: {e2}")
-            try:
-                import subprocess
-                cmd = [
-                    "curl",
-                    "-L",
-                    "-s",
-                    "-A",
-                    headers.get("User-Agent", "Mozilla/5.0"),
-                    url,
-                ]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
-                if result.returncode == 0 and result.stdout:
-                    return result.stdout
-            except Exception as e3:
-                logger.error(f"Tulip Day fetch via curl failed for {url}: {e3}")
-            return None
+        logger.debug(f"Tulip Day requests failed for {url}: {e}")
+    # Fallback: cloudscraper (for Cloudflare) - may fail on SSL
+    try:
+        import cloudscraper
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(url, timeout=25, headers=headers, verify=False)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        logger.debug(f"Tulip Day cloudscraper failed for {url}: {e}")
+    try:
+        import urllib.request
+        import ssl
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        req = urllib.request.Request(url, headers={"User-Agent": headers["User-Agent"]})
+        with urllib.request.urlopen(req, timeout=25, context=ctx) as f:
+            return f.read().decode("utf-8", errors="ignore")
+    except Exception as e2:
+        logger.debug(f"Tulip Day urllib failed for {url}: {e2}")
+    return None
 
 
 def scrape_tulipday_event() -> Optional[Dict]:
