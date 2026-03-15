@@ -449,6 +449,95 @@
             }
         }
 
+        /* When and Type as dropdowns (all screen sizes) */
+        .events-filter-desktop { display: none !important; }
+        .events-filter-mobile { display: flex !important; flex-direction: column; gap: 12px; }
+
+        .events-filter-mobile select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.9);
+            font-size: 0.9375rem;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+            min-height: 44px;
+        }
+        .mobile-type-dropdown {
+            position: relative;
+            width: 100%;
+        }
+        .mobile-type-dropdown-trigger {
+            position: relative;
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.9);
+            font-size: 0.9375rem;
+            text-align: left;
+            cursor: pointer;
+            min-height: 44px;
+            color: rgba(0,0,0,0.87);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .mobile-type-dropdown-trigger::after {
+            content: '';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #6b7280;
+        }
+        .mobile-type-dropdown.open .mobile-type-dropdown-trigger::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+        .mobile-type-dropdown-panel {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 100;
+        }
+        .mobile-type-dropdown.open .mobile-type-dropdown-panel {
+            display: block;
+        }
+        .mobile-type-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 0.9375rem;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+        .mobile-type-option:last-child { border-bottom: none; }
+        .mobile-type-option:hover { background: rgba(0,0,0,0.04); }
+        .mobile-type-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: rgba(0,0,0,0.6);
+        }
+
         .time-selector {
             display: flex;
             gap: 8px;
@@ -3172,34 +3261,73 @@
                         <button id="mobileCloseEventsBtn" class="mobile-close-btn" style="display: none; background: transparent; border: none; color: rgba(0,0,0,0.6); font-size: 1.5rem; cursor: pointer; padding: 12px; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s ease; -webkit-tap-highlight-color: transparent;" title="Close Events" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">×</button>
                     </div>
                 <div class="events-filters">
-                    <div class="events-filter-section">
-                        <div class="events-filter-label">When</div>
-                        <div class="time-selector">
-                            <button class="time-btn" data-period="today">Today</button>
-                            <button class="time-btn" data-period="tomorrow">Tomorrow</button>
-                            <button class="time-btn active" data-period="this_week">This Week</button>
-                            <button class="time-btn" data-period="next_week">Next Week</button>
-                            <button class="time-btn" data-period="this_month">This Month</button>
-                            <button class="time-btn" data-period="custom">Custom</button>
-                            <button class="time-btn" data-period="all">All</button>
+                    <!-- Desktop: button groups -->
+                    <div class="events-filter-desktop">
+                        <div class="events-filter-section">
+                            <div class="events-filter-label">When</div>
+                            <div class="time-selector">
+                                <button class="time-btn" data-period="today">Today</button>
+                                <button class="time-btn" data-period="tomorrow">Tomorrow</button>
+                                <button class="time-btn active" data-period="this_week">This Week</button>
+                                <button class="time-btn" data-period="next_week">Next Week</button>
+                                <button class="time-btn" data-period="this_month">This Month</button>
+                                <button class="time-btn" data-period="custom">Custom</button>
+                                <button class="time-btn" data-period="all">All</button>
+                            </div>
+                        </div>
+                        <div class="events-filter-section">
+                            <div class="events-filter-label">Type</div>
+                            <div class="event-type-filter">
+                                <button class="event-type-filter-btn active" data-event-type="">All</button>
+                                <button class="event-type-filter-btn" data-event-type="event">Events</button>
+                                <button class="event-type-filter-btn" data-event-type="tour">Tours</button>
+                                <button class="event-type-filter-btn" data-event-type="exhibition">Exhibitions</button>
+                                <button class="event-type-filter-btn" data-event-type="festival">Festivals</button>
+                                <button class="event-type-filter-btn" data-event-type="photowalk">Photowalks</button>
+                                <button class="event-type-filter-btn" data-event-type="film">Films</button>
+                                <button class="event-type-filter-btn" data-event-type="improv">Improv</button>
+                                <button class="event-type-filter-btn" data-event-type="workshop">Workshops</button>
+                                <button class="event-type-filter-btn" data-event-type="talk">Talks</button>
+                                <button class="event-type-filter-btn" data-event-type="music">Music</button>
+                                <button class="event-type-filter-btn" data-event-type="other">Other</button>
+                                <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly">👶 Baby-Friendly</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="events-filter-section">
-                        <div class="events-filter-label">Type</div>
-                        <div class="event-type-filter">
-                            <button class="event-type-filter-btn active" data-event-type="">All</button>
-                            <button class="event-type-filter-btn" data-event-type="event">Events</button>
-                            <button class="event-type-filter-btn" data-event-type="tour">Tours</button>
-                            <button class="event-type-filter-btn" data-event-type="exhibition">Exhibitions</button>
-                            <button class="event-type-filter-btn" data-event-type="festival">Festivals</button>
-                            <button class="event-type-filter-btn" data-event-type="photowalk">Photowalks</button>
-                            <button class="event-type-filter-btn" data-event-type="film">Films</button>
-                            <button class="event-type-filter-btn" data-event-type="improv">Improv</button>
-                            <button class="event-type-filter-btn" data-event-type="workshop">Workshops</button>
-                            <button class="event-type-filter-btn" data-event-type="talk">Talks</button>
-                            <button class="event-type-filter-btn" data-event-type="music">Music</button>
-                            <button class="event-type-filter-btn" data-event-type="other">Other</button>
-                            <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly">👶 Baby-Friendly</button>
+                    <!-- Mobile: dropdowns -->
+                    <div class="events-filter-mobile">
+                        <div class="events-filter-section">
+                            <div class="events-filter-label">When</div>
+                            <select id="mobileWhenSelect">
+                                <option value="today">Today</option>
+                                <option value="tomorrow">Tomorrow</option>
+                                <option value="this_week" selected>This Week</option>
+                                <option value="next_week">Next Week</option>
+                                <option value="this_month">This Month</option>
+                                <option value="custom">Custom</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div class="events-filter-section">
+                            <div class="events-filter-label">Type</div>
+                            <div class="mobile-type-dropdown" id="mobileTypeDropdown">
+                                <button type="button" class="mobile-type-dropdown-trigger" id="mobileTypeTrigger">All</button>
+                                <div class="mobile-type-dropdown-panel" id="mobileTypePanel">
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type=""> All</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="event"> Events</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="tour"> Tours</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="exhibition"> Exhibitions</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="festival"> Festivals</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="photowalk"> Photowalks</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="film"> Films</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="improv"> Improv</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="workshop"> Workshops</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="talk"> Talks</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="music"> Music</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-event-type="other"> Other</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-filter-type="baby-friendly"> 👶 Baby-Friendly</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3533,6 +3661,7 @@
             loadFilterSectionStates();
             setupEventListeners();
             setupEventTypeFilters();
+            setupMobileTypeDropdown();
             
             // Listen for changes to admin-selected venues (for main page filtering)
             window.addEventListener('storage', function(e) {
@@ -3939,7 +4068,7 @@
                 // Clear filters to ensure all events are shown by default
                 selectedEventTypeFilters.clear();
                 babyFriendlyFilterActive = false;
-                
+
                 // Reset event type filter buttons to "All"
                 document.querySelectorAll('.event-type-filter-btn').forEach(btn => {
                     if (btn.dataset.eventType === "") {
@@ -3954,6 +4083,7 @@
                         btn.style.fontWeight = '400';
                     }
                 });
+                if (typeof updateMobileTypeCheckboxes === 'function') updateMobileTypeCheckboxes();
                 
                 // Clear venue selections and current venues list
                 localStorage.removeItem('mainPageSelectedVenues');
@@ -6002,13 +6132,24 @@
 
                 // Add custom dates if custom range is selected
                 if (timeRange === 'custom') {
-                    const customStartDate = document.getElementById('startDate').value;
-                    const customEndDate = document.getElementById('endDate').value;
-                    
-                    if (customStartDate && customEndDate) {
-                        params.append('custom_start_date', customStartDate);
-                        params.append('custom_end_date', customEndDate);
+                    // Events panel uses discoveredStartDate/discoveredEndDate; discovery uses startDate/endDate
+                    let customStartDate = document.getElementById('discoveredStartDate')?.value ||
+                                         document.getElementById('startDate')?.value;
+                    let customEndDate = document.getElementById('discoveredEndDate')?.value ||
+                                       document.getElementById('endDate')?.value;
+                    if (!customStartDate || !customEndDate) {
+                        const today = new Date();
+                        const nextWeek = new Date(today);
+                        nextWeek.setDate(today.getDate() + 7);
+                        customStartDate = today.toISOString().split('T')[0];
+                        customEndDate = nextWeek.toISOString().split('T')[0];
+                        // Update the visible inputs so user sees the defaults
+                        const ds = document.getElementById('discoveredStartDate');
+                        const de = document.getElementById('discoveredEndDate');
+                        if (ds && de) { ds.value = customStartDate; de.value = customEndDate; }
                     }
+                    params.append('custom_start_date', customStartDate);
+                    params.append('custom_end_date', customEndDate);
                 }
                 
                 // For "all" time range, don't send time_range parameter (or send 'all')
@@ -6658,6 +6799,7 @@
                             this.style.fontWeight = '400';
                         }
                         displayUnifiedEvents();
+                        updateMobileTypeCheckboxes();
                         return;
                     }
                     
@@ -6706,6 +6848,9 @@
                     
                     // Re-display events with filter
                     displayUnifiedEvents();
+
+                    // Sync mobile Type dropdown checkboxes
+                    updateMobileTypeCheckboxes();
                     
                     // If a specific type was clicked, ensure the dropdown matches or stays at All Types
                     // This prevents confusion where the dropdown says "Tours" but you click the "Films" tab
@@ -6715,6 +6860,115 @@
                         // Actually, it's better to just keep them independent but show a warning or clear the dropdown.
                         // For now, let's just make sure displayUnifiedEvents is called.
                     }
+                });
+            });
+        }
+
+        // Sync mobile Type dropdown checkboxes and trigger text from selectedEventTypeFilters state
+        function updateMobileTypeCheckboxes() {
+            const panel = document.getElementById('mobileTypePanel');
+            const trigger = document.getElementById('mobileTypeTrigger');
+            if (!panel || !trigger) return;
+            const typeLabels = { '': 'All', event: 'Events', tour: 'Tours', exhibition: 'Exhibitions', festival: 'Festivals', photowalk: 'Photowalks', film: 'Films', improv: 'Improv', workshop: 'Workshops', talk: 'Talks', music: 'Music', other: 'Other' };
+            panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                const eventType = cb.dataset.eventType;
+                const filterType = cb.dataset.filterType;
+                if (filterType === 'baby-friendly') {
+                    cb.checked = babyFriendlyFilterActive;
+                } else if (eventType === '') {
+                    cb.checked = selectedEventTypeFilters.size === 0 && !babyFriendlyFilterActive;
+                } else {
+                    cb.checked = selectedEventTypeFilters.has(eventType);
+                }
+            });
+            // Update trigger text
+            if (selectedEventTypeFilters.size === 0 && !babyFriendlyFilterActive) {
+                trigger.textContent = 'All';
+            } else {
+                const parts = [];
+                selectedEventTypeFilters.forEach(t => parts.push(typeLabels[t] || t));
+                if (babyFriendlyFilterActive) parts.push('👶 Baby-Friendly');
+                trigger.textContent = parts.join(', ');
+            }
+        }
+
+        // Setup mobile Type multi-select dropdown
+        function setupMobileTypeDropdown() {
+            const dropdown = document.getElementById('mobileTypeDropdown');
+            const trigger = document.getElementById('mobileTypeTrigger');
+            const panel = document.getElementById('mobileTypePanel');
+            if (!dropdown || !trigger || !panel) return;
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+            });
+
+            document.addEventListener('click', () => {
+                dropdown.classList.remove('open');
+            });
+            panel.addEventListener('click', (e) => e.stopPropagation());
+
+            panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    const eventType = this.dataset.eventType;
+                    const filterType = this.dataset.filterType;
+
+                    if (filterType === 'baby-friendly') {
+                        babyFriendlyFilterActive = this.checked;
+                        const babyBtn = document.querySelector('.event-type-filter-btn[data-filter-type="baby-friendly"]');
+                        if (babyBtn) {
+                            babyBtn.classList.toggle('active', babyFriendlyFilterActive);
+                            babyBtn.style.background = babyFriendlyFilterActive ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.6)';
+                            babyBtn.style.color = babyFriendlyFilterActive ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.6)';
+                            babyBtn.style.fontWeight = babyFriendlyFilterActive ? '500' : '400';
+                        }
+                    } else if (eventType === '') {
+                        selectedEventTypeFilters.clear();
+                        babyFriendlyFilterActive = false;
+                        panel.querySelectorAll('input[type="checkbox"]').forEach(c => {
+                            if (c !== this) c.checked = false;
+                        });
+                        document.querySelectorAll('.event-type-filter-btn').forEach(b => {
+                            b.classList.remove('active');
+                            b.style.background = 'rgba(255,255,255,0.6)';
+                            b.style.color = 'rgba(0,0,0,0.6)';
+                            b.style.fontWeight = '400';
+                        });
+                        const allBtn = document.querySelector('.event-type-filter-btn[data-event-type=""]');
+                        if (allBtn) {
+                            allBtn.classList.add('active');
+                            allBtn.style.background = 'rgba(0,0,0,0.08)';
+                            allBtn.style.color = 'rgba(0,0,0,0.87)';
+                            allBtn.style.fontWeight = '500';
+                        }
+                    } else {
+                        if (this.checked) {
+                            selectedEventTypeFilters.add(eventType);
+                        } else {
+                            selectedEventTypeFilters.delete(eventType);
+                        }
+                        const allBtn = document.querySelector('.event-type-filter-btn[data-event-type=""]');
+                        const typeBtn = document.querySelector(`.event-type-filter-btn[data-event-type="${eventType}"]`);
+                        if (typeBtn) {
+                            typeBtn.classList.toggle('active', this.checked);
+                            typeBtn.style.background = this.checked ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.6)';
+                            typeBtn.style.color = this.checked ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.6)';
+                            typeBtn.style.fontWeight = this.checked ? '500' : '400';
+                        }
+                        if (selectedEventTypeFilters.size > 0 || babyFriendlyFilterActive) {
+                            if (allBtn) {
+                                allBtn.classList.remove('active');
+                                allBtn.style.background = 'rgba(255,255,255,0.6)';
+                                allBtn.style.color = 'rgba(0,0,0,0.6)';
+                                allBtn.style.fontWeight = '400';
+                            }
+                            const allCb = panel.querySelector('input[data-event-type=""]');
+                            if (allCb) allCb.checked = false;
+                        }
+                    }
+                    updateMobileTypeCheckboxes();
+                    displayUnifiedEvents();
                 });
             });
         }
@@ -7189,6 +7443,11 @@
                     if (dateRangeSelect && dateRangeSelect.querySelector(`option[value="${currentTimePeriod}"]`)) {
                         dateRangeSelect.value = currentTimePeriod;
                     }
+                    // Sync mobile When dropdown
+                    const mobileWhenSelect = document.getElementById('mobileWhenSelect');
+                    if (mobileWhenSelect && mobileWhenSelect.querySelector(`option[value="${currentTimePeriod}"]`)) {
+                        mobileWhenSelect.value = currentTimePeriod;
+                    }
                     
                     // Load both event sources with the new time range so the unified display shows correct results
                     loadDiscoveredEvents();
@@ -7209,6 +7468,38 @@
                     if (currentTimePeriod === 'custom') {
                         loadDiscoveredEvents();
                     }
+                });
+            }
+
+            // Mobile When dropdown
+            const mobileWhenSelect = document.getElementById('mobileWhenSelect');
+            if (mobileWhenSelect) {
+                mobileWhenSelect.addEventListener('change', () => {
+                    currentTimePeriod = mobileWhenSelect.value;
+                    // Sync desktop time buttons
+                    timeButtons.forEach(b => {
+                        b.classList.toggle('active', b.dataset.period === currentTimePeriod);
+                    });
+                    if (currentTimePeriod === 'custom') {
+                        if (customDateGroup) customDateGroup.style.display = 'block';
+                        if (discoveredStartDate && !discoveredStartDate.value) {
+                            const today = new Date();
+                            const nextWeek = new Date(today);
+                            nextWeek.setDate(today.getDate() + 7);
+                            discoveredStartDate.value = today.toISOString().split('T')[0];
+                            discoveredEndDate.value = nextWeek.toISOString().split('T')[0];
+                        }
+                    } else {
+                        if (customDateGroup) customDateGroup.style.display = 'none';
+                    }
+                    const dateRangeSelect = document.getElementById('dateRangeSelect');
+                    if (dateRangeSelect && dateRangeSelect.querySelector(`option[value="${currentTimePeriod}"]`)) {
+                        dateRangeSelect.value = currentTimePeriod;
+                    }
+                    loadDiscoveredEvents();
+                    const cityId = citySelect?.value;
+                    const eventType = (document.getElementById('eventTypeSelectStep2') || document.getElementById('eventTypeSelect'))?.value || '';
+                    if (cityId) loadEvents(cityId, currentTimePeriod, eventType);
                 });
             }
         }
