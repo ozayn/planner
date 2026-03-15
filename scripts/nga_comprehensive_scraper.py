@@ -72,7 +72,7 @@ def create_scraper():
     
     # Try to establish a session by visiting the main page first
     try:
-        logger.info("   🔧 Establishing session with NGA website...")
+        logger.debug("   🔧 Establishing session with NGA website...")
         scraper.get(NGA_BASE_URL, timeout=15)
         import time
         time.sleep(1)  # Small delay after initial request
@@ -92,7 +92,7 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
     
     def recreate_scraper():
         """Helper to recreate cloudscraper session"""
-        logger.info(f"   🔧 Recreating cloudscraper session...")
+        logger.debug(f"   🔧 Recreating cloudscraper session...")
         detected_platform = platform.system().lower()
         if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
             platform_name = 'linux'
@@ -134,7 +134,7 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
         try:
             if attempt > 0:
                 wait_time = delay * (2 ** (attempt - 1))  # Exponential backoff
-                logger.info(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
+                logger.debug(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
                 time.sleep(wait_time)
                 # Recreate scraper for fresh session on retry
                 current_scraper = recreate_scraper()
@@ -178,7 +178,7 @@ def scrape_all_nga_events():
         
         # 1. Scrape Finding Awe events (only next 30 days by default)
         update_scraping_progress(1, total_steps, "Scraping Finding Awe events (next 30 days)...", events_found=len(all_events), venue_name=VENUE_NAME)
-        logger.info("🔍 Scraping Finding Awe events (next 30 days)...")
+        logger.debug("🔍 Scraping Finding Awe events (next 30 days)...")
         try:
             from scripts.nga_finding_awe_scraper import scrape_all_finding_awe_events
             finding_awe_events = scrape_all_finding_awe_events(max_days_ahead=30)
@@ -187,9 +187,9 @@ def scrape_all_nga_events():
                 finding_awe_events = []
             all_events.extend(finding_awe_events)
             update_scraping_progress(1, total_steps, f"✅ Found {len(finding_awe_events)} Finding Awe events", events_found=len(all_events), venue_name=VENUE_NAME)
-            logger.info(f"   ✅ Found {len(finding_awe_events)} Finding Awe events (within next 30 days)")
+            logger.debug(f"   ✅ Found {len(finding_awe_events)} Finding Awe events (within next 30 days)")
             if len(finding_awe_events) > 0:
-                logger.info(f"   📝 Sample Finding Awe event: {finding_awe_events[0].get('title', 'N/A')}")
+                logger.debug(f"   📝 Sample Finding Awe event: {finding_awe_events[0].get('title', 'N/A')}")
         except Exception as e:
             logger.error(f"   ❌ Error scraping Finding Awe events: {e}")
             import traceback
@@ -199,12 +199,12 @@ def scrape_all_nga_events():
         
         # 2. Scrape exhibitions
         update_scraping_progress(2, total_steps, "Scraping exhibitions...", events_found=len(all_events), venue_name=VENUE_NAME)
-        logger.info("🔍 Scraping exhibitions...")
+        logger.debug("🔍 Scraping exhibitions...")
         try:
             exhibitions = scrape_nga_exhibitions(scraper)
             all_events.extend(exhibitions)
             update_scraping_progress(2, total_steps, f"✅ Found {len(exhibitions)} exhibitions", events_found=len(all_events), venue_name=VENUE_NAME)
-            logger.info(f"   ✅ Found {len(exhibitions)} exhibitions")
+            logger.debug(f"   ✅ Found {len(exhibitions)} exhibitions")
         except Exception as e:
             logger.error(f"   ❌ Error scraping exhibitions: {e}")
             import traceback
@@ -213,21 +213,21 @@ def scrape_all_nga_events():
         
         # Add delay between different scraping operations to avoid rate limiting
         import time
-        logger.info("   ⏳ Waiting 3 seconds before scraping tours...")
+        logger.debug("   ⏳ Waiting 3 seconds before scraping tours...")
         time.sleep(3)
         
         # Recreate scraper for tours to get fresh session
-        logger.info("   🔧 Recreating scraper session for tours...")
+        logger.debug("   🔧 Recreating scraper session for tours...")
         scraper = create_scraper()
         
         # 3. Scrape tours
         update_scraping_progress(3, total_steps, "Scraping tours...", events_found=len(all_events), venue_name=VENUE_NAME)
-        logger.info("🔍 Scraping tours...")
+        logger.debug("🔍 Scraping tours...")
         try:
             tours = scrape_nga_tours(scraper)
             all_events.extend(tours)
             update_scraping_progress(3, total_steps, f"✅ Found {len(tours)} tours", events_found=len(all_events), venue_name=VENUE_NAME)
-            logger.info(f"   ✅ Found {len(tours)} tours")
+            logger.debug(f"   ✅ Found {len(tours)} tours")
         except Exception as e:
             logger.error(f"   ❌ Error scraping tours: {e}")
             import traceback
@@ -236,12 +236,12 @@ def scrape_all_nga_events():
         
         # 4. Scrape films
         update_scraping_progress(4, total_steps, "Scraping films...", events_found=len(all_events), venue_name=VENUE_NAME)
-        logger.info("🔍 Scraping films...")
+        logger.debug("🔍 Scraping films...")
         try:
             films = scrape_nga_films(scraper)
             all_events.extend(films)
             update_scraping_progress(4, total_steps, f"✅ Found {len(films)} films", events_found=len(all_events), venue_name=VENUE_NAME)
-            logger.info(f"   ✅ Found {len(films)} films")
+            logger.debug(f"   ✅ Found {len(films)} films")
         except Exception as e:
             logger.error(f"   ❌ Error scraping films: {e}")
             import traceback
@@ -250,12 +250,12 @@ def scrape_all_nga_events():
         
         # 5. Scrape National Gallery Nights
         update_scraping_progress(5, total_steps, "Scraping National Gallery Nights...", events_found=len(all_events), venue_name=VENUE_NAME)
-        logger.info("🔍 Scraping National Gallery Nights...")
+        logger.debug("🔍 Scraping National Gallery Nights...")
         try:
             nga_nights = scrape_nga_nights(scraper)
             all_events.extend(nga_nights)
             update_scraping_progress(5, total_steps, f"✅ Found {len(nga_nights)} National Gallery Nights", events_found=len(all_events), venue_name=VENUE_NAME)
-            logger.info(f"   ✅ Found {len(nga_nights)} National Gallery Nights events")
+            logger.debug(f"   ✅ Found {len(nga_nights)} National Gallery Nights events")
         except Exception as e:
             logger.error(f"   ❌ Error scraping National Gallery Nights: {e}")
             import traceback
@@ -273,16 +273,13 @@ def scrape_all_nga_events():
         # all_events.extend(other_events)
         # logger.info(f"   ✅ Found {len(other_events)} other events")
         
-        # Log breakdown by event type
+        # Summary: one line for logs
         event_types = {}
         for event in all_events:
             event_type = event.get('event_type', 'unknown')
             event_types[event_type] = event_types.get(event_type, 0) + 1
-        
-        logger.info(f"✅ Total NGA events scraped: {len(all_events)}")
-        logger.info(f"📊 Event breakdown: {event_types}")
-        if len(finding_awe_events) == 0:
-            logger.info(f"   ℹ️  No Finding Awe events in range (next 30 days)")
+        logger.info(f"NGA summary: total={len(all_events)} | {event_types}")
+        logger.debug(f"Event breakdown: {event_types}")
         return all_events
         
     except Exception as e:
@@ -306,7 +303,7 @@ def scrape_nga_exhibitions(scraper):
         page = 1
         max_pages = 10  # Limit to first 10 pages
         
-        logger.info(f"   📄 Fetching exhibitions from: {NGA_EXHIBITIONS_URL}")
+        logger.debug(f"   📄 Fetching exhibitions from: {NGA_EXHIBITIONS_URL}")
         
         while page <= max_pages:
             # Build URL with page parameter
@@ -316,7 +313,7 @@ def scrape_nga_exhibitions(scraper):
                 url = f"{NGA_EXHIBITIONS_URL}&page={page}"
             
             try:
-                logger.info(f"   📄 Fetching exhibitions page {page}...")
+                logger.debug(f"   📄 Fetching exhibitions page {page}...")
                 response = fetch_with_retry(scraper, url, max_retries=3, delay=2)
                 if not response:
                     logger.warning(f"   ⚠️  Failed to fetch exhibitions page {page} after retries")
@@ -342,11 +339,11 @@ def scrape_nga_exhibitions(scraper):
                 
                 if not page_links:
                     # No more links found, we've reached the end
-                    logger.info(f"   No more exhibition links found on page {page}, stopping pagination")
+                    logger.debug(f"   No more exhibition links found on page {page}, stopping pagination")
                     break
                 
                 exhibition_links.extend(page_links)
-                logger.info(f"   Found {len(page_links)} exhibition links on page {page} (total: {len(exhibition_links)})")
+                logger.debug(f"   Found {len(page_links)} exhibition links on page {page} (total: {len(exhibition_links)})")
                 
                 page += 1
                 
@@ -358,12 +355,12 @@ def scrape_nga_exhibitions(scraper):
                 logger.warning(f"   ⚠️  Error fetching exhibitions page {page}: {e}")
                 break
         
-        logger.info(f"   Found {len(exhibition_links)} total exhibition links")
+        logger.debug(f"   Found {len(exhibition_links)} total exhibition links")
         
         # Scrape each exhibition
         for i, exhibition_url in enumerate(exhibition_links, 1):
             try:
-                logger.info(f"   📄 Scraping exhibition {i}/{len(exhibition_links)}: {exhibition_url}")
+                logger.debug(f"   📄 Scraping exhibition {i}/{len(exhibition_links)}: {exhibition_url}")
                 event_data = scrape_nga_exhibition_page(exhibition_url, scraper)
                 if event_data:
                     events.append(event_data)
@@ -605,7 +602,7 @@ def scrape_nga_tours(scraper):
         today = date.today()
         one_month_later = today + timedelta(days=30)
         
-        logger.info(f"   📅 Scraping tours from {today} to {one_month_later}")
+        logger.debug(f"   📅 Scraping tours from {today} to {one_month_later}")
         
         # First, get all tour links from pages, but filter by date
         tour_links = []
@@ -613,7 +610,7 @@ def scrape_nga_tours(scraper):
         max_pages = 4  # Limit to first 4 pages
         skipped_future = 0
         
-        logger.info(f"   📄 Fetching tours from: {NGA_TOURS_URL}")
+        logger.debug(f"   📄 Fetching tours from: {NGA_TOURS_URL}")
         
         while page <= max_pages:
             # Build URL with page parameter
@@ -623,7 +620,7 @@ def scrape_nga_tours(scraper):
                 url = f"{NGA_TOURS_URL}&page={page}"
             
             try:
-                logger.info(f"   📄 Fetching page {page}...")
+                logger.debug(f"   📄 Fetching page {page}...")
                 response = fetch_with_retry(scraper, url, max_retries=3, delay=2)
                 if not response:
                     logger.warning(f"   ⚠️  Failed to fetch tours page {page} after retries")
@@ -665,7 +662,7 @@ def scrape_nga_tours(scraper):
                                         # If we're seeing dates beyond 1 month, we can stop pagination
                                         # (assuming pages are in chronological order)
                                         if skipped_future > 5:  # If we see several future dates, likely past our range
-                                            logger.info(f"   ⏭️  Skipping future tours beyond 1 month, stopping pagination")
+                                            logger.debug(f"   ⏭️  Skipping future tours beyond 1 month, stopping pagination")
                                             break
                                 except (ValueError, IndexError):
                                     # If we can't parse the date, include it anyway
@@ -678,11 +675,11 @@ def scrape_nga_tours(scraper):
                 
                 if not page_links:
                     # No more links found, we've reached the end
-                    logger.info(f"   No more tour links found on page {page}, stopping pagination")
+                    logger.debug(f"   No more tour links found on page {page}, stopping pagination")
                     break
                 
                 tour_links.extend(page_links)
-                logger.info(f"   Found {len(page_links)} tour links on page {page} (total: {len(tour_links)}, skipped future: {skipped_future})")
+                logger.debug(f"   Found {len(page_links)} tour links on page {page} (total: {len(tour_links)}, skipped future: {skipped_future})")
                 
                 # If we skipped many future dates, stop pagination
                 if skipped_future > 10:
@@ -698,7 +695,7 @@ def scrape_nga_tours(scraper):
                 logger.warning(f"   ⚠️  Error fetching page {page}: {e}")
                 break
         
-        logger.info(f"   ✅ Found {len(tour_links)} tour event links within next month (skipped {skipped_future} future tours)")
+        logger.debug(f"   ✅ Found {len(tour_links)} tour event links within next month (skipped {skipped_future} future tours)")
         
         # Scrape each tour event page
         total_tours = len(tour_links)
@@ -722,7 +719,7 @@ def scrape_nga_tours(scraper):
                     except Exception:
                         pass
                 
-                logger.info(f"   📄 Scraping tour {idx}/{len(tour_links)}: {tour_url}")
+                logger.debug(f"   📄 Scraping tour {idx}/{len(tour_links)}: {tour_url}")
                 event_data = scrape_nga_tour_page(tour_url, scraper)
                 if event_data:
                     # Double-check the date is within range (in case page content differs from URL)
@@ -731,17 +728,17 @@ def scrape_nga_tours(scraper):
                             event_date = datetime.fromisoformat(event_data['start_date']).date()
                             if event_date >= today and event_date <= one_month_later:
                                 events.append(event_data)
-                                logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')} ({event_date})")
+                                logger.debug(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')} ({event_date})")
                             else:
-                                logger.info(f"   ⏭️  Skipped tour outside date range: {event_data.get('title', 'Unknown')} ({event_date})")
+                                logger.debug(f"   ⏭️  Skipped tour outside date range: {event_data.get('title', 'Unknown')} ({event_date})")
                         except (ValueError, TypeError):
                             # If we can't parse the date, include it anyway
                             events.append(event_data)
-                            logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                            logger.debug(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
                     else:
                         # No date, include it anyway
                         events.append(event_data)
-                        logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                        logger.debug(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
                 else:
                     logger.warning(f"   ⚠️  No data extracted from: {tour_url}")
             except Exception as e:
@@ -834,7 +831,7 @@ def scrape_nga_tour_page(tour_url, scraper):
                 dt_obj = dt.fromisoformat(datetime_str.replace('Z', '+00:00'))
                 event_date = dt_obj.date()
                 start_time = dt_obj.time()
-                logger.info(f"   📅 Extracted from <time datetime>: {event_date} {start_time}")
+                logger.debug(f"   📅 Extracted from <time datetime>: {event_date} {start_time}")
                 
                 # For end time, get parent's text (end time is in next sibling)
                 # Parent text: "Wednesday, Dec 3, 2025 | 11:00 a.m.\n – 12:00 p.m.\n"
@@ -852,7 +849,7 @@ def scrape_nga_tour_page(tour_url, scraper):
                         elif end_ampm == 'A' and end_hour == 12:
                             end_hour = 0
                         end_time = time(end_hour, end_min)
-                        logger.info(f"   ⏰ Extracted end time from parent text: {end_time}")
+                        logger.debug(f"   ⏰ Extracted end time from parent text: {end_time}")
             except Exception as e:
                 logger.debug(f"   Could not parse time element datetime: {e}")
         
@@ -919,8 +916,8 @@ def scrape_nga_films(scraper):
         # Build films URL with type parameter for films (103026) and date range
         films_url = f"{NGA_FILMS_BASE_URL}?type[103026]=103026&visit_start={visit_start}&visit_end={visit_end}&tab=all"
         
-        logger.info(f"   📅 Scraping films from {visit_start} to {visit_end}")
-        logger.info(f"   📄 Fetching films from: {films_url}")
+        logger.debug(f"   📅 Scraping films from {visit_start} to {visit_end}")
+        logger.debug(f"   📄 Fetching films from: {films_url}")
         
         response = None
         try:
@@ -976,7 +973,7 @@ def scrape_nga_films(scraper):
                     if full_url not in film_links:
                         film_links.append(full_url)
         
-        logger.info(f"   ✅ Found {len(film_links)} film event links within date range")
+        logger.debug(f"   ✅ Found {len(film_links)} film event links within date range")
         
         # Scrape each film event page
         total_films = len(film_links)
@@ -1000,7 +997,7 @@ def scrape_nga_films(scraper):
                     except Exception:
                         pass
                 
-                logger.info(f"   📄 Scraping film {idx}/{len(film_links)}: {film_url}")
+                logger.debug(f"   📄 Scraping film {idx}/{len(film_links)}: {film_url}")
                 event_data = scrape_nga_film_page(film_url, scraper)
                 if event_data:
                     # Double-check the date is within range
@@ -1009,17 +1006,17 @@ def scrape_nga_films(scraper):
                             event_date = datetime.fromisoformat(event_data['start_date']).date()
                             if event_date >= today and event_date <= one_month_later:
                                 events.append(event_data)
-                                logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')} ({event_date})")
+                                logger.debug(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')} ({event_date})")
                             else:
-                                logger.info(f"   ⏭️  Skipped film outside date range: {event_data.get('title', 'Unknown')} ({event_date})")
+                                logger.debug(f"   ⏭️  Skipped film outside date range: {event_data.get('title', 'Unknown')} ({event_date})")
                         except (ValueError, TypeError):
                             # If we can't parse the date, include it anyway
                             events.append(event_data)
-                            logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                            logger.debug(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
                     else:
                         # No date, include it anyway
                         events.append(event_data)
-                        logger.info(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
+                        logger.debug(f"   ✅ Successfully scraped: {event_data.get('title', 'Unknown')}")
                 else:
                     logger.warning(f"   ⚠️  No data extracted from: {film_url}")
             except Exception as e:
@@ -1046,7 +1043,7 @@ def _fetch_nga_url_with_playwright(url, label="page"):
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': f'{NGA_BASE_URL}/calendar'
             })
-            logger.info(f"   🌐 Trying Playwright for {label} (403 bypass)...")
+            logger.debug(f"   🌐 Trying Playwright for {label} (403 bypass)...")
             page.goto(url, wait_until='domcontentloaded', timeout=25000)
             time.sleep(2)  # Allow JS to render
             html_content = page.content()
@@ -1076,7 +1073,7 @@ def scrape_nga_nights(scraper):
     today = date.today()
     
     try:
-        logger.info(f"   📄 Fetching National Gallery Nights from: {NGA_NIGHTS_URL}")
+        logger.debug(f"   📄 Fetching National Gallery Nights from: {NGA_NIGHTS_URL}")
         # Visit calendar page first to establish session (helps avoid 403)
         try:
             scraper.get(NGA_CALENDAR_URL, timeout=15)
@@ -1181,7 +1178,7 @@ def scrape_nga_nights(scraper):
                                     'is_registration_required': True,
                                     'registration_info': ev_reg_info,
                                 })
-                                logger.info(f"   ✅ From JSON-LD: {ev_title}")
+                                logger.debug(f"   ✅ From JSON-LD: {ev_title}")
                             except (ValueError, TypeError) as e:
                                 logger.debug(f"   Skip subEvent date parse: {e}")
                         if events:
@@ -1238,11 +1235,11 @@ def scrape_nga_nights(scraper):
                                     'is_registration_required': True,
                                     'registration_info': 'Lottery opens Monday 10am, closes Thursday noon. Additional passes at East Building entrance from 5:30 p.m.',
                                 })
-                                logger.info(f"   ✅ Created: {title} - {event_date.strftime('%B %Y')}")
+                                logger.debug(f"   ✅ Created: {title} - {event_date.strftime('%B %Y')}")
                 except (ValueError, IndexError, KeyError) as e:
                     logger.debug(f"   Could not create events from date range: {e}")
         
-        logger.info(f"   ✅ Found {len(events)} National Gallery Nights events")
+        logger.debug(f"   ✅ Found {len(events)} National Gallery Nights events")
         
     except Exception as e:
         logger.error(f"Error scraping National Gallery Nights: {e}")
@@ -1330,7 +1327,7 @@ def scrape_nga_film_page(film_url, scraper):
                 dt_obj = dt.fromisoformat(datetime_str.replace('Z', '+00:00'))
                 event_date = dt_obj.date()
                 start_time = dt_obj.time()
-                logger.info(f"   📅 Extracted from <time datetime>: {event_date} {start_time}")
+                logger.debug(f"   📅 Extracted from <time datetime>: {event_date} {start_time}")
                 
                 # For end time, get parent's text (end time is in next sibling)
                 parent = time_elem.parent
@@ -1347,7 +1344,7 @@ def scrape_nga_film_page(film_url, scraper):
                         elif end_ampm == 'A' and end_hour == 12:
                             end_hour = 0
                         end_time = time(end_hour, end_min)
-                        logger.info(f"   ⏰ Extracted end time from parent text: {end_time}")
+                        logger.debug(f"   ⏰ Extracted end time from parent text: {end_time}")
             except Exception as e:
                 logger.debug(f"   Could not parse time element datetime: {e}")
         
@@ -1404,7 +1401,7 @@ def scrape_nga_talks(scraper):
         
         for url in urls_to_check:
             try:
-                logger.info(f"   📄 Fetching from: {url}")
+                logger.debug(f"   📄 Fetching from: {url}")
                 response = fetch_with_retry(scraper, url, max_retries=3, delay=2)
                 if not response:
                     continue
@@ -1421,7 +1418,7 @@ def scrape_nga_talks(scraper):
                         if full_url not in talk_links and full_url != url:
                             talk_links.append(full_url)
                 
-                logger.info(f"   Found {len(talk_links)} talk/lecture links from {url}")
+                logger.debug(f"   Found {len(talk_links)} talk/lecture links from {url}")
                 
                 # Scrape each talk
                 for talk_url in talk_links:
@@ -1516,7 +1513,7 @@ def scrape_nga_calendar_events(scraper):
     events = []
     
     try:
-        logger.info(f"   📄 Fetching calendar events from: {NGA_CALENDAR_URL}")
+        logger.debug(f"   📄 Fetching calendar events from: {NGA_CALENDAR_URL}")
         response = fetch_with_retry(scraper, NGA_CALENDAR_URL, max_retries=3, delay=2)
         if not response:
             return events
@@ -1536,7 +1533,7 @@ def scrape_nga_calendar_events(scraper):
                     if full_url not in event_links and full_url != NGA_CALENDAR_URL:
                         event_links.append(full_url)
         
-        logger.info(f"   Found {len(event_links)} other calendar event links")
+        logger.debug(f"   Found {len(event_links)} other calendar event links")
         
         # Scrape each event
         for event_url in event_links:
@@ -1747,7 +1744,7 @@ def extract_event_datetime(page_text, event_url):
                 
                 start_time = time(start_hour, start_min)
                 end_time = time(end_hour, end_min)
-                logger.info(f"   ⏰ Parsed time from page text: {start_time} - {end_time}")
+                logger.debug(f"   ⏰ Parsed time from page text: {start_time} - {end_time}")
                 break
             except (ValueError, IndexError) as e:
                 logger.debug(f"   ⚠️  Error parsing time: {e}")
@@ -1793,7 +1790,7 @@ def extract_event_datetime(page_text, event_url):
                     month = int(evd_value[4:6])
                     day = int(evd_value[6:8])
                     event_date = date(year, month, day)
-                    logger.info(f"   📅 Extracted date from evd parameter (fallback): {event_date}")
+                    logger.debug(f"   📅 Extracted date from evd parameter (fallback): {event_date}")
                 except (ValueError, IndexError) as e:
                     logger.debug(f"   ⚠️  Could not parse date from evd parameter: {e}")
     
@@ -1893,8 +1890,8 @@ def create_events_in_database(events):
             logger.error(f"❌ Venue '{VENUE_NAME}' not found")
             return 0, 0
         
-        logger.info(f"✅ Found venue: {venue.name} (ID: {venue.id})")
-        logger.info(f"📊 Processing {len(events)} events...")
+        logger.debug(f"✅ Found venue: {venue.name} (ID: {venue.id})")
+        logger.debug(f"📊 Processing {len(events)} events...")
         
         # Custom processor for NGA-specific fields
         def nga_event_processor(event_data):

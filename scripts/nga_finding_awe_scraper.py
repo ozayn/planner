@@ -69,7 +69,7 @@ def scrape_individual_event(event_url, scraper=None):
     if not scraper: scraper = create_scraper()
     
     try:
-        logger.info(f"   📄 Scraping event: {event_url}")
+        logger.debug(f"   📄 Scraping event: {event_url}")
         
         response = None
         for attempt in range(3):
@@ -197,15 +197,48 @@ def scrape_individual_event(event_url, scraper=None):
         logger.error(f"   ❌ Error: {e}")
         return None
 
+
+def _fetch_finding_awe_with_playwright():
+    """Fallback: fetch Finding Awe page with Playwright when cloudscraper gets 403."""
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_extra_http_headers({
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.nga.gov/calendar'
+            })
+            page.goto(FINDING_AWE_URL, wait_until='domcontentloaded', timeout=25000)
+            time_module.sleep(2)
+            html = page.content()
+            browser.close()
+        return html
+    except ImportError:
+        logger.warning("   ⚠️  Playwright not installed; Finding Awe skipped on 403.")
+        return None
+    except Exception as e:
+        logger.warning(f"   ⚠️  Playwright fallback failed for Finding Awe: {e}")
+        return None
+
+
 def scrape_all_finding_awe_events(save_incrementally=False, max_days_ahead=30):
     scraper = create_scraper()
     events = []
     
-    logger.info(f"🔍 Scraping Finding Awe series from: {FINDING_AWE_URL}")
+    logger.debug(f"🔍 Scraping Finding Awe series from: {FINDING_AWE_URL}")
     try:
         response = scraper.get(FINDING_AWE_URL, timeout=20)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+        if response.status_code == 403:
+            logger.warning("   ⚠️  Finding Awe returned 403, trying Playwright fallback...")
+            html = _fetch_finding_awe_with_playwright()
+            if not html:
+                logger.warning("   ⚠️  Finding Awe skipped (403, no Playwright).")
+                return []
+            soup = BeautifulSoup(html, 'html.parser')
+        else:
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
         
         # Find specific event links
         links = set()
@@ -214,7 +247,7 @@ def scrape_all_finding_awe_events(save_incrementally=False, max_days_ahead=30):
             if '/calendar/finding-awe/' in href and href != '/calendar/finding-awe':
                 links.add(urllib.parse.urljoin(FINDING_AWE_URL, href))
         
-        logger.info(f"   Found {len(links)} candidate links")
+        logger.debug(f"   Found {len(links)} candidate links")
         
         today = date.today()
         cutoff = today + timedelta(days=max_days_ahead) if max_days_ahead else None
@@ -241,7 +274,7 @@ def scrape_all_finding_awe_events(save_incrementally=False, max_days_ahead=30):
             
         return events
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        logger.error(f"Finding Awe fatal error: {e}")
         return []
 
 def create_events_in_database(events):
