@@ -68,6 +68,7 @@
         /* Ensure all selects use page font (native selects often default to system UI font) */
         select {
             font-family: inherit;
+            font-size: 1rem;
         }
 
         /* Tooltip styling - disabled on touch devices */
@@ -648,6 +649,13 @@
                 min-height: 44px;
                 font-size: 16px;
                 -webkit-tap-highlight-color: transparent;
+            }
+            /* Mobile: 16px font on filter dropdowns to prevent iOS zoom on focus */
+            .events-filter-mobile select,
+            .mobile-type-dropdown-trigger,
+            .mobile-type-option {
+                font-size: 16px;
+                font-family: inherit;
             }
         }
 
@@ -2559,6 +2567,7 @@
             .form-group input {
                 padding: 10px;
                 font-size: 0.9375rem;
+                font-family: inherit;
                 min-height: 40px;
             }
 
@@ -2796,6 +2805,7 @@
             .form-group input {
                 padding: 8px;
                 font-size: 0.875rem;
+                font-family: inherit;
                 min-height: 36px;
             }
 
@@ -3044,6 +3054,7 @@
             border: 2px solid #f3f4f6;
             background: #f9fafb;
             font-size: 1.125rem;
+            font-family: inherit;
             color: #111827;
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
