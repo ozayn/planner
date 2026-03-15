@@ -90,12 +90,13 @@ class EnhancedLLMFallback:
         api_keys = get_api_keys()
         
         # Google Gemini (NEW HIGHEST PRIORITY - Best balance of quality and cost)
+        # Use v1beta and gemini-2.0-flash; v1 no longer supports gemini-1.5-flash
         if api_keys['GOOGLE_API_KEY']:
             models.append(ModelConfig(
                 provider=ModelProvider.GOOGLE,
                 api_key=api_keys['GOOGLE_API_KEY'],
-                base_url='https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
-                model_name='gemini-1.5-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+                model_name='gemini-2.0-flash',
                 max_tokens=2500,
                 temperature=0.3,
                 priority=1,

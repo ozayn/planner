@@ -70,11 +70,17 @@ class EventbriteScraper:
         Args:
             url: Eventbrite organizer page URL (e.g., https://www.eventbrite.com/o/organizer-name-1234567890)
                  Can also be eventbrite.fi (e.g., https://www.eventbrite.fi/o/organizer-name-1234567890)
+                 Directory URLs like /d/dc--washington/canadian-embassy/ are not supported (no organizer ID).
         
         Returns:
             Organizer ID as string, or None if not found
         """
         if not url or 'eventbrite' not in url.lower():
+            return None
+
+        # Directory/category URLs (e.g. eventbrite.com/d/dc--washington/canadian-embassy/) have no organizer ID
+        if re.search(r'eventbrite\.(?:com|fi|[a-z.]+)/d/', url, re.IGNORECASE):
+            logger.debug(f"Eventbrite directory URL (no organizer ID): {url}")
             return None
         
         # Pattern 1: Organizer page URL: eventbrite.com/o/organizer-name-1234567890 or eventbrite.fi/o/...
@@ -561,11 +567,13 @@ class EventbriteScraper:
             logger.debug(f"Venue {venue.name} does not have Eventbrite ticketing URL")
             return []
         
-        # Extract organizer ID
+        # Extract organizer ID (directory URLs like /d/dc--washington/... have no organizer ID)
         organizer_id = self.extract_organizer_id_from_url(venue.ticketing_url)
         if not organizer_id:
-            logger.warning(f"Could not extract organizer ID from URL: {venue.ticketing_url}")
-            logger.warning(f"  URL pattern check: {'eventbrite' in venue.ticketing_url.lower() if venue.ticketing_url else 'No URL'}")
+            if venue.ticketing_url and re.search(r'eventbrite\.(?:com|fi|[a-z.]+)/d/', venue.ticketing_url, re.IGNORECASE):
+                logger.warning(f"Skipping {venue.name}: Eventbrite directory URL (use organizer page .../o/name-12345)")
+            else:
+                logger.warning(f"Could not extract organizer ID from URL: {venue.ticketing_url}")
             return []
         
         logger.info(f"Scraping Eventbrite events for {venue.name} (organizer ID: {organizer_id})")
