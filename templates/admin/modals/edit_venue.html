@@ -52,10 +52,13 @@
             </div>
             <div class="form-group">
                 <label for="editVenueTicketing">Ticketing URL (Eventbrite, Ticketmaster, etc.)</label>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="url" id="editVenueTicketing" style="flex: 1;" placeholder="https://www.eventbrite.com/o/organizer-name-1234567890">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="editVenueTicketing" style="flex: 1; min-width: 200px;" placeholder="https://www.eventbrite.com/o/organizer-name-1234567890">
                     <button type="button" onclick="searchEventbriteOrganizer()" class="btn btn-secondary" style="white-space: nowrap; padding: 8px 12px;">
                         🔍 Search Eventbrite
+                    </button>
+                    <button type="button" onclick="document.getElementById('editVenueTicketing').value = ''" class="btn btn-secondary" style="white-space: nowrap; padding: 8px 12px;" title="Clear ticketing URL">
+                        Clear
                     </button>
                 </div>
                 <div id="eventbriteSearchResults" style="margin-top: 8px; display: none;">
