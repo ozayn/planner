@@ -868,6 +868,17 @@ def is_category_heading(title: str) -> bool:
     return False
 
 
+def is_spanish_language_event(title: str) -> bool:
+    """
+    Check if an event title indicates the event is conducted in Spanish
+    (e.g. "Spanish-Language Walk-In Tours", "Spanish Language Tour").
+    These should be filtered from results for now.
+    """
+    if not title or not isinstance(title, str):
+        return False
+    return bool(re.search(r'\bspanish[\s-]language\b', title.lower()))
+
+
 def clean_text_field(value):
     """Clean text fields by removing markdown formatting and extra whitespace"""
     if not value:

@@ -2463,6 +2463,8 @@ def _detect_language(soup, title, description, page_text):
     title_lower = (title or '').lower()
     if re.search(r'\b(en\s+español|in\s+spanish|en\s+español)\b', title_lower):
         return 'Spanish'
+    if re.search(r'\bspanish[\s-]language\b', title_lower):
+        return 'Spanish'
     if re.search(r'\b(en\s+français|in\s+french)\b', title_lower):
         return 'French'
     if re.search(r'\b(auf\s+deutsch|in\s+german)\b', title_lower):

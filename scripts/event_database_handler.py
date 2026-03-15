@@ -473,7 +473,7 @@ def create_events_in_database(
     error_count = 0
     
     # Import utilities
-    from scripts.utils import is_category_heading, ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
+    from scripts.utils import is_category_heading, is_spanish_language_event, ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
     
     for event_data in events:
         try:
@@ -498,6 +498,10 @@ def create_events_in_database(
                 logger_instance.debug(f"   ⏭️ Skipping category heading: '{title}'")
                 skipped_count += 1
                 continue
+            
+            # Treat title-based Spanish events (e.g. "Spanish-Language Walk-In Tours") as Spanish
+            if is_spanish_language_event(title):
+                event_data['language'] = 'Spanish'
             
             # Skip non-English events
             language = event_data.get('language', 'English')

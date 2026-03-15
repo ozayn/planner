@@ -1622,6 +1622,14 @@ def get_events():
         other_events = other_events.options(db.joinedload(Event.venue)).all()
         events.extend([event.to_dict() for event in other_events])
     
+    # Exclude non-English events (e.g. "Spanish-Language Walk-In Tours")
+    from scripts.utils import is_spanish_language_event
+    events = [
+        e for e in events
+        if (e.get('language') or 'English').lower() == 'english'
+        and not is_spanish_language_event(e.get('title', ''))
+    ]
+    
     return jsonify(events)
 
 @app.route('/api/venues')
@@ -1944,10 +1952,14 @@ def save_event_to_database(event_data, city_id, venue_exhibition_counts, venue_e
         title = event_data.get('title', 'Untitled Event')
         
         # Skip category headings (like "Past Exhibitions", "Traveling Exhibitions")
-        from scripts.utils import is_category_heading
+        from scripts.utils import is_category_heading, is_spanish_language_event
         if is_category_heading(title):
             app_logger.debug(f"⚠️ Skipping category heading: '{title}'")
             return None, False
+        
+        # Treat title-based Spanish events (e.g. "Spanish-Language Walk-In Tours") as Spanish
+        if is_spanish_language_event(title):
+            event_data['language'] = 'Spanish'
         
         # Skip non-English language events
         language = event_data.get('language', 'English')
