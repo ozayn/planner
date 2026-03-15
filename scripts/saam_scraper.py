@@ -2963,8 +2963,42 @@ def create_events_in_database(events: List[Dict]) -> tuple:
                 total_updated += updated
                 logger.info(f"✅ Renwick: Created {created}, Updated {updated}, Skipped {skipped}")
             else:
-                logger.warning(f"⚠️  Renwick Gallery venue not found in database! {len(renwick_events)} Renwick events will not be saved.")
-                logger.warning(f"   Please ensure 'Renwick Gallery' venue exists in the database.")
+                # Fallback: save under SAAM so events aren't dropped (e.g. if Renwick not in DB yet)
+                saam_venue = Venue.query.filter(
+                    db.func.lower(Venue.name).like(f'%{VENUE_NAME.lower()}%')
+                ).first()
+                if saam_venue:
+                    logger.warning(
+                        f"⚠️  Renwick Gallery venue not in database; saving {len(renwick_events)} Renwick events under SAAM. "
+                        "Add 'Renwick Gallery' from data/venues.json for correct venue assignment."
+                    )
+                    def renwick_under_saam_processor(event_data):
+                        event_data['source'] = 'website'
+                        if not event_data.get('location') or 'Renwick' not in event_data.get('location', ''):
+                            event_data['location'] = (event_data.get('location') or '').strip()
+                            if event_data['location']:
+                                event_data['location'] += ", Renwick Gallery"
+                            else:
+                                event_data['location'] = "Renwick Gallery"
+                    
+                    created, updated, skipped = shared_create_events(
+                        events=renwick_events,
+                        venue_id=saam_venue.id,
+                        city_id=saam_venue.city_id,
+                        venue_name=saam_venue.name,
+                        db=db,
+                        Event=Event,
+                        Venue=Venue,
+                        batch_size=5,
+                        logger_instance=logger,
+                        custom_event_processor=renwick_under_saam_processor
+                    )
+                    total_created += created
+                    total_updated += updated
+                    logger.info(f"✅ Renwick (under SAAM): Created {created}, Updated {updated}, Skipped {skipped}")
+                else:
+                    logger.warning(f"⚠️  Renwick Gallery and SAAM venues not found in database! {len(renwick_events)} Renwick events will not be saved.")
+                    logger.warning(f"   Please ensure venues are loaded from data/venues.json.")
         else:
             logger.debug(f"ℹ️  No Renwick events found in this batch")
         

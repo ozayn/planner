@@ -64,6 +64,17 @@ Set these on the **cron service** (or use the same env as the web service).
 
 **Minimum for cron:** `DATABASE_URL`, `FLASK_ENV=production`, and `SECRET_KEY`. Add Eventbrite token(s) if you want embassy Eventbrite events scraped.
 
+### Why NGA might return 0 events in cron (but works from admin)
+
+If the **admin "Scrape NGA" button** finds events but the **cron** finds 0 NGA events, the usual cause is that the cron runs in a **different Railway service** that was built **without the Dockerfile**. NGA often returns 403; the scraper then uses Playwright/Chromium as a fallback. No browser → fallback fails → 0 events.
+
+**Fix:** Use the **same build** for cron as for the web app:
+
+- **Option A (recommended):** Add the cron schedule to your **web service** (the one that runs gunicorn). Railway can run a cron command on the same service; confirm in Settings that the service uses the **Dockerfile** and that the scheduled command runs in that image.
+- **Option B:** If you use a **separate cron service**, set it to use the **Dockerfile** (not Nixpacks) so it gets Playwright/Chromium. In Railway: Cron Service → Settings → Build → use Dockerfile.
+
+The cron script logs a warning at startup if Playwright is not available so you can confirm this in the logs.
+
 ## Recommended Schedule Examples
 
 | Schedule | Cron Expression | Description |

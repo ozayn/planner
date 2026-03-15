@@ -114,6 +114,19 @@ def main():
                 return 1
             
             logger.info(f"📍 Found city: {dc_city.name} (ID: {dc_city.id})")
+
+            # One-time check: Playwright needed for NGA when site returns 403 (admin works = same image has it; cron may use different image)
+            try:
+                from playwright.sync_api import sync_playwright
+                with sync_playwright() as p:
+                    p.chromium.launch(headless=True, timeout=5000)
+                logger.debug("Playwright/Chromium available (NGA 403 fallback will work)")
+            except Exception:
+                logger.warning(
+                    "Playwright/Chromium not available in this environment. "
+                    "NGA may return 0 events when the site returns 403. "
+                    "Use the same Dockerfile as the web app for the cron service."
+                )
             
             # Get all venues in DC
             all_venues = Venue.query.filter_by(city_id=dc_city.id).all()
