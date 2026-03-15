@@ -282,7 +282,7 @@ def scrape_all_nga_events():
         logger.info(f"✅ Total NGA events scraped: {len(all_events)}")
         logger.info(f"📊 Event breakdown: {event_types}")
         if len(finding_awe_events) == 0:
-            logger.warning(f"⚠️  No Finding Awe events were scraped - check if Finding Awe scraper failed or found no events")
+            logger.info(f"   ℹ️  No Finding Awe events in range (next 30 days)")
         return all_events
         
     except Exception as e:
@@ -922,7 +922,16 @@ def scrape_nga_films(scraper):
         logger.info(f"   📅 Scraping films from {visit_start} to {visit_end}")
         logger.info(f"   📄 Fetching films from: {films_url}")
         
-        response = fetch_with_retry(scraper, films_url, max_retries=3, delay=2)
+        response = None
+        try:
+            response = fetch_with_retry(scraper, films_url, max_retries=3, delay=2)
+        except Exception as fetch_err:
+            if '403' in str(fetch_err) or 'Forbidden' in str(fetch_err):
+                logger.warning(f"   ⚠️  Got 403 on films, trying Playwright fallback...")
+                response = _fetch_nga_url_with_playwright(films_url, "films")
+            if response is None:
+                logger.warning(f"   ⚠️  Skipping films (403). Install Playwright for fallback: pip install playwright && playwright install chromium")
+                return events
         if not response:
             logger.warning(f"   ⚠️  Failed to fetch films page after retries")
             return events
@@ -1025,8 +1034,8 @@ def scrape_nga_films(scraper):
     return events
 
 
-def _fetch_nga_nights_with_playwright():
-    """Fallback: fetch NGA Nights page using Playwright when cloudscraper gets 403."""
+def _fetch_nga_url_with_playwright(url, label="page"):
+    """Fallback: fetch an NGA URL using Playwright when cloudscraper gets 403."""
     try:
         from playwright.sync_api import sync_playwright
         import time
@@ -1037,12 +1046,11 @@ def _fetch_nga_nights_with_playwright():
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': f'{NGA_BASE_URL}/calendar'
             })
-            logger.info(f"   🌐 Trying Playwright for National Gallery Nights (403 bypass)...")
-            page.goto(NGA_NIGHTS_URL, wait_until='domcontentloaded', timeout=25000)
+            logger.info(f"   🌐 Trying Playwright for {label} (403 bypass)...")
+            page.goto(url, wait_until='domcontentloaded', timeout=25000)
             time.sleep(2)  # Allow JS to render
             html_content = page.content()
             browser.close()
-        # Return response-like object
         class MockResponse:
             def __init__(self, text, status_code=200):
                 self.text = text
@@ -1055,6 +1063,11 @@ def _fetch_nga_nights_with_playwright():
     except Exception as e:
         logger.warning(f"   ⚠️  Playwright fallback failed: {e}")
         return None
+
+
+def _fetch_nga_nights_with_playwright():
+    """Convenience: fetch NGA Nights page via Playwright."""
+    return _fetch_nga_url_with_playwright(NGA_NIGHTS_URL, "National Gallery Nights")
 
 
 def scrape_nga_nights(scraper):

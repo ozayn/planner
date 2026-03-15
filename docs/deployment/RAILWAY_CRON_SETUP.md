@@ -47,10 +47,22 @@ Railway supports scheduled tasks through cron jobs. You can set up a cron schedu
    - Enter: `25 20 * * 1` (every Monday at 8:25 PM UTC = 3:25 PM ET)
 
 4. **Environment Variables**
-   - Ensure the service has access to all required environment variables:
-     - `DATABASE_URL` (Railway should auto-provide if using Railway Postgres)
-     - `FLASK_ENV=production`
-     - Any API keys needed (GROQ_API_KEY, etc.)
+   - Ensure the cron service has the same variables as the web service (or shares the same Railway project/environment). See **Variables for the cronjob** below.
+
+## Variables for the cronjob
+
+Set these on the **cron service** (or use the same env as the web service).
+
+| Variable | Required | Notes |
+|----------|----------|--------|
+| **DATABASE_URL** | **Yes** | Postgres connection string. Railway provides this if the service is linked to Postgres. |
+| **FLASK_ENV** | Recommended | Set to `production` so the app uses production config. |
+| **SECRET_KEY** | Yes (for app import) | Flask secret; set to any secure string if the cron only runs scripts. |
+| **EVENTBRITE_API_TOKEN** or **EVENTBRITE_PRIVATE_TOKEN** | Optional | Needed only if the cron scrapes **embassies with Eventbrite** URLs; otherwise those venues are skipped. |
+| **GROQ_API_KEY** | Optional | Used by some LLM/fallback logic if you use it during scraping. |
+| **GOOGLE_MAPS_API_KEY** | Optional | Only if you use map/geocode features in the cron. |
+
+**Minimum for cron:** `DATABASE_URL`, `FLASK_ENV=production`, and `SECRET_KEY`. Add Eventbrite token(s) if you want embassy Eventbrite events scraped.
 
 ## Recommended Schedule Examples
 

@@ -12,7 +12,7 @@ from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import requests
-from requests.exceptions import Timeout, RequestException, ConnectionError, ReadTimeout, ConnectTimeout
+from requests.exceptions import Timeout, RequestException, ConnectionError, ReadTimeout, ConnectTimeout, HTTPError
 from socket import timeout as SocketTimeout
 import urllib3
 
@@ -256,19 +256,35 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping Asian Art Museum exhibitions from: {ASIAN_ART_EXHIBITIONS_URL}")
+        response = None
         try:
             response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
             response.raise_for_status()
+        except HTTPError as http_err:
+            if http_err.response is not None and http_err.response.status_code == 403:
+                logger.warning(f"   ⚠️  403 Forbidden on exhibitions, trying cloudscraper...")
+                try:
+                    import cloudscraper
+                    cs = cloudscraper.create_scraper()
+                    response = cs.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
+                    response.raise_for_status()
+                except Exception:
+                    logger.warning(f"   ⚠️  Skipping Asian Art exhibitions (403). Cloudscraper fallback failed.")
+                    return events
+            else:
+                logger.error(f"❌ HTTP error scraping Asian Art Museum exhibitions: {http_err}")
+                return events
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
             logger.error(f"❌ Timeout error scraping Asian Art Museum exhibitions: {timeout_error}")
             logger.error(f"   URL: {ASIAN_ART_EXHIBITIONS_URL}")
-            logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
             return events
         except (ConnectionError, RequestException) as conn_error:
             logger.error(f"❌ Connection error scraping Asian Art Museum exhibitions: {conn_error}")
             logger.error(f"   URL: {ASIAN_ART_EXHIBITIONS_URL}")
             return events
-        
+        if not response:
+            return events
+
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Find all exhibition items - they're in h3 headings
@@ -1074,19 +1090,35 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     try:
         events_search_url = 'https://asia.si.edu/whats-on/events/search/'
         logger.info(f"🔍 Scraping Asian Art Museum events from: {events_search_url}")
+        response = None
         try:
             response = scraper.get(events_search_url, timeout=(15, 45))
             response.raise_for_status()
+        except HTTPError as http_err:
+            if http_err.response is not None and http_err.response.status_code == 403:
+                logger.warning(f"   ⚠️  403 Forbidden on events search, trying cloudscraper...")
+                try:
+                    import cloudscraper
+                    cs = cloudscraper.create_scraper()
+                    response = cs.get(events_search_url, timeout=(15, 45))
+                    response.raise_for_status()
+                except Exception:
+                    logger.warning(f"   ⚠️  Skipping Asian Art events (403). Cloudscraper fallback failed.")
+                    return events
+            else:
+                logger.error(f"❌ HTTP error scraping Asian Art Museum events: {http_err}")
+                return events
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
             logger.error(f"❌ Timeout error scraping Asian Art Museum events: {timeout_error}")
             logger.error(f"   URL: {events_search_url}")
-            logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
             return events
         except (ConnectionError, RequestException) as conn_error:
             logger.error(f"❌ Connection error scraping Asian Art Museum events: {conn_error}")
             logger.error(f"   URL: {events_search_url}")
             return events
-        
+        if not response:
+            return events
+
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Find event links - they're in h3 headings with links to /whats-on/events/search/event:ID
