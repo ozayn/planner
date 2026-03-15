@@ -9,7 +9,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta name="theme-color" content="#faf9f7">
     <title>Planner</title>
+
+    <!-- App icons for mobile home screen and browser -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/planner-icon-32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/planner-icon-180.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     
     <!-- Option 2: Google Analytics -->
     {% if google_analytics_id %}

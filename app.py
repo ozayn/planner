@@ -1175,8 +1175,9 @@ def index():
 
 @app.route('/favicon.ico')
 def favicon():
-    """Serve favicon to prevent 404 errors"""
-    return '', 204  # No content response
+    """Serve favicon for browser tab"""
+    from flask import send_from_directory
+    return send_from_directory('static/icons', 'planner-icon-32.png', mimetype='image/png')
 
 @app.route('/api/cities')
 def get_cities():
