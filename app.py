@@ -766,9 +766,21 @@ class Event(db.Model):
                 image_url = "https://placehold.co/400x300/667eea/ffffff?text=Event"
         
         # Route external URLs through proxy - keeps images loadable (all scrapers, current + future)
+        # Exception: npg.si.edu proxy URLs get decoded to raw URL (proxy blocked by Smithsonian from cloud IPs)
         if image_url and isinstance(image_url, str):
-            from scripts.utils import ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
-            image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_EVENT)
+            if '/api/image-proxy?' in image_url and 'npg.si.edu' in image_url:
+                app_logger.info("[Event.to_dict] Decoding npg.si.edu proxy URL to direct (bypass proxy)")
+                from urllib.parse import unquote, parse_qs
+                try:
+                    parsed = parse_qs(image_url.split('?', 1)[1])
+                    raw_url = parsed.get('url', [None])[0]
+                    if raw_url:
+                        image_url = unquote(raw_url)
+                except (IndexError, KeyError):
+                    pass
+            if image_url and image_url.startswith(('http://', 'https://')):
+                from scripts.utils import ensure_loadable_image_url, IMAGE_PROXY_MAX_WIDTH_EVENT
+                image_url = ensure_loadable_image_url(image_url, IMAGE_PROXY_MAX_WIDTH_EVENT)
         
         # Generate Google Maps link for navigation
         # Priority: explicit multi-location events > venue coordinates/name > event coordinates > event location
@@ -1700,10 +1712,10 @@ def get_venue_image(photo_reference):
         if not response.ok:
             # 400 usually means expired photo_reference - redirect to placeholder instead of failing
             if response.status_code == 400:
-                app_logger.debug(f"Places Photo API 400 (expired photo ref): {photo_reference[:50]}...")
+                app_logger.info(f"[api/image] Google Places 400 - expired photo ref: {photo_reference[:50]}...")
                 from flask import redirect
                 return redirect(IMAGE_PLACEHOLDER_URL, code=302)
-            app_logger.warning(f"Places Photo API returned {response.status_code}: {response.text[:200]}")
+            app_logger.info(f"[api/image] Google Places {response.status_code}: {response.text[:200]}")
             from flask import redirect
             return redirect(IMAGE_PLACEHOLDER_URL, code=302)
         
@@ -1804,6 +1816,11 @@ def proxy_external_image():
         # Decode the URL if it was encoded
         image_url = unquote(image_url)
         
+        # Log for debugging image load issues (visible in deployed logs)
+        parsed_req = urlparse(image_url) if image_url else None
+        domain = parsed_req.netloc if parsed_req else 'unknown'
+        app_logger.info(f"[image-proxy] Fetching: {domain} {image_url[:80]}...")
+        
         # Validate that it's an HTTP(S) URL
         if not image_url.startswith(('http://', 'https://')):
             return jsonify({'error': 'Invalid URL'}), 400
@@ -1836,7 +1853,7 @@ def proxy_external_image():
         except requests.exceptions.RequestException as e:
             # 403/404 = hotlinking blocked (Eventbrite, etc.) - redirect so browser tries directly
             if hasattr(e, 'response') and e.response is not None and e.response.status_code in (403, 404):
-                app_logger.debug(f"Proxy blocked ({e.response.status_code}), redirecting to original URL")
+                app_logger.info(f"[image-proxy] Blocked {e.response.status_code} from {domain}, redirecting to direct URL")
                 return redirect(image_url, code=302)
             # Network unreachable/timeout - skip cloudscraper (it will fail the same way)
             if _is_network_unreachable_error(e):
@@ -1869,6 +1886,8 @@ def proxy_external_image():
         if max_width > 0:
             content, content_type = _resize_image_if_needed(content, content_type, max_width)
         
+        app_logger.info(f"[image-proxy] OK: {domain} ({len(content)} bytes)")
+        
         # Return the image with proper headers
         return Response(
             content,
@@ -1882,10 +1901,14 @@ def proxy_external_image():
         
     except requests.exceptions.RequestException as e:
         # Network errors are expected when offline - log at DEBUG to reduce noise
+        try:
+            domain_err = urlparse(image_url).netloc if image_url else 'unknown'
+        except NameError:
+            domain_err = 'unknown'
         if _is_network_unreachable_error(e):
-            app_logger.debug(f"Image proxy network error: {image_url[:60] if image_url else '?'}...")
+            app_logger.info(f"[image-proxy] Network error for {domain_err}: {e}")
         else:
-            app_logger.error(f"Error proxying image from {image_url}: {e}")
+            app_logger.info(f"[image-proxy] Failed for {domain_err}: {e}")
         # Redirect to placeholder so <img> loads without 500/502 - avoids console errors and onerror
         from flask import redirect
         return redirect(IMAGE_PLACEHOLDER_URL, code=302)

@@ -22,7 +22,8 @@ IMAGE_PROXY_MAX_WIDTH_VENUE = 600  # Venue images
 # Domains that serve very large images - proxy these to resize. Others load directly.
 LARGE_IMAGE_DOMAINS = ('s3.amazonaws.com', 'wharfdc.com', 'hirshhorn.si.edu', 'si.edu', 'tulipday.eu')
 # Domains that block proxy (403) - never proxy, return raw URL for browser to load directly
-NO_PROXY_DOMAINS = ('evbuc.com', 'eventbrite.com')
+# npg.si.edu blocks server requests from cloud IPs; browser direct load works
+NO_PROXY_DOMAINS = ('evbuc.com', 'eventbrite.com', 'npg.si.edu')
 
 def ensure_loadable_image_url(url: Optional[str], max_width: int = IMAGE_PROXY_MAX_WIDTH_EVENT) -> Optional[str]:
     """
