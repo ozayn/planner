@@ -17,6 +17,12 @@ TULIPDAY_URL = "https://tulipday.eu/"
 ORGANIZER = "Royal Anthos"
 
 
+MONTH_MAP = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+}
+
+
 def _parse_date(text: str) -> Optional[date]:
     # Pattern 1: "March 15, 2026" or "Date: March 15, 2026"
     match = re.search(
@@ -26,35 +32,41 @@ def _parse_date(text: str) -> Optional[date]:
         re.I,
     )
     if match:
-        month_name = match.group(1).lower()
-        day = int(match.group(2))
-        year = int(match.group(3))
-        month_map = {
-            "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-            "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
-        }
-        month = month_map.get(month_name)
+        month = MONTH_MAP.get(match.group(1).lower())
         if month:
-            return date(year, month, day)
+            return date(int(match.group(3)), month, int(match.group(2)))
     # Pattern 2: "2026, March 15" (e.g. "Tulip Day Washington 2026, March 15")
-    match2 = re.search(
+    match = re.search(
         r"(\d{4}),\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})",
         text,
         re.I,
     )
-    if not match2:
-        return None
-    year = int(match2.group(1))
-    month_name = match2.group(2).lower()
-    day = int(match2.group(3))
-    month_map = {
-        "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-        "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
-    }
-    month = month_map.get(month_name)
-    if not month:
-        return None
-    return date(year, month, day)
+    if match:
+        month = MONTH_MAP.get(match.group(2).lower())
+        if month:
+            return date(int(match.group(1)), month, int(match.group(3)))
+    # Pattern 3: EU format "15 March 2026" or "15 March, 2026"
+    match = re.search(
+        r"(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)[,\s]+(\d{4})",
+        text,
+        re.I,
+    )
+    if match:
+        month = MONTH_MAP.get(match.group(2).lower())
+        if month:
+            return date(int(match.group(3)), month, int(match.group(1)))
+    # Pattern 4: "March 15 2026" (no comma)
+    match = re.search(
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)"
+        r"\s+(\d{1,2})\s+(\d{4})",
+        text,
+        re.I,
+    )
+    if match:
+        month = MONTH_MAP.get(match.group(1).lower())
+        if month:
+            return date(int(match.group(3)), month, int(match.group(2)))
+    return None
 
 
 def _parse_time(time_str: str) -> Optional[time]:
@@ -120,15 +132,7 @@ def _fetch_html(url: str) -> Optional[str]:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     except Exception:
         pass
-    # tulipday.eu has SSL handshake issues - requests with verify=False works
-    try:
-        import requests
-        response = requests.get(url, timeout=25, headers=headers, verify=False)
-        response.raise_for_status()
-        return response.text
-    except Exception as e:
-        logger.debug(f"Tulip Day requests failed for {url}: {e}")
-    # Fallback: cloudscraper (for Cloudflare) - may fail on SSL
+    # Try cloudscraper first - works better from cloud/datacenter IPs (bypasses Cloudflare)
     try:
         import cloudscraper
         scraper = cloudscraper.create_scraper()
@@ -137,6 +141,13 @@ def _fetch_html(url: str) -> Optional[str]:
         return response.text
     except Exception as e:
         logger.debug(f"Tulip Day cloudscraper failed for {url}: {e}")
+    try:
+        import requests
+        response = requests.get(url, timeout=25, headers=headers, verify=False)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        logger.debug(f"Tulip Day requests failed for {url}: {e}")
     try:
         import urllib.request
         import ssl
@@ -182,7 +193,13 @@ def scrape_tulipday_event() -> Optional[Dict]:
         start_time, end_time = _parse_time_range(page_text)
 
         if not event_date:
-            logger.warning("Tulip Day scraper: no date found on page")
+            # Log hints for debugging (block page = short, real page = 10k+ chars)
+            has_tulip = "tulip" in page_text.lower()
+            has_march = "march" in page_text.lower()
+            logger.warning(
+                f"Tulip Day scraper: no date found (page_len={len(page_text)}, "
+                f"has_tulip={has_tulip}, has_march={has_march})"
+            )
             return None
 
         title = "Tulip Day Washington"
