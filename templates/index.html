@@ -3030,7 +3030,7 @@
                 <span id="desktopToggleText">Desktop View</span>
             </div>
             <div class="header-controls">
-                <button class="header-pill-btn" onclick="document.body.classList.remove('wizard-completed'); document.getElementById('wizardStep1').classList.add('active'); document.getElementById('wizardStep2').classList.remove('active'); document.getElementById('wizardProgressBar').style.width='50%';">
+                <button class="header-pill-btn" onclick="document.body.classList.remove('wizard-completed'); document.getElementById('wizardStep1').classList.add('active'); document.getElementById('wizardStep2').classList.remove('active'); document.getElementById('wizardProgressBar').style.width='50%'; sessionStorage.removeItem('wizardCompleted'); window.history.replaceState({}, '', window.location.pathname);">
                     Change City
                 </button>
             </div>
@@ -3630,6 +3630,21 @@
             }
         }
 
+        // URL-based routing - update path so Back doesn't return to city selection
+        function getCityIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const city = params.get('city');
+            return city || null;
+        }
+        function updateUrlForCity(cityId) {
+            if (!cityId) return;
+            const url = new URL(window.location);
+            url.searchParams.set('city', cityId);
+            if (url.toString() !== window.location.href) {
+                window.history.replaceState({ cityId }, '', url.toString());
+            }
+        }
+
         // DOM elements
         const citySelect = document.getElementById('citySelect');
         const eventTypeSelect = document.getElementById('eventTypeSelect');
@@ -3911,7 +3926,14 @@
                 // User can manually select a city from the dropdown
                 // This prevents console errors and unnecessary network requests
                 
-                // If no city was matched via geocoding, try to use the last selected city from localStorage
+                // Check URL first - only skip wizard for deep links (shared URL with ?city=)
+                let skipWizardForReturningUser = false;
+                const cityFromUrl = getCityIdFromUrl();
+                if (cityFromUrl && cities.some(c => c.id == cityFromUrl || c.id == parseInt(cityFromUrl))) {
+                    currentCityId = String(cityFromUrl);
+                    skipWizardForReturningUser = true;  // Deep link: go straight to events
+                }
+                // Else try last selected city from localStorage (pre-select in dropdown, but still show wizard)
                 if (!currentCityId) {
                     const lastSelectedCityId = localStorage.getItem('lastSelectedCityId');
                     if (lastSelectedCityId) {
@@ -3986,6 +4008,12 @@
                 // Auto-select current city if found
                 if (currentCityId) {
                     citySelect.value = currentCityId;
+                    if (skipWizardForReturningUser) {
+                        localStorage.setItem('lastSelectedCityId', currentCityId);
+                        updateUrlForCity(currentCityId);
+                        sessionStorage.setItem('wizardCompleted', 'true');
+                        document.body.classList.add('wizard-completed');
+                    }
                     citySelect.dispatchEvent(new Event('change'));
                     
                     if (citySelectStep1) {
@@ -4072,6 +4100,10 @@
                 // Save selected city to localStorage for future sessions
                 if (citySelect.value) {
                     localStorage.setItem('lastSelectedCityId', citySelect.value);
+                    // Only update URL when past wizard - keeps / for city selection screen
+                    if (document.body.classList.contains('wizard-completed')) {
+                        updateUrlForCity(citySelect.value);
+                    }
                 }
                 updateStatus();
                 handleCitySelection();
@@ -8319,20 +8351,18 @@
                 if (wizardProgressBar) wizardProgressBar.style.width = '100%';
             });
 
-        // Check if wizard should be shown
-        // Show wizard if:
-        // 1. We are on a small screen (native mobile)
-        // 2. AND we are NOT forcing desktop view
-        // 3. AND session storage doesn't say it's completed
-        const isNativeMobile = window.innerWidth <= 768;
-        const isForcingDesktop = document.body.classList.contains('force-desktop');
-        const wizardSessionCompleted = sessionStorage.getItem('wizardCompleted');
+        // Show city selection when URL is / (no ?city=). Deep links with ?city= skip to events.
+        const hasCityInUrl = !!getCityIdFromUrl();
         
-        if (isNativeMobile && !isForcingDesktop && !wizardSessionCompleted) {
+        if (!hasCityInUrl) {
+            // User is at / - always show city selection
+            sessionStorage.removeItem('wizardCompleted');
             if (document.body.classList.contains('wizard-completed')) {
                 document.body.classList.remove('wizard-completed');
             }
         } else {
+            // Deep link with ?city= - skip to events
+            sessionStorage.setItem('wizardCompleted', 'true');
             if (!document.body.classList.contains('wizard-completed')) {
                 document.body.classList.add('wizard-completed');
             }
@@ -8342,6 +8372,7 @@
         function completeWizard() {
             const wizardEventTypeSelect = document.getElementById('wizardEventTypeSelect');
             const mainEventTypeSelect = document.getElementById('eventTypeSelect');
+            const mainCitySelect = document.getElementById('citySelect');
             
             // Sync event type if selected
             if (wizardEventTypeSelect && wizardEventTypeSelect.value) {
@@ -8349,6 +8380,11 @@
                     mainEventTypeSelect.value = wizardEventTypeSelect.value;
                     mainEventTypeSelect.dispatchEvent(new Event('change'));
                 }
+            }
+            
+            // Update URL so Back doesn't return to city selection
+            if (mainCitySelect && mainCitySelect.value) {
+                updateUrlForCity(mainCitySelect.value);
             }
             
             document.body.classList.add('wizard-completed');
