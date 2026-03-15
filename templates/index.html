@@ -67,9 +67,14 @@
             line-height: 1.6;
         }
 
-        /* Ensure all selects use page font (native selects often default to system UI font) */
-        select {
+        /* Ensure all form controls and buttons use page font (Inter) */
+        select,
+        input,
+        button,
+        textarea {
             font-family: inherit;
+        }
+        select {
             font-size: 1rem;
         }
 
@@ -530,10 +535,26 @@
             border-color: rgba(255, 255, 255, 0.5);
         }
 
-        /* Mobile view toggle button - hidden on desktop */
+        /* Mobile view toggle - hidden on desktop */
+        #mobileViewToggleWrapper {
+            display: none;
+        }
+        @media (min-width: 769px) {
+            #mobileViewToggleWrapper {
+                display: none !important;
+            }
+        }
+        @media (max-width: 768px) {
+            #mobileViewToggleWrapper {
+                display: flex !important;
+            }
+            body.force-desktop #mobileViewToggleWrapper {
+                display: none !important;
+            }
+        }
         .mobile-view-toggle {
             display: none;
-            position: fixed;
+            position: relative;
             bottom: calc(20px + env(safe-area-inset-bottom));
             right: calc(20px + env(safe-area-inset-right));
             z-index: 10002;
@@ -2363,6 +2384,9 @@
             .events-filter-mobile {
                 min-width: 0;
             }
+            .events-filter-mobile .events-filter-section:nth-child(2) {
+                max-width: 260px;
+            }
             .events-filter-mobile .events-export-actions {
                 margin-right: 0;
                 padding-left: 8px;
@@ -3155,7 +3179,7 @@
         <div id="wizardStep1" class="wizard-step active">
             <div class="wizard-content">
                 <h2>Choose your city</h2>
-                <p>Select a city to discover local events and venues.</p>
+                <p style="display: none;">Select a city to discover local events and venues.</p>
                 <div class="form-group" style="width: 100%;">
                     <label for="citySelectStep1" class="sr-only">City Selection</label>
                     <select id="citySelectStep1">
@@ -8739,6 +8763,8 @@
         function updateDesktopToggleButton() {
             const headerToggle = document.getElementById('headerDesktopToggle');
             const toggleText = document.getElementById('desktopToggleText');
+            const mobileViewToggle = document.getElementById('mobileViewToggle');
+            const mobileViewToggleWrapper = document.getElementById('mobileViewToggleWrapper');
             
             if (window.innerWidth <= 768 || document.body.classList.contains('force-desktop')) {
                 if (headerToggle) {
@@ -8751,19 +8777,48 @@
                         if (toggleText) toggleText.textContent = 'Desktop View';
                     }
                 }
+                if (mobileViewToggleWrapper) {
+                    mobileViewToggleWrapper.style.display = document.body.classList.contains('force-desktop') ? 'none' : 'flex';
+                }
+                if (mobileViewToggle) mobileViewToggle.style.display = '';
             } else {
                 if (headerToggle) headerToggle.style.display = 'none';
+                if (mobileViewToggleWrapper) mobileViewToggleWrapper.style.display = 'none';
+                if (mobileViewToggle) mobileViewToggle.style.display = 'none';
             }
         }
 
+        let lastWidth = window.innerWidth;
         window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            // When shrinking from desktop to mobile, keep events view visible so we don't suddenly switch to the minimal "View Events" screen
+            if (lastWidth > 768 && w <= 768 && !document.body.classList.contains('force-desktop')) {
+                const eventsPanel = document.getElementById('discoveredEventsPanel');
+                const venuesPanel = document.getElementById('venuesPanel');
+                const controlPanel = document.getElementById('controlPanel');
+                const toggleBtn = document.getElementById('mobileViewToggle');
+                const closeBtn = document.getElementById('mobileCloseEventsBtn');
+                if (eventsPanel) {
+                    eventsPanel.classList.add('mobile-active');
+                    sessionStorage.setItem('mobileEventsActive', 'true');
+                }
+                if (venuesPanel) venuesPanel.classList.add('mobile-hidden');
+                if (controlPanel) controlPanel.classList.add('mobile-hidden');
+                if (toggleBtn) {
+                    toggleBtn.textContent = 'View Venues';
+                    toggleBtn.classList.add('show-events');
+                    toggleBtn.style.display = '';
+                }
+                if (closeBtn) closeBtn.style.display = 'block';
+            }
+            lastWidth = w;
             updateDesktopToggleButton();
             setupMobileWizard();
         });
     </script>
 
-    <!-- Mobile View Toggle Button -->
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+    <!-- Mobile View Toggle Button (hidden on desktop via updateDesktopToggleButton) -->
+    <div id="mobileViewToggleWrapper" style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
         <button id="mobileViewToggle" class="mobile-view-toggle" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">
             View Events
         </button>

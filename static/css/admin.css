@@ -15,8 +15,9 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ensure all selects use page font (native selects often default to system UI font) */
-select, .filter-select {
+/* Ensure all form controls and buttons use page font (Inter) */
+select, .filter-select,
+input, button, textarea {
     font-family: inherit;
 }
 
@@ -639,8 +640,11 @@ select, .filter-select {
     padding: 10px 8px;
     border-bottom: 1px solid #f3f4f6;
     vertical-align: top;
-    white-space: nowrap;
     min-width: 100px;
+    max-width: 280px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .data-table td.description,
