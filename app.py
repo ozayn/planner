@@ -1705,15 +1705,15 @@ def get_venue_image(photo_reference):
         except requests.exceptions.RequestException as e:
             if _is_network_unreachable_error(e):
                 app_logger.debug(f"Google Maps image fetch failed (network): {photo_reference[:50]}...")
-                return _transparent_pixel_response()
+                return _image_unavailable_response()
             raise
         if not response.ok:
             # 400 usually means expired photo_reference - return transparent pixel (no placeholder)
             if response.status_code == 400:
                 app_logger.debug(f"[api/image] Google Places 400 - expired photo ref: {photo_reference[:50]}...")
-                return _transparent_pixel_response()
+                return _image_unavailable_response()
             app_logger.debug(f"[api/image] Google Places {response.status_code}: {response.text[:200]}")
-            return _transparent_pixel_response()
+            return _image_unavailable_response()
         
         # Return the image with proper headers
         from flask import Response
@@ -1728,18 +1728,14 @@ def get_venue_image(photo_reference):
         
     except Exception as e:
         app_logger.error(f"Error fetching image for photo reference {photo_reference}: {e}")
-        return _transparent_pixel_response()
+        return _image_unavailable_response()
 
 # Default max width for proxied images - keeps all images at loadable size (avoids 2MB+ Wharf images etc)
 IMAGE_PROXY_DEFAULT_MAX_WIDTH = 800
-# 1x1 transparent GIF - when image fetch fails, return this instead of "Image unavailable" placeholder
-_TRANSPARENT_1X1_GIF = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
-
-
-def _transparent_pixel_response():
-    """Return 1x1 transparent GIF - no visible placeholder when image unavailable."""
+def _image_unavailable_response():
+    """Return 404 so img onerror fires and the card hides the image slot (no grey box)."""
     from flask import Response
-    return Response(_TRANSPARENT_1X1_GIF, mimetype='image/gif', headers={'Cache-Control': 'public, max-age=3600'})
+    return Response('Image unavailable', status=404, mimetype='text/plain')
 
 
 def _is_network_unreachable_error(exc: BaseException) -> bool:
@@ -1910,10 +1906,10 @@ def proxy_external_image():
             app_logger.debug(f"[image-proxy] Network error for {domain_err}: {e}")
         else:
             app_logger.debug(f"[image-proxy] Failed for {domain_err}: {e}")
-        return _transparent_pixel_response()
+        return _image_unavailable_response()
     except Exception as e:
         app_logger.error(f"Unexpected error proxying image: {e}")
-        return _transparent_pixel_response()
+        return _image_unavailable_response()
 
 @app.route('/api/scrape-progress')
 def get_scraping_progress():
