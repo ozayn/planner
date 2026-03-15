@@ -1688,7 +1688,14 @@ def get_venue_image(photo_reference):
         
         # Fetch the image from Google Maps
         import requests
-        response = requests.get(image_url, timeout=10)
+        try:
+            response = requests.get(image_url, timeout=10)
+        except requests.exceptions.RequestException as e:
+            if _is_network_unreachable_error(e):
+                app_logger.debug(f"Google Maps image fetch failed (network): {photo_reference[:50]}...")
+                from flask import redirect
+                return redirect('https://placehold.co/400x300/e5e7eb/6b7280?text=Image+unavailable', code=302)
+            raise
         if not response.ok:
             # 400 usually means expired photo_reference - redirect to placeholder instead of failing
             if response.status_code == 400:
@@ -1715,6 +1722,27 @@ def get_venue_image(photo_reference):
 
 # Default max width for proxied images - keeps all images at loadable size (avoids 2MB+ Wharf images etc)
 IMAGE_PROXY_DEFAULT_MAX_WIDTH = 800
+
+
+def _is_network_unreachable_error(exc: BaseException) -> bool:
+    """Detect connection/network unreachable errors - cloudscraper won't help with these."""
+    err_str = str(exc).lower()
+    # Common patterns: Errno 101 (ENETUNREACH), connection timeout, connection refused
+    if 'network is unreachable' in err_str or 'errno 101' in err_str:
+        return True
+    if 'connection' in err_str and ('timed out' in err_str or 'refused' in err_str):
+        return True
+    if 'connecttimeout' in err_str or 'connection timed out' in err_str:
+        return True
+    if 'failed to establish a new connection' in err_str:
+        return True
+    if 'max retries exceeded' in err_str and 'connection' in err_str:
+        return True
+    # OSError/ConnectionError with errno
+    if hasattr(exc, 'errno') and exc.errno == 101:
+        return True
+    return False
+
 
 def _resize_image_if_needed(content: bytes, content_type: str, max_width: int) -> tuple[bytes, str]:
     """Resize image to max_width (maintain aspect ratio) if larger. Returns (bytes, content_type)."""
@@ -1805,6 +1833,10 @@ def proxy_external_image():
             if hasattr(e, 'response') and e.response is not None and e.response.status_code in (403, 404):
                 app_logger.debug(f"Proxy blocked ({e.response.status_code}), redirecting to original URL")
                 return redirect(image_url, code=302)
+            # Network unreachable/timeout - skip cloudscraper (it will fail the same way)
+            if _is_network_unreachable_error(e):
+                app_logger.debug(f"Network unreachable for image, skipping cloudscraper: {image_url[:60]}...")
+                raise e
             # Try cloudscraper for other failures (Cloudflare, etc.)
             try:
                 import cloudscraper
@@ -1817,7 +1849,10 @@ def proxy_external_image():
             except requests.exceptions.RequestException as e2:
                 if hasattr(e2, 'response') and e2.response is not None and e2.response.status_code in (403, 404):
                     return redirect(image_url, code=302)
-                app_logger.error(f"Both regular requests and cloudscraper failed for {image_url[:80]}...: {e}, {e2}")
+                if _is_network_unreachable_error(e2):
+                    app_logger.debug(f"Network unreachable (cloudscraper): {image_url[:60]}...")
+                else:
+                    app_logger.error(f"Both regular requests and cloudscraper failed for {image_url[:80]}...: {e}, {e2}")
                 raise e2
         
         content = response.content
@@ -1841,7 +1876,11 @@ def proxy_external_image():
         )
         
     except requests.exceptions.RequestException as e:
-        app_logger.error(f"Error proxying image from {image_url}: {e}")
+        # Network errors are expected when offline - log at DEBUG to reduce noise
+        if _is_network_unreachable_error(e):
+            app_logger.debug(f"Image proxy network error: {image_url[:60] if image_url else '?'}...")
+        else:
+            app_logger.error(f"Error proxying image from {image_url}: {e}")
         return jsonify({'error': f'Failed to fetch image: {str(e)}'}), 500
     except Exception as e:
         app_logger.error(f"Unexpected error proxying image: {e}")
@@ -3135,8 +3174,20 @@ def auth_login():
         session['state'] = state
         return redirect(authorization_url)
     except Exception as e:
-        print(f"OAuth login error: {e}")
-        return f"OAuth error: {e}", 500
+        app_logger.error(f"OAuth login error: {e}")
+        if _is_network_unreachable_error(e):
+            return render_template(
+                'oauth_error.html',
+                title='Connection Error',
+                message='Unable to reach sign-in service. Please check your internet connection and try again.',
+                retry_url='/auth/login'
+            ), 503
+        return render_template(
+            'oauth_error.html',
+            title='Sign-in Error',
+            message=str(e),
+            retry_url='/auth/login'
+        ), 500
 
 @app.route('/auth/callback')
 def auth_callback():
@@ -3179,8 +3230,20 @@ def auth_callback():
         return redirect('/admin')
         
     except Exception as e:
-        print(f"OAuth callback error: {e}")
-        return f"OAuth callback error: {e}", 500
+        app_logger.error(f"OAuth callback error: {e}")
+        if _is_network_unreachable_error(e):
+            return render_template(
+                'oauth_error.html',
+                title='Connection Error',
+                message='Unable to complete sign-in. Please check your internet connection and try again.',
+                retry_url='/auth/login'
+            ), 503
+        return render_template(
+            'oauth_error.html',
+            title='Sign-in Error',
+            message=str(e),
+            retry_url='/auth/login'
+        ), 500
 
 @app.route('/auth/logout')
 def auth_logout():
