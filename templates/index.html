@@ -291,9 +291,11 @@
         body.wizard-completed .main-content {
             grid-template-columns: 1fr;
         }
-        /* Ensure equal left/right padding inside the events card */
-        body.wizard-completed .discovered-events {
-            padding-inline: 32px;
+        /* Ensure equal left/right padding inside the events card (desktop only) */
+        @media (min-width: 769px) {
+            body.wizard-completed .discovered-events {
+                padding-inline: 32px;
+            }
         }
         /* Events panel: column 2 when sidebar visible, full width when drawer mode */
         .discovered-events {
@@ -416,6 +418,8 @@
             body.wizard-completed .discover-drawer-wrapper {
                 width: 100%;
                 max-width: 100%;
+                padding-left: 12px;
+                padding-right: 12px;
             }
             body.wizard-completed .discover-drawer-trigger {
                 display: inline-flex;
@@ -529,7 +533,7 @@
             position: fixed;
             bottom: calc(20px + env(safe-area-inset-bottom));
             right: calc(20px + env(safe-area-inset-right));
-            z-index: 10000;
+            z-index: 10002;
             background: rgba(0,0,0,0.8);
             color: white;
             border: none;
@@ -593,6 +597,8 @@
             padding: 16px;
             margin-bottom: 20px;
             border: 1px solid rgba(0, 0, 0, 0.06);
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         .events-filter-section {
@@ -620,12 +626,11 @@
 
         @media (max-width: 768px) {
             .events-filter-mobile {
-                grid-template-columns: auto auto 1fr;
+                grid-template-columns: auto 1fr;
                 gap: 8px;
             }
             .events-filter-mobile .events-export-actions {
-                margin-top: 0;
-                justify-self: end;
+                margin-top: 8px;
             }
             .events-export-actions {
                 flex-direction: row;
@@ -646,27 +651,27 @@
             }
         }
 
-        /* When and Type as dropdowns (all screen sizes) - inline on one row */
+        /* When and Type as dropdowns (all screen sizes); export actions on next line */
         .events-filter-desktop { display: none !important; }
         .events-filter-mobile {
             display: grid !important;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+            gap: 12px 12px;
             align-items: end;
         }
         .events-filter-mobile .events-filter-section { margin-bottom: 0; }
-
-        /* Min-width = length of longest option (selects can grow if needed) */
-        .events-filter-mobile {
-            grid-template-columns: auto auto auto;
-        }
         .events-filter-mobile .events-filter-section select {
-            min-width: 11ch; /* longest: "This Month" */
+            min-width: 11ch; /* fit longest option "This Month" */
         }
         .events-filter-mobile .mobile-type-dropdown {
-            min-width: 18ch; /* longest: "Baby-Friendly" - prevent wrap */
+            min-width: 0; /* allow shrink in grid; 1fr column gives remaining space */
         }
-        .events-filter-mobile .events-export-actions { align-items: stretch; }
+        .events-filter-mobile .events-export-actions {
+            grid-column: 1 / -1;
+            margin-top: 4px;
+            align-items: stretch;
+        }
         .events-filter-mobile .events-export-actions .export-btn {
             min-height: 44px;
             padding: 12px 16px;
@@ -686,22 +691,9 @@
             text-align: center;
         }
 
-        /* Desktop: When, Type on left; Export, Select All on right */
         @media (min-width: 769px) {
-            .events-filter-mobile {
-                grid-template-columns: auto auto 1fr;
-                gap: 12px;
-            }
             .events-filter-mobile .events-export-actions {
-                margin-top: 0;
                 flex-wrap: nowrap;
-                flex-shrink: 0;
-                grid-column: auto;
-                justify-self: end;
-            }
-            .events-filter-mobile .events-export-actions .export-btn:first-child {
-                flex: 0 1 auto;
-                white-space: nowrap;
             }
         }
 
@@ -771,10 +763,21 @@
             border-radius: 12px;
             background: white;
             box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            z-index: 100;
+            z-index: 1000;
         }
         .mobile-type-dropdown.open .mobile-type-dropdown-panel {
             display: block;
+        }
+        /* Mobile: fixed positioning so panel isn't clipped by overflow-y: auto on events panel */
+        @media (max-width: 768px) {
+            .mobile-type-dropdown-panel {
+                position: fixed !important;
+                left: var(--type-dropdown-left, 0) !important;
+                top: var(--type-dropdown-top, 0) !important;
+                width: var(--type-dropdown-width, 100%) !important;
+                max-width: 100vw;
+                right: auto !important;
+            }
         }
         .mobile-type-option {
             display: flex;
@@ -2241,7 +2244,7 @@
 
         @media (max-width: 768px) {
             .container {
-                padding: 8px;
+                padding: 6px;
             }
 
             .main-content {
@@ -2250,7 +2253,11 @@
                 position: relative;
             }
 
-            /* Mobile: Hide events by default, show with toggle */
+            /* Mobile: Hide events by default, show with toggle (override desktop padding-inline) */
+            .discovered-events,
+            body.wizard-completed .discovered-events {
+                padding-inline: 12px;
+            }
             .discovered-events {
                 display: none !important;
                 position: fixed;
@@ -2262,7 +2269,7 @@
                 height: 100vh;
                 max-height: 100vh;
                 border-radius: 0;
-                padding: 16px;
+                padding: 12px;
                 z-index: 999;
                 background: #ffffff;
                 overflow-y: auto;
@@ -2326,8 +2333,18 @@
             }
 
             .events-filters {
-                padding: 14px;
+                padding: 12px 10px;
                 -webkit-tap-highlight-color: transparent;
+                min-width: 0;
+                overflow-x: hidden;
+                overflow-y: visible;
+            }
+            .events-filter-mobile {
+                min-width: 0;
+            }
+            .events-filter-mobile .events-export-actions {
+                margin-right: 0;
+                padding-left: 8px;
             }
 
             .events-filter-section {
@@ -2383,7 +2400,7 @@
             .venues-panel,
             .events-panel,
             .discovered-events {
-                padding: 14px;
+                padding: 10px;
                 border-radius: 10px;
             }
 
@@ -2637,7 +2654,7 @@
 
         @media (max-width: 480px) {
             .container {
-                padding: 6px;
+                padding: 4px;
             }
 
             .header {
@@ -2660,8 +2677,10 @@
             .control-panel,
             .venues-panel,
             .events-panel,
-            .discovered-events {
-                padding: 12px;
+            .discovered-events,
+            body.wizard-completed .discovered-events {
+                padding: 8px;
+                padding-inline: 8px;
             }
 
             .control-panel h2,
@@ -2723,7 +2742,7 @@
             }
 
             .events-filters {
-                padding: 12px;
+                padding: 10px 8px;
             }
 
             .time-selector {
@@ -3528,7 +3547,7 @@
                             </button>
                             <h2 style="color: rgba(0,0,0,0.6); margin: 0; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px;">Events</h2>
                         </div>
-                        <button id="mobileCloseEventsBtn" class="mobile-close-btn" style="display: none; background: transparent; border: none; color: rgba(0,0,0,0.6); font-size: 1.5rem; cursor: pointer; padding: 12px; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s ease; -webkit-tap-highlight-color: transparent;" data-tooltip="Close Events" aria-label="Close Events" onclick="if(window.toggleMobileView){event.preventDefault();event.stopPropagation();window.toggleMobileView();}">×</button>
+                        <button id="mobileCloseEventsBtn" class="mobile-close-btn" style="display: none; background: transparent; border: none; color: rgba(0,0,0,0.6); font-size: 1.5rem; cursor: pointer; padding: 12px; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s ease; -webkit-tap-highlight-color: transparent;" data-tooltip="Close Events" aria-label="Close Events" onclick="if(window.closeMobileEventsView){event.preventDefault();event.stopPropagation();window.closeMobileEventsView();}else if(window.toggleMobileView){window.toggleMobileView();}">×</button>
                     </div>
                 <div class="events-filters">
                     <!-- Desktop: button groups -->
@@ -3599,7 +3618,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="events-export-actions" style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: nowrap;">
+                        <div class="events-export-actions" style="display: flex; gap: 8px;">
                             <button id="exportDiscoveredEventsBtn" class="export-btn export-btn-icon-only" style="flex: 0 0 auto; border-radius: 12px; background: rgba(0,0,0,0.87); color: white; border: none; font-size: 0.9375rem; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); padding: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" disabled title="Export events to calendar (selected if any, otherwise all)" aria-label="Export to calendar">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                 <span class="export-count-badge" id="exportCountBadge" style="display: none;"></span>
@@ -3858,6 +3877,34 @@
             }
         }
 
+        // On mobile, close events view (do not open drawer so overlay doesn't block View Events button)
+        window.closeMobileEventsView = function() {
+            if (window.innerWidth > 768) {
+                if (window.toggleMobileView) window.toggleMobileView();
+                return;
+            }
+            const eventsPanel = document.getElementById('discoveredEventsPanel');
+            const venuesPanel = document.getElementById('venuesPanel');
+            const controlPanel = document.getElementById('controlPanel');
+            const toggleBtn = document.getElementById('mobileViewToggle');
+            const closeBtn = document.getElementById('mobileCloseEventsBtn');
+            if (!eventsPanel) return;
+            // Ensure drawer/overlay are closed so View Events button stays clickable
+            if (typeof toggleDiscoverDrawer === 'function') toggleDiscoverDrawer(false);
+            // Hide events panel and show control/venues in layout
+            eventsPanel.style.setProperty('display', 'none', 'important');
+            eventsPanel.classList.remove('mobile-active');
+            if (venuesPanel) venuesPanel.classList.remove('mobile-hidden');
+            if (controlPanel) controlPanel.classList.remove('mobile-hidden');
+            if (toggleBtn) {
+                toggleBtn.textContent = 'View Events';
+                toggleBtn.classList.remove('show-events');
+                toggleBtn.style.display = '';
+            }
+            if (closeBtn) closeBtn.style.display = 'none';
+            sessionStorage.removeItem('mobileEventsActive');
+        };
+
         // Mobile view toggle function - define globally before DOMContentLoaded
         window.toggleMobileView = function() {
             const eventsPanel = document.getElementById('discoveredEventsPanel');
@@ -3870,11 +3917,12 @@
                 return;
             }
             
-            // Check current state
+            // Check current state: prefer mobile-active class so View Events always toggles back correctly
+            const hasActiveClass = eventsPanel.classList.contains('mobile-active');
             const inlineDisplay = eventsPanel.style.getPropertyValue('display');
             const computedDisplay = window.getComputedStyle(eventsPanel).display;
-            const isShowingEvents = inlineDisplay === 'block' || inlineDisplay.includes('block') || computedDisplay !== 'none';
-            
+            const isShowingEvents = hasActiveClass || inlineDisplay === 'block' || inlineDisplay.includes('block') || computedDisplay !== 'none';
+
             if (isShowingEvents) {
                 // Hide events, show venues/sources
                 eventsPanel.style.setProperty('display', 'none', 'important');
@@ -3883,10 +3931,15 @@
                 if (controlPanel) controlPanel.classList.remove('mobile-hidden');
                 toggleBtn.textContent = 'View Events';
                 toggleBtn.classList.remove('show-events');
+                toggleBtn.style.display = ''; // show when on venues so user can return to events
                 if (closeBtn) closeBtn.style.display = 'none';
                 sessionStorage.removeItem('mobileEventsActive');
+                // On mobile, open Discover drawer so user sees city/venues instead of empty main area
+                if (window.innerWidth <= 768 && typeof toggleDiscoverDrawer === 'function') {
+                    toggleDiscoverDrawer(true);
+                }
             } else {
-                // Show events, hide venues/sources
+                // Show events, hide venues/sources (Discover drawer is used for venues)
                 eventsPanel.style.setProperty('display', 'block', 'important');
                 eventsPanel.style.setProperty('position', 'fixed', 'important');
                 eventsPanel.style.setProperty('top', '0', 'important');
@@ -3900,31 +3953,30 @@
                 eventsPanel.classList.add('mobile-active');
                 if (venuesPanel) venuesPanel.classList.add('mobile-hidden');
                 if (controlPanel) controlPanel.classList.add('mobile-hidden');
-                toggleBtn.textContent = 'View Venues';
-                toggleBtn.classList.add('show-events');
+                toggleBtn.style.display = 'none'; // hide when on events; use Discover for venues
                 if (closeBtn) closeBtn.style.display = 'flex';
                 sessionStorage.setItem('mobileEventsActive', 'true');
             }
         };
 
         // Global error handlers to catch and suppress extension-related errors
+        function isExtensionError(msg) {
+            if (!msg) return false;
+            return msg.includes('message channel') ||
+                msg.includes('message port closed') ||
+                msg.includes('sendMessage') ||
+                msg.includes('runtime/sendMessage');
+        }
         window.addEventListener('error', function(event) {
-            // Suppress errors from browser extensions
-            if (event.message && event.message.includes('message channel')) {
+            if (event.message && isExtensionError(event.message)) {
                 event.preventDefault();
                 return false;
             }
         }, true);
-        
+
         window.addEventListener('unhandledrejection', function(event) {
-            // Suppress promise rejections from browser extensions
-            if (event.reason && typeof event.reason === 'object' && event.reason.message) {
-                if (event.reason.message.includes('message channel')) {
-                    event.preventDefault();
-                    return;
-                }
-            }
-            if (typeof event.reason === 'string' && event.reason.includes('message channel')) {
+            const msg = typeof event.reason === 'string' ? event.reason : (event.reason && event.reason.message);
+            if (msg && isExtensionError(msg)) {
                 event.preventDefault();
                 return;
             }
@@ -7191,10 +7243,33 @@
             const panel = document.getElementById('mobileTypePanel');
             if (!dropdown || !trigger || !panel) return;
 
+            function positionPanel() {
+                const rect = trigger.getBoundingClientRect();
+                const gap = 4;
+                panel.style.setProperty('--type-dropdown-left', rect.left + 'px');
+                panel.style.setProperty('--type-dropdown-top', (rect.bottom + gap) + 'px');
+                panel.style.setProperty('--type-dropdown-width', rect.width + 'px');
+            }
+
             trigger.addEventListener('click', (e) => {
                 e.stopPropagation();
+                const willOpen = !dropdown.classList.contains('open');
                 dropdown.classList.toggle('open');
+                if (willOpen && window.innerWidth <= 768) {
+                    positionPanel();
+                }
             });
+
+            window.addEventListener('resize', () => {
+                if (dropdown.classList.contains('open') && window.innerWidth <= 768) {
+                    positionPanel();
+                }
+            });
+            window.addEventListener('scroll', () => {
+                if (dropdown.classList.contains('open') && window.innerWidth <= 768) {
+                    positionPanel();
+                }
+            }, true);
 
             document.addEventListener('click', () => {
                 dropdown.classList.remove('open');
@@ -8421,6 +8496,9 @@
         function toggleDiscoverDrawer(open) {
             const wrapper = document.getElementById('discoverDrawerWrapper');
             const overlay = document.getElementById('discoverDrawerOverlay');
+            const controlPanel = document.getElementById('controlPanel');
+            const venuesPanel = document.getElementById('venuesPanel');
+            const eventsPanel = document.getElementById('discoveredEventsPanel');
             if (!wrapper || !overlay) return;
             const isOpen = typeof open === 'boolean' ? open : !wrapper.classList.contains('drawer-open');
             wrapper.classList.toggle('drawer-open', isOpen);
@@ -8428,12 +8506,19 @@
             document.body.classList.toggle('discover-drawer-open', isOpen);
             overlay.setAttribute('aria-hidden', !isOpen);
             if (isOpen) {
-                // Only prevent body scroll on mobile (overlay mode); desktop push mode allows scroll
+                // On mobile, drawer content (control + venues) may be hidden when viewing events; show them inside the drawer
                 if (window.innerWidth <= 768) {
+                    if (controlPanel) controlPanel.classList.remove('mobile-hidden');
+                    if (venuesPanel) venuesPanel.classList.remove('mobile-hidden');
                     document.body.style.overflow = 'hidden';
                 }
                 document.addEventListener('keydown', _discoverDrawerEscapeHandler);
             } else {
+                // On mobile, if we're in events view, hide control + venues again in the main layout
+                if (window.innerWidth <= 768 && eventsPanel && eventsPanel.classList.contains('mobile-active')) {
+                    if (controlPanel) controlPanel.classList.add('mobile-hidden');
+                    if (venuesPanel) venuesPanel.classList.add('mobile-hidden');
+                }
                 document.body.style.overflow = '';
                 document.removeEventListener('keydown', _discoverDrawerEscapeHandler);
             }
