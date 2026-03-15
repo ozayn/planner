@@ -525,7 +525,7 @@
             min-width: 11ch; /* longest: "This Month" */
         }
         .events-filter-mobile .mobile-type-dropdown {
-            min-width: 18ch; /* longest: "👶 Baby-Friendly" - prevent wrap */
+            min-width: 18ch; /* longest: "Baby-Friendly" - prevent wrap */
         }
         .events-filter-mobile .events-export-actions { align-items: stretch; }
         .events-filter-mobile .events-export-actions .export-btn {
@@ -3409,7 +3409,7 @@
                                 <button class="event-type-filter-btn" data-event-type="talk">Talks</button>
                                 <button class="event-type-filter-btn" data-event-type="music">Music</button>
                                 <button class="event-type-filter-btn" data-event-type="other">Other</button>
-                                <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly">👶 Baby-Friendly</button>
+                                <button class="event-type-filter-btn" id="babyFriendlyFilterBtn" data-filter-type="baby-friendly">Baby-Friendly</button>
                             </div>
                         </div>
                     </div>
@@ -3444,7 +3444,7 @@
                                     <label class="mobile-type-option"><input type="checkbox" data-event-type="talk"> Talks</label>
                                     <label class="mobile-type-option"><input type="checkbox" data-event-type="music"> Music</label>
                                     <label class="mobile-type-option"><input type="checkbox" data-event-type="other"> Other</label>
-                                    <label class="mobile-type-option"><input type="checkbox" data-filter-type="baby-friendly"> 👶 Baby-Friendly</label>
+                                    <label class="mobile-type-option"><input type="checkbox" data-filter-type="baby-friendly"> Baby-Friendly</label>
                                 </div>
                             </div>
                         </div>
@@ -6996,7 +6996,7 @@
             } else {
                 const parts = [];
                 selectedEventTypeFilters.forEach(t => parts.push(typeLabels[t] || t));
-                if (babyFriendlyFilterActive) parts.push('👶 Baby-Friendly');
+                if (babyFriendlyFilterActive) parts.push('Baby-Friendly');
                 trigger.textContent = parts.join(', ');
             }
         }
@@ -7120,7 +7120,7 @@
                 <div class="event-card ${isSelected ? 'selected' : ''} ${isOnline ? 'online-event' : ''}" data-event-id="${event.id}">
                     <div class="event-header">
                         <div>
-                            <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}${isBabyFriendly ? ' <span class="baby-badge" style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; margin-left: 8px;">👶 Baby-Friendly</span>' : ''}</div>
+                            <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}${isBabyFriendly ? ' <span class="baby-badge" style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; margin-left: 8px;">Baby-Friendly</span>' : ''}</div>
                             <div class="event-venue">${locationDisplay}</div>
                         </div>
                         <input type="checkbox" id="event_chk_${event.id}" class="event-checkbox" ${isSelected ? 'checked' : ''} 
