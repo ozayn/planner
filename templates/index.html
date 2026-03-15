@@ -7734,8 +7734,12 @@
             const today = new Date().toISOString().split('T')[0].substring(5);
             const filename = `planner_${cityAbbr}_${eventTypeAbbr}_${dateRangeAbbr}_${type}_${today}.ics`;
             
-            // Use unified module to export
-            CalendarExport.exportToCalendar(events, filename);
+            try {
+                CalendarExport.exportToCalendar(events, filename);
+            } catch (err) {
+                console.error('Calendar export error:', err);
+                showNotification('Export failed: ' + (err.message || 'unknown error'), 'error');
+            }
         }
 
         // Generate ICS content (using unified module)
@@ -8073,6 +8077,10 @@
 
         // Smart export: selected events if any, otherwise all
         function smartExportEvents() {
+            if (typeof CalendarExport === 'undefined' || !CalendarExport.exportToCalendar) {
+                showNotification('Calendar export is not available. Please refresh the page.', 'error');
+                return;
+            }
             if (selectedEvents.size > 0) {
                 exportSelectedEvents();
             } else {

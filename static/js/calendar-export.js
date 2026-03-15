@@ -464,6 +464,10 @@
      * Generate ICS event string for a single event
      */
     function generateICSEvent(event) {
+        if (!event || !event.start_date) {
+            if (CALENDAR_DEBUG) console.warn('ICS: Skipping event with missing start_date', event);
+            return '';
+        }
         // Get current timestamp for DTSTAMP
         const now = new Date();
         const dtstamp = formatDateTimeForICS(
@@ -760,11 +764,15 @@
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = filename;
+        link.download = filename || 'planner_events.ics';
+        link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        // Keep link in DOM briefly so some browsers can start the download
+        setTimeout(function() {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }, 200);
         
         if (typeof showNotification === 'function') {
             showNotification(`Exported ${events.length} events to calendar`, 'success');
