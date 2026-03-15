@@ -55,11 +55,14 @@ def scrape_websters_events():
         soup = BeautifulSoup(response.text, 'html.parser')
         page_text = soup.get_text()
         
-        # New pattern to match date markers: "Jan 29th:", "Feb 1st:", etc.
-        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        month_map = {m: i+1 for i, m in enumerate(months)}
-        month_pattern = '|'.join(months)
-        date_marker_pattern = rf'({month_pattern})\s+(\d{{1,2}})(?:st|nd|rd|th)?\s*:'
+        # Pattern to match date markers: "Jan 29th:", "Feb 1st:", "Feb 12th", "March 1st", etc.
+        # Colon is optional; full month names (March, April, etc.) are supported
+        months_abbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        months_full = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+        month_map = {m: i+1 for i, m in enumerate(months_abbrev)}
+        month_map.update({m: i+1 for i, m in enumerate(months_full)})
+        month_pattern = '|'.join(months_full + months_abbrev)  # Full names first for longer match
+        date_marker_pattern = rf'({month_pattern})\s+(\d{{1,2}})(?:st|nd|rd|th)?\s*:?\s*'
         
         # Regular expression for time: e.g. "10am - 2pm" or "7:30 - 11:30" or "6:30pm - 8pm"
         time_pattern = re.compile(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*[-–]\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', re.I)
