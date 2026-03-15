@@ -924,10 +924,7 @@ def scrape_nga_films(scraper):
             response = fetch_with_retry(scraper, films_url, max_retries=3, delay=2)
         except Exception as fetch_err:
             if '403' in str(fetch_err) or 'Forbidden' in str(fetch_err):
-                logger.warning(f"   ⚠️  Got 403 on films, trying Playwright fallback...")
-                response = _fetch_nga_url_with_playwright(films_url, "films")
-            if response is None:
-                logger.warning(f"   ⚠️  Skipping films (403). Install Playwright for fallback: pip install playwright && playwright install chromium")
+                logger.warning(f"   ⚠️  Skipping films (403).")
                 return events
         if not response:
             logger.warning(f"   ⚠️  Failed to fetch films page after retries")
@@ -1031,42 +1028,6 @@ def scrape_nga_films(scraper):
     return events
 
 
-def _fetch_nga_url_with_playwright(url, label="page"):
-    """Fallback: fetch an NGA URL using Playwright when cloudscraper gets 403."""
-    try:
-        from playwright.sync_api import sync_playwright
-        import time
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.set_extra_http_headers({
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': f'{NGA_BASE_URL}/calendar'
-            })
-            logger.debug(f"   🌐 Trying Playwright for {label} (403 bypass)...")
-            page.goto(url, wait_until='domcontentloaded', timeout=25000)
-            time.sleep(2)  # Allow JS to render
-            html_content = page.content()
-            browser.close()
-        class MockResponse:
-            def __init__(self, text, status_code=200):
-                self.text = text
-                self.status_code = status_code
-            def raise_for_status(self): pass
-        return MockResponse(html_content)
-    except ImportError:
-        logger.warning("   ⚠️  Playwright not installed - pip install playwright && playwright install chromium")
-        return None
-    except Exception as e:
-        logger.warning(f"   ⚠️  Playwright fallback failed: {e}")
-        return None
-
-
-def _fetch_nga_nights_with_playwright():
-    """Convenience: fetch NGA Nights page via Playwright."""
-    return _fetch_nga_url_with_playwright(NGA_NIGHTS_URL, "National Gallery Nights")
-
-
 def scrape_nga_nights(scraper):
     """Scrape National Gallery Nights events from the series page (JSON-LD or fallback)."""
     events = []
@@ -1086,10 +1047,10 @@ def scrape_nga_nights(scraper):
             response = fetch_with_retry(scraper, NGA_NIGHTS_URL, max_retries=3, delay=2)
         except Exception as fetch_err:
             if '403' in str(fetch_err) or 'Forbidden' in str(fetch_err):
-                logger.warning(f"   ⚠️  Got 403, trying Playwright fallback...")
-                response = _fetch_nga_nights_with_playwright()
+                logger.warning(f"   ⚠️  Skipping National Gallery Nights (403).")
+                return events
             if response is None:
-                raise fetch_err
+                return events
         if not response:
             logger.warning("   ⚠️  Failed to fetch National Gallery Nights page")
             return events
