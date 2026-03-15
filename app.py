@@ -1694,16 +1694,17 @@ def get_venue_image(photo_reference):
             if _is_network_unreachable_error(e):
                 app_logger.debug(f"Google Maps image fetch failed (network): {photo_reference[:50]}...")
                 from flask import redirect
-                return redirect('https://placehold.co/400x300/e5e7eb/6b7280?text=Image+unavailable', code=302)
+                return redirect(IMAGE_PLACEHOLDER_URL, code=302)
             raise
         if not response.ok:
             # 400 usually means expired photo_reference - redirect to placeholder instead of failing
             if response.status_code == 400:
                 app_logger.debug(f"Places Photo API 400 (expired photo ref): {photo_reference[:50]}...")
                 from flask import redirect
-                return redirect('https://placehold.co/400x300/e5e7eb/6b7280?text=Image+unavailable', code=302)
+                return redirect(IMAGE_PLACEHOLDER_URL, code=302)
             app_logger.warning(f"Places Photo API returned {response.status_code}: {response.text[:200]}")
-            return jsonify({'error': f'Image fetch failed ({response.status_code})'}), 502
+            from flask import redirect
+            return redirect(IMAGE_PLACEHOLDER_URL, code=302)
         
         # Return the image with proper headers
         from flask import Response
@@ -1718,10 +1719,13 @@ def get_venue_image(photo_reference):
         
     except Exception as e:
         app_logger.error(f"Error fetching image for photo reference {photo_reference}: {e}")
-        return jsonify({'error': 'Failed to fetch image'}), 500
+        from flask import redirect
+        return redirect(IMAGE_PLACEHOLDER_URL, code=302)
 
 # Default max width for proxied images - keeps all images at loadable size (avoids 2MB+ Wharf images etc)
 IMAGE_PROXY_DEFAULT_MAX_WIDTH = 800
+# Placeholder image for failed fetches - redirect instead of 500/502 so <img> loads without onerror
+IMAGE_PLACEHOLDER_URL = 'https://placehold.co/400x300/e5e7eb/6b7280?text=Image+unavailable'
 
 
 def _is_network_unreachable_error(exc: BaseException) -> bool:
@@ -1881,10 +1885,13 @@ def proxy_external_image():
             app_logger.debug(f"Image proxy network error: {image_url[:60] if image_url else '?'}...")
         else:
             app_logger.error(f"Error proxying image from {image_url}: {e}")
-        return jsonify({'error': f'Failed to fetch image: {str(e)}'}), 500
+        # Redirect to placeholder so <img> loads without 500/502 - avoids console errors and onerror
+        from flask import redirect
+        return redirect(IMAGE_PLACEHOLDER_URL, code=302)
     except Exception as e:
         app_logger.error(f"Unexpected error proxying image: {e}")
-        return jsonify({'error': 'Failed to proxy image'}), 500
+        from flask import redirect
+        return redirect(IMAGE_PLACEHOLDER_URL, code=302)
 
 @app.route('/api/scrape-progress')
 def get_scraping_progress():
