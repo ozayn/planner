@@ -8105,24 +8105,24 @@
             
             return `
                 <div class="grouped-tour-card" id="${cardId}" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-                    <div class="grouped-tour-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleGroupedTourExpansion('${cardId}')">
+                    <div class="grouped-tour-header" style="display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; gap: 12px;" onclick="toggleGroupedTourExpansion('${cardId}')">
                         <div style="flex: 1; min-width: 0;">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; flex: 1; min-width: 0; line-height: 1.4;">${tourTitle}</div>
-                                <input type="checkbox" id="grouped_tour_chk_${cardId}" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''}
-                                       onchange="toggleGroupedTourSelection('${tourTitle}', this.checked); event.stopPropagation();"
-                                       onclick="event.stopPropagation();"
-                                       style="width: 16px; height: 16px; cursor: pointer; accent-color: rgba(0,0,0,0.5); flex-shrink: 0; align-self: flex-start; margin-top: 2px; margin-left: 8px;">
-                            </div>
+                            <div class="event-title" style="font-size: 0.9375rem; font-weight: 600; color: #111827; margin-bottom: 4px; line-height: 1.4;">${tourTitle}</div>
                             <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 2px;">${locationDisplay}</div>
                             <div style="font-size: 0.75rem; color: #6b7280;">
                                 <span>${dateRange}</span> • <span>${timeSummary}</span> • <span>${events.length} ${events.length === 1 ? 'session' : 'sessions'}</span>
                             </div>
                         </div>
-                        <button onclick="toggleGroupedTourExpansion('${cardId}'); event.stopPropagation();" 
-                                style="background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; font-size: 0.875rem; flex-shrink: 0; margin-left: 8px;">
-                            <span class="expand-icon">▼</span>
-                        </button>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0;">
+                            <input type="checkbox" id="grouped_tour_chk_${cardId}" class="grouped-tour-checkbox" ${allSelected ? 'checked' : ''}
+                                   onchange="toggleGroupedTourSelection('${tourTitle}', this.checked); event.stopPropagation();"
+                                   onclick="event.stopPropagation();"
+                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: rgba(0,0,0,0.5);">
+                            <button onclick="toggleGroupedTourExpansion('${cardId}'); event.stopPropagation();" 
+                                    style="background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; font-size: 0.875rem; line-height: 1;">
+                                <span class="expand-icon">▼</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="grouped-tour-sessions" id="${cardId}-sessions" style="display: none; margin-top: 12px; max-height: 300px; overflow-y: auto;">
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; margin-bottom: 10px;">
