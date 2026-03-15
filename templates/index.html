@@ -59,6 +59,11 @@
             line-height: 1.6;
         }
 
+        /* Ensure all selects use page font (native selects often default to system UI font) */
+        select {
+            font-family: inherit;
+        }
+
         /* Tooltip styling - disabled on touch devices */
         [title] {
             position: relative;
@@ -460,6 +465,7 @@
             border-radius: 12px;
             background: rgba(255,255,255,0.9);
             font-size: 0.9375rem;
+            font-family: inherit;
             -webkit-appearance: none;
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
@@ -480,6 +486,7 @@
             border-radius: 12px;
             background: rgba(255,255,255,0.9);
             font-size: 0.9375rem;
+            font-family: inherit;
             text-align: left;
             cursor: pointer;
             min-height: 44px;
@@ -528,6 +535,7 @@
             padding: 12px 16px;
             cursor: pointer;
             font-size: 0.9375rem;
+            font-family: inherit;
             border-bottom: 1px solid rgba(0,0,0,0.06);
         }
         .mobile-type-option:last-child { border-bottom: none; }
@@ -920,6 +928,7 @@
             border: 1px solid rgba(0,0,0,0.08);
             border-radius: 12px;
             font-size: 0.95rem;
+            font-family: inherit;
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
