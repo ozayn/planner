@@ -209,12 +209,10 @@ function generateEventDetailsHTML(event) {
                     <a href="${displayImageUrl.startsWith('/') ? (window.location.origin || '') + displayImageUrl : displayImageUrl}" target="_blank" style="display: block; text-decoration: none; border-radius: 12px; overflow: hidden; background: #f5f5f5; min-height: 120px;">
                         <img src="${displayImageUrl.replace(/"/g, '&quot;')}" alt="${(event.title || 'Event').replace(/"/g, '&quot;')}" 
                              style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.2s; background: #f5f5f5;"
-                             onerror="this.onerror=null; this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+                             onerror="this.onerror=null; this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
                              onmouseover="this.style.transform='scale(1.02)'"
                              onmouseout="this.style.transform='scale(1)'">
-                        <div class="image-fallback-placeholder" style="display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; background: #f0f0f0; border-radius: 12px; color: #666; font-size: 13px; padding: 16px; text-align: center;">
-                            Image could not be loaded.<br><small>Add GOOGLE_MAPS_API_KEY to .env for venue photos</small>
-                        </div>
+                        <div class="image-fallback-placeholder" style="display: none;"><!-- Hidden when image fails - no placeholder shown --></div>
                     </a>
                     <small style="display: block; margin-top: 8px; color: #666; text-align: center;">Click to open in new tab</small>
                 </div>
@@ -514,10 +512,8 @@ function generateVenueDetailsHTML(venue) {
                     return `
                         <a href="${imageHref}" target="_blank" style="color: #2196f3; text-decoration: none;">
                             <img data-src="${imageSrc}" alt="Venue Image" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid #e0e0e0; background: #f5f5f5;" 
-                                 onerror="this.style.display='none'; const fallbackDiv = this.parentElement.querySelector('.image-fallback'); if (fallbackDiv) { fallbackDiv.style.display='inline-block'; }">
-                            <div class="image-fallback" style="display: none; padding: 10px; background: #f5f5f5; border-radius: 4px; color: #666;">
-                                <a href="${imageHref}" target="_blank" style="color: #2196f3;">View Venue Image</a>
-                            </div>
+                                 onerror="this.style.display='none'; const fallbackDiv = this.parentElement.querySelector('.image-fallback'); if (fallbackDiv) fallbackDiv.style.display='none';">
+                            <div class="image-fallback" style="display: none;"></div>
                         </a>
                     `;
                 })()}
