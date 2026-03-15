@@ -19,18 +19,22 @@ from urllib.parse import quote
 IMAGE_PROXY_MAX_WIDTH_EVENT = 400  # Event cards/thumbnails
 IMAGE_PROXY_MAX_WIDTH_VENUE = 600  # Venue images
 
-# All external images go through proxy for resize - no bypasses
+# Domains that block proxy (403) - return raw URL for browser to load directly
+# npg.si.edu blocks server requests from cloud IPs; evbuc/eventbrite block proxy
+NO_PROXY_DOMAINS = ('evbuc.com', 'eventbrite.com', 'npg.si.edu')
+
+
 def ensure_loadable_image_url(url: Optional[str], max_width: int = IMAGE_PROXY_MAX_WIDTH_EVENT) -> Optional[str]:
     """
-    Route external URLs through resize proxy - all images resized to save bandwidth.
-    
-    - External URLs → proxy with resize
-    - Google refs, /api/image, relative paths → returned as-is
+    Route external URLs through resize proxy - all images resized where possible.
+    Domains that block our proxy load directly in browser (can't resize).
     """
     if not url or not isinstance(url, str) or not url.strip():
         return url
     url = url.strip()
     if url.startswith(('http://', 'https://')):
+        if any(domain in url.lower() for domain in NO_PROXY_DOMAINS):
+            return url  # Proxy blocked - browser loads directly
         return f"/api/image-proxy?url={quote(url, safe='')}&w={max_width}"
     return url
 
