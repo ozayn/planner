@@ -9005,7 +9005,7 @@ def scrape_tulipday_endpoint():
                 'events_found': 0,
                 'events_saved': 0,
                 'events_updated': 0
-            }), 404
+            }), 200
 
         venue = Venue.query.filter(
             (Venue.website_url.ilike('%tulipday.eu%')) |
@@ -9016,7 +9016,7 @@ def scrape_tulipday_endpoint():
             return jsonify({
                 'success': False,
                 'error': 'Tulip Day venue not found. Load venues from data/venues.json first.'
-            }), 404
+            }), 200
 
         created, updated, skipped = shared_create_events(
             events=events,
