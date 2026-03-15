@@ -155,6 +155,8 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
             if attempt == max_retries - 1:
                 if not scraper:
                     logger.error(f"   ❌ Scraper is None, cannot fetch {url}")
+                elif '403' in str(e) or 'Forbidden' in str(e):
+                    logger.warning(f"   ⚠️  403 after {max_retries} attempts (skipping): {url}")
                 else:
                     logger.error(f"   ❌ Failed to fetch {url} after {max_retries} attempts: {e}")
                 raise
@@ -921,11 +923,25 @@ def scrape_nga_films(scraper):
         
         response = None
         try:
-            response = fetch_with_retry(scraper, films_url, max_retries=3, delay=2)
+            response = fetch_with_retry(scraper, films_url, max_retries=3, delay=3)
         except Exception as fetch_err:
             if '403' in str(fetch_err) or 'Forbidden' in str(fetch_err):
-                logger.warning(f"   ⚠️  Skipping films (403).")
-                return events
+                logger.warning(f"   ⚠️  Films 403, retrying once in 12s with fresh session...")
+                import time
+                time.sleep(12)
+                scraper = create_scraper()
+                try:
+                    scraper.get(NGA_CALENDAR_URL, timeout=15)
+                    time.sleep(2)
+                except Exception:
+                    pass
+                try:
+                    response = fetch_with_retry(scraper, films_url, max_retries=2, delay=4)
+                except Exception:
+                    logger.warning(f"   ⚠️  Skipping films (403).")
+                    return events
+            else:
+                raise
         if not response:
             logger.warning(f"   ⚠️  Failed to fetch films page after retries")
             return events
@@ -1039,18 +1055,31 @@ def scrape_nga_nights(scraper):
         try:
             scraper.get(NGA_CALENDAR_URL, timeout=15)
             import time
-            time.sleep(1)
+            time.sleep(2)
         except Exception:
             pass
         response = None
         try:
-            response = fetch_with_retry(scraper, NGA_NIGHTS_URL, max_retries=3, delay=2)
+            response = fetch_with_retry(scraper, NGA_NIGHTS_URL, max_retries=3, delay=3)
         except Exception as fetch_err:
             if '403' in str(fetch_err) or 'Forbidden' in str(fetch_err):
-                logger.warning(f"   ⚠️  Skipping National Gallery Nights (403).")
-                return events
-            if response is None:
-                return events
+                # One more try with fresh session and longer delay (no Playwright)
+                logger.warning(f"   ⚠️  NGA Nights 403, retrying once in 12s with fresh session...")
+                import time
+                time.sleep(12)
+                scraper = create_scraper()
+                try:
+                    scraper.get(NGA_CALENDAR_URL, timeout=15)
+                    time.sleep(2)
+                except Exception:
+                    pass
+                try:
+                    response = fetch_with_retry(scraper, NGA_NIGHTS_URL, max_retries=2, delay=4)
+                except Exception:
+                    logger.warning(f"   ⚠️  Skipping National Gallery Nights (403).")
+                    return events
+            else:
+                raise
         if not response:
             logger.warning("   ⚠️  Failed to fetch National Gallery Nights page")
             return events
