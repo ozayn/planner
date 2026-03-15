@@ -636,14 +636,9 @@ def scrape_npg_tours(scraper=None) -> List[Dict]:
                 # Tours typically last 1 hour
                 end_time_obj = time(start_time_obj.hour + 1, start_time_obj.minute)
                 
-                # Format end time in 12-hour format
-                end_hour = end_time_obj.hour
-                end_am_pm = 'p.m.' if end_hour >= 12 else 'a.m.'
-                if end_hour > 12:
-                    end_hour = end_hour - 12
-                elif end_hour == 0:
-                    end_hour = 12
-                end_time_str = f"{end_hour}:{end_time_obj.minute:02d} {end_am_pm}"
+                # Use 24-hour HH:MM so DB and calendar export get valid times (event_database_handler expects this format)
+                start_time_str = start_time_obj.strftime('%H:%M')
+                end_time_str = end_time_obj.strftime('%H:%M')
                 
                 event = {
                     'title': 'Docent-Led Walk-In Tour',
@@ -651,7 +646,7 @@ def scrape_npg_tours(scraper=None) -> List[Dict]:
                     'event_type': 'tour',
                     'start_date': tour_date,
                     'end_date': tour_date,
-                    'start_time': tour_time_str,
+                    'start_time': start_time_str,
                     'end_time': end_time_str,
                     'meeting_point': meeting_point,
                     'url': NPG_TOURS_URL,

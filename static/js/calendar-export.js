@@ -486,13 +486,13 @@
             }
         }
         
-        // Determine if all-day (exhibition)
+        // All-day only for exhibitions without time; tours/events with or without time use timed format
         const isAllDay = event.event_type === 'exhibition' && !event.start_time;
         
         let startDateTime, endDateTime;
         
         if (isAllDay) {
-            // All-day event: use DATE format (YYYYMMDD)
+            // All-day event: use VALUE=DATE format (YYYYMMDD)
             startDateTime = formatDateForICS(event.start_date);
             // Use end_date if available (multi-day), otherwise use start_date (single-day)
             let endDate = event.end_date || event.start_date;
@@ -501,9 +501,9 @@
             endDateObj.setDate(endDateObj.getDate() + 1);
             endDateTime = formatDateForICS(endDateObj.toISOString().split('T')[0]);
         } else {
-            // Timed event
-            startDateTime = formatDateTimeForICS(event.start_date, event.start_time);
-            endDateTime = formatDateTimeForICS(event.end_date || event.start_date, event.end_time || event.start_time);
+            // Timed event: use full datetime (YYYYMMDDTHHMMSS); default to 00:00–01:00 if time missing so export is valid
+            startDateTime = formatDateTimeForICS(event.start_date, event.start_time || '00:00');
+            endDateTime = formatDateTimeForICS(event.end_date || event.start_date, event.end_time || event.start_time || '01:00');
         }
         
         // Generate stable UID (CRITICAL: must be stable to prevent duplicates in Google Calendar)
