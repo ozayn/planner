@@ -464,10 +464,15 @@
      * Generate ICS event string for a single event
      */
     function generateICSEvent(event) {
-        if (!event || !event.start_date) {
-            if (CALENDAR_DEBUG) console.warn('ICS: Skipping event with missing start_date', event);
+        try {
+            if (!event || !event.start_date) {
+                if (CALENDAR_DEBUG) console.warn('ICS: Skipping event with missing start_date', event);
+                return '';
+            }
+        } catch (e) {
             return '';
         }
+        try {
         // Get current timestamp for DTSTAMP
         const now = new Date();
         const dtstamp = formatDateTimeForICS(
@@ -570,6 +575,10 @@
         icsEvent += 'END:VEVENT\r\n';
         
         return icsEvent;
+        } catch (e) {
+            if (CALENDAR_DEBUG) console.warn('ICS: Error generating event', event && event.title, e);
+            return '';
+        }
     }
 
     /**
@@ -753,29 +762,51 @@
             return;
         }
         
-        // Generate filename if not provided
-        if (!filename) {
-            const today = new Date().toISOString().split('T')[0];
-            filename = `planner_events_${today}.ics`;
-        }
-        
-        const icsContent = generateICS(events);
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename || 'planner_events.ics';
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        // Keep link in DOM briefly so some browsers can start the download
-        setTimeout(function() {
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        }, 200);
-        
-        if (typeof showNotification === 'function') {
-            showNotification(`Exported ${events.length} events to calendar`, 'success');
+        try {
+            // Generate filename if not provided
+            if (!filename) {
+                const today = new Date().toISOString().split('T')[0];
+                filename = `planner_events_${today}.ics`;
+            }
+            
+            const icsContent = generateICS(events);
+            const hasEvents = icsContent.indexOf('BEGIN:VEVENT') !== -1;
+            if (!hasEvents) {
+                if (typeof showNotification === 'function') {
+                    showNotification('No events with valid dates to export', 'error');
+                } else {
+                    alert('No events with valid dates to export');
+                }
+                return;
+            }
+            
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || 'planner_events.ics';
+            link.setAttribute('download', link.download);
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            // Keep link in DOM so browser can start download before revoking URL
+            setTimeout(function() {
+                try {
+                    if (link.parentNode) document.body.removeChild(link);
+                } catch (e) { /* ignore */ }
+                window.URL.revokeObjectURL(url);
+            }, 500);
+            
+            if (typeof showNotification === 'function') {
+                showNotification(`Exported ${events.length} events to calendar`, 'success');
+            }
+        } catch (err) {
+            if (typeof showNotification === 'function') {
+                showNotification('Export failed: ' + (err.message || 'unknown error'), 'error');
+            } else {
+                alert('Export failed: ' + (err.message || 'unknown error'));
+            }
+            if (CALENDAR_DEBUG) console.error('Calendar export error:', err);
         }
     }
 

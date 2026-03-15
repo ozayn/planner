@@ -7414,7 +7414,7 @@
 
         // Create event card
         function createEventCard(event) {
-            const isSelected = selectedEvents.has(event.id);
+            const isSelected = selectedEvents.has(Number(event.id));
             const imageUrl = getEventDisplayImage(event);
             const hasImage = !!imageUrl;
             
@@ -7505,23 +7505,22 @@
             `;
         }
 
-        // Toggle event selection
+        // Toggle event selection (eventId may be number or string from API/template)
         function toggleEventSelection(eventId) {
-            if (selectedEvents.has(eventId)) {
-                selectedEvents.delete(eventId);
+            const id = Number(eventId);
+            if (!Number.isFinite(id)) return;
+            if (selectedEvents.has(id)) {
+                selectedEvents.delete(id);
             } else {
-                selectedEvents.add(eventId);
+                selectedEvents.add(id);
             }
             
-            // Update UI - check both possible selectors
-            const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
+            // Update UI - check both possible selectors (attribute is always string in DOM)
+            const eventCard = document.querySelector(`[data-event-id="${id}"]`);
             if (eventCard) {
                 eventCard.classList.toggle('selected');
-                // Update checkbox state
-                const checkbox = eventCard.querySelector('.event-checkbox');
-                if (checkbox) {
-                    checkbox.checked = selectedEvents.has(eventId);
-                }
+                const checkbox = eventCard.querySelector('.event-checkbox') || eventCard.querySelector('.session-checkbox');
+                if (checkbox) checkbox.checked = selectedEvents.has(id);
             }
             
             updateExportButton();
@@ -7657,15 +7656,8 @@
             // Filter to only include events that are actually selected (in selectedEvents Set)
             // Also exclude recurring tours if they're not selected
             const selectedEventsList = allCombinedEvents.filter(event => {
-                // Only include if explicitly selected
-                if (!selectedEvents.has(event.id)) {
-                    return false;
-                }
-                // Double-check: if it's a generic recurring tour, make sure it's selected
-                if (event.event_type === 'tour' && isGenericTourTitle(event.title)) {
-                    return selectedEvents.has(event.id);
-                }
-                return true;
+                const id = Number(event.id);
+                return Number.isFinite(id) && selectedEvents.has(id);
             });
             
             if (selectedEventsList.length === 0) {
@@ -7684,56 +7676,10 @@
 
         // Export events to calendar (using unified module)
         function exportToCalendar(events, type) {
-            // Generate descriptive filename based on filters
-            let dateRange, eventType, cityName;
-            
-            if (type === 'discovered') {
-                dateRange = currentTimePeriod || 'this_week';
-                eventType = 'all';
-                cityName = citySelect?.options[citySelect.selectedIndex]?.textContent || 'Unknown';
-            } else {
-                dateRange = document.getElementById('dateRangeSelect')?.value || 'this_week';
-                eventType = eventTypeSelectStep2?.value || eventTypeSelect?.value || 'all';
-                cityName = citySelect?.options[citySelect.selectedIndex]?.textContent || 'Unknown';
-            }
-            
-            // Abbreviate names for shorter filenames
-            const getCityAbbr = (city) => {
-                if (city.includes('Washington')) return 'dc';
-                if (city.includes('New York')) return 'nyc';
-                if (city.includes('Los Angeles')) return 'la';
-                if (city.includes('San Francisco')) return 'sf';
-                if (city.includes('Chicago')) return 'chi';
-                if (city.includes('Boston')) return 'bos';
-                if (city.includes('Seattle')) return 'sea';
-                if (city.includes('Miami')) return 'mia';
-                return city.split(',')[0].toLowerCase().replace(/[^a-z]/g, '').substring(0, 4);
-            };
-            
-            const getEventTypeAbbr = (type) => {
-                const abbrs = { 'tour': 'tour', 'exhibition': 'exh', 'festival': 'fest', 'photowalk': 'photo' };
-                return abbrs[type] || type.substring(0, 4);
-            };
-            
-            const getDateRangeAbbr = (range) => {
-                const abbrs = { 
-                    'today': 'today', 
-                    'tomorrow': 'tom', 
-                    'this_week': 'week', 
-                    'next_week': 'next', 
-                    'this_month': 'month', 
-                    'next_month': 'nextm',
-                    'custom': 'custom'
-                };
-                return abbrs[range] || range.substring(0, 4);
-            };
-            
-            const cityAbbr = getCityAbbr(cityName);
-            const eventTypeAbbr = getEventTypeAbbr(eventType);
-            const dateRangeAbbr = getDateRangeAbbr(dateRange);
-            const today = new Date().toISOString().split('T')[0].substring(5);
-            const filename = `planner_${cityAbbr}_${eventTypeAbbr}_${dateRangeAbbr}_${type}_${today}.ics`;
-            
+            const now = new Date();
+            const date = now.toISOString().slice(0, 10);
+            const time = now.toTimeString().slice(0, 5).replace(':', '-');
+            const filename = `planner_${date}_${time}.ics`;
             try {
                 CalendarExport.exportToCalendar(events, filename);
             } catch (err) {
@@ -7983,66 +7929,52 @@
             const container = document.getElementById('discoveredEventsContainer');
             if (!container) return;
             
-            // Get all event cards that are currently visible
+            // Collect all selectable elements: regular cards and grouped-tour session rows
             const visibleEventCards = container.querySelectorAll('.discovered-event-card[data-event-id]');
+            const visibleSessionRows = container.querySelectorAll('.grouped-tour-session[data-event-id]');
+            const allSelectables = [...visibleEventCards, ...visibleSessionRows];
             
-            if (visibleEventCards.length === 0) {
+            if (allSelectables.length === 0) {
                 showNotification('No events to select', 'info');
                 return;
             }
             
-            // Check if all visible events are already selected
-            let allSelected = true;
+            // Normalize ID to number for consistent Set membership
+            const toId = (el) => { const n = Number(el.dataset.eventId); return Number.isFinite(n) ? n : null; };
+            
             const visibleEventIds = [];
-            visibleEventCards.forEach(card => {
-                const eventId = parseInt(card.dataset.eventId);
-                if (eventId) {
+            let allSelected = true;
+            allSelectables.forEach(el => {
+                const eventId = toId(el);
+                if (eventId != null) {
                     visibleEventIds.push(eventId);
-                    if (!selectedEvents.has(eventId)) {
-                        allSelected = false;
-                    }
+                    if (!selectedEvents.has(eventId)) allSelected = false;
                 }
             });
             
             if (allSelected) {
-                // Deselect all visible events
-                visibleEventIds.forEach(eventId => {
-                    selectedEvents.delete(eventId);
+                visibleEventIds.forEach(eventId => { selectedEvents.delete(eventId); });
+                allSelectables.forEach(el => {
+                    el.classList.remove('selected');
+                    const cb = el.querySelector('.event-checkbox') || el.querySelector('.session-checkbox');
+                    if (cb) cb.checked = false;
                 });
-                
-                visibleEventCards.forEach(card => {
-                    card.classList.remove('selected');
-                    const checkbox = card.querySelector('.event-checkbox');
-                    if (checkbox) {
-                        checkbox.checked = false;
-                    }
-                });
-                
                 updateExportButton();
                 updateSelectAllButton();
-                showNotification(`Deselected ${visibleEventCards.length} event${visibleEventCards.length !== 1 ? 's' : ''}`, 'success');
+                showNotification(`Deselected ${visibleEventIds.length} event${visibleEventIds.length !== 1 ? 's' : ''}`, 'success');
             } else {
-                // Select all visible events
-                visibleEventIds.forEach(eventId => {
-                    if (!selectedEvents.has(eventId)) {
-                        selectedEvents.add(eventId);
+                visibleEventIds.forEach(eventId => { selectedEvents.add(eventId); });
+                allSelectables.forEach(el => {
+                    const eventId = toId(el);
+                    if (eventId != null && selectedEvents.has(eventId)) {
+                        el.classList.add('selected');
+                        const cb = el.querySelector('.event-checkbox') || el.querySelector('.session-checkbox');
+                        if (cb) cb.checked = true;
                     }
                 });
-                
-                visibleEventCards.forEach(card => {
-                    const eventId = parseInt(card.dataset.eventId);
-                    if (eventId && selectedEvents.has(eventId)) {
-                        card.classList.add('selected');
-                        const checkbox = card.querySelector('.event-checkbox');
-                        if (checkbox) {
-                            checkbox.checked = true;
-                        }
-                    }
-                });
-                
                 updateExportButton();
                 updateSelectAllButton();
-                showNotification(`Selected ${visibleEventCards.length} event${visibleEventCards.length !== 1 ? 's' : ''}`, 'success');
+                showNotification(`Selected ${visibleEventIds.length} event${visibleEventIds.length !== 1 ? 's' : ''}`, 'success');
             }
         }
 
@@ -8055,20 +7987,18 @@
             if (!container) return;
             
             const visibleEventCards = container.querySelectorAll('.discovered-event-card[data-event-id]');
-            if (visibleEventCards.length === 0) {
+            const visibleSessionRows = container.querySelectorAll('.grouped-tour-session[data-event-id]');
+            const totalVisible = visibleEventCards.length + visibleSessionRows.length;
+            if (totalVisible === 0) {
                 selectAllBtn.title = 'Select All';
                 selectAllBtn.setAttribute('aria-label', 'Select all events');
                 return;
             }
             
-            // Check if all visible events are selected
+            const toId = (el) => { const n = Number(el.dataset.eventId); return Number.isFinite(n) ? n : null; };
             let allSelected = true;
-            visibleEventCards.forEach(card => {
-                const eventId = parseInt(card.dataset.eventId);
-                if (eventId && !selectedEvents.has(eventId)) {
-                    allSelected = false;
-                }
-            });
+            visibleEventCards.forEach(card => { if (toId(card) != null && !selectedEvents.has(toId(card))) allSelected = false; });
+            visibleSessionRows.forEach(row => { if (toId(row) != null && !selectedEvents.has(toId(row))) allSelected = false; });
             
             const label = allSelected ? 'Deselect All' : 'Select All';
             selectAllBtn.title = label;
@@ -8123,7 +8053,7 @@
             const dateTimeItems = events.map(event => {
                 const dateStr = formatDate(event.start_date);
                 const timeStr = event.start_time || 'TBD';
-                return { date: dateStr, time: timeStr, eventId: event.id, isSelected: selectedEvents.has(event.id), dateObj: new Date(event.start_date + ' ' + (event.start_time || '00:00')) };
+                return { date: dateStr, time: timeStr, eventId: event.id, isSelected: selectedEvents.has(Number(event.id)), dateObj: new Date(event.start_date + ' ' + (event.start_time || '00:00')) };
             });
             
             // Sort by date/time
@@ -8282,7 +8212,7 @@
             
             const imageUrl = getEventDisplayImage(event);
             const hasImage = !!imageUrl;
-            const isSelected = selectedEvents.has(event.id);
+            const isSelected = selectedEvents.has(Number(event.id));
             const isNewEvent = event.is_new || false;
             const isUpdatedEvent = event.is_updated || false;
             
