@@ -21,11 +21,17 @@ def ensure_env_loaded():
     global _ENV_LOADED
     
     if not _ENV_LOADED:
-        # Load .env file from project root
+        # Load .env file from project root (local only; deployed uses platform env vars)
+        is_deployed = (
+            os.getenv('RAILWAY_ENVIRONMENT') or
+            os.getenv('DATABASE_URL', '').startswith('postgresql://') or
+            'railway' in os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+        )
         if ENV_FILE.exists():
             load_dotenv(ENV_FILE)
-            print(f"✅ Environment loaded from {ENV_FILE}")
-        else:
+            if not is_deployed:
+                print(f"✅ Environment loaded from {ENV_FILE}")
+        elif not is_deployed:
             print(f"⚠️  No .env file found at {ENV_FILE}")
         
         _ENV_LOADED = True
