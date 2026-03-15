@@ -1,10 +1,10 @@
 {
   "metadata": {
     "version": "1.0",
-    "created": "2026-02-05",
+    "created": "2026-03-14",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 211,
-    "last_updated": "2026-02-05 13:51:53"
+    "total_venues": 212,
+    "last_updated": "2026-03-14 21:24:04"
   },
   "venues": {
     "1": {
@@ -31,7 +31,7 @@
       "longitude": -77.0258,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001273\"}",
       "created_at": "2025-10-08T20:42:31.666065",
-      "updated_at": "2026-02-02T21:19:35.649764"
+      "updated_at": "2026-02-05T20:19:22.765744"
     },
     "2": {
       "name": "Capitol Building",
@@ -41,7 +41,7 @@
       "city_name": "Washington",
       "description": "A government building in Washington offering cultural experiences and entertainment.",
       "opening_hours": "8:30 AM - 4:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 226-8000",
       "email": "visitor.services@aoc.gov",
       "website_url": "https://www.visitthecapitol.gov",
@@ -55,9 +55,9 @@
       "image_url": "AciIO2cpfvIvxnK3ZkRRSlGIph7Sz1vch0cXIrOMkRxBeTa_zp5IBa2MVBg_sZNIF4jWHjRQ1TbYmK5JtIUCwXa-C85vjQG80T0KqO5w_J5jqI15qvFKGcBf6wtU89f5BeH5sq3E6Fa3ZJNmGJzzjoIBSUErYiV11DzI8CHn2OnNCwMsGDISQu_iH7CuIrCCfrQKWFqAMGzdbNVLCl9gmA9iRR27yY7d7t_MNdiLMC1rT5YWL9TA3P0jO6lDk8RilOeSvlOVQDrHmW_e5dB9WMFuPSFEQlYh0CaIiovPoymntpPzrns-OoduR3deTb0iAo1_xtyn2sbiSTG3iK2trl804DxtUpAa3LqdPsdrVtWY9ThQJD9ixNyuXNoczG6bbJmi9zXvtBINAMBBSDMR9Akt1b-7Q4_ImpSUYIbLfuZxxDT4SdgK",
       "latitude": 38.8898,
       "longitude": -77.0091,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001305\"}",
       "created_at": "2025-10-08T20:42:31.666142",
-      "updated_at": "2026-02-02T21:19:35.650217"
+      "updated_at": "2026-02-05T20:19:22.766927"
     },
     "3": {
       "name": "Capitol Hill",
@@ -83,7 +83,7 @@
       "longitude": -77.0091,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001322\"}",
       "created_at": "2025-10-08T20:42:31.666175",
-      "updated_at": "2026-02-02T21:19:35.650450"
+      "updated_at": "2026-02-05T20:19:22.767237"
     },
     "4": {
       "name": "Capitol Hill Arts Workshop",
@@ -109,7 +109,7 @@
       "longitude": -76.9967,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001330\"}",
       "created_at": "2025-10-08T20:42:31.666199",
-      "updated_at": "2026-02-02T21:19:35.650678"
+      "updated_at": "2026-02-05T20:19:22.767475"
     },
     "5": {
       "name": "Dupont Circle",
@@ -135,7 +135,7 @@
       "longitude": -77.0434,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001336\"}",
       "created_at": "2025-10-08T20:42:31.666223",
-      "updated_at": "2026-02-02T21:19:35.650903"
+      "updated_at": "2026-02-05T20:19:22.767711"
     },
     "6": {
       "name": "Ford's Theatre",
@@ -161,7 +161,7 @@
       "longitude": -77.0258,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001341\"}",
       "created_at": "2025-10-08T20:42:31.666245",
-      "updated_at": "2026-02-02T21:19:35.651124"
+      "updated_at": "2026-02-05T20:19:22.767918"
     },
     "7": {
       "name": "Franklin Delano Roosevelt Memorial",
@@ -187,7 +187,7 @@
       "longitude": -77.0365,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001346\"}",
       "created_at": "2025-10-08T20:42:31.666271",
-      "updated_at": "2026-02-02T21:19:35.651346"
+      "updated_at": "2026-02-05T20:19:22.768121"
     },
     "8": {
       "name": "Georgetown",
@@ -213,7 +213,7 @@
       "longitude": -77.0654,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001351\"}",
       "created_at": "2025-10-08T20:42:31.666293",
-      "updated_at": "2026-02-02T21:19:35.651578"
+      "updated_at": "2026-02-05T20:19:22.768324"
     },
     "9": {
       "name": "International Spy Museum",
@@ -239,7 +239,7 @@
       "longitude": -77.0325,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001355\"}",
       "created_at": "2025-10-08T20:42:31.666315",
-      "updated_at": "2026-02-02T21:19:35.651797"
+      "updated_at": "2026-02-05T20:19:22.768514"
     },
     "10": {
       "name": "Jefferson Memorial",
@@ -265,7 +265,7 @@
       "longitude": -77.0365,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001360\"}",
       "created_at": "2025-10-08T20:42:31.666337",
-      "updated_at": "2026-02-02T21:19:35.652024"
+      "updated_at": "2026-02-05T20:19:22.768747"
     },
     "11": {
       "name": "Kennedy Center",
@@ -291,7 +291,7 @@
       "longitude": -77.0558,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001365\"}",
       "created_at": "2025-10-08T20:42:31.666358",
-      "updated_at": "2026-02-02T21:19:35.652244"
+      "updated_at": "2026-02-05T20:19:22.768983"
     },
     "12": {
       "name": "Korean War Veterans Memorial",
@@ -317,7 +317,7 @@
       "longitude": -77.0502,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001369\"}",
       "created_at": "2025-10-08T20:42:31.666382",
-      "updated_at": "2026-02-02T21:19:35.652465"
+      "updated_at": "2026-02-05T20:19:22.769204"
     },
     "13": {
       "name": "Library of Congress",
@@ -327,7 +327,7 @@
       "city_name": "Washington",
       "description": "A library in Washington offering cultural experiences and entertainment.",
       "opening_hours": "Mon-Sat: 8:30 AM - 4:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 707-5000",
       "email": "info@loc.gov",
       "website_url": "https://www.loc.gov",
@@ -341,9 +341,9 @@
       "image_url": "AciIO2cidQoVmRo_UgGBxiilcMoEKjdtVUy05cMGc8d9cXaYNsVJYqG7KQpOlp_JW9V0yWBgtwEAzIC2t3SUTg893lQnsaUx8Yjm62ik4BRmcZLIfV5YCOLe9Y1R4g421gdkV88eF9fxWzqG73_KqHBFzjupQCm7wPQcju4nH1lmOkMeyg4E3CfKF4PMy2ZzoFdrLIsWMPE9nLwJQpDdoz21PK0fOxhtLCwi0qEscM4Cpk5wUGr0MNYtG0dLVHTlrNYYgVAUrvNbrGeLdKhaGA1wfk6O4p4SJT7NBG--wKqR5O6JqjKRB_7b-Li-1_NMlSUqXgPOPQd6Mj28H0ovuNEHkHVwsxWl0Az6kI2x4zusgmVJzbAtQj-Ac1jhDGBKwnbtKpcoUSDPayUaTh13qm61w61LBuSvppmWeSnqe-v5280",
       "latitude": 38.8898,
       "longitude": -77.0091,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001374\"}",
       "created_at": "2025-10-08T20:42:31.666404",
-      "updated_at": "2026-02-02T21:19:35.652684"
+      "updated_at": "2026-02-05T20:19:22.769453"
     },
     "14": {
       "name": "Lincoln Memorial",
@@ -369,7 +369,7 @@
       "longitude": -77.0502,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001380\"}",
       "created_at": "2025-10-08T20:42:31.666425",
-      "updated_at": "2026-02-02T21:19:35.652908"
+      "updated_at": "2026-02-05T20:19:22.769664"
     },
     "15": {
       "name": "Martin Luther King Jr. Memorial",
@@ -395,7 +395,7 @@
       "longitude": -77.0502,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001384\"}",
       "created_at": "2025-10-08T20:42:31.666447",
-      "updated_at": "2026-02-02T21:19:35.653116"
+      "updated_at": "2026-02-05T20:19:22.769859"
     },
     "16": {
       "name": "National Air and Space Museum",
@@ -421,7 +421,7 @@
       "longitude": -77.0199,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001389\", \"event_paths\": {\"exhibitions\": \"/whats-on/exhibitions\"}}",
       "created_at": "2025-10-08T20:42:31.666469",
-      "updated_at": "2026-02-02T21:19:35.653319"
+      "updated_at": "2026-02-05T20:19:22.770063"
     },
     "17": {
       "name": "National Gallery of Art",
@@ -431,7 +431,7 @@
       "city_name": "Washington",
       "description": "The National Gallery of Art houses one of the world's finest collections of paintings, sculpture, and graphic arts from the Middle Ages to the present.",
       "opening_hours": "Mon-Sat: 10:00 AM - 5:00 PM; Sun: 11:00 AM - 6:00 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 737-4215",
       "email": "info@nga.gov",
       "website_url": "https://www.nga.gov",
@@ -445,9 +445,9 @@
       "image_url": "AciIO2eZms7MwkRIwjmK-kldbZ25ESqIUtT4yhX0uC8TQrTe-HAryuqHcAngKJXHq7gRBzgba-XDE5l3i-atfC1cLpEWcQDRU_JibaGxbvrPUGNPmy4VmL0yU8-YUlK4ZBYhUaTLhO9pQqTWxz5Kv-8An3CrCKfOSMGZqtL5nytCTSd9YEql4bUEyt4BPJQla1XGojLhySCrLA6f6xLOEM_xZup6LBIE2ahr57dwB0dCwC4E9IO8608SjKZxIgwjGCmC1XiceK7DPJ_mq-jtfWNMH_pAHoTAsUa85NHL8GUqfrXqsDHXGvneGrr6Kw0S7sY7jBvDMp_tJRbsdSXyCzIrHpMrvG0yyz_Qvn-Ab-Swa152BmCSLcPN0FODPFeDyhX1ptzSr8NBrm3rXtisUp8xane2ygBMJUJj67zZ-lbU_dW2gkJm",
       "latitude": 38.8913,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\", \"event_paths\": {\"national_gallery_nights\": \"https://www.nga.gov/calendar/national-gallery-nights\"}}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001393\"}",
       "created_at": "2025-10-08T20:42:31.666490",
-      "updated_at": "2026-02-02T21:19:35.653530"
+      "updated_at": "2026-02-05T20:19:22.770264"
     },
     "18": {
       "name": "National Mall",
@@ -473,7 +473,7 @@
       "longitude": -77.0502,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001398\"}",
       "created_at": "2025-10-08T20:42:31.666511",
-      "updated_at": "2026-02-02T21:19:35.653747"
+      "updated_at": "2026-02-05T20:19:22.770473"
     },
     "19": {
       "name": "National Portrait Gallery",
@@ -483,7 +483,7 @@
       "city_name": "Washington",
       "description": "A museum in Washington offering cultural experiences and entertainment.",
       "opening_hours": "11:30 AM - 7:00 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-8300",
       "email": "info@si.edu",
       "website_url": "https://npg.si.edu",
@@ -494,12 +494,12 @@
       "youtube_url": "",
       "tiktok_url": "",
       "admission_fee": "",
-      "image_url": "AciIO2fQHg672FcfcrSoKxzAkjGOjbsatOUDfyyVg40MJsyCOSfwDKhUap5R730R58_2pBLFCRfKfzFnWK91PhHSymeBNNoDsf5zDxlGaP76PjVTvSkO73gsk6-hb_qC_73ol4yAPmziQuc6hjYqfYXYBjd0EWboriawlVuCYTqsasOmbyZ23Ex6r9BoTNo2LPh2fLhS9L-lCgbBlYMFI06ybh6Nr_5QfQA-10v9DX72ZitfW1H9jIvgu5ADwAt-l_iG0y46QNMUo9_xxetak90rF9KSwxQnMm73Po-RpUcR2t_DklHOHh1owsAMZpcQ4JuVpExTUkf7zqze0DomyL9slvPxbWTLey072aUd49JCkgtfhyuN4WzjpCdI0aUv7ZEUmbft8QhXBxZgcnLPtHfNpEDoCIPhcNPfn8MmNz0NiCaneBgI",
+      "image_url": "ATCDNfWCdWQLT7n-kmNRuMN3fB31TmkeafzMbJ5MndiQwyuvYuOM-PZO7vAtFL57Xw5tkPFBirUJCXFCljpWD-nNY4PYRQYMx1iSppKFrUt_M8rvQfLaifQ6UpXt61Q4RVTXCQb5i7zzA44ZVmu0NuCNp_NYKNOikDEXZ5_gy7y-Ipujb6onV8gHqq0xjCgHn2K0UsUChschpPBJ2YRo4TzppOwNk30XZkzxESVl69Hv_Thph0oJ9F3yokBYuO35GVFcVnZm7WTPU1ZkFnhh80zsHVg-ig_AlrZbBSlxw1AtNhTfj_L2XJWK4rw5f8KCnogR6BHwZ6bvQsGKaRvjwf1kIR-HCdxxZ0ZFZHXTjOKxHnmhSV2llBUnDeCUBU7X4bnqHktX0h8gSSMzRNYQ16jiVlUMsCFeUY6YwRI-WDrsq8Q2Iw",
       "latitude": 38.8977,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001403\"}",
       "created_at": "2025-10-08T20:42:31.666532",
-      "updated_at": "2026-02-02T21:19:35.653943"
+      "updated_at": "2026-03-15T01:23:58.392784"
     },
     "20": {
       "name": "National Zoo",
@@ -509,7 +509,7 @@
       "city_name": "Washington",
       "description": "The Smithsonian's National Zoo is home to 2,700 animals representing more than 390 species, with a mission of saving species through science.",
       "opening_hours": "8:00 AM - 6:00 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
       "website_url": "https://nationalzoo.si.edu",
@@ -523,9 +523,9 @@
       "image_url": "AciIO2dYC19Uax0R_5Hrj1iMJElmaYyq1HQcwLKUs-sUZ10orp7tlmwT_x8w_7PxMQJg3-JWsyCejulBS3zh_jMjJsITXqPMr8U8UuhbP85Jb_jBhrk_lQIFyjSdWXhVzWZhDT7wjIQ4p9xuNSoikaAz4CxeLZQ5L3CVRZnr0NsjnwejlqHJbHZCqJZdB-hsRI1aGR_kk76593KjHcUSEazpEj2b0dxskTfFgsq3qzr_9rr8a8pZlYGlDMXxCCmDR0Bkknoq43buKDk4HqItW1vrk5soNy6FyRLmjmVf11zykzHKo1kOZvsnSLUL2adbQkcDg8znlaxrJP9aOdEGUNafiKglxR4gPL0MOxusSWdTwYN64Xic5LXSfWpC5KViEJ4l3roVFEhKZBW__sci1g7pvBkGs_wzx0Ki_3Dr0YKdLhPgoQ",
       "latitude": 38.9289,
       "longitude": -77.0475,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001408\"}",
       "created_at": "2025-10-08T20:42:31.666553",
-      "updated_at": "2026-02-02T21:19:35.654156"
+      "updated_at": "2026-02-05T20:19:22.770893"
     },
     "22": {
       "name": "Rock Creek Park",
@@ -551,7 +551,7 @@
       "longitude": -77.0444,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001418\"}",
       "created_at": "2025-10-08T20:42:31.666595",
-      "updated_at": "2026-02-02T21:19:35.654361"
+      "updated_at": "2026-02-05T20:19:22.771088"
     },
     "23": {
       "name": "Smithsonian National Museum of Asian Art",
@@ -575,9 +575,9 @@
       "image_url": "AciIO2fD-eVIdivl7X8bQybHFPBAcuXUCLEDzQWvWv2FYGgyNRNvr23lckncZf0_g91d8MexRSejZmdbrUXxdzP6YLUE4yT5OQaMrUfsEri5klvSWRz1ByXUUWptXR48R8PzItWDJ2jmZTg7VDF-LDKEYTK1inaGp0kA92-VBIJDxrNDmQxamqkEffgEhYaBlvW5N0cWnCmxkOlvyimhHArH2AZf0e_EJKNIaO5s4QnVhxGCw5JYIjgbLP1jooW5JJZ2S6c-acVjiO5AjP_x8WoUJazxLVzE9FWiHIcCzxALcvA-lppiy-8N1Cg-KWVQE62KZ5-lbL6vcsWqPlGVcH4riFVaeNEfsL6D7oKhcSQMy_7-FJ8_UGkCf1b1tiPxq5xyMBIfhqOhUrwu8NX5i5zZyI1WhJyKS7wpB2o2citbKwKV9uFU",
       "latitude": 38.8882,
       "longitude": -77.0199,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\", \"scraping_paths\": {\"exhibitions\": \"/whats-on/exhibitions/\", \"events\": \"/whats-on/events/\", \"tours\": \"/whats-on/tours/\", \"films\": \"/whats-on/events/search/?edan_fq[]=p.event.topics:Films\", \"performances\": \"/whats-on/events/search/?edan_fq[]=p.event.topics:Performances\"}}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001422\", \"scraping_paths\": {\"exhibitions\": \"/whats-on/exhibitions/\", \"events\": \"/whats-on/events/\", \"tours\": \"/whats-on/tours/\", \"films\": \"/whats-on/events/search/?edan_fq[]=p.event.topics:Films\", \"performances\": \"/whats-on/events/search/?edan_fq[]=p.event.topics:Performances\"}}",
       "created_at": "2025-10-08T20:42:31.666617",
-      "updated_at": "2026-02-02T21:19:35.654586"
+      "updated_at": "2026-02-05T20:19:22.771288"
     },
     "25": {
       "name": "Smithsonian Hirshhorn Museum and Sculpture Garden",
@@ -587,7 +587,7 @@
       "city_name": "Washington",
       "description": "A museum in Washington offering cultural experiences and entertainment.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
       "website_url": "https://hirshhorn.si.edu",
@@ -601,9 +601,9 @@
       "image_url": "AciIO2dwUJ4rrSB7kFvXcDkHFenkABCUcET-OqqeeoEbRNGGYPn9rflm798N49XqNJV6bUhVQptHhEwebCgo0-2LwdPV9-IAPgP1o0ZoY4spmjyYDEUuY7E95hsAPKEUKu-M1p34VI3P5ueJ1rjt2mAIIXDDrI_8A7j_BypgiY3IXARuNqb_QE1Ky1dEGKztAkvRiKKSKEigs1SECJzZQ9xqr1xEMjrTgmfy3LKI6FCA_RjV87hXmusRAh40v5M6UVc12LjnCHjbIKMUMdm1TfY_CzWEBd7bRLyZ7taDgzTWv_ZqPyX0N4O3wc17qdyrS97q8c0v2C93_QZqbUNF8hcMRU3FL--xFbS_z4SvOrD9xcOYY2-na_REIoi8VaLT4htwIWbV0EiHxSViYSRn2Ltsazz7MmSeu5oLZqnMRYo1WdFoSw",
       "latitude": 38.8882,
       "longitude": -77.0199,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001432\"}",
       "created_at": "2025-10-08T20:42:31.666660",
-      "updated_at": "2026-02-02T21:19:35.654804"
+      "updated_at": "2026-02-05T20:19:22.771483"
     },
     "26": {
       "name": "Smithsonian National Air and Space Museum",
@@ -613,7 +613,7 @@
       "city_name": "Washington",
       "description": "The National Air and Space Museum maintains the world's largest and most significant collection of aviation and space artifacts.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-2214",
       "email": "info@si.edu",
       "website_url": "https://airandspace.si.edu",
@@ -627,9 +627,9 @@
       "image_url": "AciIO2fbhyCpjDpIsjNgnrM3B2GLYeQ22bVfnKkdJnFRNvOjddVsNOmyxT7dGv20IBeZoZMxK3PCYN-TXpvgBD-ZoOQs_-_6RtFOQ-JudRSwirdR1K_mWxfYFu9_0bXwhM8H9qsj-c075vsdZjqmWgyz81dYs_Uf0JFNC3m4Xq44Mw5GhQkzr3M-V0go6eNqdiZ7xEO5rIqvR_c4e4ym32v1M_vUVW1WYsY3uG1Qs57Ul7itWENERL-c6A5AARzC4bBMJVhZ3sxo_wEOLbv2N2Kr6ldngiVzBw3v_kaB6JIOArMa45RS6u6LEeGZ1LZ3frCMVvgvlG2WC6JkvCufYnZ8GdJ1veHlTLMvLo8NMcV00G3gAKKblBxWmGuyQbR1lObWadejeCm68FsJHL4uwQfhl1v5Yb60q1FKt92nCm3wvhSHUw",
       "latitude": 38.8882,
       "longitude": -77.0199,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001437\"}",
       "created_at": "2025-10-08T20:42:31.666681",
-      "updated_at": "2026-02-02T21:19:35.655024"
+      "updated_at": "2026-02-05T20:19:22.771851"
     },
     "27": {
       "name": "Smithsonian National Museum of African American History and Culture",
@@ -639,7 +639,7 @@
       "city_name": "Washington",
       "description": "A museum in Washington offering cultural experiences and entertainment.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
       "website_url": "https://nmaahc.si.edu",
@@ -653,9 +653,9 @@
       "image_url": "AciIO2cG3nBZVoH6UJG3MEGpyHSdL7-raqUpyT6btfdhZmMaWQw8tlAHI_3_VWu12iRExFhmv3RkXtxJrybb9jGdpPAfTJfmtf9-DvHhxAHdSgyQp780ic1OInOLxTfp_d2TsL_twmCc3jbMZR8YYrmbEaFjoDYM-lqQR0AT_bsfEKJvDeig9nWXVcvraILZsAoKgg52BKjk6cWo2tmYC0oVAV82cbmKE6G_rR7k40a28OBcwMYmM_BMSMA1yGKeqIVf_i4Hdl1a3tNGuFYjUpXctfK9GJp9wRX_YlEDAFFCNXd6VCne9mWUo-KPqdnonp66xgSIa0kUhkd91MUMZrwCBP8v1E5yXF09_tQRB2b6JqrApPbcG0cd5cpWz06cKtF3WpLyzjW7Bt7B716-nvqTaXlA2k7H_iMYpkaNe-5wUgrm9g",
       "latitude": 38.8913,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001442\"}",
       "created_at": "2025-10-08T20:42:31.666702",
-      "updated_at": "2026-02-02T21:19:35.655232"
+      "updated_at": "2026-02-05T20:19:22.772045"
     },
     "28": {
       "name": "Smithsonian National Museum of American History",
@@ -665,7 +665,7 @@
       "city_name": "Washington",
       "description": "A museum in Washington offering cultural experiences and entertainment.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
       "website_url": "https://americanhistory.si.edu",
@@ -679,9 +679,9 @@
       "image_url": "AciIO2e6jyuHmL7padXd5bSQ02g1E0WjheaFRRIGc05L5sIGs3LR5b4tqAiFLiAhjpkHF4PMJ7F9gSzAw7D-Q6TQU63cD5TMHSavlTni9Br8edrsRySVQ03RVQI3SAfjkxkXd6EwGmOqovQFFVxPgelREiZXuAq-Zeaq1SKz3I7ZPdyzECmHvOPKYRyo49Ln-RowqOatzt9d-wUyK9pqaGpuxLG38m4W7Sa6WeDMiQEdoKGgQlO8yiqhKjOD4V5YGdLUdZJNUpYgRnBiVV-MwG-dXwvD1lURPRFi8t9vCLeQs-Kihvl_WYOrFjIQ5g7V-Lah02U-GgJ6MOqxDnEHcMppH22frTJw3DFXyI6ZJ3tJRcljWWF2LtOCz3kXQnuyG7OpO5kQfgQOjD4NGU4p7n_-iW6RyLxJBu0VBiiKVkGIilxl9w",
       "latitude": 38.8913,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001448\"}",
       "created_at": "2025-10-08T20:42:31.666727",
-      "updated_at": "2026-02-02T21:19:35.655429"
+      "updated_at": "2026-02-05T20:19:22.772280"
     },
     "29": {
       "name": "Smithsonian National Museum of Natural History",
@@ -691,7 +691,7 @@
       "city_name": "Washington",
       "description": "The National Museum of Natural History is dedicated to inspiring curiosity, discovery, and learning about the natural world through its unparalleled research, collections, and exhibitions.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
       "website_url": "https://naturalhistory.si.edu",
@@ -705,9 +705,9 @@
       "image_url": "AciIO2c18TrjzdjaCzl_iM_bXYSYnHV3IwspAw-ZAhFQbOZEDA2-KlvVuvMz8Pdpn3MeuT6g9ArSSZgwGNLKbDZybXSM81h4-07TeeDR2ACAL7z4NztTTucEaRhDMXOWwn4mRsxvtuibLbp9F4RomeHL4p5hnEA114oquumwHqP3cIEGBAgupK5_E6Uc_vj4KzpaNtkez0KsOQLuArVdfNzPpNDCcGTYlXvYNp-4hapLseYx5K_JkYRL6y2EbKkJe0eCwNUGgJiRAUCrOwFhmPgKb505NOr4tnxbay_JVBW73PwunBHRvqLCcf06t3u6UOTdrUCFB1W6KIiBjxQEIBag6FZIhHN1H2KsF4_oCydyzOwrfYRXCv7X73hSO_j1PnQYb8JYLjj9BgLbVRDMYlr_P_hFDULL1TarSFBWsR8A73HxSg",
       "latitude": 38.8913,
       "longitude": -77.0263,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\", \"event_paths\": {\"exhibitions\": \"/exhibits\", \"events\": \"/events/after-hours-programs-adults\"}}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001453\", \"event_paths\": {\"exhibitions\": \"/exhibits\", \"events\": \"/events/after-hours-programs-adults\"}}",
       "created_at": "2025-10-08T20:42:31.666748",
-      "updated_at": "2026-02-02T21:19:35.655648"
+      "updated_at": "2026-02-05T20:19:22.772528"
     },
     "30": {
       "name": "Smithsonian National Museum of the American Indian",
@@ -717,7 +717,7 @@
       "city_name": "Washington",
       "description": "A museum in Washington offering cultural experiences and entertainment.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 633-1000",
       "email": "info@si.edu",
       "website_url": "https://americanindian.si.edu",
@@ -731,9 +731,9 @@
       "image_url": "AciIO2c8XILHgqA9xJcFwsHinvkeJlJruRoDmFU7oIYD3aDOU6yVHU0VRn4KabfsO0CBuQGuRXNC3hHKWAyCDUqUCkUdtRLhfKpQsus6E-mISo4c1Lxwpv9s54VuzwH85lxKRcJ7_SgPix0ah-o4wkkzC2GxwLCeTLdB48mF-5OlMqFtiPjWPlVG_PXao_0KCRKTvdPWHXPDGxWCOs3zpbIkbJwWk_UebSMOPivN-9wlGMFs4T51wLuXv8C3Nbfz6bP6yBB21pYTcAzkDksp-f8pyVCMIsrOlc7ktV1zxCW8B76RKEEcFgY6joFCvnYSVMgp5eBKES1Oc3DBdzFUAuqplX43yO2oucrhZzRGp3Hg10kASXpftBqX11pM6Pki0uvNQcEAaR0mKSLhZ1U2TWzUuGJ7FSy5msAtsKZaQ9XkTVmr3eDD",
       "latitude": 38.8882,
       "longitude": -77.0199,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001458\"}",
       "created_at": "2025-10-08T20:42:31.666769",
-      "updated_at": "2026-02-02T21:19:35.655848"
+      "updated_at": "2026-02-05T20:19:22.772748"
     },
     "31": {
       "name": "Supreme Court",
@@ -743,7 +743,7 @@
       "city_name": "Washington",
       "description": "A government building in Washington offering cultural experiences and entertainment.",
       "opening_hours": "9:00 AM - 4:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 479-3000",
       "email": "info@supremecourt.gov",
       "website_url": "https://www.supremecourt.gov",
@@ -757,9 +757,9 @@
       "image_url": "AciIO2f4UZApNYxGSHdp0QSZ5EFonCyyiNBxa_O_KZv2dUMZ4Pui9PrcHORqAWYdWCfj93gUa3GkY6a7mRq12Rjyt5IBh9ekdGLi6C8O-O06GRuJMROCLjiPIWz2mcHwYzwQ2Oxe7X4jdrQrcNMrwxgCV534oYOD3ZXwrIEdFZtYMStWE0-ZOI4rOfAttnNo1jMo0VhRx0xz6G88HhrsvBbUivYCJx1WraopbmwkH_c6Y8SaLY3-pmrWzDpVw_DHgwOwViHLoPHTnQWPZFg4svv4FP0YVQMrKlfW2mic7EBd-ZR8Hu-7ZlTScnSmNP8tI4_-BHxsLi373w4WeKQoBWjKyPRADpvXkRfn1ML8YcIFroHNPpqP5i6E-fcFBdzCX1vas60p31-m2lC30cGRH8eE_8mIhZPnaBb9olsLSKryG4GcSw",
       "latitude": 38.8898,
       "longitude": -77.0091,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001463\"}",
       "created_at": "2025-10-08T20:42:31.666790",
-      "updated_at": "2026-02-02T21:19:35.656052"
+      "updated_at": "2026-02-05T20:19:22.772941"
     },
     "32": {
       "name": "The Phillips Collection",
@@ -785,7 +785,7 @@
       "longitude": -77.0481,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001468\", \"event_paths\": {\"exhibitions\": \"/exhibitions-events\", \"events\": \"/exhibitions-events\", \"talks\": \"/events?field_event_features_value[free]=free&field_event_features_value[inperson]=inperson&field_event_type_target_id_2[35]=35\", \"tours\": \"/events?field_event_features_value[free]=free&field_event_features_value[inperson]=inperson&field_event_type_target_id_2[35]=35\"}}",
       "created_at": "2025-10-08T20:42:31.666811",
-      "updated_at": "2026-02-02T21:19:35.656271"
+      "updated_at": "2026-02-05T20:19:22.773141"
     },
     "33": {
       "name": "Tidal Basin",
@@ -811,7 +811,7 @@
       "longitude": -77.0365,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001472\"}",
       "created_at": "2025-10-08T20:42:31.666832",
-      "updated_at": "2026-02-02T21:19:35.656472"
+      "updated_at": "2026-02-05T20:19:22.773330"
     },
     "34": {
       "name": "United States Holocaust Memorial Museum",
@@ -821,7 +821,7 @@
       "city_name": "Washington",
       "description": "A museum in Washington offering cultural experiences and entertainment.",
       "opening_hours": "10:00 AM - 5:30 PM",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 488-0400",
       "email": "info@ushmm.org",
       "website_url": "https://www.ushmm.org",
@@ -835,9 +835,9 @@
       "image_url": "AciIO2eCeXAucicG8K9yBv5tJ1DCISabvuQ6GLC5tNPanV6WEBmr2_oOCfY96uOJFj7fX-aegtq1WiswyH4aLcLscjIEFYHJMN8QYW-L4fLTLhFKowuL406onWYptZ7IdAOOBBwlWkkPDN1fp2Ya0oLh01tiKIY3aBmg53UoYurvp6FqaxcShFihBHbHKMY1S6dQ-9vQrn1HKffREPPWmmui7vj2uM5rEy5aRt9NAS6N-dAGT-lRC9ubUUh3KlYr18VUqarj5hpO-uETuO6zZuv5vsoDy37sLcRPKjf93cBtLtdquXp1gbfIzr7ZLhriwRp1pg98EBfB_N2VFyVAGnARmo5eyuxmMbPR7Bdqda051OhOqqJG2ObDJBuzQ5Mz2jP5mnfu9V1-MqHmQ7A0um0DenJAaFlFPmH0xmgKtWA9lZ8",
       "latitude": 38.8869,
       "longitude": -77.0325,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001477\"}",
       "created_at": "2025-10-08T20:42:31.666852",
-      "updated_at": "2026-02-02T21:19:35.656679"
+      "updated_at": "2026-02-05T20:19:22.773534"
     },
     "35": {
       "name": "Vietnam Veterans Memorial",
@@ -863,7 +863,7 @@
       "longitude": -77.0502,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001482\"}",
       "created_at": "2025-10-08T20:42:31.666871",
-      "updated_at": "2026-02-02T21:19:35.656887"
+      "updated_at": "2026-02-05T20:19:22.773730"
     },
     "36": {
       "name": "Washington Monument",
@@ -889,7 +889,7 @@
       "longitude": -77.0353,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001486\"}",
       "created_at": "2025-10-08T20:42:31.666889",
-      "updated_at": "2026-02-02T21:19:35.657093"
+      "updated_at": "2026-02-05T20:19:22.773918"
     },
     "37": {
       "name": "White House",
@@ -899,7 +899,7 @@
       "city_name": "Washington",
       "description": "A government building in Washington offering cultural experiences and entertainment.",
       "opening_hours": "Tours by appointment only",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 456-1111",
       "email": "comments@whitehouse.gov",
       "website_url": "https://www.whitehouse.gov",
@@ -913,9 +913,9 @@
       "image_url": "AciIO2fBWG9CI6yIfR3E-0qbLrbGtTh2TIZFh_sxSuJU-PWkEi__WybcHVLnfZdqm4tlNeHRTobiZjxg7Mbky_7Q6g7KeleCg7sR-BUlyzasvlRWDzgIRMFDEtQf5u8xCcF7OB0gf0SV2_3j3qLQ7TbCxBTFwX_oGjACl5KpVR6Wq9xBeSfTBC32n_yS4AVsRD4hMeuBE3RXWgL6zUYH4b18VYfnhH1TMgifjREKtG4Phm5WgbeTIz5fBl9qGvlaWW21u1nisO-YQrL9kDGIOsJsNW3-NcxD3fdAokzA4FNhn3QJdQ3zbYUEjsG01FKdyC4WjO7sewiKm8gevrWHOKE3mlsgrm3Gium-1xVo0A7l0C4wMRqmUDO6NeEgCvmDVNZQP7nUHKE21E3C3u3ekoJPjsYsO-xKsNlp_x5qNB89V3u76iCK",
       "latitude": 38.8977,
       "longitude": -77.0365,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001491\"}",
       "created_at": "2025-10-08T20:42:31.666908",
-      "updated_at": "2026-02-02T21:19:35.657298"
+      "updated_at": "2026-02-05T20:19:22.774126"
     },
     "38": {
       "name": "World War II Memorial",
@@ -941,7 +941,7 @@
       "longitude": -77.0502,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Outdoor site - remains accessible during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001496\"}",
       "created_at": "2025-10-08T20:42:31.666927",
-      "updated_at": "2026-02-02T21:19:35.657508"
+      "updated_at": "2026-02-05T20:19:22.774319"
     },
     "39": {
       "name": "United States Botanic Garden",
@@ -951,7 +951,7 @@
       "city_name": "Washington",
       "description": "A botanic garden featuring a variety of plants and gardens, including a conservatory and a butterfly garden",
       "opening_hours": "10:00 AM - 5:00 PM daily",
-      "holiday_hours": "",
+      "holiday_hours": "TEMPORARILY CLOSED: Closed due to government shutdown. Check website for reopening updates.",
       "phone_number": "(202) 225-8333",
       "email": "usbg@usbg.gov",
       "website_url": "https://www.usbg.gov",
@@ -965,9 +965,9 @@
       "image_url": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=AciIO2fSMF40NXV5b_jVRmw_sQFLubl4ygsRyn3RfkB9FmhVdQKE6viIiZsRKludMhL0Ji4nxuVF7MozmGU_msGMMGAJbq0715NlOepacjhl6fV6R1e2sjWE0--PBc9O_fRWlHs9YfNC8YI5uKiBiTCBVoDoTbW8kEotaFeuo2XdGcgMfBNPyFssY8hU1vRYaGcSFdvwy33w8XHVCix_O1APpDUtYjEWc9aPjGj-9ygNrkRTvY-IucM8AnUHEOO2sMvPMOO6JSpA75Pt-AgDFQP079lZut3u0qkEhwNz757g-p-ZL-ocl8kKhcTO_xCkXiwr4sUHq4xZQWsio-iTow3_ODugRTl5nZm6-hkyUS7glccp8i6hmhu0gXbnnoeiSd1Nyv_CNU9gPZT9XBVp5PybZLiN2jfQJkGEhYhSxBx02kG5rg&key=YOUR_GOOGLE_MAPS_API_KEY",
       "latitude": 38.8883,
       "longitude": -77.0128,
-      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Open - check venue website for current hours.\", \"last_updated\": \"2026-02-06T16:30:31.834314\"}",
+      "additional_info": "{\"closure_status\": \"closed\", \"closure_reason\": \"Closed due to government shutdown. Check website for reopening updates.\", \"last_updated\": \"2025-10-21T22:15:05.001500\"}",
       "created_at": "2025-10-08T20:42:31.666945",
-      "updated_at": "2026-02-02T21:19:35.657714"
+      "updated_at": "2026-02-05T20:19:22.774517"
     },
     "40": {
       "name": "9:30 Club",
@@ -993,7 +993,7 @@
       "longitude": -77.0239,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001505\"}",
       "created_at": "2025-10-08T20:42:31.666965",
-      "updated_at": "2026-02-02T21:19:35.657923"
+      "updated_at": "2026-02-05T20:19:22.774708"
     },
     "41": {
       "name": "Embassy of the United Kingdom",
@@ -1019,7 +1019,7 @@
       "longitude": -77.0564,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001510\"}",
       "created_at": "2025-10-08T20:42:31.666990",
-      "updated_at": "2026-02-02T21:19:35.658140"
+      "updated_at": "2026-02-05T20:19:22.774922"
     },
     "42": {
       "name": "Embassy of France",
@@ -1045,7 +1045,7 @@
       "longitude": -77.0711,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001515\"}",
       "created_at": "2025-10-08T20:42:31.667009",
-      "updated_at": "2026-02-02T21:19:35.658343"
+      "updated_at": "2026-02-05T20:19:22.775132"
     },
     "43": {
       "name": "Embassy of Germany",
@@ -1071,7 +1071,7 @@
       "longitude": -77.0789,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001519\"}",
       "created_at": "2025-10-08T20:42:31.667028",
-      "updated_at": "2026-02-02T21:19:35.658554"
+      "updated_at": "2026-02-05T20:19:22.775331"
     },
     "44": {
       "name": "Embassy of Italy",
@@ -1097,7 +1097,7 @@
       "longitude": -77.0533,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001523\"}",
       "created_at": "2025-10-08T20:42:31.667047",
-      "updated_at": "2026-02-02T21:19:35.658768"
+      "updated_at": "2026-02-05T20:19:22.775535"
     },
     "45": {
       "name": "Embassy of Japan",
@@ -1123,7 +1123,7 @@
       "longitude": -77.0478,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001528\"}",
       "created_at": "2025-10-08T20:42:31.667066",
-      "updated_at": "2026-02-02T21:19:35.658973"
+      "updated_at": "2026-02-05T20:19:22.775724"
     },
     "46": {
       "name": "Embassy of Canada",
@@ -1149,7 +1149,7 @@
       "longitude": -77.0186,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001533\"}",
       "created_at": "2025-10-08T20:42:31.667086",
-      "updated_at": "2026-02-02T21:19:35.659181"
+      "updated_at": "2026-02-05T20:19:22.775942"
     },
     "47": {
       "name": "Embassy of Spain",
@@ -1175,7 +1175,7 @@
       "longitude": -77.0522,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001537\"}",
       "created_at": "2025-10-08T20:42:31.667104",
-      "updated_at": "2026-02-02T21:19:35.659398"
+      "updated_at": "2026-02-05T20:19:22.776150"
     },
     "48": {
       "name": "Embassy of the Netherlands",
@@ -1201,7 +1201,7 @@
       "longitude": -77.0711,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001541\"}",
       "created_at": "2025-10-08T20:42:31.667123",
-      "updated_at": "2026-02-02T21:19:35.659604"
+      "updated_at": "2026-02-05T20:19:22.776336"
     },
     "49": {
       "name": "Embassy of Australia",
@@ -1227,7 +1227,7 @@
       "longitude": -77.0378,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001546\"}",
       "created_at": "2025-10-08T20:42:31.667146",
-      "updated_at": "2026-02-02T21:19:35.659811"
+      "updated_at": "2026-02-05T20:19:22.776524"
     },
     "50": {
       "name": "Embassy of Brazil",
@@ -1253,7 +1253,7 @@
       "longitude": -77.0539,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001550\"}",
       "created_at": "2025-10-08T20:42:31.667166",
-      "updated_at": "2026-02-02T21:19:35.660026"
+      "updated_at": "2026-02-05T20:19:22.776724"
     },
     "51": {
       "name": "Embassy of India",
@@ -1279,7 +1279,7 @@
       "longitude": -77.0434,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001555\"}",
       "created_at": "2025-10-08T20:42:31.667185",
-      "updated_at": "2026-02-02T21:19:35.660231"
+      "updated_at": "2026-02-05T20:19:22.776940"
     },
     "52": {
       "name": "Embassy of Mexico",
@@ -1305,7 +1305,7 @@
       "longitude": -77.0432,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001559\"}",
       "created_at": "2025-10-08T20:42:31.667204",
-      "updated_at": "2026-02-02T21:19:35.660438"
+      "updated_at": "2026-02-05T20:19:22.777164"
     },
     "53": {
       "name": "Embassy of South Korea",
@@ -1331,7 +1331,7 @@
       "longitude": -77.0469,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001563\"}",
       "created_at": "2025-10-08T20:42:31.667223",
-      "updated_at": "2026-02-02T21:19:35.660742"
+      "updated_at": "2026-02-05T20:19:22.777394"
     },
     "54": {
       "name": "Embassy of Sweden",
@@ -1357,7 +1357,7 @@
       "longitude": -77.0597,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001568\"}",
       "created_at": "2025-10-08T20:42:31.667242",
-      "updated_at": "2026-02-02T21:19:35.661088"
+      "updated_at": "2026-02-05T20:19:22.777594"
     },
     "55": {
       "name": "Embassy of Switzerland",
@@ -1383,7 +1383,7 @@
       "longitude": -77.0622,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001572\"}",
       "created_at": "2025-10-08T20:42:31.667261",
-      "updated_at": "2026-02-02T21:19:35.661350"
+      "updated_at": "2026-02-05T20:19:22.777827"
     },
     "56": {
       "name": "Suns Cinema",
@@ -1409,7 +1409,7 @@
       "longitude": null,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001577\"}",
       "created_at": "2025-10-08T20:42:31.667279",
-      "updated_at": "2026-02-02T21:19:35.661595"
+      "updated_at": "2026-02-05T20:19:22.778042"
     },
     "57": {
       "name": "Busboys and Poets",
@@ -1435,7 +1435,7 @@
       "longitude": -77.032,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001581\"}",
       "created_at": "2025-10-08T20:42:31.667299",
-      "updated_at": "2026-02-02T21:19:35.661799"
+      "updated_at": "2026-02-05T20:19:22.778254"
     },
     "58": {
       "name": "The Kennedy Center Roof Terrace Restaurant",
@@ -1461,7 +1461,7 @@
       "longitude": -77.0568,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001586\"}",
       "created_at": "2025-10-08T20:42:31.667317",
-      "updated_at": "2026-02-02T21:19:35.661998"
+      "updated_at": "2026-02-05T20:19:22.778473"
     },
     "59": {
       "name": "Kramerbooks & Afterwords Cafe",
@@ -1487,7 +1487,7 @@
       "longitude": -77.0431,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001590\"}",
       "created_at": "2025-10-08T20:42:31.667335",
-      "updated_at": "2026-02-02T21:19:35.662244"
+      "updated_at": "2026-02-05T20:19:22.778860"
     },
     "60": {
       "name": "The Hamilton",
@@ -1513,7 +1513,7 @@
       "longitude": -77.0319,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001595\"}",
       "created_at": "2025-10-08T20:42:31.667353",
-      "updated_at": "2026-02-02T21:19:35.662475"
+      "updated_at": "2026-02-05T20:19:22.779160"
     },
     "61": {
       "name": "Songbyrd Music House & Record Cafe",
@@ -1539,7 +1539,7 @@
       "longitude": -77.042,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001599\"}",
       "created_at": "2025-10-08T20:42:31.667372",
-      "updated_at": "2026-02-02T21:19:35.662695"
+      "updated_at": "2026-02-05T20:19:22.779387"
     },
     "62": {
       "name": "Founding Farmers",
@@ -1565,7 +1565,7 @@
       "longitude": -77.0431,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001604\"}",
       "created_at": "2025-10-08T20:42:31.667390",
-      "updated_at": "2026-02-02T21:19:35.662932"
+      "updated_at": "2026-02-05T20:19:22.779603"
     },
     "63": {
       "name": "Politics and Prose Bookstore",
@@ -1591,7 +1591,7 @@
       "longitude": -77.0638,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Independent venue - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001608\"}",
       "created_at": "2025-10-08T20:42:31.667447",
-      "updated_at": "2026-02-02T21:19:35.663157"
+      "updated_at": "2026-02-05T20:19:22.779799"
     },
     "64": {
       "name": "East City Bookshop",
@@ -1617,7 +1617,7 @@
       "longitude": -77.0042,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001612\"}",
       "created_at": "2025-10-08T20:42:31.667495",
-      "updated_at": "2026-02-02T21:19:35.663481"
+      "updated_at": "2026-02-05T20:19:22.780006"
     },
     "65": {
       "name": "The Bookstore in Glover Park",
@@ -1643,7 +1643,7 @@
       "longitude": -77.0717,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001617\"}",
       "created_at": "2025-10-08T20:42:31.667522",
-      "updated_at": "2026-02-02T21:19:35.663825"
+      "updated_at": "2026-02-05T20:19:22.780212"
     },
     "66": {
       "name": "Solid State Books",
@@ -1669,7 +1669,7 @@
       "longitude": -77.001,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001621\"}",
       "created_at": "2025-10-08T20:42:31.667546",
-      "updated_at": "2026-02-02T21:19:35.664088"
+      "updated_at": "2026-02-05T20:19:22.780400"
     },
     "67": {
       "name": "Bridge Street Books",
@@ -1695,10 +1695,10 @@
       "longitude": -77.0625,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001626\"}",
       "created_at": "2025-10-08T20:42:31.667569",
-      "updated_at": "2026-02-02T21:19:35.664331"
+      "updated_at": "2026-02-05T20:19:22.780594"
     },
     "68": {
-      "name": "Sankofa Video Books & Caf\u00e9",
+      "name": "Sankofa Video Books & Café",
       "venue_type": "cafe",
       "address": "2714 Georgia Ave NW, Washington, DC 20001",
       "city_id": 1,
@@ -1721,7 +1721,7 @@
       "longitude": -77.0322,
       "additional_info": "{\"closure_status\": \"unknown\", \"closure_reason\": \"Status unknown - please check venue website for current hours.\", \"last_updated\": \"2025-10-21T22:15:05.001630\"}",
       "created_at": "2025-10-08T20:42:31.667592",
-      "updated_at": "2026-02-02T21:19:35.664584"
+      "updated_at": "2026-02-05T20:19:22.780793"
     },
     "69": {
       "name": "American Museum of Natural History",
@@ -1747,7 +1747,7 @@
       "longitude": -73.9739,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670066",
-      "updated_at": "2026-02-02T21:19:35.664809"
+      "updated_at": "2026-02-05T20:19:22.780984"
     },
     "71": {
       "name": "Brooklyn Bridge",
@@ -1773,7 +1773,7 @@
       "longitude": -73.9969,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670121",
-      "updated_at": "2026-02-02T21:19:35.665031"
+      "updated_at": "2026-02-05T20:19:22.781172"
     },
     "72": {
       "name": "Central Park",
@@ -1799,7 +1799,7 @@
       "longitude": -73.9654,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670141",
-      "updated_at": "2026-02-02T21:19:35.665266"
+      "updated_at": "2026-02-05T20:19:22.781369"
     },
     "73": {
       "name": "Empire State Building",
@@ -1825,7 +1825,7 @@
       "longitude": -73.9857,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670161",
-      "updated_at": "2026-02-02T21:19:35.665487"
+      "updated_at": "2026-02-05T20:19:22.781565"
     },
     "74": {
       "name": "Metropolitan Museum of Art",
@@ -1851,7 +1851,7 @@
       "longitude": -73.9632,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670180",
-      "updated_at": "2026-02-02T21:19:35.665714"
+      "updated_at": "2026-02-05T20:19:22.781758"
     },
     "76": {
       "name": "Museum of Modern Art (MoMA)",
@@ -1877,7 +1877,7 @@
       "longitude": -73.9776,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670217",
-      "updated_at": "2026-02-02T21:19:35.665935"
+      "updated_at": "2026-02-05T20:19:22.781948"
     },
     "77": {
       "name": "Statue of Liberty",
@@ -1903,7 +1903,7 @@
       "longitude": -74.0445,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670236",
-      "updated_at": "2026-02-02T21:19:35.666168"
+      "updated_at": "2026-02-05T20:19:22.782141"
     },
     "78": {
       "name": "Times Square",
@@ -1929,7 +1929,7 @@
       "longitude": -73.9855,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670254",
-      "updated_at": "2026-02-02T21:19:35.666388"
+      "updated_at": "2026-02-05T20:19:22.782327"
     },
     "79": {
       "name": "Getty Center",
@@ -1955,7 +1955,7 @@
       "longitude": -118.474,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670725",
-      "updated_at": "2026-02-02T21:19:35.666609"
+      "updated_at": "2026-02-05T20:19:22.782516"
     },
     "80": {
       "name": "Griffith Observatory",
@@ -1981,7 +1981,7 @@
       "longitude": -118.3003,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670754",
-      "updated_at": "2026-02-02T21:19:35.666836"
+      "updated_at": "2026-02-05T20:19:22.782710"
     },
     "81": {
       "name": "Hollywood Walk of Fame",
@@ -2007,7 +2007,7 @@
       "longitude": -118.3267,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670775",
-      "updated_at": "2026-02-02T21:19:35.667056"
+      "updated_at": "2026-02-05T20:19:22.782912"
     },
     "82": {
       "name": "Los Angeles County Museum of Art (LACMA)",
@@ -2033,7 +2033,7 @@
       "longitude": -118.3594,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670795",
-      "updated_at": "2026-02-02T21:19:35.667275"
+      "updated_at": "2026-02-05T20:19:22.783109"
     },
     "83": {
       "name": "Santa Monica Pier",
@@ -2059,7 +2059,7 @@
       "longitude": -118.4973,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.670818",
-      "updated_at": "2026-02-02T21:19:35.667497"
+      "updated_at": "2026-02-05T20:19:22.783301"
     },
     "84": {
       "name": "Alcatraz Island",
@@ -2085,7 +2085,7 @@
       "longitude": -122.423,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671173",
-      "updated_at": "2026-02-02T21:19:35.667734"
+      "updated_at": "2026-02-05T20:19:22.783498"
     },
     "85": {
       "name": "Golden Gate Bridge",
@@ -2111,7 +2111,7 @@
       "longitude": -122.4783,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671200",
-      "updated_at": "2026-02-02T21:19:35.667961"
+      "updated_at": "2026-02-05T20:19:22.783686"
     },
     "86": {
       "name": "Palace of Fine Arts",
@@ -2137,7 +2137,7 @@
       "longitude": -122.4484,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671220",
-      "updated_at": "2026-02-02T21:19:35.668185"
+      "updated_at": "2026-02-05T20:19:22.783871"
     },
     "87": {
       "name": "San Francisco Museum of Modern Art (SFMOMA)",
@@ -2163,7 +2163,7 @@
       "longitude": -122.4011,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671240",
-      "updated_at": "2026-02-02T21:19:35.668409"
+      "updated_at": "2026-02-05T20:19:22.784060"
     },
     "88": {
       "name": "de Young Museum",
@@ -2189,7 +2189,7 @@
       "longitude": -122.4686,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671258",
-      "updated_at": "2026-02-02T21:19:35.668633"
+      "updated_at": "2026-02-05T20:19:22.784254"
     },
     "89": {
       "name": "Art Institute of Chicago",
@@ -2215,7 +2215,7 @@
       "longitude": -87.6237,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions\", \"events\": \"/events\", \"tours\": \"/events?type=6\", \"talks\": \"/events?type=5\"}}",
       "created_at": "2025-10-08T20:42:31.671577",
-      "updated_at": "2026-02-02T21:19:35.668824"
+      "updated_at": "2026-02-05T20:19:22.784442"
     },
     "90": {
       "name": "Field Museum",
@@ -2241,7 +2241,7 @@
       "longitude": -87.6167,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions?openStatus=Open&\"}}",
       "created_at": "2025-10-08T20:42:31.671603",
-      "updated_at": "2026-02-02T21:19:35.669067"
+      "updated_at": "2026-02-05T20:19:22.784629"
     },
     "91": {
       "name": "Millennium Park",
@@ -2267,7 +2267,7 @@
       "longitude": -87.6226,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671628",
-      "updated_at": "2026-02-02T21:19:35.669456"
+      "updated_at": "2026-02-05T20:19:22.784817"
     },
     "92": {
       "name": "Shedd Aquarium",
@@ -2293,7 +2293,7 @@
       "longitude": -87.6144,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671648",
-      "updated_at": "2026-02-02T21:19:35.669775"
+      "updated_at": "2026-02-05T20:19:22.785008"
     },
     "93": {
       "name": "Willis Tower Skydeck",
@@ -2319,7 +2319,7 @@
       "longitude": -87.6359,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671667",
-      "updated_at": "2026-02-02T21:19:35.670031"
+      "updated_at": "2026-02-05T20:19:22.785196"
     },
     "94": {
       "name": "Boston Common",
@@ -2345,7 +2345,7 @@
       "longitude": -71.0656,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.671993",
-      "updated_at": "2026-02-02T21:19:35.670263"
+      "updated_at": "2026-02-05T20:19:22.785466"
     },
     "95": {
       "name": "Fenway Park",
@@ -2371,7 +2371,7 @@
       "longitude": -71.0972,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672019",
-      "updated_at": "2026-02-02T21:19:35.670481"
+      "updated_at": "2026-02-05T20:19:22.785829"
     },
     "96": {
       "name": "Freedom Trail",
@@ -2397,7 +2397,7 @@
       "longitude": -71.0589,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672041",
-      "updated_at": "2026-02-02T21:19:35.670731"
+      "updated_at": "2026-02-05T20:19:22.786041"
     },
     "97": {
       "name": "Isabella Stewart Gardner Museum",
@@ -2423,7 +2423,7 @@
       "longitude": -71.0992,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672061",
-      "updated_at": "2026-02-02T21:19:35.670930"
+      "updated_at": "2026-02-05T20:19:22.786241"
     },
     "98": {
       "name": "Museum of Fine Arts Boston",
@@ -2449,7 +2449,7 @@
       "longitude": -71.0942,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672086",
-      "updated_at": "2026-02-02T21:19:35.671136"
+      "updated_at": "2026-02-05T20:19:22.786428"
     },
     "99": {
       "name": "Chihuly Garden and Glass",
@@ -2475,7 +2475,7 @@
       "longitude": -122.3493,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672408",
-      "updated_at": "2026-02-02T21:19:35.671344"
+      "updated_at": "2026-02-05T20:19:22.786622"
     },
     "100": {
       "name": "Museum of Pop Culture (MoPOP)",
@@ -2501,7 +2501,7 @@
       "longitude": -122.3493,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672438",
-      "updated_at": "2026-02-02T21:19:35.671571"
+      "updated_at": "2026-02-05T20:19:22.786824"
     },
     "101": {
       "name": "Pike Place Market",
@@ -2527,7 +2527,7 @@
       "longitude": -122.3331,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672458",
-      "updated_at": "2026-02-02T21:19:35.671782"
+      "updated_at": "2026-02-05T20:19:22.787014"
     },
     "102": {
       "name": "Seattle Art Museum",
@@ -2553,7 +2553,7 @@
       "longitude": -122.3387,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672478",
-      "updated_at": "2026-02-02T21:19:35.671981"
+      "updated_at": "2026-02-05T20:19:22.787203"
     },
     "103": {
       "name": "Space Needle",
@@ -2579,7 +2579,7 @@
       "longitude": -122.3493,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672499",
-      "updated_at": "2026-02-02T21:19:35.672193"
+      "updated_at": "2026-02-05T20:19:22.787393"
     },
     "104": {
       "name": "Frost Science Museum",
@@ -2605,10 +2605,10 @@
       "longitude": -80.1869,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672818",
-      "updated_at": "2026-02-02T21:19:35.672414"
+      "updated_at": "2026-02-05T20:19:22.787590"
     },
     "105": {
-      "name": "P\u00e9rez Art Museum Miami (PAMM)",
+      "name": "Pérez Art Museum Miami (PAMM)",
       "venue_type": "museum",
       "address": "1103 Biscayne Blvd, Miami, FL 33132",
       "city_id": 8,
@@ -2631,7 +2631,7 @@
       "longitude": -80.1869,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672852",
-      "updated_at": "2026-02-02T21:19:35.672627"
+      "updated_at": "2026-02-05T20:19:22.787779"
     },
     "106": {
       "name": "South Beach",
@@ -2657,7 +2657,7 @@
       "longitude": -80.13,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672872",
-      "updated_at": "2026-02-02T21:19:35.672842"
+      "updated_at": "2026-02-05T20:19:22.787966"
     },
     "107": {
       "name": "Vizcaya Museum and Gardens",
@@ -2683,7 +2683,7 @@
       "longitude": -80.2106,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672891",
-      "updated_at": "2026-02-02T21:19:35.673047"
+      "updated_at": "2026-02-05T20:19:22.788155"
     },
     "108": {
       "name": "Wynwood Walls",
@@ -2709,7 +2709,7 @@
       "longitude": -80.1994,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.672910",
-      "updated_at": "2026-02-02T21:19:35.673277"
+      "updated_at": "2026-02-05T20:19:22.788349"
     },
     "109": {
       "name": "British Museum",
@@ -2735,7 +2735,7 @@
       "longitude": -0.127,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions-events\", \"tours\": \"/visit/tours-and-talks\", \"talks\": \"/visit/tours-and-talks\"}}",
       "created_at": "2025-10-08T20:42:31.673226",
-      "updated_at": "2026-02-02T21:19:35.673473"
+      "updated_at": "2026-02-05T20:19:22.788547"
     },
     "110": {
       "name": "National Gallery",
@@ -2761,7 +2761,7 @@
       "longitude": -0.1283,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673252",
-      "updated_at": "2026-02-02T21:19:35.673679"
+      "updated_at": "2026-02-05T20:19:22.788740"
     },
     "111": {
       "name": "Natural History Museum",
@@ -2787,7 +2787,7 @@
       "longitude": -0.1764,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673273",
-      "updated_at": "2026-02-02T21:19:35.673883"
+      "updated_at": "2026-02-05T20:19:22.788934"
     },
     "112": {
       "name": "Royal Academy of Arts",
@@ -2813,7 +2813,7 @@
       "longitude": -0.1393,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673293",
-      "updated_at": "2026-02-02T21:19:35.674102"
+      "updated_at": "2026-02-05T20:19:22.789130"
     },
     "113": {
       "name": "Science Museum",
@@ -2839,7 +2839,7 @@
       "longitude": -0.1746,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673312",
-      "updated_at": "2026-02-02T21:19:35.674317"
+      "updated_at": "2026-02-05T20:19:22.789319"
     },
     "114": {
       "name": "Tate Britain",
@@ -2865,7 +2865,7 @@
       "longitude": -0.1278,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673331",
-      "updated_at": "2026-02-02T21:19:35.674773"
+      "updated_at": "2026-02-05T20:19:22.789508"
     },
     "115": {
       "name": "Tate Modern",
@@ -2891,7 +2891,7 @@
       "longitude": -0.0994,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/whats-on\", \"events\": \"/whats-on\", \"talks\": \"/whats-on\", \"tours\": \"/whats-on\"}}",
       "created_at": "2025-10-08T20:42:31.673349",
-      "updated_at": "2026-02-02T21:19:35.675102"
+      "updated_at": "2026-02-05T20:19:22.789700"
     },
     "116": {
       "name": "Tower of London",
@@ -2917,7 +2917,7 @@
       "longitude": -0.0759,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673368",
-      "updated_at": "2026-02-02T21:19:35.675378"
+      "updated_at": "2026-02-05T20:19:22.789895"
     },
     "117": {
       "name": "Victoria and Albert Museum",
@@ -2943,7 +2943,7 @@
       "longitude": -0.1722,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/whatson\", \"events\": \"/whatson\", \"talks\": \"/whatson\", \"tours\": \"/whatson\"}}",
       "created_at": "2025-10-08T20:42:31.673386",
-      "updated_at": "2026-02-02T21:19:35.675589"
+      "updated_at": "2026-02-05T20:19:22.790085"
     },
     "118": {
       "name": "Westminster Abbey",
@@ -2969,7 +2969,7 @@
       "longitude": -0.1274,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673405",
-      "updated_at": "2026-02-02T21:19:35.675783"
+      "updated_at": "2026-02-05T20:19:22.790273"
     },
     "119": {
       "name": "Arc de Triomphe",
@@ -2995,12 +2995,12 @@
       "longitude": 2.295,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.673979",
-      "updated_at": "2026-02-02T21:19:35.675977"
+      "updated_at": "2026-02-05T20:19:22.790464"
     },
     "120": {
-      "name": "Champs-\u00c9lys\u00e9es",
+      "name": "Champs-Élysées",
       "venue_type": "landmark",
-      "address": "Champs-\u00c9lys\u00e9es, 75008 Paris, France",
+      "address": "Champs-Élysées, 75008 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A avenue in Paris offering cultural experiences and entertainment.",
@@ -3021,7 +3021,7 @@
       "longitude": 2.3522,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674009",
-      "updated_at": "2026-02-02T21:19:35.676184"
+      "updated_at": "2026-02-05T20:19:22.790660"
     },
     "121": {
       "name": "Eiffel Tower",
@@ -3047,7 +3047,7 @@
       "longitude": 2.2945,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674037",
-      "updated_at": "2026-02-02T21:19:35.676561"
+      "updated_at": "2026-02-05T20:19:22.790849"
     },
     "122": {
       "name": "Louvre Museum",
@@ -3073,7 +3073,7 @@
       "longitude": 2.3376,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674065",
-      "updated_at": "2026-02-02T21:19:35.676785"
+      "updated_at": "2026-02-05T20:19:22.791054"
     },
     "123": {
       "name": "Montmartre",
@@ -3099,12 +3099,12 @@
       "longitude": 2.3431,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674085",
-      "updated_at": "2026-02-02T21:19:35.676989"
+      "updated_at": "2026-02-05T20:19:22.791246"
     },
     "124": {
-      "name": "Mus\u00e9e d'Orsay",
+      "name": "Musée d'Orsay",
       "venue_type": "museum",
-      "address": "1 Rue de la L\u00e9gion d'Honneur, 75007 Paris, France",
+      "address": "1 Rue de la Légion d'Honneur, 75007 Paris, France",
       "city_id": 10,
       "city_name": "Paris",
       "description": "A museum in Paris offering cultural experiences and entertainment.",
@@ -3125,10 +3125,10 @@
       "longitude": 2.3266,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674105",
-      "updated_at": "2026-02-02T21:19:35.677230"
+      "updated_at": "2026-02-05T20:19:22.791441"
     },
     "126": {
-      "name": "Mus\u00e9e du Louvre",
+      "name": "Musée du Louvre",
       "venue_type": "museum",
       "address": "Rue de Rivoli, 75001 Paris, France",
       "city_id": 10,
@@ -3151,7 +3151,7 @@
       "longitude": 2.3376,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674143",
-      "updated_at": "2026-02-02T21:19:35.677465"
+      "updated_at": "2026-02-05T20:19:22.791639"
     },
     "127": {
       "name": "Notre-Dame Cathedral",
@@ -3177,7 +3177,7 @@
       "longitude": 2.3499,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674162",
-      "updated_at": "2026-02-02T21:19:35.677697"
+      "updated_at": "2026-02-05T20:19:22.791845"
     },
     "128": {
       "name": "Seine River",
@@ -3203,7 +3203,7 @@
       "longitude": 2.3522,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674181",
-      "updated_at": "2026-02-02T21:19:35.677942"
+      "updated_at": "2026-02-05T20:19:22.792067"
     },
     "129": {
       "name": "Ginza District",
@@ -3229,7 +3229,7 @@
       "longitude": 139.7653,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674689",
-      "updated_at": "2026-02-02T21:19:35.678155"
+      "updated_at": "2026-02-05T20:19:22.792273"
     },
     "130": {
       "name": "Meiji Shrine",
@@ -3255,7 +3255,7 @@
       "longitude": 139.6993,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674725",
-      "updated_at": "2026-02-02T21:19:35.678362"
+      "updated_at": "2026-02-05T20:19:22.792479"
     },
     "131": {
       "name": "Senso-ji Temple",
@@ -3281,7 +3281,7 @@
       "longitude": 139.7967,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674747",
-      "updated_at": "2026-02-02T21:19:35.678579"
+      "updated_at": "2026-02-05T20:19:22.792669"
     },
     "132": {
       "name": "Tokyo National Museum",
@@ -3307,7 +3307,7 @@
       "longitude": 139.7762,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674773",
-      "updated_at": "2026-02-02T21:19:35.678807"
+      "updated_at": "2026-02-05T20:19:22.792866"
     },
     "133": {
       "name": "Tokyo Tower",
@@ -3333,7 +3333,7 @@
       "longitude": 139.7454,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.674799",
-      "updated_at": "2026-02-02T21:19:35.679008"
+      "updated_at": "2026-02-05T20:19:22.793072"
     },
     "134": {
       "name": "Art Gallery of New South Wales",
@@ -3359,7 +3359,7 @@
       "longitude": 151.2093,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675133",
-      "updated_at": "2026-02-02T21:19:35.679223"
+      "updated_at": "2026-02-05T20:19:22.793262"
     },
     "135": {
       "name": "Australian Museum",
@@ -3385,7 +3385,7 @@
       "longitude": 151.2129,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675160",
-      "updated_at": "2026-02-02T21:19:35.679431"
+      "updated_at": "2026-02-05T20:19:22.793462"
     },
     "136": {
       "name": "Sydney Harbour Bridge",
@@ -3411,7 +3411,7 @@
       "longitude": 151.2108,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675180",
-      "updated_at": "2026-02-02T21:19:35.679657"
+      "updated_at": "2026-02-05T20:19:22.793700"
     },
     "137": {
       "name": "Sydney Opera House",
@@ -3437,7 +3437,7 @@
       "longitude": 151.2153,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675200",
-      "updated_at": "2026-02-02T21:19:35.679883"
+      "updated_at": "2026-02-05T20:19:22.794082"
     },
     "138": {
       "name": "The Rocks",
@@ -3463,7 +3463,7 @@
       "longitude": 151.2078,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675219",
-      "updated_at": "2026-02-02T21:19:35.680100"
+      "updated_at": "2026-02-05T20:19:22.794342"
     },
     "139": {
       "name": "McCord Museum",
@@ -3489,7 +3489,7 @@
       "longitude": -73.5708,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675544",
-      "updated_at": "2026-02-02T21:19:35.680328"
+      "updated_at": "2026-02-05T20:19:22.794564"
     },
     "140": {
       "name": "Montreal Museum of Fine Arts",
@@ -3515,7 +3515,7 @@
       "longitude": -73.5794,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675571",
-      "updated_at": "2026-02-02T21:19:35.680550"
+      "updated_at": "2026-02-05T20:19:22.794790"
     },
     "141": {
       "name": "Mount Royal Park",
@@ -3541,7 +3541,7 @@
       "longitude": -73.5873,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675591",
-      "updated_at": "2026-02-02T21:19:35.680767"
+      "updated_at": "2026-02-05T20:19:22.794990"
     },
     "142": {
       "name": "Notre-Dame Basilica",
@@ -3567,7 +3567,7 @@
       "longitude": -73.5562,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675610",
-      "updated_at": "2026-02-02T21:19:35.680970"
+      "updated_at": "2026-02-05T20:19:22.795196"
     },
     "143": {
       "name": "Old Montreal",
@@ -3593,7 +3593,7 @@
       "longitude": -73.5562,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675629",
-      "updated_at": "2026-02-02T21:19:35.681186"
+      "updated_at": "2026-02-05T20:19:22.795398"
     },
     "144": {
       "name": "Art Gallery of Ontario",
@@ -3619,7 +3619,7 @@
       "longitude": -79.3925,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675937",
-      "updated_at": "2026-02-02T21:19:35.681399"
+      "updated_at": "2026-02-05T20:19:22.795611"
     },
     "145": {
       "name": "CN Tower",
@@ -3645,7 +3645,7 @@
       "longitude": -79.3871,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675964",
-      "updated_at": "2026-02-02T21:19:35.681616"
+      "updated_at": "2026-02-05T20:19:22.795803"
     },
     "146": {
       "name": "Casa Loma",
@@ -3671,7 +3671,7 @@
       "longitude": -79.4094,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.675984",
-      "updated_at": "2026-02-02T21:19:35.681834"
+      "updated_at": "2026-02-05T20:19:22.795995"
     },
     "147": {
       "name": "Distillery District",
@@ -3697,7 +3697,7 @@
       "longitude": -79.3604,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676059",
-      "updated_at": "2026-02-02T21:19:35.682044"
+      "updated_at": "2026-02-05T20:19:22.796193"
     },
     "148": {
       "name": "Royal Ontario Museum",
@@ -3723,7 +3723,7 @@
       "longitude": -79.3948,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676105",
-      "updated_at": "2026-02-02T21:19:35.682267"
+      "updated_at": "2026-02-05T20:19:22.796401"
     },
     "149": {
       "name": "Capilano Suspension Bridge",
@@ -3749,7 +3749,7 @@
       "longitude": -123.1149,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676542",
-      "updated_at": "2026-02-02T21:19:35.682472"
+      "updated_at": "2026-02-05T20:19:22.796594"
     },
     "150": {
       "name": "Granville Island",
@@ -3775,7 +3775,7 @@
       "longitude": -123.135,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676573",
-      "updated_at": "2026-02-02T21:19:35.682683"
+      "updated_at": "2026-02-05T20:19:22.796791"
     },
     "151": {
       "name": "Museum of Anthropology",
@@ -3801,7 +3801,7 @@
       "longitude": -123.2606,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676595",
-      "updated_at": "2026-02-02T21:19:35.682890"
+      "updated_at": "2026-02-05T20:19:22.797004"
     },
     "152": {
       "name": "Stanley Park",
@@ -3827,7 +3827,7 @@
       "longitude": -123.1443,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676615",
-      "updated_at": "2026-02-02T21:19:35.683110"
+      "updated_at": "2026-02-05T20:19:22.797203"
     },
     "153": {
       "name": "Vancouver Art Gallery",
@@ -3853,7 +3853,7 @@
       "longitude": -123.1207,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676634",
-      "updated_at": "2026-02-02T21:19:35.683321"
+      "updated_at": "2026-02-05T20:19:22.797400"
     },
     "154": {
       "name": "Azadi Tower",
@@ -3879,7 +3879,7 @@
       "longitude": 51.3379,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.676980",
-      "updated_at": "2026-02-02T21:19:35.683527"
+      "updated_at": "2026-02-05T20:19:22.797590"
     },
     "155": {
       "name": "Golestan Palace",
@@ -3905,7 +3905,7 @@
       "longitude": 51.4206,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677007",
-      "updated_at": "2026-02-02T21:19:35.683739"
+      "updated_at": "2026-02-05T20:19:22.797784"
     },
     "156": {
       "name": "Grand Bazaar",
@@ -3931,7 +3931,7 @@
       "longitude": 51.4181,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677028",
-      "updated_at": "2026-02-02T21:19:35.683949"
+      "updated_at": "2026-02-05T20:19:22.797980"
     },
     "157": {
       "name": "National Museum of Iran",
@@ -3957,7 +3957,7 @@
       "longitude": 51.3889,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677047",
-      "updated_at": "2026-02-02T21:19:35.684160"
+      "updated_at": "2026-02-05T20:19:22.798172"
     },
     "158": {
       "name": "Tehran Museum of Contemporary Art",
@@ -3983,7 +3983,7 @@
       "longitude": 51.3889,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677066",
-      "updated_at": "2026-02-02T21:19:35.684392"
+      "updated_at": "2026-02-05T20:19:22.798360"
     },
     "159": {
       "name": "Baltimore Museum of Art",
@@ -4009,7 +4009,7 @@
       "longitude": -76.6194,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions\"}}",
       "created_at": "2025-10-08T20:42:31.677382",
-      "updated_at": "2026-02-02T21:19:35.684621"
+      "updated_at": "2026-02-05T20:19:22.798554"
     },
     "160": {
       "name": "Fort McHenry National Monument",
@@ -4035,7 +4035,7 @@
       "longitude": -76.5797,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677409",
-      "updated_at": "2026-02-02T21:19:35.684849"
+      "updated_at": "2026-02-05T20:19:22.798750"
     },
     "161": {
       "name": "Inner Harbor",
@@ -4061,7 +4061,7 @@
       "longitude": -76.6121,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677429",
-      "updated_at": "2026-02-02T21:19:35.685073"
+      "updated_at": "2026-02-05T20:19:22.798940"
     },
     "162": {
       "name": "National Aquarium",
@@ -4087,7 +4087,7 @@
       "longitude": -76.6121,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677448",
-      "updated_at": "2026-02-02T21:19:35.685289"
+      "updated_at": "2026-02-05T20:19:22.799129"
     },
     "163": {
       "name": "Walters Art Museum",
@@ -4113,7 +4113,7 @@
       "longitude": -76.6154,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/experience/exhibitions/\", \"tours\": \"/visit/tours/\"}}",
       "created_at": "2025-10-08T20:42:31.677467",
-      "updated_at": "2026-02-02T21:19:35.685497"
+      "updated_at": "2026-02-05T20:19:22.799325"
     },
     "164": {
       "name": "Franklin Institute",
@@ -4139,7 +4139,7 @@
       "longitude": -75.1725,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677771",
-      "updated_at": "2026-02-02T21:19:35.685753"
+      "updated_at": "2026-02-05T20:19:22.799526"
     },
     "165": {
       "name": "Independence Hall",
@@ -4165,7 +4165,7 @@
       "longitude": -75.15,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677797",
-      "updated_at": "2026-02-02T21:19:35.685996"
+      "updated_at": "2026-02-05T20:19:22.799718"
     },
     "166": {
       "name": "Liberty Bell Center",
@@ -4191,7 +4191,7 @@
       "longitude": -75.15,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677817",
-      "updated_at": "2026-02-02T21:19:35.686226"
+      "updated_at": "2026-02-05T20:19:22.799917"
     },
     "167": {
       "name": "Philadelphia Museum of Art",
@@ -4217,7 +4217,7 @@
       "longitude": -75.1806,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677837",
-      "updated_at": "2026-02-02T21:19:35.686429"
+      "updated_at": "2026-02-05T20:19:22.800110"
     },
     "168": {
       "name": "Reading Terminal Market",
@@ -4243,7 +4243,7 @@
       "longitude": -75.16,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.677855",
-      "updated_at": "2026-02-02T21:19:35.686641"
+      "updated_at": "2026-02-05T20:19:22.800318"
     },
     "169": {
       "name": "Morven Museum & Garden",
@@ -4269,7 +4269,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678158",
-      "updated_at": "2026-02-02T21:19:35.686862"
+      "updated_at": "2026-02-05T20:19:22.800507"
     },
     "171": {
       "name": "Palmer Square",
@@ -4295,7 +4295,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678205",
-      "updated_at": "2026-02-02T21:19:35.687053"
+      "updated_at": "2026-02-05T20:19:22.800706"
     },
     "172": {
       "name": "Princeton Battlefield State Park",
@@ -4321,7 +4321,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678224",
-      "updated_at": "2026-02-02T21:19:35.687253"
+      "updated_at": "2026-02-05T20:19:22.800901"
     },
     "174": {
       "name": "Princeton Public Library",
@@ -4347,7 +4347,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678262",
-      "updated_at": "2026-02-02T21:19:35.687447"
+      "updated_at": "2026-02-05T20:19:22.801091"
     },
     "175": {
       "name": "Princeton University Art Museum",
@@ -4356,7 +4356,7 @@
       "city_id": 22,
       "city_name": "Princeton",
       "description": "One of the finest university art museums in the country, with over 100,000 works spanning 5,000 years of world culture. Free to all. The museum recently opened a new facility at the historic center of Princeton's campus, featuring exhibitions, collections, education centers, and the Mosaic Restaurant.",
-      "opening_hours": "Monday\u2013Wednesday: 10 a.m.\u20135 p.m., Thursday\u2013Friday: 10 a.m.\u20138 p.m., Saturday: 10 a.m.\u20135 p.m., Sunday: 12\u20135 p.m.",
+      "opening_hours": "Monday–Wednesday: 10 a.m.–5 p.m., Thursday–Friday: 10 a.m.–8 p.m., Saturday: 10 a.m.–5 p.m., Sunday: 12–5 p.m.",
       "holiday_hours": "",
       "phone_number": "(609) 258-3788",
       "email": "artmuseum@princeton.edu",
@@ -4373,7 +4373,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678281",
-      "updated_at": "2026-02-02T21:19:35.687634"
+      "updated_at": "2026-02-05T20:19:22.801286"
     },
     "176": {
       "name": "Princeton University Chapel",
@@ -4399,7 +4399,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678300",
-      "updated_at": "2026-02-02T21:19:35.687830"
+      "updated_at": "2026-02-05T20:19:22.801482"
     },
     "178": {
       "name": "AFI Silver Theatre and Cultural Center",
@@ -4425,7 +4425,7 @@
       "longitude": -77.0256,
       "additional_info": "",
       "created_at": "2025-10-08T20:42:31.678698",
-      "updated_at": "2026-02-02T21:19:35.688024"
+      "updated_at": "2026-02-05T20:19:22.801673"
     },
     "179": {
       "name": "Webster's Bookstore Cafe",
@@ -4451,7 +4451,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-01T23:57:46.135332",
-      "updated_at": "2026-02-02T21:19:35.688247"
+      "updated_at": "2026-02-05T20:19:22.801866"
     },
     "180": {
       "name": "Rosa's Lounge",
@@ -4477,7 +4477,7 @@
       "longitude": -87.7075,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.202564",
-      "updated_at": "2026-02-02T21:19:35.688459"
+      "updated_at": "2026-02-05T20:19:22.802104"
     },
     "181": {
       "name": "House of Blues",
@@ -4503,7 +4503,7 @@
       "longitude": -87.6294,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.203126",
-      "updated_at": "2026-02-02T21:19:35.688651"
+      "updated_at": "2026-02-05T20:19:22.802332"
     },
     "182": {
       "name": "Subterranean",
@@ -4529,7 +4529,7 @@
       "longitude": -87.6778,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.203458",
-      "updated_at": "2026-02-02T21:19:35.688854"
+      "updated_at": "2026-02-05T20:19:22.802531"
     },
     "183": {
       "name": "Laugh Factory",
@@ -4555,7 +4555,7 @@
       "longitude": -87.6447,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.203743",
-      "updated_at": "2026-02-02T21:19:35.689053"
+      "updated_at": "2026-02-05T20:19:22.802749"
     },
     "184": {
       "name": "The Comedy Bar",
@@ -4581,7 +4581,7 @@
       "longitude": -87.625,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.204003",
-      "updated_at": "2026-02-02T21:19:35.689262"
+      "updated_at": "2026-02-05T20:19:22.802939"
     },
     "185": {
       "name": "Gallery Cabaret",
@@ -4607,7 +4607,7 @@
       "longitude": -87.6847,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.204264",
-      "updated_at": "2026-02-02T21:19:35.689456"
+      "updated_at": "2026-02-05T20:19:22.803134"
     },
     "186": {
       "name": "Second City",
@@ -4633,7 +4633,7 @@
       "longitude": -87.6344,
       "additional_info": "",
       "created_at": "2025-12-03T22:14:47.204524",
-      "updated_at": "2026-02-02T21:19:35.689659"
+      "updated_at": "2026-02-05T20:19:22.803322"
     },
     "187": {
       "name": "Museum of Contemporary Art Chicago",
@@ -4659,7 +4659,7 @@
       "longitude": -87.6217,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"https://visit.mcachicago.org/exhibitions/\", \"events\": \"https://visit.mcachicago.org/events/\", \"tours\": \"https://visit.mcachicago.org/events/#tours\", \"talks\": \"https://visit.mcachicago.org/events/\"}}",
       "created_at": "2025-12-03T22:14:47.204770",
-      "updated_at": "2026-02-02T21:19:35.689864"
+      "updated_at": "2026-02-05T20:19:22.803517"
     },
     "189": {
       "name": "Ukrainian Institute of Modern Art",
@@ -4685,7 +4685,7 @@
       "longitude": -87.6811,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"https://uima-chicago.org/new-page\"}}",
       "created_at": "2025-12-03T22:14:47.205231",
-      "updated_at": "2026-02-02T21:19:35.690074"
+      "updated_at": "2026-02-05T20:19:22.803715"
     },
     "190": {
       "name": "Irvine Barclay Theatre",
@@ -4711,7 +4711,7 @@
       "longitude": -117.8428,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.866640",
-      "updated_at": "2026-02-02T21:19:35.690286"
+      "updated_at": "2026-02-05T20:19:22.803909"
     },
     "191": {
       "name": "Orange County Great Park",
@@ -4737,7 +4737,7 @@
       "longitude": -117.7503,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.867201",
-      "updated_at": "2026-02-02T21:19:35.690479"
+      "updated_at": "2026-02-05T20:19:22.804099"
     },
     "192": {
       "name": "Irvine Museum of Art",
@@ -4763,7 +4763,7 @@
       "longitude": -117.8447,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.867490",
-      "updated_at": "2026-02-02T21:19:35.690690"
+      "updated_at": "2026-02-05T20:19:22.804288"
     },
     "193": {
       "name": "Pretend City Children's Museum",
@@ -4789,7 +4789,7 @@
       "longitude": -117.7503,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.867733",
-      "updated_at": "2026-02-02T21:19:35.690888"
+      "updated_at": "2026-02-05T20:19:22.804478"
     },
     "194": {
       "name": "Irvine Spectrum Center",
@@ -4815,7 +4815,7 @@
       "longitude": -117.7447,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.867963",
-      "updated_at": "2026-02-02T21:19:35.691095"
+      "updated_at": "2026-02-05T20:19:22.804666"
     },
     "195": {
       "name": "Bren Events Center",
@@ -4841,7 +4841,7 @@
       "longitude": -117.8428,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.868198",
-      "updated_at": "2026-02-02T21:19:35.691310"
+      "updated_at": "2026-02-05T20:19:22.804872"
     },
     "196": {
       "name": "Irvine Fine Arts Center",
@@ -4867,7 +4867,7 @@
       "longitude": -117.7947,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.868419",
-      "updated_at": "2026-02-02T21:19:35.691515"
+      "updated_at": "2026-02-05T20:19:22.805068"
     },
     "197": {
       "name": "William R. Mason Regional Park",
@@ -4893,7 +4893,7 @@
       "longitude": -117.8447,
       "additional_info": "",
       "created_at": "2025-12-03T23:02:17.868838",
-      "updated_at": "2026-02-02T21:19:35.691725"
+      "updated_at": "2026-02-05T20:19:22.805259"
     },
     "198": {
       "name": "Orange County Museum of Art (OCMA)",
@@ -4919,7 +4919,7 @@
       "longitude": -117.8847,
       "additional_info": "",
       "created_at": "2025-12-03T23:15:39.646762",
-      "updated_at": "2026-02-02T21:19:35.691926"
+      "updated_at": "2026-02-05T20:19:22.805449"
     },
     "199": {
       "name": "Smithsonian American Art Museum",
@@ -4945,7 +4945,7 @@
       "longitude": -77.0225,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions\", \"tours\": \"/visit/tours\", \"events\": \"/search/events?content_type=event\"}}",
       "created_at": "2025-12-04T16:52:01.250900",
-      "updated_at": "2026-02-02T21:19:35.692136"
+      "updated_at": "2026-02-05T20:19:22.805639"
     },
     "200": {
       "name": "Renwick Gallery",
@@ -4971,7 +4971,7 @@
       "longitude": -77.0414,
       "additional_info": "",
       "created_at": "2025-12-04T16:52:01.252156",
-      "updated_at": "2026-02-02T21:19:35.692344"
+      "updated_at": "2026-02-05T20:19:22.805829"
     },
     "201": {
       "name": "Smithsonian National Museum of African Art",
@@ -4997,7 +4997,7 @@
       "longitude": -77.0253,
       "additional_info": "",
       "created_at": "2025-12-05T03:56:53.540814",
-      "updated_at": "2026-02-02T21:19:35.692548"
+      "updated_at": "2026-02-05T20:19:22.806035"
     },
     "202": {
       "name": "Photoworks at Glen Echo Park",
@@ -5023,7 +5023,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-05T23:50:58.900019",
-      "updated_at": "2026-02-02T21:19:35.692760"
+      "updated_at": "2026-02-05T20:19:22.806225"
     },
     "203": {
       "name": "National Archives",
@@ -5049,7 +5049,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:10:14.397619",
-      "updated_at": "2026-02-02T21:19:35.692960"
+      "updated_at": "2026-02-05T20:19:22.806416"
     },
     "204": {
       "name": "Embassy of Finland",
@@ -5057,7 +5057,7 @@
       "address": "3301 Massachusetts Avenue NW, Washington, DC 20008",
       "city_id": 1,
       "city_name": "Washington",
-      "description": "The Embassy of Finland in Washington DC is located in a beautiful building that blends into its lush natural surroundings, embodying Finnish architecture. The building is designed to feel like a miniature Finland \u2013 green, modern and transparent. We take great pride in being the first Platinum LEED certified embassy in the United States.",
+      "description": "The Embassy of Finland in Washington DC is located in a beautiful building that blends into its lush natural surroundings, embodying Finnish architecture. The building is designed to feel like a miniature Finland – green, modern and transparent. We take great pride in being the first Platinum LEED certified embassy in the United States.",
       "opening_hours": "By appointment",
       "holiday_hours": "",
       "phone_number": "",
@@ -5075,7 +5075,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:18:29.971367",
-      "updated_at": "2026-02-02T21:19:35.693180"
+      "updated_at": "2026-02-05T20:19:22.806614"
     },
     "205": {
       "name": "Dupont Underground",
@@ -5083,7 +5083,7 @@
       "address": "19 Dupont Circle NW, Washington, DC 20036",
       "city_id": 1,
       "city_name": "Washington",
-      "description": "Dupont Underground is an arts organization transforming 15,000 sqft of open abandoned space under Dupont Circle into a platform for creative exchange and contemporary arts in our vibrant city. We are committed to developing a multidisciplinary platform for creative expression and strive to reflect the diversity of our community \u2013 both artists and audiences.",
+      "description": "Dupont Underground is an arts organization transforming 15,000 sqft of open abandoned space under Dupont Circle into a platform for creative exchange and contemporary arts in our vibrant city. We are committed to developing a multidisciplinary platform for creative expression and strive to reflect the diversity of our community – both artists and audiences.",
       "opening_hours": "Varies by event",
       "holiday_hours": "",
       "phone_number": "",
@@ -5101,7 +5101,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:19:20.536380",
-      "updated_at": "2026-02-02T21:19:35.693383"
+      "updated_at": "2026-02-05T20:19:22.806808"
     },
     "206": {
       "name": "Washington Improv Theater",
@@ -5127,7 +5127,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:19:44.829737",
-      "updated_at": "2026-02-02T21:19:35.693592"
+      "updated_at": "2026-02-05T20:19:22.807007"
     },
     "207": {
       "name": "Johns Hopkins University Bloomberg Center",
@@ -5153,7 +5153,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:21:16.831527",
-      "updated_at": "2026-02-02T21:19:35.693801"
+      "updated_at": "2026-02-05T20:19:22.807202"
     },
     "208": {
       "name": "Eaton DC",
@@ -5179,7 +5179,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:21:38.129041",
-      "updated_at": "2026-02-02T21:19:35.694021"
+      "updated_at": "2026-02-05T20:19:22.807393"
     },
     "209": {
       "name": "Goethe-Institut Washington",
@@ -5205,7 +5205,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:22:52.301627",
-      "updated_at": "2026-02-02T21:19:35.694304"
+      "updated_at": "2026-02-05T20:19:22.807583"
     },
     "210": {
       "name": "Villa Albertine Washington DC",
@@ -5231,12 +5231,12 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-08T03:25:31.928964",
-      "updated_at": "2026-02-02T21:19:35.694551"
+      "updated_at": "2026-02-05T20:19:22.807772"
     },
     "212": {
       "name": "Museu Nacional de Machado de Castro",
       "venue_type": "museum",
-      "address": "Largo Dr. Jos\u00e9 Rodrigues, 3000-236 Coimbra, Portugal",
+      "address": "Largo Dr. José Rodrigues, 3000-236 Coimbra, Portugal",
       "city_id": 27,
       "city_name": "Coimbra",
       "description": "One of Portugal's most important museums of fine arts and archaeology, housed in the former Bishop's Palace. Features extensive collections of sculpture, painting, decorative arts, and archaeological artifacts spanning from ancient times to the modern era.",
@@ -5257,12 +5257,12 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-11T00:34:40.813269",
-      "updated_at": "2026-02-02T21:19:35.694761"
+      "updated_at": "2026-02-05T20:19:22.807972"
     },
     "213": {
       "name": "Science Museum of the University of Coimbra",
       "venue_type": "museum",
-      "address": "Largo Marqu\u00eas de Pombal, 3000-272 Coimbra, Portugal",
+      "address": "Largo Marquês de Pombal, 3000-272 Coimbra, Portugal",
       "city_id": 27,
       "city_name": "Coimbra",
       "description": "Interactive science museum located in the historic Chemical Laboratory building at the University of Coimbra. Features scientific collections, interactive exhibitions, and educational programs showcasing the history of science and the university's scientific heritage.",
@@ -5277,13 +5277,13 @@
       "twitter_url": "",
       "youtube_url": "",
       "tiktok_url": "",
-      "admission_fee": "\u20ac8 (adults), discounts available - check website for current pricing",
+      "admission_fee": "€8 (adults), discounts available - check website for current pricing",
       "image_url": "",
       "latitude": null,
       "longitude": null,
       "additional_info": "",
       "created_at": "2025-12-11T00:34:40.814263",
-      "updated_at": "2026-02-02T21:19:35.694973"
+      "updated_at": "2026-02-05T20:19:22.808178"
     },
     "214": {
       "name": "Milken Center for Advancing the American Dream",
@@ -5309,7 +5309,7 @@
       "longitude": -77.033,
       "additional_info": "",
       "created_at": "2025-12-11T03:08:48.086809",
-      "updated_at": "2026-02-02T21:19:35.695166"
+      "updated_at": "2026-02-05T20:19:22.808369"
     },
     "215": {
       "name": "National Building Museum",
@@ -5318,7 +5318,7 @@
       "city_id": 1,
       "city_name": "Washington",
       "description": "The National Building Museum is America's leading cultural institution dedicated to the history and impact of the built environment. Through exhibitions, educational programs, and special events, the Museum explores architecture, engineering, construction, and design.",
-      "opening_hours": "Thursday\u2013Monday: 10:00 AM\u20134:00 PM; Closed Tuesday\u2013Wednesday, Thanksgiving, and Christmas",
+      "opening_hours": "Thursday–Monday: 10:00 AM–4:00 PM; Closed Tuesday–Wednesday, Thanksgiving, and Christmas",
       "holiday_hours": "",
       "phone_number": "202.272.2448",
       "email": "info@nbm.org",
@@ -5329,13 +5329,13 @@
       "twitter_url": "https://twitter.com/BuildingMuseum",
       "youtube_url": "https://www.youtube.com/user/NationalBuildingMuseum",
       "tiktok_url": "",
-      "admission_fee": "$10/Adult, $7/Youth (ages 3\u201317) & Seniors (65+); Free access to Great Hall and Museum Shop; Building Zone: $3 per person",
+      "admission_fee": "$10/Adult, $7/Youth (ages 3–17) & Seniors (65+); Free access to Great Hall and Museum Shop; Building Zone: $3 per person",
       "image_url": "",
       "latitude": 38.8977,
       "longitude": -77.0175,
       "additional_info": "{\"event_paths\": {\"exhibitions\": \"/exhibitions/\", \"events\": \"/programs-events/adult-programs/\"}}",
       "created_at": "2025-12-11T05:05:39.906095",
-      "updated_at": "2026-02-02T21:19:35.695362"
+      "updated_at": "2026-02-05T20:19:22.808560"
     },
     "216": {
       "name": "Vipassana Meditation (Virtual)",
@@ -5361,7 +5361,7 @@
       "longitude": null,
       "additional_info": "",
       "created_at": "2026-01-12T20:12:36.130362",
-      "updated_at": "2026-01-12T20:12:36.130365"
+      "updated_at": "2026-02-05T20:19:22.808771"
     },
     "217": {
       "name": "Culture DC",
@@ -5387,7 +5387,7 @@
       "longitude": -76.98505,
       "additional_info": "{\"event_paths\": {\"events\": \"/events\"}}",
       "created_at": "2026-02-02T21:18:40.531575",
-      "updated_at": "2026-02-02T21:19:35.695589"
+      "updated_at": "2026-02-05T20:19:22.809230"
     },
     "218": {
       "name": "Mexican Cultural Institute",
@@ -5413,7 +5413,7 @@
       "longitude": -77.037,
       "additional_info": "{\"event_paths\": {\"events\": \"https://instituteofmexicodc.org/index.php/events/\"}}",
       "created_at": "2026-02-05T17:20:32.747973",
-      "updated_at": "2026-02-05T17:31:37.984022"
+      "updated_at": "2026-02-05T20:19:22.809435"
     },
     "219": {
       "name": "The Wharf DC",
@@ -5439,7 +5439,7 @@
       "longitude": -77.0249,
       "additional_info": "{\"event_paths\": {\"events\": \"https://www.wharfdc.com/upcoming-events/\"}}",
       "created_at": "2026-02-05T17:22:00.590245",
-      "updated_at": "2026-02-05T17:31:02.297867"
+      "updated_at": "2026-02-05T20:19:22.809768"
     },
     "220": {
       "name": "DC Chinatown",
@@ -5464,8 +5464,8 @@
       "latitude": 38.8983,
       "longitude": -77.0219,
       "additional_info": "{}",
-      "created_at": "2026-02-05T20:00:00.000000",
-      "updated_at": "2026-02-05T20:00:00.000000"
+      "created_at": "2026-02-05T20:19:22.810718",
+      "updated_at": "2026-02-05T20:19:22.810725"
     },
     "221": {
       "name": "DC Chinese New Year Parade",
@@ -5490,8 +5490,8 @@
       "latitude": 38.8983,
       "longitude": -77.0219,
       "additional_info": "{}",
-      "created_at": "2026-02-05T20:00:00.000000",
-      "updated_at": "2026-02-05T20:00:00.000000"
+      "created_at": "2026-02-05T20:19:22.811626",
+      "updated_at": "2026-02-05T20:19:22.811628"
     },
     "222": {
       "name": "Tulip Day Washington",
@@ -5516,8 +5516,8 @@
       "latitude": 38.8895,
       "longitude": -77.0353,
       "additional_info": "{}",
-      "created_at": "2026-02-06T00:00:00.000000",
-      "updated_at": "2026-02-06T00:00:00.000000"
+      "created_at": "2026-02-27T16:44:58.765581",
+      "updated_at": "2026-02-27T16:44:58.765585"
     }
   }
 }

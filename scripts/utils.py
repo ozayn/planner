@@ -2199,6 +2199,51 @@ def get_google_maps_image(venue_name: str, city: str = None, state: str = None, 
         print(f"❌ Error fetching Google Maps image: {e}")
         return None
 
+
+def get_google_maps_photo_reference(venue_name: str, city: str = None, state: str = None, country: str = None, api_key: str = None) -> Optional[str]:
+    """
+    Fetch fresh photo reference for a venue using Google Places API.
+    Use this to refresh expired photo references (they can expire over time).
+    """
+    ensure_env_loaded()
+    if not api_key:
+        api_keys = get_api_keys()
+        api_key = api_keys.get('GOOGLE_MAPS_API_KEY')
+    if not api_key:
+        return None
+    try:
+        search_query = venue_name
+        if city:
+            search_query += f" {city}"
+        if state:
+            search_query += f" {state}"
+        if country:
+            search_query += f" {country}"
+        places_response = requests.get(
+            "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            params={'query': search_query, 'key': api_key},
+            timeout=10
+        )
+        places_response.raise_for_status()
+        places_data = places_response.json()
+        if places_data.get('status') != 'OK' or not places_data.get('results'):
+            return None
+        place_id = places_data['results'][0]['place_id']
+        details_response = requests.get(
+            "https://maps.googleapis.com/maps/api/place/details/json",
+            params={'place_id': place_id, 'fields': 'photos', 'key': api_key},
+            timeout=10
+        )
+        details_response.raise_for_status()
+        details_data = details_response.json()
+        if details_data.get('status') != 'OK' or not details_data.get('result', {}).get('photos'):
+            return None
+        return details_data['result']['photos'][0]['photo_reference']
+    except Exception as e:
+        print(f"Error getting photo reference: {e}")
+        return None
+
+
 def test_google_maps_image_url(image_url: str) -> bool:
     """
     Test if a Google Maps image URL is accessible
