@@ -1343,41 +1343,47 @@ def clear_visits():
 
 @app.route('/api/sources')
 def get_sources():
-    """Get sources for a specific city"""
+    """
+    Get sources for a specific city. Reads from the database (not sources.json) so that
+    city_id is the DB city ID, consistent with /api/cities, /api/venues, and /api/events.
+    This fixes the mismatch where production DB ids (e.g. 683 for New York) differed from
+    JSON convention ids (e.g. 2), causing empty results when the frontend passed DB city_id.
+    """
     city_id = request.args.get('city_id')
-    
     if not city_id:
         return jsonify({'error': 'City ID is required'}), 400
-    
     try:
-        # Load sources from JSON file
-        import json
-        with open('data/sources.json', 'r') as f:
-            sources_data = json.load(f)
-        
-        sources = sources_data.get('sources', {})
-        
-        # Filter by city_id if provided
-        filtered_sources = []
-        for source_id, source in sources.items():
-            if source.get('city_id') == int(city_id) or source.get('covers_multiple_cities', False):
-                filtered_sources.append({
-                    'id': source_id,
-                    'name': source.get('name', ''),
-                    'handle': source.get('handle', ''),
-                    'source_type': source.get('source_type', ''),
-                    'url': source.get('url', ''),
-                    'description': source.get('description', ''),
-                    'city_id': source.get('city_id'),
-                    'event_types': source.get('event_types', '[]'),
-                    'is_active': source.get('is_active', True)
-                })
-        
-        return jsonify(filtered_sources)
-        
-    except Exception as e:
-        app_logger.error(f"Error loading sources: {e}")
-        return jsonify({'error': 'Failed to load sources'}), 500
+        city_id_int = int(city_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid City ID format'}), 400
+
+    city = db.session.get(City, city_id_int)
+    if not city:
+        return jsonify({'error': 'City not found'}), 404
+
+    # Filter: sources for this city OR sources that cover multiple cities (preserve prior behavior)
+    sources = Source.query.filter(
+        db.or_(
+            Source.city_id == city_id_int,
+            Source.covers_multiple_cities == True
+        )
+    ).order_by(Source.name).all()
+
+    # Match response shape of previous JSON-based API for frontend compatibility
+    result = []
+    for s in sources:
+        result.append({
+            'id': s.id,
+            'name': s.name or '',
+            'handle': s.handle or '',
+            'source_type': s.source_type or '',
+            'url': s.url or '',
+            'description': s.description or '',
+            'city_id': s.city_id,
+            'event_types': s.event_types if s.event_types else '[]',
+            'is_active': s.is_active if s.is_active is not None else True
+        })
+    return jsonify(result)
 
 @app.route('/api/events')
 def get_events():
