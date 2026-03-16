@@ -1,3 +1,17 @@
+// Redirect to login on 401 from admin API (session expired or not logged in)
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+        return originalFetch.apply(this, arguments).then(function(response) {
+            if (response.status === 401 && response.url && response.url.includes('/api/admin/')) {
+                window.location.href = '/auth/login';
+                return Promise.reject(new Error('Authentication required'));
+            }
+            return response;
+        });
+    };
+})();
+
 // Simple test function - make it globally accessible
 window.loadOverview = async function loadOverview() {
     try {

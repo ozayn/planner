@@ -999,38 +999,53 @@ def is_admin_email(email):
         return True  # Allow access if OAuth not configured
     return email.strip().lower() in [admin.strip().lower() for admin in ADMIN_EMAILS if admin.strip()]
 
+
+def _is_admin_authenticated():
+    """Shared logic: is the current request authenticated as admin? Used by login_required and before_request."""
+    is_local = (request.host.startswith('localhost') or
+                request.host.startswith('127.0.0.1') or
+                request.host.startswith('10.'))
+    if is_local:
+        return True
+    if not GOOGLE_OAUTH_AVAILABLE:
+        return True
+    if ('user_email' not in session or
+            not session.get('user_email') or
+            'credentials' not in session):
+        return False
+    if not is_admin_email(session['user_email']):
+        return False
+    return True
+
+
 def login_required(f):
     """Decorator to require Google OAuth login for admin routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # For local development only, bypass OAuth if running on localhost
-        is_local = (request.host.startswith('localhost') or 
-                   request.host.startswith('127.0.0.1') or
-                   request.host.startswith('10.'))
-        
-        if is_local:
-            print("DEBUG: Local development detected, bypassing OAuth")
+        if _is_admin_authenticated():
+            print(f"DEBUG: Authenticated user: {session.get('user_email', 'N/A')}")
             return f(*args, **kwargs)
-        
-        if not GOOGLE_OAUTH_AVAILABLE:
-            return f(*args, **kwargs)  # Allow access if OAuth not configured
-        
-        # Check if user is logged in (more strict validation)
-        if ('user_email' not in session or 
-            not session.get('user_email') or 
-            'credentials' not in session):
+        if ('user_email' not in session or
+                not session.get('user_email') or
+                'credentials' not in session):
             print("DEBUG: No valid session found, redirecting to login")
             return redirect('/auth/login')
-        
-        # Check if user is admin
         if not is_admin_email(session['user_email']):
-            return render_template('unauthorized.html', 
+            return render_template('unauthorized.html',
                                  user_email=session['user_email'],
                                  admin_emails=ADMIN_EMAILS), 403
-        
-        print(f"DEBUG: Authenticated user: {session['user_email']}")
-        return f(*args, **kwargs)
+        return redirect('/auth/login')
     return decorated_function
+
+
+@app.before_request
+def require_admin_for_api():
+    """Protect all /api/admin/* routes; return 401 JSON for unauthenticated requests."""
+    if not request.path.startswith('/api/admin/'):
+        return None
+    if _is_admin_authenticated():
+        return None
+    return jsonify({'error': 'Authentication required'}), 401
 
 # Import and register generic CRUD endpoints after all models are defined
 try:
