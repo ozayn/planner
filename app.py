@@ -1201,9 +1201,9 @@ def index():
 
 @app.route('/favicon.ico')
 def favicon():
-    """Serve favicon for browser tab"""
-    from flask import send_from_directory
-    return send_from_directory('static/icons', 'planner-icon-32.png', mimetype='image/png')
+    """Redirect to versioned favicon to bust cache"""
+    from flask import redirect, url_for
+    return redirect(url_for('static', filename='icons/planner-icon-32.png') + '?v=4', code=302)
 
 @app.route('/api/cities')
 def get_cities():
