@@ -5,7 +5,7 @@ This guide explains how to set up weekly cronjobs to automatically scrape Washin
 ## Available Scripts
 
 1. **`cron_scrape_dc.py`** - Scrapes ALL venues in DC (museums, galleries, embassies, etc.)
-2. **`cron_scrape_dc_museums.py`** - Scrapes ONLY museums and Suns Cinema in DC (focused on museums)
+2. **`cron_run_scheduled_scrapers.py`** - Scrapes museums, embassies, Webster's, Wharf DC, Shoot NYC, Hammer Museum, DC Parade (seasonal), Tulip Day (seasonal)
 3. **`cron_clear_past_events.py`** - Deletes events that have already ended (once a week)
 
 ## Scripts Overview
@@ -19,14 +19,15 @@ Scrapes all active venues in Washington DC:
 - Save events to the database
 - Log results for monitoring
 
-### `cron_scrape_dc_museums.py` - Museums + Webster's
-Scrapes museums, embassies, and Webster's Bookstore Cafe:
+### `cron_run_scheduled_scrapers.py` - Scheduled Scrapers
+Scrapes museums, embassies, and standalone source scrapers:
 - Filters to museums and Suns Cinema in DC (by name and venue type)
 - Uses specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema, Culture DC)
 - Scrapes embassies with Eventbrite ticketing URLs
 - Scrapes Webster's Bookstore Cafe (State College, PA)
-- More focused logging per museum
-- Ideal for museum-specific scraping schedules
+- Scrapes Wharf DC, Shoot NYC, Hammer Museum
+- Seasonal: Tulip Day (Mar–Apr), DC Parade (Jan–Feb)
+- More focused logging per scraper
 
 ### `cron_clear_past_events.py` - Database Cleanup
 Automatically deletes events that have ended:
@@ -48,11 +49,11 @@ source venv/bin/activate
 python scripts/cron_scrape_dc.py
 ```
 
-**For museums only:**
+**For scheduled scrapers (museums, embassies, Webster's, Wharf, Shoot NYC, Hammer, seasonal):**
 ```bash
 cd /Users/oz/Dropbox/2025/planner
 source venv/bin/activate
-python scripts/cron_scrape_dc_museums.py
+python scripts/cron_run_scheduled_scrapers.py
 ```
 
 ### 2. Set Up Cronjob
@@ -71,14 +72,14 @@ crontab -e
 0 2 * * 1 cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_scrape_dc.py >> logs/cron_scrape_dc.log 2>&1
 ```
 
-**Museums only - every Monday at 3 AM:**
+**Scheduled scrapers - every Monday at 3 AM:**
 ```bash
-0 3 * * 1 cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_scrape_dc_museums.py >> logs/cron_scrape_dc_museums.log 2>&1
+0 3 * * 1 cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_run_scheduled_scrapers.py >> logs/cron_run_scheduled_scrapers.log 2>&1
 ```
 
-**Museums only - every Sunday at 3 AM:**
+**Scheduled scrapers - every Sunday at 3 AM:**
 ```bash
-0 3 * * 0 cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_scrape_dc_museums.py >> logs/cron_scrape_dc_museums.log 2>&1
+0 3 * * 0 cd /Users/oz/Dropbox/2025/planner && source venv/bin/activate && python scripts/cron_run_scheduled_scrapers.py >> logs/cron_run_scheduled_scrapers.log 2>&1
 ```
 
 **All venues - every day at 2 AM:**
@@ -115,7 +116,7 @@ chmod +x scripts/run_cron_scrape.sh
 
 Or create a separate wrapper for museums:
 ```bash
-0 3 * * 1 /Users/oz/Dropbox/2025/planner/scripts/run_cron_scrape_museums.sh >> /Users/oz/Dropbox/2025/planner/logs/cron_scrape_dc_museums.log 2>&1
+0 3 * * 1 /Users/oz/Dropbox/2025/planner/scripts/run_cron_scrape_museums.sh >> /Users/oz/Dropbox/2025/planner/logs/cron_run_scheduled_scrapers.log 2>&1
 ```
 
 ### 3. Verify Cronjob is Set Up
@@ -129,9 +130,9 @@ crontab -l
 
 Logs are written to:
 - `logs/cron_scrape_dc_YYYYMMDD.log` - Daily log files (all venues)
-- `logs/cron_scrape_dc_museums_YYYYMMDD.log` - Daily log files (museums only)
+- `logs/cron_run_scheduled_scrapers_YYYYMMDD.log` - Daily log files (scheduled scrapers)
 - `logs/cron_scrape_dc.log` - If using the redirect in crontab (all venues)
-- `logs/cron_scrape_dc_museums.log` - If using the redirect in crontab (museums)
+- `logs/cron_run_scheduled_scrapers.log` - If using the redirect in crontab (scheduled scrapers)
 
 View recent logs:
 ```bash
@@ -140,10 +141,10 @@ tail -f logs/cron_scrape_dc.log
 # or
 tail -f logs/cron_scrape_dc_$(date +%Y%m%d).log
 
-# Museums only
-tail -f logs/cron_scrape_dc_museums.log
+# Scheduled scrapers
+tail -f logs/cron_run_scheduled_scrapers.log
 # or
-tail -f logs/cron_scrape_dc_museums_$(date +%Y%m%d).log
+tail -f logs/cron_run_scheduled_scrapers_$(date +%Y%m%d).log
 ```
 
 ## Cronjob Schedule Examples
@@ -169,14 +170,15 @@ tail -f logs/cron_scrape_dc_museums_$(date +%Y%m%d).log
 5. **Saves events** to database (skips duplicates)
 6. **Logs results** with statistics
 
-### `cron_scrape_dc_museums.py` (Museums Only)
+### `cron_run_scheduled_scrapers.py` (Scheduled Scrapers)
 1. **Finds Washington DC** in the database
-2. **Filters to museums only** (by name and venue type keywords)
+2. **Filters to museums** (by name and venue type keywords)
 3. **Scrapes each museum individually** with detailed logging:
-   - Specialized scrapers for NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema
+   - Specialized scrapers for NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn, Suns Cinema, Culture DC, Tulip Day
    - Generic scraper for other museums
-4. **Saves events** to database (skips duplicates)
-5. **Logs results** with per-museum statistics
+4. **Scrapes embassies** with Eventbrite, Webster's, Wharf DC, Shoot NYC, Hammer Museum, DC Parade (seasonal)
+5. **Saves events** to database (skips duplicates)
+6. **Logs results** with per-scraper statistics
 
 ## Configuration
 
@@ -187,8 +189,9 @@ You can modify these settings in the scripts:
 - `max_events_per_venue = 50` - Maximum events per venue
 - `max_exhibitions_per_venue = 20` - Maximum exhibitions per venue
 
-**In `cron_scrape_dc_museums.py` only:**
-- `is_museum()` function - Modify museum detection keywords if needed
+**In `cron_run_scheduled_scrapers.py` only:**
+- `scripts/cron_scheduler_config.py` - Per-scraper run rules (always vs seasonal)
+- `has_specialized_scraper()` - Modify museum detection keywords if needed
 
 ## Troubleshooting
 

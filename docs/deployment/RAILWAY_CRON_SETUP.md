@@ -18,7 +18,7 @@ Railway supports scheduled tasks through cron jobs. You can set up a cron schedu
    - Enter a cron expression (uses UTC time)
 
 3. **Configure the Service**
-   - **Start Command**: `python scripts/cron_scrape_dc_museums.py`
+   - **Start Command**: `python scripts/cron_run_scheduled_scrapers.py`
    - **Cron Schedule**: `25 20 * * 1` (every Monday at 8:25 PM UTC = 3:25 PM ET)
    
    Note: Timezone conversion:
@@ -38,7 +38,7 @@ Railway supports scheduled tasks through cron jobs. You can set up a cron schedu
 
 2. **Configure the Service**
    - **Source**: Same GitHub repo (or connect it)
-   - **Start Command**: `python scripts/cron_scrape_dc_museums.py`
+   - **Start Command**: `python scripts/cron_run_scheduled_scrapers.py`
    - **Root Directory**: `/` (or leave default)
 
 3. **Add Cron Schedule**
@@ -84,11 +84,11 @@ NGA is scraped with cloudscraper only (no Playwright). When the site returns 403
 
 ## Which Script to Use?
 
-### `cron_scrape_dc_museums.py` (Recommended)
-- Scrapes museums, embassies with Eventbrite, and Webster's Bookstore Cafe
+### `cron_run_scheduled_scrapers.py` (Recommended)
+- Scrapes museums, embassies with Eventbrite, Webster's, Wharf DC, Shoot NYC, Hammer Museum, DC Parade (seasonal), Tulip Day (seasonal)
 - Faster execution
 - More focused logging
-- **Start Command**: `python scripts/cron_scrape_dc_museums.py`
+- **Start Command**: `python scripts/cron_run_scheduled_scrapers.py`
 
 ### `cron_scrape_dc.py`
 - Scrapes ALL venues in DC
@@ -106,7 +106,7 @@ NGA is scraped with cloudscraper only (no Playwright). When the site returns 403
 
 1. **Test Locally First**
    ```bash
-   python scripts/cron_scrape_dc_museums.py
+   python scripts/cron_run_scheduled_scrapers.py
    ```
 
 2. **Test on Railway**
@@ -118,7 +118,7 @@ NGA is scraped with cloudscraper only (no Playwright). When the site returns 403
 3. **Monitor Logs**
    - Railway logs show all output from the cronjob
    - Check the **Logs** tab in Railway dashboard
-   - The script also creates log files: `logs/cron_scrape_dc_museums_YYYYMMDD.log`
+   - The script also creates log files: `logs/cron_run_scheduled_scrapers_YYYYMMDD.log`
 
 ## Important Notes
 

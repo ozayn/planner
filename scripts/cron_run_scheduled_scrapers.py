@@ -9,15 +9,19 @@ This script is designed to be run from a cronjob and will:
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
 - Scrape Hammer Museum (LA programs and events)
+- Scrape DC Chinese New Year Parade (seasonal: Jan–Feb only)
+- Tulip Day (seasonal: Mar–Apr only)
 - Save events to the database
 - Log results for monitoring
 
+Per-scraper run rules (always vs seasonal) are defined in scripts/cron_scheduler_config.py.
+
 Usage:
     # Run from project root with virtual environment activated
-    source venv/bin/activate && python scripts/cron_scrape_dc_museums.py
+    source venv/bin/activate && python scripts/cron_run_scheduled_scrapers.py
 
 Cronjob example (runs every Monday at 2 AM):
-    0 2 * * 1 cd /path/to/planner && source venv/bin/activate && python scripts/cron_scrape_dc_museums.py >> logs/cron_scrape_dc_museums.log 2>&1
+    0 2 * * 1 cd /path/to/planner && source venv/bin/activate && python scripts/cron_run_scheduled_scrapers.py >> logs/cron_run_scheduled_scrapers.log 2>&1
 """
 
 import os
@@ -34,7 +38,7 @@ sys.path.insert(0, str(project_root))
 log_dir = project_root / 'logs'
 log_dir.mkdir(exist_ok=True)
 
-log_file = log_dir / f'cron_scrape_dc_museums_{datetime.now().strftime("%Y%m%d")}.log'
+log_file = log_dir / f'cron_run_scheduled_scrapers_{datetime.now().strftime("%Y%m%d")}.log'
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -45,6 +49,12 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+from scripts.cron_scheduler_config import (
+    should_run,
+    get_venue_schedule_rule,
+    get_standalone_schedule_rule,
+)
 
 def has_specialized_scraper(venue):
     """Check if a venue has a specialized scraper"""
@@ -347,6 +357,10 @@ def main():
                             logger.error(traceback.format_exc())
                     
                     elif 'tulipday.eu' in venue_url_lower:
+                        rule, months = get_venue_schedule_rule(museum.website_url or '')
+                        if not should_run(rule, months):
+                            logger.info(f"⏭️  Tulip Day | skipped (out of season, runs Mar–Apr)")
+                            continue
                         logger.info(f"🏛️  Tulip Day | {museum.name}")
                         try:
                             from scripts.tulipday_scraper import scrape_all_tulipday_events
@@ -597,6 +611,27 @@ def main():
                 logger.error(f"   ❌ {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+
+            # DC Chinese New Year Parade (seasonal: Jan–Feb)
+            rule, months = get_standalone_schedule_rule("dcparade")
+            if not should_run(rule, months):
+                logger.info(f"⏭️  DC Parade | skipped (out of season, runs Jan–Feb)")
+            else:
+                logger.info(f"🏮 DC Parade | DC Chinese New Year Parade")
+                try:
+                    from scripts.dcparade_scraper import scrape_dcparade_events, create_events_in_database_wrapper
+                    dcparade_events = scrape_dcparade_events()
+                    if dcparade_events:
+                        created, updated, skipped = create_events_in_database_wrapper(dcparade_events)
+                        total_events_saved += created
+                        total_events_found += len(dcparade_events)
+                        logger.info(f"   → found {len(dcparade_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
             
             # Final summary
             end_time = datetime.now()

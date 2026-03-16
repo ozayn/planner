@@ -17,7 +17,7 @@ The shared handler `create_events_in_database()` is the single choke point for a
 - Source event scraper (via app.py scrape-stream)
 - Generic venue scraper (via app.py scrape-from-venue)
 - Tulip Day, WIT Eventbrite, Webster’s, etc.
-- Cron scrape (`cron_scrape_dc_museums.py`)
+- Cron scrape (`cron_run_scheduled_scrapers.py`)
 
 Adding the rule here ensures it applies to all these flows without touching each scraper.
 

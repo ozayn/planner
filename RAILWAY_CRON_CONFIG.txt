@@ -4,7 +4,7 @@ Railway Cron Configuration
 Service: DC Museums Scraper (or add to existing web service)
 
 Start Command:
-python scripts/cron_scrape_dc_museums.py
+python scripts/cron_run_scheduled_scrapers.py
 
 Cron Schedule:
 25 20 * * 1
