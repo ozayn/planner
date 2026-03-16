@@ -1,6 +1,37 @@
 # Planner Roadmap
 
-This roadmap is a practical maintainer guide for the Event Planner project. It reflects the current codebase state and analysis done in 2025. Use it to prioritize work, avoid regressions, and keep the system maintainable.
+This roadmap is a practical maintainer guide for the Planner project. It reflects the current codebase state and analysis done in 2025. Use it to prioritize work, avoid regressions, and keep the system maintainable.
+
+---
+
+## Product understanding from the current UI
+
+The current screenshots and UI suggest that Planner is not just an events app. It is a **two-sided system** with three core product layers:
+
+### 1. Public event planning UI
+
+- Clean, minimal, schedule-first browsing
+- Time/type filtering
+- Recurring tours grouped into a compressed top section
+- Checkbox-based event selection and quick actions
+
+### 2. Discovery and scraping control UI
+
+- Left-side Discover drawer acts as a control center
+- City, venue type, platform, content, price, event type, and time controls
+- Venue/source selection tied directly to scraping and loading
+- Result count and scrape workflow integrated into browsing
+
+### 3. Admin operations console
+
+- Event CRUD
+- URL import
+- Venue-based event creation
+- Source-specific scraping buttons
+- Bulk deletion/export actions
+- Oversight of cities, venues, sources, and events
+
+The roadmap should preserve and strengthen these three workflows. Changes to one layer should not inadvertently break another.
 
 ---
 
@@ -23,7 +54,7 @@ This roadmap is a practical maintainer guide for the Event Planner project. It r
     - `fix_and_reload_venues.py`, `test_venue_loading.py` — load-all-data, stats
   - Add a short note in README or `docs/ADMIN_API_NOTES.md` about cookie-based auth for these scripts
 
-- **Confirm whether any admin flows broke** after the auth guard change
+- **Confirm that the admin Events page still works correctly** after auth changes
   - Test: load `/admin`, switch sections (Overview, Cities, Venues, Events, Sources), add/edit city, add/edit venue, create event from URL, run a scrape
   - The fetch wrapper in `static/js/admin/core.js` redirects to `/auth/login` on 401; verify this works when session expires
 
@@ -32,265 +63,301 @@ This roadmap is a practical maintainer guide for the Event Planner project. It r
   - app.py defines `POST /api/admin/edit-venue` but no `PUT /api/admin/venues/<id>`
   - Either add the PUT route or update the scripts to use `POST /api/admin/edit-venue`
 
+- **Create a short maintainer note** for the current public UI and admin UI workflows
+
 ---
 
-## 2. Security and admin hardening
+## 2. Public UI recommendations
 
-- **Protect all `/api/admin/*` routes consistently**
-  - Done: `before_request` in app.py returns 401 for unauthenticated `/api/admin/*` requests
-  - Only `/admin` and `POST /api/admin/migrate-schema` had `@login_required` before; now all admin API routes are guarded
+The public interface is the primary user-facing surface. Preserve the clean schedule-first browsing experience.
 
-- **Review localhost and “OAuth unavailable” bypasses** and decide what should remain long-term
-  - `_is_admin_authenticated()` bypasses when: (1) host is localhost/127.0.0.1/10.*, or (2) `GOOGLE_OAUTH_AVAILABLE` is False
-  - Localhost bypass is useful for dev; OAuth-unavailable bypass effectively disables auth when Google libs are missing
-  - Consider: require explicit env flag (e.g. `DISABLE_ADMIN_AUTH=true`) for local dev instead of implicit localhost detection
+**Document the main user flow:**
 
-- **Remove unsafe production defaults** like fallback `SECRET_KEY`
-  - app.py line 142: `SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')`
-  - In production, fail startup if SECRET_KEY is missing or equals the dev default
+1. Choose city
+2. Load venues
+3. Optionally scrape/select sources
+4. Browse events
+5. Select events
+6. Export/use quick actions
 
-- **Review CSRF assumptions** for admin actions
-  - `WTF_CSRF_ENABLED = False`; admin routes use `@csrf.exempt`
-  - Document why CSRF is disabled and whether session cookies are sufficient for same-origin admin
+**Recommended follow-up work:**
 
+- Create a dedicated note for right-pane event list behavior
+- Document how recurring tours are built, displayed, collapsed, and expanded
+- Review event-card information hierarchy:
+  - time
+  - title
+  - venue
+  - type
+  - image
+  - action buttons
+- Review action clarity on event cards, especially subtle right-side controls
+- Review selection behavior so users always understand what is selected
+- Make recurring-tour grouping a documented first-class feature
+- Add a regression checklist specifically for the public browse experience
+
+---
+
+## 3. Discover drawer and control-panel recommendations
+
+The Discover drawer is a major product surface, not just a filter sidebar. Treat it as the control center for discovery and scraping.
+
+**Document each section and its purpose:**
+
+- city
+- discovery options
+- venue types
+- platforms
+- content
+- price
+- events
+- event type
+- when
+- max events per venue
+- selection
+- venues/sources tab area
+
+**Clarify the difference between:**
+
+- Filtering already-loaded events
+- Selecting venues/sources
+- Triggering scraping/loading
+
+**Make state transitions easier to maintain.**
+
+**Recommended follow-up work:**
+
+- Create a state-flow map for the left drawer
+- Document how the drawer controls the right pane
+- Review the venue/source selection panel as its own subsystem
+- Add notes on which controls affect data load versus display-only filtering
+- Add UX guardrails so scrape/load actions are not confused with passive filtering
+
+---
+
+## 4. Recurring tours as a signature feature
+
+Recurring tours appear to be one of Planner's distinctive strengths.
+
+- Document why recurring tours are grouped separately
+- Review grouping logic for accuracy and maintainability
+- Ensure grouped tours remain understandable to users
+
+**Recommended follow-up work:**
+
+- Create `RECURRING_TOURS_NOTES.md`
+- Document:
+  - how recurring tours are identified
+  - how sessions are counted
+  - how venue tabs inside recurring tours work
+  - how grouped tours relate to underlying event rows
+- Add regression checks for recurring-tour rendering and grouping
+
+---
+
+## 5. Admin UI recommendations
+
+The Events admin screen is the operational hub, not just CRUD.
+
+**Daily admin tasks:**
+
+- Search and filter events
+- Create event manually
+- Create from URL
+- Create from venue
+- Upload event image
+- Run source scrapers
+- Quick add from URL
+- Delete past events
+- Bulk delete/export
+
+**Also include:**
+
+- Clearly separate safe actions from destructive actions in documentation
+- Review the Events screen for operational overload and error risk
+
+**Recommended follow-up work:**
+
+- Create `ADMIN_EVENTS_WORKFLOW.md`
+- Mark which buttons:
+  - create data
+  - update data
+  - delete data
+  - trigger scraping
+  - sync or export data
+- Add a maintainer checklist before running destructive or bulk operations
+- Add better status/feedback handling for scrape buttons and quick-create flows
+
+---
+
+## 6. URL import recommendations
+
+Make URL import a first-class roadmap area.
+
+**Document the difference between:**
+
+- From URL
+- Quick Add from URL
+- From Venue
+
+**Review validation and feedback for URL import.** Make failures easier to diagnose from the UI.
+
+**Recommended follow-up work:**
+
+- Create `URL_IMPORT_NOTES.md`
+- Document:
+  - extract phase
+  - preview/edit phase
+  - scrape/create phase
+  - LLM fallback
+  - dedup/update rules
+- Add a list of common URL types and their expected paths
+- Add error/debug output guidance for failed URL imports
+
+---
+
+## 7. Scraping and ingestion stability
+
+Scraping is exposed directly in both admin and discovery workflows.
+
+- Document all user-visible scraping entry points
+- Separate the most important paths:
+  - public scrape flow from discovery
+  - admin source-specific scrapers
+  - URL import
+  - venue-based creation
+- Identify fragile source-specific buttons and special-case scrapers
+
+**Recommended follow-up work:**
+
+- Create `SCRAPING_OPERATIONS.md`
+- For each source button, note:
+  - scraper used
+  - output path
+  - dedup path
+  - common failure modes
+- Add a maintainer debugging checklist for:
+  - no events found
+  - duplicates
+  - wrong venue assignment
+  - partial scrape results
+  - recurring-tour over-grouping
+
+---
+
+## 8. Visual and interaction consistency
+
+Preserve the current visual identity:
+
+- Minimal, quiet, whitespace-heavy, rounded, soft-border design
+- Preserve the restrained visual language across future changes
+- Make sure new controls fit the same design system
+- Avoid cluttering already dense admin workflows
+- Avoid breaking the calm scanning experience in the public event list
+
+**Recommended follow-up work:**
+
+- Create a short UI principles note covering:
+  - minimal
+  - schedule-first
+  - soft emphasis
+  - operational clarity without clutter
+- Review button prominence where risky actions are visually similar to safe ones
+- Ensure destructive actions are clearer in admin without making the interface noisy
+
+---
+
+## 9. Testing and regression checks
+
+Expand testing to reflect the actual UI flows.
+
+**Public UI smoke tests:**
+
+- Page loads correctly
+- City selection works
+- Left drawer opens/closes correctly
+- Venues load correctly
+- Scrape/load actions update results
+- Recurring tours render correctly
+- Date-grouped event list renders correctly
+- Event selection works
+- Quick event actions work
+
+**Admin UI smoke tests:**
+
+- Admin loads correctly
+- Overview counts load
+- Events tab loads
+- Filters work
+- From URL opens and completes expected flow
+- Quick Add works
+- Scrape buttons return usable feedback
+- Delete past events behaves correctly
+- Bulk action buttons behave correctly
+- Auth failure returns proper redirect or error state
+
+---
+
+## 10. Documentation updates
+
+Expand the documentation roadmap to include these recommended documents:
+
+- `ROADMAP.md` — this file
+- `MAINTAINER_NOTES.md`
+- `ADMIN_EVENTS_WORKFLOW.md`
+- `PUBLIC_UI_WORKFLOW.md`
+- `URL_IMPORT_NOTES.md`
+- `SCRAPING_OPERATIONS.md`
+- `RECURRING_TOURS_NOTES.md`
+- `DATA_SYNC_NOTES.md`
+
+**Also include:**
+
+- Document local startup, production startup, and deploy/reset behavior
+- Document common debugging commands and operational scripts
+- Keep security notes close to auth/config documentation
+
+---
+
+## 11. Suggested order of work
+
+1. Verify admin API protection outside localhost
+2. Document the Events admin workflow
+3. Document the Discover drawer and public browse flow
+4. Document recurring tours as a dedicated feature
+5. Stabilize URL import notes and debugging guidance
+6. Add smoke tests for public and admin flows
+7. Review DB/JSON/source-of-truth inconsistencies
+8. Gradually reduce complexity in `app.py` and `templates/index.html`
+
+---
+
+## Additional reference areas
+
+These sections remain relevant for maintainers but are not part of the core suggested order above.
+
+### Security and admin hardening
+
+- **Protect all `/api/admin/*` routes consistently** — Done: `before_request` in app.py returns 401 for unauthenticated `/api/admin/*` requests
+- **Review localhost and "OAuth unavailable" bypasses** — `_is_admin_authenticated()` bypasses when: (1) host is localhost/127.0.0.1/10.*, or (2) `GOOGLE_OAUTH_AVAILABLE` is False
+- **Remove unsafe production defaults** — e.g. fallback `SECRET_KEY` in app.py
+- **Review CSRF assumptions** — `WTF_CSRF_ENABLED = False`; admin routes use `@csrf.exempt`
 - **Document the intended auth model** for local vs production
-  - Local: localhost bypass, optional OAuth
-  - Production: Google OAuth, `ADMIN_EMAILS` whitelist, session cookies
-  - Add to `docs/` or `MAINTAINER_NOTES.md`
 
----
-
-## 3. Data model and sync cleanup
+### Data model and sync cleanup
 
 - **Clarify source of truth for each entity**
-  - **Cities**: `data/cities.json` → DB via reload; JSON is source of truth
-  - **Venues**: `data/venues.json` → DB via reload; JSON is source of truth
-  - **Sources**: `data/sources.json` → DB via reload; JSON is source of truth
-  - **Events**: DB only; no JSON source of truth; events come from scraping and manual creation
-
+  - Cities: `data/cities.json` → DB via reload; JSON is source of truth
+  - Venues: `data/venues.json` → DB via reload; JSON is source of truth
+  - Sources: `data/sources.json` → DB via reload; JSON is source of truth
+  - Events: DB only; no JSON source of truth
 - **Resolve DB vs JSON inconsistencies**, especially around `/api/sources`
-  - Public `GET /api/sources` vs admin `GET /api/admin/sources` — document which is used where
-  - Ensure sources JSON format matches what reload scripts expect
+- **Review production reset/load workflow** — `POST /api/admin/load-all-data`, when to use load-all-data vs reload-* individually
 
-- **Review production reset/load workflow** for possible drift
-  - `POST /api/admin/load-all-data` loads cities, venues, sources from JSON
-  - Used after deploy when DB is empty; preserves IDs when updating existing rows
-  - Document: when to use load-all-data vs reload-* individually
+### Possible future refactors
 
-- **Verify JSON formats** are consistent with load scripts
-  - `data/cities.json`, `data/venues.json`, `data/sources.json` — structure documented in README and `docs/data/`
-  - Venues use `city_name` for matching; cities use name/state/country
-
-- **Create maintainer notes** for how to safely edit and sync data
-  - Add city: edit JSON → reload-cities → commit
-  - Edit in production: update-all-json → export → commit
-  - See README “Adding a New City” and “Syncing Production Changes Back to JSON”
-
----
-
-## 4. Scraping and ingestion stability
-
-- **Document the main ingestion path**
-  - **Admin-triggered scrapes**: `POST /api/admin/scrape-*` (Hirshhorn, NGA, SAAM, NPG, etc.) → app.py handlers → `scripts/venue_event_scraper.py` or specialized scrapers
-  - **Streaming scrape**: `POST /api/scrape-stream` — used for long-running scrapes with progress
-  - **Legacy**: `POST /api/scrape` — older bulk scrape
-  - **URL import**: `POST /api/admin/extract-event-from-url` + `scrape-event-from-url` → `scripts/url_event_scraper.py`
-  - **Shared DB write**: `scripts/event_database_handler.py` — `create_events_in_database()` used by dcparade_scraper, saam_scraper, etc.
-
-- **Review scraper exceptions and special-case ingestion paths**
-  - `scripts/venue_event_scraper.py` — main orchestrator; selects scraper by venue/URL
-  - Specialized: `scripts/saam_scraper.py`, `scripts/npg_scraper.py`, `scripts/nga_comprehensive_scraper.py`, `scripts/nga_finding_awe_scraper.py`, `scripts/wharf_dc_scraper.py`, `scripts/websters_scraper.py`, etc.
-  - `scripts/url_event_scraper.py` — URL-based extraction with domain-specific branches (SAAM, NPG, OCMA, NGA, Finding Awe, Hirshhorn, etc.)
-
-- **Identify venues with fragile or custom logic**
-  - OCMA, Hirshhorn, NGA, SAAM, NPG, Webster’s, Wharf DC, DC Parade, Tulip Day, WIT, Suns Cinema, Culture DC, African Art, Asian Art — each has custom extraction
-  - Generic scraper is fallback when no specialized scraper matches
-
-- **Compare shared ingestion logic** with special-case scrapers like Webster’s
-  - Webster’s uses `scripts/websters_scraper.py` with direct DB writes
-  - Others use `event_database_handler` or venue_event_scraper
-  - Standardize where possible to reduce drift
-
-- **Add a debugging checklist** for missing, duplicate, or misassigned events
-  - Missing: check scraper logs, venue URL, bot detection, date parsing
-  - Duplicate: check URL normalization, deduplication in `scrape_event_from_url` and `event_database_handler`
-  - Misassigned: check venue_id, city_id, `is_category_heading` filter
-
----
-
-## 5. URL import feature improvement
-
-- **Document the full “event from URL” flow**
-  - Entry: `POST /api/admin/extract-event-from-url` (preview) and `POST /api/admin/scrape-event-from-url` (create)
-  - Core: `scripts/url_event_scraper.py` — `extract_event_data_from_url()`, `scrape_event_from_url()`
-  - Domain routing: Instagram, Tulip Day, SAAM, NPG, OCMA, Finding Awe, Hirshhorn, NGA, generic
-  - Generic path: cloudscraper → BeautifulSoup → `_extract_*` helpers; LLM fallback on bot detection or exception
-  - See prior analysis in this conversation for full flow
-
-- **Review generic extraction quality**
-  - Helpers: `_extract_title`, `_extract_description`, `_extract_schedule`, `_extract_date`, `_extract_images`, `_extract_meeting_point`, `_extract_time_from_event_date_field`, `_extract_time_from_json_ld`, `_extract_registration_url`
-  - Drupal-style pages get extra handling for date fields and JSON-LD
-
-- **Review LLM fallback triggers** and cost/quality tradeoffs
-  - Triggered when: bot detection (“Pardon Our Interruption”, “Access Denied”) after 3 attempts, or any exception in generic scraper
-  - `scripts/llm_url_extractor.py` → `extract_event_with_llm()` → `EnhancedLLMFallback`
-  - Instagram uses LLM first (scraping is fallback)
-
-- **Identify the most common URL types** used in practice and where extraction fails
-  - Add logging or admin feedback for extraction failures
-  - Track which domains return empty or low-quality data
-
-- **Make URL import easier to debug** from the admin UI
-  - Show extraction source (scraper vs LLM) in preview
-  - Optionally log failed extractions for review
-
----
-
-## 6. Frontend maintainability
-
-- **Document `templates/index.html`** as the main user-facing page
-  - Large file (~8700+ lines); contains city selection, event list, filters, wizard, calendar export
-  - Primary entry for public event browsing
-
-- **Identify the highest-risk UI logic**
-  - **City selection**: localStorage, dropdown, affects all downstream data
-  - **Wizard completion**: onboarding flow, city/venue selection
-  - **Event rendering**: event cards, dates, times, types
-  - **Filtering**: event type, venue, date range
-
-- **Gradually separate critical UX logic** from giant embedded blocks
-  - Move inline scripts to `static/js/` modules where feasible
-  - Keep changes incremental to avoid regressions
-
-- **Add notes for how event data flows** from backend to UI
-  - `GET /api/events?city_id=&time_range=` → event list
-  - `GET /api/venues?city_id=` → venue dropdown
-  - `GET /api/cities` → city list
-  - Document in `docs/` or `MAINTAINER_NOTES.md`
-
----
-
-## 7. Admin maintainability
-
-- **Document the main admin workflows**
-  - **Add/edit city**: Add City modal → `POST /api/admin/add-city`, Edit → `POST /api/admin/edit-city`
-  - **Add/edit venue**: Add Venue modal → `POST /api/admin/add-venue`, Edit → `POST /api/admin/edit-venue`
-  - **Create event from URL**: URL Scraper modal → extract-event-from-url → scrape-event-from-url
-  - **Create event from venue**: Create from Venue modal → `POST /api/admin/create-event-from-venue`
-  - **Scrape source**: Per-source buttons in Events section → `POST /api/admin/scrape-*`
-  - **Sync JSON**: Manage venues.json, Export from DB, update-all-json, reload-*
-
-- **Mark destructive routes and actions clearly**
-  - `POST /api/admin/clear-events`, `clear-past-events`, `clear-venues`
-  - `DELETE /api/admin/cities/<id>`
-  - `POST /api/admin/load-all-data`, `reload-*` (overwrite DB from JSON)
-  - Add warnings in admin UI or docs
-
-- **Add a small shared fetch/error handling layer** for admin JS
-  - `static/js/admin/core.js` has a fetch wrapper for 401 → redirect
-  - Consider: shared `adminFetch()` that handles 401, 500, network errors consistently
-  - Keep minimal; avoid large refactor
-
-- **Create a maintainer checklist** before running destructive actions
-  - Backup DB or export JSON before clear/reload
-  - Verify you have the right environment (local vs production)
-  - Document in `MAINTAINER_NOTES.md`
-
----
-
-## 8. Testing and regression checks
-
-- **Add lightweight manual regression checks** for:
-  - Public event browsing: load `/`, select city, see events
-  - Admin loading: load `/admin`, see Overview stats, switch sections
-  - URL import: paste URL, Auto-Fill, create event
-  - Venue scrape: run one scrape (e.g. Hirshhorn), verify events created
-  - JSON sync: reload-cities, verify counts
-
-- **Add a small professional testing mechanism** for critical routes and flows
-  - Consider pytest + requests for API smoke tests
-  - Or a simple shell script that curls key endpoints and checks status codes
-
-- **Start with smoke tests** rather than broad full coverage
-  - `GET /`, `GET /admin`, `GET /api/admin/stats`, `GET /api/events`
-  - One scrape, one URL import
-
-- **Track known fragile behaviors** and test those first
-  - Date parsing in scrapers (see `SCRAPER_DATE_TIME_ISSUES.md`)
-  - OCMA, Hirshhorn extraction
-  - Bot detection and LLM fallback
-
----
-
-## 9. Documentation
-
-- **Create or maintain**
-  - `MAINTAINER_NOTES.md` — operational notes, common tasks, debugging
-  - `ROADMAP.md` — this file
-  - `ADMIN_API_NOTES.md` — admin routes, auth, scripts that need auth
-  - `DATA_SYNC_NOTES.md` — JSON ↔ DB workflow, when to reload, when to update
-
-- **Document local startup, production startup, and deploy/reset behavior**
-  - Local: `source venv/bin/activate && python app.py` or `./restart_local.sh` (port 5001)
-  - Production: Railway, Procfile uses gunicorn; `load-all-data` after deploy if DB empty
-  - Reset: clear-* endpoints, then load-all-data or reload-*
-
-- **Document common debugging commands** and operational scripts
-  - `curl http://localhost:5001/api/admin/stats`
-  - `curl -X POST http://localhost:5001/api/admin/reload-cities`
-  - Scripts in `scripts/` for data fixes, schema migrations
-
-- **Keep security notes** close to auth/config documentation
-  - `docs/SECURITY_CHECKLIST.md` exists
-  - Add admin auth model, env vars (SECRET_KEY, GOOGLE_CLIENT_*, ADMIN_EMAILS)
-
----
-
-## 10. Possible future refactors
-
-- **Reduce `app.py` responsibility** over time
-  - app.py is very large (~10k lines); routes, models, business logic mixed
-  - Extract route groups into blueprints or separate modules
-  - Move scraper orchestration into dedicated modules
-
-- **Reduce `templates/index.html` size** over time
-  - Extract sections into partials
-  - Move inline JS to external files
-  - Do incrementally to avoid breaking changes
-
-- **Move shared auth checks** into a clearer structure
-  - `_is_admin_authenticated()` is a start
-  - Consider a small `auth.py` or `admin_auth.py` module
-
+- **Reduce `app.py` responsibility** — Extract route groups into blueprints or separate modules
+- **Reduce `templates/index.html` size** — Extract sections into partials; move inline JS to external files
+- **Move shared auth checks** into a clearer structure — e.g. `auth.py` or `admin_auth.py`
 - **Standardize ingestion paths** across scrapers
-  - All scrapers → `event_database_handler.create_events_in_database()` or equivalent
-  - Consistent deduplication, validation, error handling
-
-- **Make admin API patterns more consistent**
-  - Response format (success, error, data)
-  - Naming (edit-venue vs PUT /venues/id)
-  - Error codes and messages
-
----
-
-## Suggested order of work
-
-1. **Immediate (this week)**
-   - Verify admin API 401 behavior (temporary local test)
-   - Document production scripts that need auth
-   - Investigate `PUT /api/admin/venues/<id>` and fix scripts or add route
-
-2. **Short term (next 2–4 weeks)**
-   - Create `ADMIN_API_NOTES.md` and `DATA_SYNC_NOTES.md`
-   - Add maintainer checklist for destructive actions
-   - Review and document auth bypass behavior for local vs production
-
-3. **Medium term (1–2 months)**
-   - Add smoke test script or minimal pytest suite
-   - Document URL import flow and extraction failure points
-   - Create debugging checklist for scraping issues
-
-4. **Longer term (as capacity allows)**
-   - Extract app.py routes into blueprints
-   - Reduce index.html size
-   - Standardize scraper → DB ingestion path
+- **Make admin API patterns more consistent** — Response format, naming, error codes
