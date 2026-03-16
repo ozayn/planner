@@ -1,6 +1,9 @@
 """Reusable session setup for scrapers: headers, retries, optional cloudscraper."""
 
 import logging
+import os
+import platform as plat_module
+import ssl
 from typing import Optional
 
 import requests
@@ -29,6 +32,27 @@ DEFAULT_HEADERS = {
     'Sec-Fetch-User': '?1',
     'Cache-Control': 'max-age=0',
 }
+
+
+def _cloudscraper_platform() -> str:
+    """Detect platform for cloudscraper (Railway/Linux vs darwin vs windows)."""
+    detected = plat_module.system().lower()
+    if detected == 'linux' or os.environ.get('RAILWAY_ENVIRONMENT'):
+        return 'linux'
+    if detected == 'darwin':
+        return 'darwin'
+    return 'windows'
+
+
+class _SSLAdapter(HTTPAdapter):
+    """Adapter that disables SSL verification for sites with cert issues."""
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
 
 
 def create_scraper_session(
@@ -77,9 +101,21 @@ def create_scraper_session(
     return session
 
 
-def create_cloudscraper_session(base_url: Optional[str] = None):
+def create_cloudscraper_session(
+    base_url: Optional[str] = None,
+    verify_ssl: bool = False,
+):
     """
     Create a cloudscraper session for sites that block standard requests.
+
+    Uses platform detection (darwin/linux/windows, Railway), default headers,
+    and optional base_url warmup.
+
+    Args:
+        base_url: If set, visit this URL first to establish session/cookies.
+        verify_ssl: If True, use default SSL verification (no custom adapter).
+            If False (default), disable SSL verification and use custom adapter
+            for sites with cert issues (Hirshhorn, tulipday, etc.).
 
     Returns None if cloudscraper is not installed.
     """
@@ -88,20 +124,24 @@ def create_cloudscraper_session(base_url: Optional[str] = None):
         return None
 
     try:
+        platform_name = _cloudscraper_platform()
         scraper = cloudscraper.create_scraper(
-            browser={'browser': 'chrome', 'platform': 'darwin', 'desktop': True}
+            browser={'browser': 'chrome', 'platform': platform_name, 'desktop': True}
         )
         scraper.headers.update(DEFAULT_HEADERS)
-        scraper.verify = False
-        try:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        except Exception:
-            pass
+        scraper.verify = verify_ssl
+
+        if not verify_ssl:
+            try:
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            except Exception:
+                pass
+            scraper.mount('https://', _SSLAdapter())
 
         if base_url:
             try:
-                scraper.get(base_url, timeout=15, verify=False)
+                scraper.get(base_url, timeout=15, verify=verify_ssl)
             except Exception as e:
                 logger.debug(f"Could not establish initial session: {e}")
 

@@ -35,11 +35,7 @@ from urllib3.exceptions import NameResolutionError, NewConnectionError
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-try:
-    import cloudscraper
-    CLOUDSCRAPER_AVAILABLE = True
-except ImportError:
-    CLOUDSCRAPER_AVAILABLE = False
+from scripts.scraper_utils import create_cloudscraper_session, CLOUDSCRAPER_AVAILABLE
 
 try:
     from dotenv import load_dotenv
@@ -102,69 +98,9 @@ class GenericVenueScraper:
         self._initialize_selectors()
     
     def _get_cloudscraper(self, base_url=None):
-        """Get or create a cloudscraper instance with enhanced headers"""
+        """Get or create a cloudscraper instance (uses shared session helper)."""
         if self._cloudscraper is None and CLOUDSCRAPER_AVAILABLE:
-            # Detect platform for Railway compatibility (Linux) vs local (macOS/Windows)
-            import platform
-            import os
-            detected_platform = platform.system().lower()
-            if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
-                platform_name = 'linux'
-            elif detected_platform == 'darwin':
-                platform_name = 'darwin'
-            else:
-                platform_name = 'windows'
-            
-            self._cloudscraper = cloudscraper.create_scraper(
-                browser={
-                    'browser': 'chrome',
-                    'platform': platform_name,
-                    'desktop': True
-                }
-            )
-            self._cloudscraper.headers.update({
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-                'Cache-Control': 'max-age=0'
-            })
-            # Disable SSL verification properly (fixes "Cannot set verify_mode to CERT_NONE when check_hostname is enabled")
-            self._cloudscraper.verify = False
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
-            # Fix SSL context to disable both verification and hostname checking
-            import ssl
-            from requests.adapters import HTTPAdapter
-            from urllib3.poolmanager import PoolManager
-            
-            class SSLAdapter(HTTPAdapter):
-                def init_poolmanager(self, *args, **kwargs):
-                    ctx = ssl.create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = ssl.CERT_NONE
-                    kwargs['ssl_context'] = ctx
-                    return super().init_poolmanager(*args, **kwargs)
-            
-            self._cloudscraper.mount('https://', SSLAdapter())
-            
-            # Establish session by visiting base URL if provided
-            if base_url:
-                try:
-                    logger.debug(f"   🔧 Establishing cloudscraper session with {base_url}...")
-                    self._cloudscraper.get(base_url, timeout=15, verify=False)
-                    import time
-                    time.sleep(1)
-                except Exception as e:
-                    logger.debug(f"   ⚠️  Could not establish initial session: {e}")
-        
+            self._cloudscraper = create_cloudscraper_session(base_url=base_url)
         return self._cloudscraper
     
     def _fetch_with_retry(self, url, use_cloudscraper=False, base_url=None, max_retries=3, delay=2):

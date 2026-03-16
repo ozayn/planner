@@ -11,8 +11,6 @@ from datetime import datetime, date, time, timedelta
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-import cloudscraper
-
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -41,11 +39,13 @@ NPG_FAMILY_PROGRAMS_URL = 'https://npg.si.edu/families'
 
 def create_scraper():
     """Create a cloudscraper session to bypass bot detection (npg.si.edu returns 403 for plain requests)"""
-    scraper = cloudscraper.create_scraper()
-    scraper.headers.update({
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-    })
+    from scripts.scraper_utils import create_cloudscraper_session
+    scraper = create_cloudscraper_session()
+    if scraper:
+        scraper.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        })
     return scraper
 
 
@@ -716,8 +716,10 @@ def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
         response = scraper.get(url, timeout=15)
         if response.status_code == 403:
             logger.debug(f"   403 on {url}, trying cloudscraper...")
-            cs = cloudscraper.create_scraper()
-            response = cs.get(url, timeout=15)
+            from scripts.scraper_utils import create_cloudscraper_session
+            cs = create_cloudscraper_session()
+            if cs:
+                response = cs.get(url, timeout=15)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')

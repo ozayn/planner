@@ -11,7 +11,6 @@ from datetime import datetime, date, time as dt_time, timedelta
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-import cloudscraper
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,25 +39,16 @@ SAAM_TOURS_URL = 'https://americanart.si.edu/visit/tours'
 
 def create_scraper():
     """Create a cloudscraper session to bypass bot detection"""
-    import platform as plat
-    detected = plat.system().lower()
-    platform_name = 'linux' if (detected == 'linux' or os.environ.get('RAILWAY_ENVIRONMENT')) else ('darwin' if detected == 'darwin' else 'windows')
-    scraper = cloudscraper.create_scraper(
-        browser={
-            'browser': 'chrome',
-            'platform': platform_name,
-            'desktop': True
-        }
-    )
-    
-    scraper.headers.update({
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-    })
-    
+    from scripts.scraper_utils import create_cloudscraper_session
+    scraper = create_cloudscraper_session()
+    if scraper:
+        scraper.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        })
     return scraper
 
 

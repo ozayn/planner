@@ -11,7 +11,6 @@ import logging
 from datetime import datetime, date, time, timedelta
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-import cloudscraper
 import platform
 
 # Add project root to path
@@ -45,40 +44,12 @@ NGA_NIGHTS_URL = 'https://www.nga.gov/calendar/national-gallery-nights'
 
 def create_scraper():
     """Create a cloudscraper session to bypass bot detection"""
-    detected = platform.system().lower()
-    platform_name = 'linux' if (detected == 'linux' or os.environ.get('RAILWAY_ENVIRONMENT')) else ('darwin' if detected == 'darwin' else 'windows')
-    scraper = cloudscraper.create_scraper(
-        browser={
-            'browser': 'chrome',
-            'platform': platform_name,
-            'desktop': True
-        }
-    )
-    
-    scraper.headers.update({
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-        'Referer': f'{NGA_BASE_URL}/'
-    })
-    
-    # Try to establish a session by visiting the main page first
-    try:
-        logger.debug("   🔧 Establishing session with NGA website...")
-        scraper.get(NGA_BASE_URL, timeout=15)
+    from scripts.scraper_utils import create_cloudscraper_session
+    scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+    if scraper:
+        scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
         import time
         time.sleep(1)  # Small delay after initial request
-    except Exception as e:
-        logger.warning(f"   ⚠️  Could not establish initial session: {e}")
-    
     return scraper
 
 
@@ -93,41 +64,14 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
     def recreate_scraper():
         """Helper to recreate cloudscraper session"""
         logger.debug(f"   🔧 Recreating cloudscraper session...")
-        detected_platform = platform.system().lower()
-        if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
-            platform_name = 'linux'
-        elif detected_platform == 'darwin':
-            platform_name = 'darwin'
-        else:
-            platform_name = 'windows'
-        
-        new_scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': platform_name,
-                'desktop': True
-            }
-        )
-        new_scraper.headers.update({
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Cache-Control': 'max-age=0',
-            'Referer': f'{NGA_BASE_URL}/'
-        })
-        # Visit base URL first to establish session
-        try:
-            new_scraper.get(NGA_BASE_URL, timeout=15)
-            time.sleep(2)
-        except:
-            pass
+        from scripts.scraper_utils import create_cloudscraper_session
+        new_scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+        if new_scraper:
+            new_scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
+            try:
+                time.sleep(2)
+            except Exception:
+                pass
         return new_scraper
     
     for attempt in range(max_retries):

@@ -134,11 +134,12 @@ def _fetch_html(url: str) -> Optional[str]:
         pass
     # Try cloudscraper first - works better from cloud/datacenter IPs (bypasses Cloudflare)
     try:
-        import cloudscraper
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(url, timeout=25, headers=headers, verify=False)
-        response.raise_for_status()
-        return response.text
+        from scripts.scraper_utils import create_cloudscraper_session
+        scraper = create_cloudscraper_session()
+        if scraper:
+            response = scraper.get(url, timeout=25, headers=headers, verify=False)
+            response.raise_for_status()
+            return response.text
     except Exception as e:
         logger.debug(f"Tulip Day cloudscraper failed for {url}: {e}")
     try:

@@ -2179,52 +2179,13 @@ class VenueEventScraper:
     def _scrape_with_cloudscraper(self, url):
         """Scrape a page using cloudscraper to bypass bot protection (Railway-compatible)"""
         try:
-            import cloudscraper
-            import platform
-            
-            # Detect platform for Railway compatibility (Linux) vs local (macOS/Windows)
-            detected_platform = platform.system().lower()
-            if detected_platform == 'linux' or 'RAILWAY_ENVIRONMENT' in os.environ:
-                platform_name = 'linux'
-            elif detected_platform == 'darwin':
-                platform_name = 'darwin'
-            else:
-                platform_name = 'windows'
-            
-            # Create a cloudscraper session with platform detection
-            scraper = cloudscraper.create_scraper(
-                browser={
-                    'browser': 'chrome',
-                    'platform': platform_name,
-                    'desktop': True
-                }
-            )
-            
-            # Disable SSL verification properly (fixes "Cannot set verify_mode to CERT_NONE when check_hostname is enabled")
-            scraper.verify = False
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
-            # Fix SSL context to disable both verification and hostname checking
-            import ssl
-            from requests.adapters import HTTPAdapter
-            
-            class SSLAdapter(HTTPAdapter):
-                def init_poolmanager(self, *args, **kwargs):
-                    ctx = ssl.create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = ssl.CERT_NONE
-                    kwargs['ssl_context'] = ctx
-                    return super().init_poolmanager(*args, **kwargs)
-            
-            scraper.mount('https://', SSLAdapter())
-            
-            # Make the request
+            from scripts.scraper_utils import create_cloudscraper_session
+            scraper = create_cloudscraper_session()
+            if not scraper:
+                return None
             response = scraper.get(url, timeout=10, verify=False)
             response.raise_for_status()
-            
             return response.text
-            
         except Exception as e:
             logger.debug(f"Error scraping with cloudscraper: {e}")
             return None

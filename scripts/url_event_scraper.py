@@ -313,11 +313,13 @@ def extract_event_data_from_url(url):
         elif '/events/' in url.lower():
             try:
                 logger.info(f"🎯 Detected SAAM event page - using direct scraping")
-                import cloudscraper
+                from scripts.scraper_utils import create_cloudscraper_session
                 from bs4 import BeautifulSoup
                 from datetime import datetime
                 
-                scraper = cloudscraper.create_scraper()
+                scraper = create_cloudscraper_session()
+                if not scraper:
+                    raise RuntimeError("cloudscraper not available")
                 response = scraper.get(url, timeout=15)
                 response.raise_for_status()
                 
@@ -1020,13 +1022,16 @@ def extract_event_data_from_url(url):
                 language = event_data.get('language', 'English')
                 if not language or language == 'English':
                     try:
-                        import cloudscraper
-                        scraper = cloudscraper.create_scraper()
-                        response = scraper.get(url, timeout=15)
-                        soup = BeautifulSoup(response.text, 'html.parser')
-                        page_text = soup.get_text()
-                        language = _detect_language(soup, event_data.get('title'), event_data.get('description'), page_text)
-                    except:
+                        from scripts.scraper_utils import create_cloudscraper_session
+                        scraper = create_cloudscraper_session()
+                        if scraper:
+                            response = scraper.get(url, timeout=15)
+                            soup = BeautifulSoup(response.text, 'html.parser')
+                            page_text = soup.get_text()
+                            language = _detect_language(soup, event_data.get('title'), event_data.get('description'), page_text)
+                        else:
+                            language = 'English'
+                    except Exception:
                         language = 'English'
                 
                 # Skip non-English language events
@@ -1252,23 +1257,13 @@ def extract_event_data_from_url(url):
     bot_detected = False
     
     try:
-        import cloudscraper
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
-        # Create a cloudscraper session
-        scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'darwin',
-                'desktop': True
-            }
-        )
-        
-        # Disable SSL verification (like venue scraper does)
-        scraper.verify = False
-        
-        # Add headers
+        from scripts.scraper_utils import create_cloudscraper_session
+        scraper = create_cloudscraper_session()
+        if not scraper:
+            raise RuntimeError("cloudscraper not available")
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
@@ -1875,18 +1870,10 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
             event_type = None
         elif not event_data or not event_data.get('processed'):
             # Scrape the data
-            import cloudscraper
-            
-            # Create a cloudscraper session
-            scraper = cloudscraper.create_scraper(
-                browser={
-                    'browser': 'chrome',
-                    'platform': 'darwin',
-                    'desktop': True
-                }
-            )
-            
-            # Add some headers to look more like a real browser
+            from scripts.scraper_utils import create_cloudscraper_session
+            scraper = create_cloudscraper_session()
+            if not scraper:
+                raise RuntimeError("cloudscraper not available")
             scraper.headers.update({
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
@@ -2093,13 +2080,14 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     else:
                         # Try to detect language if not provided
                         try:
-                            import cloudscraper
-                            scraper = cloudscraper.create_scraper()
-                            response = scraper.get(url, timeout=15)
-                            soup = BeautifulSoup(response.text, 'html.parser')
-                            page_text = soup.get_text()
-                            language = _detect_language(soup, title, description, page_text)
-                        except:
+                            from scripts.scraper_utils import create_cloudscraper_session
+                            scraper = create_cloudscraper_session()
+                            if scraper:
+                                response = scraper.get(url, timeout=15)
+                                soup = BeautifulSoup(response.text, 'html.parser')
+                                page_text = soup.get_text()
+                                language = _detect_language(soup, title, description, page_text)
+                        except Exception:
                             language = existing.language or 'English'  # Keep existing or default
                     
                     if language and (not existing.language or language != existing.language):
@@ -2200,12 +2188,15 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                     # Get page_text if not available (for override_data case)
                     if 'page_text' not in locals():
                         try:
-                            import cloudscraper
-                            scraper = cloudscraper.create_scraper()
-                            response = scraper.get(url, timeout=15)
-                            soup = BeautifulSoup(response.text, 'html.parser')
-                            page_text = soup.get_text()
-                        except:
+                            from scripts.scraper_utils import create_cloudscraper_session
+                            scraper = create_cloudscraper_session()
+                            if scraper:
+                                response = scraper.get(url, timeout=15)
+                                soup = BeautifulSoup(response.text, 'html.parser')
+                                page_text = soup.get_text()
+                            else:
+                                page_text = f"{title} {description}"
+                        except Exception:
                             page_text = f"{title} {description}"
                     event_type = _determine_event_type(title, description, page_text, url)
                 
@@ -2229,13 +2220,14 @@ def scrape_event_from_url(url, venue, city, period_start, period_end, override_d
                 else:
                     # Detect language if not already set
                     try:
-                        import cloudscraper
-                        scraper = cloudscraper.create_scraper()
-                        response = scraper.get(url, timeout=15)
-                        soup = BeautifulSoup(response.text, 'html.parser')
-                        page_text = soup.get_text()
-                        language = _detect_language(soup, title, description, page_text)
-                    except:
+                        from scripts.scraper_utils import create_cloudscraper_session
+                        scraper = create_cloudscraper_session()
+                        if scraper:
+                            response = scraper.get(url, timeout=15)
+                            soup = BeautifulSoup(response.text, 'html.parser')
+                            page_text = soup.get_text()
+                            language = _detect_language(soup, title, description, page_text)
+                    except Exception:
                         language = 'English'  # Fallback to default
                 
                 # Get registration and price fields from event_data or override_data

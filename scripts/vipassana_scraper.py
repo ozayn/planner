@@ -10,7 +10,6 @@ import re
 import logging
 from datetime import datetime, date, time, timedelta
 from bs4 import BeautifulSoup
-import cloudscraper
 import pytz
 
 # Add project root to path
@@ -43,15 +42,11 @@ def scrape_vipassana_events():
     events = []
     
     try:
-        # Create a cloudscraper session to bypass bot detection
-        scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'darwin',
-                'desktop': True
-            }
-        )
-        
+        from scripts.scraper_utils import create_cloudscraper_session
+        scraper = create_cloudscraper_session()
+        if not scraper:
+            logger.error("cloudscraper not available")
+            return events
         # Add comprehensive headers to look like a real browser
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -102,22 +97,17 @@ def scrape_vipassana_events():
                     import time
                     time.sleep(wait_time)
                     # Recreate scraper for fresh session on retry
-                    scraper = cloudscraper.create_scraper(
-                        browser={
-                            'browser': 'chrome',
-                            'platform': 'darwin',
-                            'desktop': True
-                        }
-                    )
-                    scraper.headers.update({
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'DNT': '1',
-                        'Connection': 'keep-alive',
-                        'Upgrade-Insecure-Requests': '1',
-                        'Referer': 'https://www.dhamma.org/'
-                    })
+                    scraper = create_cloudscraper_session()
+                    if scraper:
+                        scraper.headers.update({
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.9',
+                            'Accept-Encoding': 'gzip, deflate, br',
+                            'DNT': '1',
+                            'Connection': 'keep-alive',
+                            'Upgrade-Insecure-Requests': '1',
+                            'Referer': 'https://www.dhamma.org/'
+                        })
                     # Re-establish session
                     try:
                         scraper.get(base_url, timeout=15, auth=auth)

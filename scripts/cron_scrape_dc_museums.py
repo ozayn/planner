@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Cronjob script to scrape Washington DC museums and embassies
+Cronjob script to scrape Washington DC museums, embassies, and source scrapers
 
 This script is designed to be run from a cronjob and will:
 - Scrape museums with specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn)
 - Scrape embassies with Eventbrite ticketing URLs
 - Scrape Webster's Bookstore Cafe (State College, PA)
+- Scrape The Wharf DC
+- Scrape Shoot New York City (NYC workshops)
 - Save events to the database
 - Log results for monitoring
 
@@ -534,6 +536,23 @@ def main():
                     total_events_saved += created
                     total_events_found += len(wharf_events)
                     logger.info(f"   → found {len(wharf_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                else:
+                    logger.info(f"   → found 0")
+            except Exception as e:
+                logger.error(f"   ❌ {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
+            # Shoot New York City (NYC workshops)
+            logger.info(f"📷 Shoot NYC | Shoot New York City")
+            try:
+                from scripts.shoot_nyc_scraper import scrape_shoot_nyc_events, create_events_in_database_wrapper
+                shoot_nyc_events = scrape_shoot_nyc_events()
+                if shoot_nyc_events:
+                    created, updated, skipped = create_events_in_database_wrapper(shoot_nyc_events)
+                    total_events_saved += created
+                    total_events_found += len(shoot_nyc_events)
+                    logger.info(f"   → found {len(shoot_nyc_events)}, saved {created}, updated {updated}, skipped {skipped}")
                 else:
                     logger.info(f"   → found 0")
             except Exception as e:

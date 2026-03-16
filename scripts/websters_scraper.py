@@ -9,7 +9,6 @@ import re
 import logging
 from datetime import datetime, date, time
 from bs4 import BeautifulSoup
-import cloudscraper
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,15 +30,11 @@ def scrape_websters_events():
     events = []
     
     try:
-        # Create a cloudscraper session to bypass bot detection
-        scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'darwin',
-                'desktop': True
-            }
-        )
-        
+        from scripts.scraper_utils import create_cloudscraper_session
+        scraper = create_cloudscraper_session()
+        if not scraper:
+            logger.error("cloudscraper not available")
+            return events
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
@@ -47,7 +42,6 @@ def scrape_websters_events():
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1'
         })
-        
         logger.info(f"🔍 Scraping Webster's events from: {WEBSTERS_URL}")
         response = scraper.get(WEBSTERS_URL, timeout=15)
         response.raise_for_status()

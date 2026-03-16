@@ -264,10 +264,11 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
             if http_err.response is not None and http_err.response.status_code == 403:
                 logger.warning(f"   ⚠️  403 Forbidden on exhibitions, trying cloudscraper...")
                 try:
-                    import cloudscraper
-                    cs = cloudscraper.create_scraper()
-                    response = cs.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
-                    response.raise_for_status()
+                    from scripts.scraper_utils import create_cloudscraper_session
+                    cs = create_cloudscraper_session()
+                    if cs:
+                        response = cs.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
+                        response.raise_for_status()
                 except Exception:
                     logger.warning(f"   ⚠️  Skipping Asian Art exhibitions (403). Cloudscraper fallback failed.")
                     return events
@@ -1098,10 +1099,11 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
             if http_err.response is not None and http_err.response.status_code == 403:
                 logger.warning(f"   ⚠️  403 Forbidden on events search, trying cloudscraper...")
                 try:
-                    import cloudscraper
-                    cs = cloudscraper.create_scraper()
-                    response = cs.get(events_search_url, timeout=(15, 45))
-                    response.raise_for_status()
+                    from scripts.scraper_utils import create_cloudscraper_session
+                    cs = create_cloudscraper_session()
+                    if cs:
+                        response = cs.get(events_search_url, timeout=(15, 45))
+                        response.raise_for_status()
                 except Exception:
                     logger.warning(f"   ⚠️  Skipping Asian Art events (403). Cloudscraper fallback failed.")
                     return events

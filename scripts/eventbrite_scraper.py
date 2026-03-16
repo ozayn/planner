@@ -743,10 +743,9 @@ class EventbriteScraper:
             logger.info(f"Searching Eventbrite: {search_url}")
             
             # Use cloudscraper or requests with proper headers to bypass bot protection
-            try:
-                import cloudscraper
-                scraper = cloudscraper.create_scraper()
-            except ImportError:
+            from scripts.scraper_utils import create_cloudscraper_session
+            scraper = create_cloudscraper_session()
+            if scraper is None:
                 scraper = requests.Session()
                 scraper.headers.update({
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'

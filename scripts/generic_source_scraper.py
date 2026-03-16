@@ -48,7 +48,7 @@ def scrape_source_listing(
     except Exception as e:
         logger.warning(f"Standard fetch failed for {url}: {e}")
         if use_cloudscraper:
-            from scripts.scraper_utils.session import create_cloudscraper_session
+            from scripts.scraper_utils import create_cloudscraper_session
             cs = create_cloudscraper_session(base_url=url)
             if cs:
                 try:

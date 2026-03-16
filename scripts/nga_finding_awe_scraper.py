@@ -11,7 +11,6 @@ import time as time_module
 from datetime import datetime, date, time, timedelta
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
-import cloudscraper
 import urllib.parse
 
 # Add project root to path
@@ -30,23 +29,16 @@ CITY_NAME = "Washington, DC"
 
 def create_scraper():
     """Create a cloudscraper session"""
-    import platform as plat
-    detected = plat.system().lower()
-    platform_name = 'linux' if (detected == 'linux' or os.environ.get('RAILWAY_ENVIRONMENT')) else ('darwin' if detected == 'darwin' else 'windows')
-    scraper = cloudscraper.create_scraper(
-        browser={
-            'browser': 'chrome',
-            'platform': platform_name,
-            'desktop': True
-        }
-    )
-    scraper.headers.update({
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-    })
+    from scripts.scraper_utils import create_cloudscraper_session
+    scraper = create_cloudscraper_session()
+    if scraper:
+        scraper.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        })
     return scraper
 
 def parse_time(time_str: str) -> Optional[time]:
