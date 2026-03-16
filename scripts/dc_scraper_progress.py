@@ -225,8 +225,10 @@ def generate_sample_events():
 def main():
     """Main scraping function"""
     try:
+        from scripts.enhanced_llm_fallback import reset_llm_fallback_count, get_llm_fallback_count
+        reset_llm_fallback_count()
         total_steps = 4
-        
+
         # Step 1: Initialize
         update_progress(1, total_steps, "Initializing DC event scraper...")
         
@@ -266,7 +268,10 @@ def main():
         
         with open('dc_scraped_data.json', 'w') as f:
             json.dump(scraped_data, f, indent=2)
-        
+
+        fallback_count = get_llm_fallback_count()
+        if fallback_count:
+            print(f"LLM fallback used {fallback_count} time(s)")
         print(f"✅ Successfully scraped {len(events)} events")
         return True
         

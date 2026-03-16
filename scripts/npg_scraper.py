@@ -12,8 +12,6 @@ from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import cloudscraper
-import requests
-import urllib3
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,24 +40,12 @@ NPG_FAMILY_PROGRAMS_URL = 'https://npg.si.edu/families'
 
 
 def create_scraper():
-    """Create a cloudscraper session to bypass bot detection"""
-    # Suppress SSL warnings
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
-    # Use requests with SSL verification disabled as a workaround for local SSL issues
-    # In production/Railway, SSL should work fine
-    scraper = requests.Session()
-    scraper.verify = False
-    
+    """Create a cloudscraper session to bypass bot detection (npg.si.edu returns 403 for plain requests)"""
+    scraper = cloudscraper.create_scraper()
     scraper.headers.update({
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     })
-    
     return scraper
 
 
@@ -724,12 +710,16 @@ def scrape_npg_events(scraper=None) -> List[Dict]:
 
 
 def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
-    """Scrape details from an individual event page"""
+    """Scrape details from an individual event page. Uses cloudscraper fallback on 403."""
     try:
         logger.debug(f"   📄 Scraping event page: {url}")
         response = scraper.get(url, timeout=15)
+        if response.status_code == 403:
+            logger.debug(f"   403 on {url}, trying cloudscraper...")
+            cs = cloudscraper.create_scraper()
+            response = cs.get(url, timeout=15)
         response.raise_for_status()
-        
+
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Extract title

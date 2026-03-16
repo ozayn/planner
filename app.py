@@ -9618,8 +9618,21 @@ def scrape_hirshhorn():
         max_exhibitions_per_venue = 10
         recent_events_list = []
         
+        total_to_save = len(scraped_events)
         for idx, event_data in enumerate(scraped_events):
             try:
+                # Update progress at start of each event
+                progress_data.update({
+                    'current_step': 3,
+                    'total_steps': 3,
+                    'percentage': 60 + int(((idx + 1) / total_to_save) * 35) if total_to_save else 90,
+                    'message': f'Saving event {idx + 1}/{total_to_save}...',
+                    'events_saved': events_saved,
+                    'recent_events': recent_events_list[-10:]
+                })
+                with open('scraping_progress.json', 'w') as f:
+                    json.dump(progress_data, f)
+                
                 title = event_data.get('title', 'Untitled Event')
                 venue_id = event_data.get('venue_id')
                 city_id_event = event_data.get('city_id', hirshhorn.city_id)
@@ -9637,28 +9650,50 @@ def scrape_hirshhorn():
                 # Check if event already exists - UPDATE instead of skip
                 event_url = event_data.get('url', '')
                 existing_event = None
+                start_time_str = event_data.get('start_time')
+                end_time_str = event_data.get('end_time')
                 
-                # For tours, try to match by URL first (most reliable)
+                # For tours: match by URL + start_date + start_time to preserve multiple sessions per day
                 if event_type == 'tour' and event_url:
                     normalized_url = event_url.rstrip('/')
-                    existing_event = Event.query.filter(
+                    query = Event.query.filter(
                         (Event.url == event_url) | (Event.url == normalized_url),
                         Event.event_type == 'tour',
-                        Event.city_id == city_id_event
-                    ).first()
+                        Event.city_id == city_id_event,
+                        Event.start_date == start_date
+                    )
+                    # Add start_time when available - prevents collapsing same-day sessions
+                    if start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                        try:
+                            parsed_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                        except ValueError:
+                            try:
+                                parsed_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
+                            except ValueError:
+                                parsed_start_time = None
+                        if parsed_start_time:
+                            query = query.filter(Event.start_time == parsed_start_time)
+                    existing_event = query.first()
                 
-                # If not found by URL, try title + venue + date matching
+                # If not found by URL+time, try title + venue + date (+ time for tours)
                 if not existing_event:
-                    existing_event = Event.query.filter_by(
+                    q = Event.query.filter_by(
                         title=title,
                         venue_id=venue_id,
                         city_id=city_id_event,
                         start_date=start_date
-                    ).first()
-                
-                # Get time strings early for both updates and new events
-                start_time_str = event_data.get('start_time')
-                end_time_str = event_data.get('end_time')
+                    )
+                    if event_type == 'tour' and start_time_str and start_time_str != 'None' and str(start_time_str).strip():
+                        try:
+                            pt = dt.strptime(str(start_time_str), '%H:%M:%S').time()
+                        except ValueError:
+                            try:
+                                pt = dt.strptime(str(start_time_str), '%H:%M').time()
+                            except ValueError:
+                                pt = None
+                        if pt:
+                            q = q.filter(Event.start_time == pt)
+                    existing_event = q.first()
                 
                 # If event exists, UPDATE it instead of skipping
                 if existing_event:
@@ -9757,17 +9792,17 @@ def scrape_hirshhorn():
                             'start_time': str(event.start_time) if event.start_time else None,
                             'start_location': event.start_location
                         })
-                        # Update progress every 5 events
-                        if events_saved % 5 == 0:
-                            progress_data.update({
-                                'current_step': 3,
-                                'total_steps': 3,  # Ensure total_steps is always included
-                                'percentage': 60 + int((events_saved / len(scraped_events)) * 30) if scraped_events else 90,
-                                'events_saved': events_saved,
-                                'recent_events': recent_events_list[-10:]  # Keep last 10
-                            })
-                            with open('scraping_progress.json', 'w') as f:
-                                json.dump(progress_data, f)
+                        # Update progress after each save
+                        progress_data.update({
+                            'current_step': 3,
+                            'total_steps': 3,
+                            'percentage': 60 + int((events_saved / len(scraped_events)) * 35) if scraped_events else 90,
+                            'message': f'Saving event {idx + 1}/{len(scraped_events)}...',
+                            'events_saved': events_saved,
+                            'recent_events': recent_events_list[-10:]
+                        })
+                        with open('scraping_progress.json', 'w') as f:
+                            json.dump(progress_data, f)
                     else:
                         app_logger.info(f"   ℹ️ No changes needed")
                     
@@ -9842,17 +9877,17 @@ def scrape_hirshhorn():
                     'start_location': event.start_location
                 })
                 
-                # Update progress every 5 events
-                if events_saved % 5 == 0:
-                    progress_data.update({
-                        'current_step': 3,
-                        'total_steps': 3,  # Ensure total_steps is always included
-                        'percentage': 60 + int((events_saved / len(scraped_events)) * 30),
-                        'events_saved': events_saved,
-                        'recent_events': recent_events_list[-10:]  # Keep last 10
-                    })
-                    with open('scraping_progress.json', 'w') as f:
-                        json.dump(progress_data, f)
+                # Update progress after each save
+                progress_data.update({
+                    'current_step': 3,
+                    'total_steps': 3,
+                    'percentage': 60 + int((events_saved / len(scraped_events)) * 35),
+                    'message': f'Saving event {idx + 1}/{len(scraped_events)}...',
+                    'events_saved': events_saved,
+                    'recent_events': recent_events_list[-10:]
+                })
+                with open('scraping_progress.json', 'w') as f:
+                    json.dump(progress_data, f)
                 
             except Exception as e:
                 app_logger.error(f"Error saving event {event_data.get('title', 'Unknown')}: {e}")
@@ -9861,32 +9896,38 @@ def scrape_hirshhorn():
         # Commit all events
         db.session.commit()
         
-        # Final progress update
+        # Final progress update (include events_found so modal shows correct numbers)
         progress_data.update({
             'current_step': 3,
             'total_steps': 3,
             'percentage': 100,
             'message': f'✅ Scraping completed! Found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated)',
+            'events_found': len(scraped_events),
             'events_saved': events_saved,
             'recent_events': recent_events_list[-10:]  # Keep last 10
         })
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        app_logger.info(f"Hirshhorn scraping completed: found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated)")
-        
+        # Total events for this venue in DB (helps explain modal vs table count)
+        total_venue_events = Event.query.filter_by(venue_id=hirshhorn.id).count()
+
+        app_logger.info(f"Hirshhorn scraping completed: found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated), {total_venue_events} total in DB")
+
         # Provide clearer message when events are found but skipped as duplicates
         if len(scraped_events) > 0 and events_saved == 0:
-            message = f'Found {len(scraped_events)} exhibitions, but all already exist in database (skipped duplicates).'
+            message = f'Found {len(scraped_events)} events, all already in database ({total_venue_events} total for Hirshhorn).'
         elif events_saved > 0:
-            message = f'Successfully scraped {len(scraped_events)} exhibitions, saved {events_saved} new events to database'
+            message = f'Successfully scraped {len(scraped_events)} events, saved {events_saved} new ({total_venue_events} total for Hirshhorn).'
         else:
-            message = f'Successfully scraped {len(scraped_events)} exhibitions, saved {events_saved} to database'
-        
+            message = f'Successfully scraped {len(scraped_events)} events, saved {events_saved} ({total_venue_events} total for Hirshhorn).'
+
         return jsonify({
             'success': True,
             'events_found': len(scraped_events),
             'events_saved': events_saved,
+            'events_updated': events_updated,
+            'total_venue_events': total_venue_events,
             'message': message
         })
         

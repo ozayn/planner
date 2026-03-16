@@ -1885,13 +1885,14 @@ async function startMuseumScraping() {
                 events_saved: result.events_saved
             });
             await loadEvents();
-            setTimeout(() => closeScrapingProgressModal(), 3000);
+            onScrapingComplete();
         } else {
             updateScrapingProgress({
                 percentage: 0,
                 message: `❌ Scraping failed: ${result.error}`,
                 error: true
             });
+            onScrapingComplete();
         }
     } catch (error) {
         updateScrapingProgress({
@@ -1899,6 +1900,7 @@ async function startMuseumScraping() {
             message: `❌ Scraping error: ${error.message}`,
             error: true
         });
+        onScrapingComplete();
     }
 }
 
@@ -1930,32 +1932,34 @@ async function startHirshhornScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            // Update modal with API result so it shows correct numbers (not stale poll data)
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found || 0} events, saved ${result.events_saved || 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Hirshhorn scraping error:', error);
-        // Check if error is JSON parsing error
         if (error.message && error.message.includes('JSON')) {
             updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -1977,7 +1981,7 @@ async function startAllVenuesScraping() {
                 events_saved: result.events_saved
             });
             await loadEvents();
-            setTimeout(() => closeScrapingProgressModal(), 3000);
+            onScrapingComplete();
         } else {
             updateScrapingProgress({
                 percentage: 0,
@@ -2022,22 +2026,24 @@ async function startWebstersScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Webster\'s scraping error:', error);
@@ -2047,7 +2053,7 @@ async function startWebstersScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2083,7 +2089,7 @@ async function startDCEmbassyEventbriteScraping() {
                 console.error('Error parsing error response:', e);
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
@@ -2098,20 +2104,23 @@ async function startDCEmbassyEventbriteScraping() {
         } catch (parseError) {
             console.error('JSON parse error:', parseError);
             updateScrapingStatus(`❌ Error: Server returned invalid response. The scraper may have crashed.`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         if (result.success) {
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
             updateScrapingStatus(`✅ DC Embassy Eventbrite scraping completed! Found ${result.events_found} events, saved ${result.events_saved}`, 'success');
-            // Reload events table
             await loadEvents();
-            setTimeout(() => {
-                closeScrapingProgressModal();
-            }, 3000);
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('DC Embassy Eventbrite scraping error:', error);
@@ -2121,7 +2130,7 @@ async function startDCEmbassyEventbriteScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2158,22 +2167,24 @@ async function startNGAScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('NGA scraping error:', error);
@@ -2186,7 +2197,7 @@ async function startNGAScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${msg}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2222,22 +2233,25 @@ async function startSAAMScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            // Update modal with 100% and result (utils caps at 99%, so modal never got final state)
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found || 0} events, saved ${result.events_saved || 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('SAAM scraping error:', error);
@@ -2250,7 +2264,7 @@ async function startSAAMScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${msg}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2282,22 +2296,24 @@ async function startNPGScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('NPG scraping error:', error);
@@ -2307,7 +2323,7 @@ async function startNPGScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2339,22 +2355,24 @@ async function startAsianArtScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Asian Art scraping error:', error);
@@ -2364,7 +2382,7 @@ async function startAsianArtScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2384,30 +2402,34 @@ async function startCultureDCScraping() {
                 errorMessage = errorData.error || errorMessage;
             } catch (e) {}
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                if (typeof loadEvents === 'function') loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Culture DC scraping error:', error);
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
 async function startShootNYCScraping() {
-    showScrapingProgressModal('Shoot New York City');
+    showScrapingProgressModal('Shoot New York City', false); // No polling - Shoot NYC does not write to scraping_progress.json
     
     try {
         const response = await fetch('/api/admin/scrape-shoot-nyc', {
@@ -2421,26 +2443,36 @@ async function startShootNYCScraping() {
                 const errorData = await response.json();
                 errorMessage = errorData.error || errorMessage;
             } catch (e) {}
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errorMessage}`, error: true });
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
         
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                if (typeof loadEvents === 'function') loadEvents();
-            }, 2000);
+            const msg = `✅ Found ${result.events_found} workshop(s) — created: ${result.events_saved || 0}, updated: ${result.events_updated || 0}, skipped: ${result.events_skipped || 0}`;
+            updateScrapingProgress({
+                percentage: 100,
+                message: msg,
+                events_found: result.events_found || 0,
+                events_saved: result.events_saved || 0,
+                error: false
+            });
+            if (typeof loadEvents === 'function') loadEvents();
+            onScrapingComplete();
         } else {
-            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            const errMsg = result.error || 'Unknown error';
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errMsg}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errMsg}`, 'error');
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Shoot NYC scraping error:', error);
+        updateScrapingProgress({ percentage: 0, message: `❌ Error: ${error.message}`, error: true });
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2460,25 +2492,29 @@ async function startWharfDCScraping() {
                 errorMessage = errorData.error || errorMessage;
             } catch (e) {}
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                if (typeof loadEvents === 'function') loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Wharf DC scraping error:', error);
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2498,25 +2534,29 @@ async function startDCParadeScraping() {
                 errorMessage = errorData.error || errorMessage;
             } catch (e) {}
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                if (typeof loadEvents === 'function') loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            if (typeof loadEvents === 'function') loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('DC Parade scraping error:', error);
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2546,25 +2586,29 @@ async function startTulipDayScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Tulip Day scraping error:', error);
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2593,25 +2637,29 @@ async function startWITScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('WIT Eventbrite scraping error:', error);
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2631,25 +2679,29 @@ async function startSunsCinemaScraping() {
                 errorMessage = errorData.error || errorMessage;
             } catch (e) {}
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                if (typeof loadEvents === 'function') loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Suns Cinema scraping error:', error);
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2681,22 +2733,24 @@ async function startAfricanArtScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('African Art scraping error:', error);
@@ -2706,7 +2760,7 @@ async function startAfricanArtScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
@@ -2738,22 +2792,24 @@ async function startFindingAweScraping() {
                 }
             }
             updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
             return;
         }
         
         const result = await response.json();
-        
+
         if (result.success) {
-            // Progress modal will be updated via polling
-            // Auto-close after a delay
-            setTimeout(() => {
-                closeScrapingProgressModal();
-                loadEvents();
-            }, 2000);
+            updateScrapingProgress({
+                percentage: 100,
+                message: result.message || `✅ Found ${result.events_found ?? 0} events, saved ${result.events_saved ?? 0}`,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0
+            });
+            await loadEvents();
+            onScrapingComplete();
         } else {
             updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-            closeScrapingProgressModal();
+            onScrapingComplete();
         }
     } catch (error) {
         console.error('Finding Awe scraping error:', error);
@@ -2763,11 +2819,12 @@ async function startFindingAweScraping() {
         } else {
             updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         }
-        closeScrapingProgressModal();
+        onScrapingComplete();
     }
 }
 
 async function discoverNewVenues() {
+    setScraperButtonsEnabled(false);
     updateScrapingStatus('🔍 Discovering new venues...', 'info');
     
     try {
@@ -2780,13 +2837,14 @@ async function discoverNewVenues() {
         
         if (result.success) {
             updateScrapingStatus(`✅ Venue discovery completed! Found ${result.events_found} events from new venues`, 'success');
-            // Reload events table
             await loadEvents();
         } else {
             updateScrapingStatus(`❌ Venue discovery failed: ${result.error}`, 'error');
         }
     } catch (error) {
         updateScrapingStatus(`❌ Venue discovery error: ${error.message}`, 'error');
+    } finally {
+        setScraperButtonsEnabled(true);
     }
 }
 
@@ -2817,7 +2875,12 @@ let lastEventsSavedCount = 0;
 let lastTableRefreshTime = 0;
 const TABLE_REFRESH_INTERVAL = 5000; // Refresh table every 5 seconds during scraping
 
-function showScrapingProgressModal(sourceName = 'Scraping') {
+function setScraperButtonsEnabled(enabled) {
+    document.querySelectorAll('.scraper-btn').forEach(btn => { btn.disabled = !enabled; });
+}
+
+function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
+    setScraperButtonsEnabled(false);
     // Reset tracking variables when starting new scraping
     lastEventsSavedCount = 0;
     lastTableRefreshTime = 0;
@@ -2875,6 +2938,9 @@ function showScrapingProgressModal(sourceName = 'Scraping') {
                         <div style="color: #6b7280; text-align: center; padding: 20px; font-size: 0.9375rem;">No events extracted yet...</div>
                     </div>
                 </div>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button onclick="closeScrapingProgressModal()" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 0.9375rem; font-weight: 500; cursor: pointer;">Close</button>
+                </div>
             </div>
         `;
         document.body.appendChild(modal);
@@ -2920,11 +2986,24 @@ function showScrapingProgressModal(sourceName = 'Scraping') {
     
     modal.style.display = 'block';
     
-    // Start polling for progress
+    if (usePolling) {
+        if (progressPollInterval) {
+            clearInterval(progressPollInterval);
+        }
+        progressPollInterval = setInterval(pollScrapingProgress, 1000); // Poll every second
+    } else {
+        updateScrapingProgress({ percentage: 0, message: `Scraping ${sourceName}…`, events_found: 0, events_saved: 0 });
+    }
+}
+
+function onScrapingComplete() {
     if (progressPollInterval) {
         clearInterval(progressPollInterval);
+        progressPollInterval = null;
     }
-    progressPollInterval = setInterval(pollScrapingProgress, 1000); // Poll every second
+    lastEventsSavedCount = 0;
+    lastTableRefreshTime = 0;
+    setScraperButtonsEnabled(true);
 }
 
 function closeScrapingProgressModal() {
@@ -2932,14 +3011,13 @@ function closeScrapingProgressModal() {
     if (modal) {
         modal.style.display = 'none';
     }
-    // Stop polling when modal is closed
     if (progressPollInterval) {
         clearInterval(progressPollInterval);
         progressPollInterval = null;
     }
-    // Reset tracking variables
     lastEventsSavedCount = 0;
     lastTableRefreshTime = 0;
+    setScraperButtonsEnabled(true);
 }
 
 async function pollScrapingProgress() {
@@ -2996,19 +3074,14 @@ async function pollScrapingProgress() {
             lastEventsSavedCount = currentEventsSaved;
         }
         
-        // Stop polling if scraping is complete
+        // Stop polling if scraping is complete (modal stays open for user review)
         if (progress.percentage >= 100 || (progress.message && progress.message.toLowerCase().includes('complete'))) {
             if (progressPollInterval) {
                 clearInterval(progressPollInterval);
                 progressPollInterval = null;
             }
-            // Refresh table one final time when complete
             loadEvents();
-            lastEventsSavedCount = 0;
-            // Auto-close modal after 3 seconds
-            setTimeout(() => {
-                closeScrapingProgressModal();
-            }, 3000);
+            onScrapingComplete();
         }
     } catch (error) {
         // Only log if it's not an abort/timeout error

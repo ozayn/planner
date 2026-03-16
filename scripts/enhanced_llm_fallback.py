@@ -21,25 +21,25 @@ ensure_env_loaded()
 
 # Setup logging for LLM fallback system
 def setup_llm_logging():
-    """Setup logging for LLM fallback system"""
-    # Create logs directory if it doesn't exist
+    """Setup logging for LLM fallback system. Uses INFO by default; set SCRAPER_DEBUG=1 for DEBUG."""
     logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
     os.makedirs(logs_dir, exist_ok=True)
-    
-    # Configure logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(os.path.join(logs_dir, 'llm_fallback.log')),
-            logging.StreamHandler()
-        ]
-    )
-    
-    return logging.getLogger('llm_fallback')
+    logger = logging.getLogger('llm_fallback')
+    if os.environ.get('SCRAPER_DEBUG', '').strip().lower() in ('1', 'true', 'yes'):
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    # File handler for debugging (always DEBUG level for file)
+    fh = logging.FileHandler(os.path.join(logs_dir, 'llm_fallback.log'))
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+    return logger
 
 # Setup logging
 llm_logger = setup_llm_logging()
+
+# Per-run fallback usage count (incremented when fallback is used)
+_fallback_used_count = 0
 
 class ModelProvider(Enum):
     GROQ = "groq"
@@ -237,50 +237,62 @@ class EnhancedLLMFallback:
     
     def query_with_fallback(self, prompt: str, context: str = "") -> Dict[str, Any]:
         """Query LLM with automatic fallback through multiple models"""
-        
-        llm_logger.info(f"Starting LLM query with fallback. Prompt length: {len(prompt)}")
-        llm_logger.debug(f"Prompt: {prompt[:200]}...")
-        
+        global _fallback_used_count
+
+        llm_logger.debug("Starting LLM query with fallback. Prompt length: %d", len(prompt))
+        llm_logger.debug("Prompt: %s...", prompt[:200] if len(prompt) > 200 else prompt)
+
+        first_model = self.models[0] if self.models else None
         for model in self.models:
             try:
                 if not self.silent:
                     print(f"🔄 Trying {model.provider.value} ({model.model_name})...")
-                
+
                 if model.provider == ModelProvider.MOCK:
                     llm_logger.warning("Using mock response as fallback")
                     return self._get_mock_response(prompt, context)
-                
+
                 response = self._query_model(model, prompt, context)
-                
+
                 if response.get('success'):
-                    llm_logger.info(f"Success with {model.provider.value} ({model.model_name})")
+                    llm_logger.debug("Success with %s (%s)", model.provider.value, model.model_name)
                     if not self.silent:
                         print(f"✅ Success with {model.provider.value} ({model.model_name})")
-                    
+
+                    # Track fallback usage (used model other than primary)
+                    if first_model and model.provider != first_model.provider:
+                        _fallback_used_count += 1
+
                     # Update usage stats
                     self.usage_stats[model.provider.value]['requests'] += 1
                     self.usage_stats[model.provider.value]['tokens'] += response.get('tokens_used', 0)
-                    
+
                     return response
                 else:
-                    llm_logger.warning(f"{model.provider.value} failed: {response.get('error', 'Unknown error')}")
+                    err = response.get('error', 'Unknown error')
+                    # Short, readable warning for Gemini 429 only; other failures at DEBUG
+                    if model.provider == ModelProvider.GOOGLE and '429' in str(err):
+                        llm_logger.warning("Gemini quota exceeded; using Groq fallback")
+                    else:
+                        llm_logger.debug("%s failed: %s", model.provider.value, err)
                     if not self.silent:
-                        print(f"❌ {model.provider.value} failed: {response.get('error', 'Unknown error')}")
-                    
+                        print(f"❌ {model.provider.value} failed: {str(err)[:80]}...")
+
                     # Update error stats
                     self.usage_stats[model.provider.value]['errors'] += 1
-                    
+
             except Exception as e:
-                llm_logger.error(f"Exception with {model.provider.value}: {str(e)}", exc_info=True)
+                llm_logger.debug("Exception with %s: %s", model.provider.value, str(e), exc_info=True)
+                llm_logger.warning("%s error: %s", model.provider.value, str(e)[:80])
                 if not self.silent:
-                    print(f"❌ {model.provider.value} error: {str(e)}")
-                
+                    print(f"❌ {model.provider.value} error: {str(e)[:80]}...")
+
                 # Update error stats
                 self.usage_stats[model.provider.value]['errors'] += 1
                 continue
-        
+
         # If all models fail, return mock response
-        llm_logger.error("All LLM models failed, using mock response")
+        llm_logger.warning("All LLM models failed, using mock response")
         if not self.silent:
             print("⚠️  All models failed, using mock response")
         return self._get_mock_response(prompt, context)
@@ -434,8 +446,11 @@ class EnhancedLLMFallback:
             content = result['candidates'][0]['content']['parts'][0]['text']
             tokens_used = result.get('usageMetadata', {}).get('totalTokenCount', 0)
             return {'success': True, 'content': content, 'provider': 'google', 'tokens_used': tokens_used}
+        elif response.status_code == 429:
+            return {'success': False, 'error': 'Resource exhausted (429)', 'status_code': 429}
         else:
-            return {'success': False, 'error': f'HTTP {response.status_code}: {response.text}'}
+            err = response.text[:200] + ('...' if len(response.text) > 200 else '')
+            return {'success': False, 'error': f'HTTP {response.status_code}: {err}'}
     
     def _query_mistral(self, model: ModelConfig, prompt: str) -> Dict[str, Any]:
         """Query Mistral API"""
@@ -503,6 +518,17 @@ class EnhancedLLMFallback:
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get usage statistics for all models"""
         return self.usage_stats
+
+
+def get_llm_fallback_count() -> int:
+    """Return how many times a fallback provider was used this run."""
+    return _fallback_used_count
+
+
+def reset_llm_fallback_count() -> None:
+    """Reset the per-run fallback counter (e.g. at start of scrape)."""
+    global _fallback_used_count
+    _fallback_used_count = 0
     
     def get_available_models(self) -> List[str]:
         """Get list of available models"""

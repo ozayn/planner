@@ -24,13 +24,16 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from app import app, db, Venue, Event, City
+from scripts.scraper_logging import get_scraper_logger
+from scripts.enhanced_llm_fallback import get_llm_fallback_count, reset_llm_fallback_count
 
-# Setup logging
+# Setup logging - use scraper helper for SCRAPER_DEBUG=1 support
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = get_scraper_logger(__name__)
 
-def update_progress(step, total_steps, message):
-    """Update scraping progress"""
+def update_progress(step, total_steps, message, merge_existing=True, events_found=None, events_found_add=None):
+    """Update scraping progress. When merge_existing=True, preserves events_found, events_saved, recent_events.
+    events_found: set directly (e.g. exhibition count). events_found_add: add to existing (e.g. tours)."""
     progress = {
         'current_step': step,
         'total_steps': total_steps,
@@ -38,11 +41,23 @@ def update_progress(step, total_steps, message):
         'percentage': int((step / total_steps) * 100),
         'timestamp': datetime.now().isoformat()
     }
-    
+    if merge_existing:
+        try:
+            with open('scraping_progress.json', 'r') as f:
+                existing = json.load(f)
+            for key in ('events_found', 'events_saved', 'recent_events', 'venues_processed', 'total_venues', 'current_venue'):
+                if key in existing:
+                    progress[key] = existing[key]
+            if events_found_add is not None:
+                progress['events_found'] = existing.get('events_found', 0) + events_found_add
+        except (FileNotFoundError, json.JSONDecodeError):
+            if events_found_add is not None:
+                progress['events_found'] = events_found_add
+    if events_found is not None:
+        progress['events_found'] = events_found
     with open('scraping_progress.json', 'w') as f:
         json.dump(progress, f)
-    
-    print(f"Progress {progress['percentage']}%: {message}")
+    logger.debug("Progress %s%%: %s", progress['percentage'], message)
 
 class VenueEventScraper:
     """Scrapes events from venue websites and social media"""
@@ -108,7 +123,7 @@ class VenueEventScraper:
             max_exhibitions_per_venue: Maximum number of exhibitions per venue (default: 5)
             max_events_per_venue: Maximum number of events per venue for all event types (default: 10)
         """
-        logger.info(f"📊 Scraper: Received max_events_per_venue={max_events_per_venue}, max_exhibitions_per_venue={max_exhibitions_per_venue}")
+        logger.debug("Scraper config: max_events_per_venue=%s, max_exhibitions_per_venue=%s", max_events_per_venue, max_exhibitions_per_venue)
         try:
             with app.app_context():
                 # Get venues to scrape
@@ -124,27 +139,27 @@ class VenueEventScraper:
                 for venue in venues:
                     # Skip closed museums
                     if 'newseum' in venue.name.lower():
-                        logger.info(f"Skipping closed venue: {venue.name}")
+                        logger.debug("Skipping closed venue: %s", venue.name)
                         continue
                     
                     # Skip venues without working websites
                     if not venue.website_url or 'example.com' in venue.website_url:
-                        logger.info(f"Skipping venue without website: {venue.name}")
+                        logger.debug("Skipping venue without website: %s", venue.name)
                         continue
                     
                     active_venues.append(venue)
                 
                 venues = active_venues
                 
-                logger.info(f"Scraping TODAY'S events from {len(venues)} venues")
+                logger.info("Starting scrape: %d venues, event_type=%s, time_range=%s", len(venues), event_type or 'all', time_range)
                 
                 # Track unique events to prevent duplicates
                 unique_events = set()
                 
                 for venue in venues:
                     try:
-                        logger.info(f"Scraping events for: {venue.name}")
-                        update_progress(2, 4, f"Scraping {venue.name}...")
+                        logger.debug("Scraping events for: %s", venue.name)
+                        update_progress(2, 4, f"Scraping {venue.name}...", events_found=len(self.scraped_events))
                         # Add per-venue timeout to prevent worker hangs (max 20 seconds per venue)
                         # Note: signal.SIGALRM only works in main thread, so we check before using it
                         import signal
@@ -169,11 +184,11 @@ class VenueEventScraper:
                         # Filter by event_type if specified
                         if event_type:
                             events = [e for e in events if e.get('event_type', '').lower() == event_type.lower()]
-                            logger.info(f"   Filtered to {len(events)} {event_type} events")
+                            logger.debug("Filtered to %d %s events", len(events), event_type)
                         
                         # Filter by time_range
                         events = self._filter_by_time_range(events, time_range)
-                        logger.info(f"   After time_range filter: {len(events)} events")
+                        logger.debug("After time_range filter: %d events", len(events))
                         
                         # Limit events per venue based on event type
                         # For exhibitions, use max_exhibitions_per_venue; for others, use max_events_per_venue
@@ -182,12 +197,12 @@ class VenueEventScraper:
                             exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
                             other_events = [e for e in events if e.get('event_type') != 'exhibition']
                             if len(exhibition_events) > max_exhibitions_per_venue:
-                                logger.info(f"   Limiting exhibitions from {len(exhibition_events)} to {max_exhibitions_per_venue}")
+                                logger.debug("Limiting exhibitions from %d to %d", len(exhibition_events), max_exhibitions_per_venue)
                                 events = exhibition_events[:max_exhibitions_per_venue] + other_events
                         else:
                             # Limit all events (or specific event type)
                             if len(events) > max_events_per_venue:
-                                logger.info(f"   Limiting events from {len(events)} to {max_events_per_venue}")
+                                logger.debug("Limiting events from %d to %d", len(events), max_events_per_venue)
                                 events = events[:max_events_per_venue]
                         
                         # Add unique events only with better deduplication
@@ -196,7 +211,7 @@ class VenueEventScraper:
                             if event.get('event_type') == 'exhibition':
                                 venue_event_count = sum(1 for e in self.scraped_events if e.get('venue_id') == venue.id and e.get('event_type') == 'exhibition')
                                 if venue_event_count >= max_exhibitions_per_venue:
-                                    logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name} (already have {venue_event_count}) - skipping remaining events")
+                                    logger.debug("Reached max %d exhibitions for %s, skipping remaining", max_exhibitions_per_venue, venue.name)
                                     break
                             
                             # Normalize URL for better deduplication (remove trailing slashes, query params, fragments)
@@ -270,11 +285,11 @@ class VenueEventScraper:
                             unique_events.add(event_key)
                             self.scraped_events.append(event)
                             current_count = sum(1 for e in self.scraped_events if e.get('venue_id') == venue.id and e.get('event_type') == 'exhibition')
-                            logger.info(f"✅ Added unique event: {event['title']} (venue now has {current_count} exhibitions)")
+                            logger.debug("Added event: %s (venue has %d exhibitions)", event['title'], current_count)
                             
                             # For exhibitions, check again if we've reached the limit after adding
                             if event.get('event_type') == 'exhibition' and current_count >= max_exhibitions_per_venue:
-                                logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name} - stopping")
+                                logger.debug("Reached max exhibitions for %s, stopping", venue.name)
                                 break
                         
                         # Also try social media if available
@@ -288,6 +303,7 @@ class VenueEventScraper:
                         
                         # Rate limiting
                         time.sleep(1)
+                        update_progress(2, 4, f"Scraped {venue.name} ({len(self.scraped_events)} total)...", events_found=len(self.scraped_events))
                         
                     except Timeout:
                         logger.error(f"⏱️ Timeout error scraping {venue.name} ({venue.website_url}) - skipping")
@@ -304,7 +320,8 @@ class VenueEventScraper:
                         logger.error(f"Traceback: {traceback.format_exc()}")
                         continue
                 
-                logger.info(f"Total unique events scraped: {len(self.scraped_events)}")
+                logger.info("Completed: %d events from %d venues", len(self.scraped_events), len(venues))
+                update_progress(3, 4, f"Found {len(self.scraped_events)} events. Saving to database...", events_found=len(self.scraped_events))
                 return self.scraped_events
                 
         except Timeout:
@@ -339,7 +356,7 @@ class VenueEventScraper:
         
         # Check if this venue has saved paths - use them first if available (for ALL venues)
         # This check happens FIRST, before any specialized scrapers or generic scrapers
-        logger.info(f"🔍 Checking for saved paths for {venue.name}...")
+        logger.debug("Checking saved paths for %s", venue.name)
         
         # Refresh venue from database to ensure we have latest additional_info
         # Use merge to handle detached instances
@@ -357,14 +374,14 @@ class VenueEventScraper:
         
         saved_paths = self._get_venue_event_paths(venue)
         has_saved_paths = bool(saved_paths)
-        logger.info(f"   Saved paths check result: has_saved_paths={has_saved_paths}, paths={saved_paths}")
+        logger.debug("Saved paths check: has_saved_paths=%s, paths=%s", has_saved_paths, saved_paths)
         
         if has_saved_paths:
-            logger.info(f"📋 Found saved paths for {venue.name}: {saved_paths}")
-            logger.info(f"   ✅ Using saved paths directly - SKIPPING discovery and generic scraper")
+            logger.debug("Found saved paths for %s: %s", venue.name, saved_paths)
+            logger.debug("Using saved paths directly, skipping discovery")
             saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
             if saved_path_events:
-                logger.info(f"✅ Found {len(saved_path_events)} events using saved paths for {venue.name}")
+                logger.info("%s: %d events (saved paths)", venue.name, len(saved_path_events))
                 events.extend(saved_path_events)
                 # Apply limits
                 if event_type and event_type.lower() == 'exhibition':
@@ -378,7 +395,7 @@ class VenueEventScraper:
                 logger.warning(f"⚠️  Saved paths found but no events extracted - returning empty (NOT falling back to discovery)")
             
             # CRITICAL: Return immediately if saved paths exist - do NOT continue to generic scraper/discovery
-            logger.info(f"   🛑 Returning early - saved paths exist, skipping all other scraping methods")
+            logger.debug("Returning early: saved paths exist")
             return events
         else:
             logger.debug(f"   No saved paths found for {venue.name} in additional_info - will use generic scraper/discovery")
@@ -394,12 +411,12 @@ class VenueEventScraper:
         
         # NGA (National Gallery of Art)
         if 'nga.gov' in venue_url_lower or 'national gallery of art' in venue_name_lower:
-            logger.info(f"🎯 Using specialized NGA scraper for {venue.name}")
+            logger.debug("Using NGA scraper for %s", venue.name)
             specialized_scraper_used = True  # Mark as used regardless of success/failure
             try:
                 from scripts.nga_comprehensive_scraper import scrape_all_nga_events
                 nga_events = scrape_all_nga_events()
-                logger.info(f"📊 NGA scraper returned {len(nga_events) if nga_events else 0} events before filtering")
+                logger.debug("NGA scraper returned %d events before filtering", len(nga_events) if nga_events else 0)
                 if nga_events:
                     # Ensure venue_id and city_id are set
                     for event in nga_events:
@@ -410,24 +427,24 @@ class VenueEventScraper:
                     # Filter by event_type if specified
                     if event_type:
                         nga_events = [e for e in nga_events if e.get('event_type', '').lower() == event_type.lower()]
-                        logger.info(f"   After event_type filter ({event_type}): {len(nga_events)} events")
+                        logger.debug("After event_type filter: %d events", len(nga_events))
                     # Filter by time_range
                     nga_events = self._filter_by_time_range(nga_events, time_range)
-                    logger.info(f"   After time_range filter ({time_range}): {len(nga_events)} events")
+                    logger.debug("After time_range filter: %d events", len(nga_events))
                     # Apply limits
                     if event_type and event_type.lower() == 'exhibition':
                         exhibition_events = [e for e in nga_events if e.get('event_type') == 'exhibition']
                         other_events = [e for e in nga_events if e.get('event_type') != 'exhibition']
                         limited_exhibitions = exhibition_events[:max_exhibitions_per_venue]
                         events = limited_exhibitions + other_events
-                        logger.info(f"   After exhibition limit ({max_exhibitions_per_venue}): {len(events)} events")
+                        logger.debug("After exhibition limit: %d events", len(events))
                     else:
                         events = nga_events[:max_events_per_venue]
-                        logger.info(f"   After max_events limit ({max_events_per_venue}): {len(events)} events")
-                    logger.info(f"✅ NGA scraper found {len(events)} events for {venue.name} (after filtering)")
+                        logger.debug("After max_events limit: %d events", len(events))
+                    logger.info("%s: %d events (NGA)", venue.name, len(events))
                     return events
                 else:
-                    logger.info(f"⚠️ NGA scraper returned no events for {venue.name} (empty list)")
+                    logger.warning("NGA scraper returned no events for %s", venue.name)
                     return []  # Return empty list, don't fall back to generic
             except Exception as e:
                 logger.error(f"❌ NGA specialized scraper failed: {e}, not falling back to generic scraper")
@@ -437,7 +454,7 @@ class VenueEventScraper:
         
         # SAAM (Smithsonian American Art Museum)
         elif 'americanart.si.edu' in venue_url_lower or ('smithsonian american art' in venue_name_lower and 'museum' in venue_name_lower):
-            logger.info(f"🎯 Using specialized SAAM scraper for {venue.name}")
+            logger.debug("Using SAAM scraper for %s", venue.name)
             try:
                 from scripts.saam_scraper import scrape_all_saam_events
                 # Pass venue name to filter events for this specific venue
@@ -455,25 +472,25 @@ class VenueEventScraper:
                         # Skip events that clearly belong to other venues
                         should_skip = False
                         if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from SAAM: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from SAAM: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NPG event from SAAM: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out NPG event from SAAM: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'asian art' in event_title and 'asian' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Asian Art event from SAAM: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Asian Art event from SAAM: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'african art' in event_title and 'african' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out African Art event from SAAM: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out African Art event from SAAM: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NGA event from SAAM: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out NGA event from SAAM: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from SAAM (by organizer): '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from SAAM (by organizer): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from SAAM (by URL): '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from SAAM (by URL): %s", event.get('title', 'N/A'))
                             should_skip = True
                         
                         if should_skip:
@@ -489,7 +506,7 @@ class VenueEventScraper:
                     original_count = len(saam_events)
                     saam_events = filtered_saam_events
                     if original_count > len(filtered_saam_events):
-                        logger.info(f"   📊 Filtered out {original_count - len(filtered_saam_events)} events that belong to other venues")
+                        logger.debug("Filtered out %d events belonging to other venues", original_count - len(filtered_saam_events))
                     # Filter by event_type if specified
                     if event_type:
                         saam_events = [e for e in saam_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -503,7 +520,7 @@ class VenueEventScraper:
                         events = limited_exhibitions + other_events
                     else:
                         events = saam_events[:max_events_per_venue]
-                    logger.info(f"✅ SAAM scraper found {len(events)} events for {venue.name}")
+                    logger.info("%s: %d events (SAAM)", venue.name, len(events))
                     specialized_scraper_used = True
                     return events
             except Exception as e:
@@ -511,7 +528,7 @@ class VenueEventScraper:
         
         # NPG (National Portrait Gallery)
         elif 'npg.si.edu' in venue_url_lower or 'national portrait gallery' in venue_name_lower:
-            logger.info(f"🎯 Using specialized NPG scraper for {venue.name}")
+            logger.debug("Using NPG scraper for %s", venue.name)
             try:
                 from scripts.npg_scraper import scrape_all_npg_events
                 npg_events = scrape_all_npg_events()
@@ -547,7 +564,7 @@ class VenueEventScraper:
                         events = exhibition_events[:max_exhibitions_per_venue] + other_events
                     else:
                         events = npg_events[:max_events_per_venue]
-                    logger.info(f"✅ NPG scraper found {len(events)} events for {venue.name}")
+                    logger.info("%s: %d events (NPG)", venue.name, len(events))
                     return events
                 return []
             except Exception as e:
@@ -555,7 +572,7 @@ class VenueEventScraper:
 
         # Tulip Day (tulipday.eu)
         elif 'tulipday.eu' in venue_url_lower or 'tulip day' in venue_name_lower:
-            logger.info(f"🎯 Using specialized Tulip Day scraper for {venue.name}")
+            logger.debug("Using Tulip Day scraper for %s", venue.name)
             try:
                 from scripts.tulipday_scraper import scrape_all_tulipday_events
                 tulip_events = scrape_all_tulipday_events()
@@ -569,7 +586,7 @@ class VenueEventScraper:
                     if event_type:
                         tulip_events = [e for e in tulip_events if e.get('event_type', '').lower() == event_type.lower()]
                     events = tulip_events[:max_events_per_venue]
-                    logger.info(f"✅ Tulip Day scraper found {len(events)} events for {venue.name}")
+                    logger.info("%s: %d events (Tulip Day)", venue.name, len(events))
                     return events
                 return []
             except Exception as e:
@@ -577,7 +594,7 @@ class VenueEventScraper:
 
         # Suns Cinema
         elif 'sunscinema.com' in venue_url_lower or 'suns cinema' in venue_name_lower:
-            logger.info(f"🎯 Using specialized Suns Cinema scraper for {venue.name}")
+            logger.debug("Using Suns Cinema scraper for %s", venue.name)
             try:
                 from scripts.suns_cinema_scraper import scrape_all_suns_cinema_events
                 suns_events = scrape_all_suns_cinema_events()
@@ -586,7 +603,7 @@ class VenueEventScraper:
                         if not event.get('venue_id'): event['venue_id'] = venue.id
                         if not event.get('city_id'): event['city_id'] = venue.city_id
                     events = self._filter_by_time_range(suns_events, time_range)
-                    logger.info(f"✅ Suns Cinema scraper found {len(events)} events for {venue.name}")
+                    logger.info("%s: %d events (Suns Cinema)", venue.name, len(events))
                     return events
                 return []
             except Exception as e:
@@ -594,7 +611,7 @@ class VenueEventScraper:
 
         # Asian Art Museum (Smithsonian)
         elif 'asia.si.edu' in venue_url_lower or ('asian art' in venue_name_lower and 'museum' in venue_name_lower):
-            logger.info(f"🎯 Using specialized Asian Art scraper for {venue.name}")
+            logger.debug("Using Asian Art scraper for %s", venue.name)
             try:
                 from scripts.asian_art_scraper import scrape_all_asian_art_events
                 asian_events = scrape_all_asian_art_events()
@@ -611,25 +628,25 @@ class VenueEventScraper:
                         # Skip events that clearly belong to other venues
                         should_skip = False
                         if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from Asian Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from Asian Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'american art' in event_title and 'american art' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out SAAM event from Asian Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out SAAM event from Asian Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NPG event from Asian Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out NPG event from Asian Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'african art' in event_title and 'african' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out African Art event from Asian Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out African Art event from Asian Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NGA event from Asian Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out NGA event from Asian Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from Asian Art (by organizer): '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from Asian Art (by organizer): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from Asian Art (by URL): '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from Asian Art (by URL): %s", event.get('title', 'N/A'))
                             should_skip = True
                         
                         if should_skip:
@@ -645,7 +662,7 @@ class VenueEventScraper:
                     original_count = len(asian_events)
                     asian_events = filtered_asian_events
                     if original_count > len(filtered_asian_events):
-                        logger.info(f"   📊 Filtered out {original_count - len(filtered_asian_events)} events that belong to other venues")
+                        logger.debug("Filtered out %d events belonging to other venues", original_count - len(filtered_asian_events))
                     # Filter by event_type if specified
                     if event_type:
                         asian_events = [e for e in asian_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -659,7 +676,7 @@ class VenueEventScraper:
                         events = limited_exhibitions + other_events
                     else:
                         events = asian_events[:max_events_per_venue]
-                    logger.info(f"✅ Asian Art scraper found {len(events)} events for {venue.name}")
+                    logger.info("%s: %d events (Asian Art)", venue.name, len(events))
                     specialized_scraper_used = True
                     return events
             except Exception as e:
@@ -667,7 +684,7 @@ class VenueEventScraper:
         
         # African Art Museum (Smithsonian)
         elif 'africa.si.edu' in venue_url_lower or ('african art' in venue_name_lower and 'museum' in venue_name_lower):
-            logger.info(f"🎯 Using specialized African Art scraper for {venue.name}")
+            logger.debug("Using African Art scraper for %s", venue.name)
             try:
                 from scripts.african_art_scraper import scrape_all_african_art_events
                 african_events = scrape_all_african_art_events()
@@ -684,25 +701,25 @@ class VenueEventScraper:
                         # Skip events that clearly belong to other venues
                         should_skip = False
                         if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from African Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from African Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'american art' in event_title and 'american art' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out SAAM event from African Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out SAAM event from African Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NPG event from African Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out NPG event from African Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'asian art' in event_title and 'asian' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Asian Art event from African Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Asian Art event from African Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out NGA event from African Art: '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out NGA event from African Art: %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif event_organizer and 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from African Art (by organizer): '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from African Art (by organizer): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'hirshhorn.si.edu' in event_url and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Filtering out Hirshhorn event from African Art (by URL): '{event.get('title', 'N/A')}'")
+                            logger.debug("Filtering out Hirshhorn event from African Art (by URL): %s", event.get('title', 'N/A'))
                             should_skip = True
                         
                         if should_skip:
@@ -718,7 +735,7 @@ class VenueEventScraper:
                     original_count = len(african_events)
                     african_events = filtered_african_events
                     if original_count > len(filtered_african_events):
-                        logger.info(f"   📊 Filtered out {original_count - len(filtered_african_events)} events that belong to other venues")
+                        logger.debug("Filtered out %d events belonging to other venues", original_count - len(filtered_african_events))
                     # Filter by event_type if specified
                     if event_type:
                         african_events = [e for e in african_events if e.get('event_type', '').lower() == event_type.lower()]
@@ -732,7 +749,7 @@ class VenueEventScraper:
                         events = limited_exhibitions + other_events
                     else:
                         events = african_events[:max_events_per_venue]
-                    logger.info(f"✅ African Art scraper found {len(events)} events for {venue.name}")
+                    logger.info("%s: %d events (African Art)", venue.name, len(events))
                     specialized_scraper_used = True
                     return events
             except Exception as e:
@@ -743,8 +760,8 @@ class VenueEventScraper:
         
         # For venues WITHOUT specialized scrapers, try generic scraper
         if not specialized_scraper_used and not has_specialized_scraper:
-            logger.info(f"🔍 No specialized scraper for {venue.name}, trying generic scraper...")
-            logger.info(f"   URL: {venue.website_url}")
+            logger.info("%s: using generic scraper (no specialized scraper)", venue.name)
+            logger.debug("Generic scraper URL: %s", venue.website_url)
             
             # Validate URL before attempting to scrape
             if not venue.website_url or not venue.website_url.startswith('http'):
@@ -753,7 +770,7 @@ class VenueEventScraper:
             # Use 'this_month' for generic scraper to be less restrictive (instead of 'today' or 'this_week')
             # This ensures we get more events, especially for recurring events
             adjusted_time_range = 'this_month' if time_range in ['today', 'this_week'] else time_range
-            logger.info(f"   Using time_range: {adjusted_time_range} (original: {time_range})")
+            logger.debug("Using time_range: %s (original: %s)", adjusted_time_range, time_range)
             try:
                 from scripts.generic_venue_scraper import GenericVenueScraper
                 generic_scraper = GenericVenueScraper()
@@ -763,7 +780,7 @@ class VenueEventScraper:
                     event_type=event_type,
                     time_range=adjusted_time_range
                 )
-                logger.info(f"   Generic scraper returned {len(generic_events)} raw events")
+                logger.debug("Generic scraper returned %d raw events", len(generic_events))
                 # Convert generic events to our format and validate them
                 valid_generic_events = []
                 invalid_count = 0
@@ -814,43 +831,43 @@ class VenueEventScraper:
                     if not should_skip:
                         # Check if title contains names of other specialized museums
                         if 'hirshhorn' in event_title and 'hirshhorn' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Skipping Hirshhorn event (detected by title): '{event.get('title', 'N/A')}' - belongs to Hirshhorn, not {venue.name}")
+                            logger.debug("Skipping Hirshhorn event (by title): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'american art' in event_title and 'american art' not in venue_name_lower and 'renwick' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Skipping SAAM event (detected by title): '{event.get('title', 'N/A')}' - belongs to American Art, not {venue.name}")
+                            logger.debug("Skipping SAAM event (by title): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'portrait gallery' in event_title and 'portrait' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Skipping NPG event (detected by title): '{event.get('title', 'N/A')}' - belongs to Portrait Gallery, not {venue.name}")
+                            logger.debug("Skipping NPG event (by title): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'asian art' in event_title and 'asian' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Skipping Asian Art event (detected by title): '{event.get('title', 'N/A')}' - belongs to Asian Art, not {venue.name}")
+                            logger.debug("Skipping Asian Art event (by title): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'african art' in event_title and 'african' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Skipping African Art event (detected by title): '{event.get('title', 'N/A')}' - belongs to African Art, not {venue.name}")
+                            logger.debug("Skipping African Art event (by title): %s", event.get('title', 'N/A'))
                             should_skip = True
                         elif 'national gallery' in event_title and 'national gallery' not in venue_name_lower:
-                            logger.info(f"   ⏭️ Skipping NGA event (detected by title): '{event.get('title', 'N/A')}' - belongs to National Gallery, not {venue.name}")
+                            logger.debug("Skipping NGA event (by title): %s", event.get('title', 'N/A'))
                             should_skip = True
                         
                         # Also check organizer field
                         if event_organizer:
                             if 'hirshhorn' in event_organizer and 'hirshhorn' not in venue_name_lower:
-                                logger.info(f"   ⏭️ Skipping Hirshhorn event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                logger.debug("Skipping Hirshhorn event (by organizer): %s", event.get('title', 'N/A'))
                                 should_skip = True
                             elif 'american art' in event_organizer and 'american art' not in venue_name_lower and 'renwick' not in venue_name_lower:
-                                logger.info(f"   ⏭️ Skipping SAAM event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                logger.debug("Skipping SAAM event (by organizer): %s", event.get('title', 'N/A'))
                                 should_skip = True
                             elif 'portrait gallery' in event_organizer and 'portrait' not in venue_name_lower:
-                                logger.info(f"   ⏭️ Skipping NPG event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                logger.debug("Skipping NPG event (by organizer): %s", event.get('title', 'N/A'))
                                 should_skip = True
                             elif 'asian art' in event_organizer and 'asian' not in venue_name_lower:
-                                logger.info(f"   ⏭️ Skipping Asian Art event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                logger.debug("Skipping Asian Art event (by organizer): %s", event.get('title', 'N/A'))
                                 should_skip = True
                             elif 'african art' in event_organizer and 'african' not in venue_name_lower:
-                                logger.info(f"   ⏭️ Skipping African Art event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                logger.debug("Skipping African Art event (by organizer): %s", event.get('title', 'N/A'))
                                 should_skip = True
                             elif 'national gallery' in event_organizer and 'national gallery' not in venue_name_lower:
-                                logger.info(f"   ⏭️ Skipping NGA event (detected by organizer): '{event.get('title', 'N/A')}' - organizer: {event_organizer}")
+                                logger.debug("Skipping NGA event (by organizer): %s", event.get('title', 'N/A'))
                                 should_skip = True
                     
                     if should_skip:
@@ -877,13 +894,13 @@ class VenueEventScraper:
                         logger.debug(f"   ⚠️  Invalid event filtered out: '{event.get('title', 'N/A')}' (date: {event.get('start_date', 'N/A')})")
                 
                 if skipped_wrong_venue_count > 0:
-                    logger.info(f"   ⚠️  Skipped {skipped_wrong_venue_count} events that belong to specialized museums (will be handled by their dedicated scrapers)")
+                    logger.debug("Skipped %d events belonging to specialized museums", skipped_wrong_venue_count)
                 
-                logger.info(f"   Validation: {len(valid_generic_events)} valid, {invalid_count} invalid events")
+                logger.debug("Validation: %d valid, %d invalid", len(valid_generic_events), invalid_count)
                 
                 events.extend(valid_generic_events)
                 if valid_generic_events:
-                    logger.info(f"✅ Generic scraper found {len(valid_generic_events)} valid events for {venue.name} (filtered {len(generic_events) - len(valid_generic_events)} invalid events)")
+                    logger.info("%s: %d events (generic)", venue.name, len(valid_generic_events))
                     # Apply limits
                     if event_type and event_type.lower() == 'exhibition':
                         exhibition_events = [e for e in events if e.get('event_type') == 'exhibition']
@@ -894,15 +911,15 @@ class VenueEventScraper:
                         events = events[:max_events_per_venue]
                     return events
                 elif generic_events:
-                    logger.info(f"⚠️ Generic scraper found {len(generic_events)} events but all were filtered out by validation")
+                    logger.warning("Generic scraper found %d events but all filtered out for %s", len(generic_events), venue.name)
                 else:
-                    logger.info(f"⚠️ Generic scraper found no events for {venue.name}")
+                    logger.debug("Generic scraper found no events for %s", venue.name)
             except Exception as generic_error:
                 logger.warning(f"⚠️ Generic scraper failed for {venue.name}: {generic_error}, falling back to standard methods...")
                 # Continue with standard scraping methods below
         
         try:
-            logger.info(f"Scraping website: {venue.website_url}")
+            logger.debug("Scraping website: %s", venue.website_url)
             try:
                 # Use shorter timeout to prevent worker hangs (10 seconds per venue)
                 response = self.session.get(venue.website_url, timeout=10)
@@ -941,33 +958,33 @@ class VenueEventScraper:
             if 'artic.edu' in venue.website_url:
                 events_page_url = urljoin(venue.website_url, '/events')
                 try:
-                    logger.info(f"🔍 Checking Art Institute events page: {events_page_url}")
+                    logger.debug("Checking Art Institute events page: %s", events_page_url)
                     events_response = self.session.get(events_page_url, timeout=10)
-                    logger.info(f"   Response status: {events_response.status_code}")
+                    logger.debug("Response status: %s", events_response.status_code)
                     if events_response.status_code == 200:
                         events_soup = BeautifulSoup(events_response.content, 'html.parser')
                         # Log a sample of the page to debug
                         page_text_sample = events_soup.get_text()[:500]
-                        logger.info(f"   Page text sample: {page_text_sample}")
+                        logger.debug("Page text sample: %s", page_text_sample)
                         artic_events = self._extract_events_from_artic_listing_page(
                             events_soup, venue, events_page_url, event_type=event_type, time_range=time_range
                         )
-                        logger.info(f"   _extract_events_from_artic_listing_page returned {len(artic_events)} events")
+                        logger.debug("_extract_events_from_artic_listing_page returned %d events", len(artic_events))
                         if artic_events:
-                            logger.info(f"✅ Extracted {len(artic_events)} events from Art Institute events page")
+                            logger.debug("Extracted %d events from Art Institute events page", len(artic_events))
                             # Log event types found
                             event_types_found = {}
                             for e in artic_events:
                                 etype = e.get('event_type', 'unknown')
                                 event_types_found[etype] = event_types_found.get(etype, 0) + 1
-                            logger.info(f"   Event types found: {event_types_found}")
+                            logger.debug("Event types found: %s", event_types_found)
                             events.extend(artic_events)
                             # If we're looking for a specific non-exhibition event type (tour, talk, workshop, etc.),
                             # we can return early since the /events page has all those types.
                             # But if we're looking for "all types" (empty event_type) or "exhibition",
                             # we should continue to also scrape exhibitions from other pages.
                             if event_type and event_type.strip() and event_type.lower() not in ['exhibition']:
-                                logger.info(f"   Found {len(artic_events)} {event_type} events from /events page, returning early")
+                                logger.debug("Found %d %s events from /events page, returning early", len(artic_events), event_type)
                                 return events
                             # If event_type is empty (All Types) or 'exhibition', continue to scrape exhibitions too
                         else:
@@ -1007,19 +1024,19 @@ class VenueEventScraper:
                         seen_urls.add(full_url)
                         unique_exhibition_links.append(link)
             
-            logger.info(f"Found {len(unique_exhibition_links)} exhibition links")
+            logger.debug("Found %d exhibition links", len(unique_exhibition_links))
             
             # Only scrape exhibition pages if event_type is 'exhibition' or None (all types)
             if not event_type or event_type.lower() == 'exhibition':
                 for link in unique_exhibition_links:  # Process all links but stop when we reach the limit
                     # Check if we've already reached the maximum
                     if len(events) >= max_exhibitions_per_venue:
-                        logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name}")
+                        logger.debug("Reached maximum of %d exhibitions for %s", max_exhibitions_per_venue, venue.name)
                         break
                     
                     try:
                         exhibition_url = urljoin(venue.website_url, link['href'])
-                        logger.info(f"Scraping exhibition page: {exhibition_url}")
+                        logger.debug("Scraping exhibition page: %s", exhibition_url)
                         exhibition_response = self.session.get(exhibition_url, timeout=10)
                         exhibition_response.raise_for_status()
                         exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
@@ -1063,7 +1080,7 @@ class VenueEventScraper:
                             # Special case: Smithsonian National Museum of the American Indian uses /explore/exhibitions/item?id=XXX
                             if '/explore/exhibitions/item?id=' in url_lower:
                                 is_individual_page = True
-                                logger.info(f"✅ Detected Smithsonian NMAI individual exhibition page: {exhibition_url}")
+                                logger.debug("Detected Smithsonian NMAI individual exhibition page: %s", exhibition_url)
                             else:
                                 # Check for individual page patterns with slugs
                                 individual_patterns = [
@@ -1090,24 +1107,24 @@ class VenueEventScraper:
                                             path_parts = [p for p in url_path.split('/') if p]
                                             if len(path_parts) >= min_parts:
                                                 is_individual_page = True
-                                                logger.info(f"✅ Detected individual exhibition page: {exhibition_url}")
+                                                logger.debug("Detected individual exhibition page: %s", exhibition_url)
                                                 break
                         
                         if not is_individual_page and not is_listing_page:
-                            logger.info(f"⚠️ URL not recognized as individual or listing page: {exhibition_url} (path: {url_path})")
+                            logger.debug("URL not recognized as individual or listing page: %s (path: %s)", exhibition_url, url_path)
                         
                         if is_individual_page:
                             # Check if we've already reached the maximum before extracting
                             if len(events) >= max_exhibitions_per_venue:
-                                logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name}")
+                                logger.debug("Reached maximum of %d exhibitions for %s", max_exhibitions_per_venue, venue.name)
                                 break
                             
                             # This is an individual exhibition page - extract it as an event
-                            logger.info(f"Extracting individual exhibition from: {exhibition_url}")
+                            logger.debug("Extracting individual exhibition from: %s", exhibition_url)
                             exhibition_event = self._extract_exhibition_from_page(exhibition_soup, venue, exhibition_url, event_type, time_range)
                             if exhibition_event:
                                 # Only add if it's current or future (check is done in _extract_exhibition_from_page)
-                                logger.info(f"✅ Successfully extracted exhibition: {exhibition_event.get('title')}")
+                                logger.debug("Successfully extracted exhibition: %s", exhibition_event.get('title'))
                                 events.append(exhibition_event)
                                 # Stop if we've reached the maximum
                                 if len(events) >= max_exhibitions_per_venue:
@@ -1116,23 +1133,23 @@ class VenueEventScraper:
                                 logger.debug(f"⚠️ Failed to extract exhibition from: {exhibition_url}")
                         else:
                             # This is a listing page - try to extract exhibitions directly from the listing page first
-                            logger.info(f"Found listing page, trying to extract exhibitions directly...")
+                            logger.debug("Found listing page, trying to extract exhibitions directly")
                             # Calculate how many more exhibitions we can extract
                             remaining_slots = max_exhibitions_per_venue - len(events)
                             if remaining_slots <= 0:
-                                logger.info(f"Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name}")
+                                logger.debug("Reached maximum of %d exhibitions for %s", max_exhibitions_per_venue, venue.name)
                                 break
                             
-                            logger.info(f"🔍 Calling _extract_exhibitions_from_listing_page with remaining_slots={remaining_slots}, max_exhibitions_per_venue={max_exhibitions_per_venue}")
+                            logger.debug("Calling _extract_exhibitions_from_listing_page")
                             listing_events = self._extract_exhibitions_from_listing_page(exhibition_soup, venue, exhibition_url, event_type, time_range, remaining_slots)
                             if listing_events:
-                                logger.info(f"✅ _extract_exhibitions_from_listing_page returned {len(listing_events)} exhibitions (remaining_slots was {remaining_slots}, current events count: {len(events)})")
+                                logger.debug("_extract_exhibitions_from_listing_page returned %d exhibitions", len(listing_events))
                                 # CRITICAL: Only add up to remaining_slots to prevent exceeding the limit
                                 events_to_add = listing_events[:remaining_slots]
                                 if len(listing_events) > remaining_slots:
                                     logger.error(f"❌ ERROR: Function returned {len(listing_events)} but remaining_slots was {remaining_slots}!")
                                 events.extend(events_to_add)
-                                logger.info(f"   Added {len(events_to_add)} exhibitions (total now: {len(events)}/{max_exhibitions_per_venue})")
+                                logger.debug("Added %d exhibitions (total now: %d)", len(events_to_add), len(events))
                                 # Stop here - don't also follow individual links to avoid duplicates
                                 # The listing page extraction already got the exhibitions we need
                                 # Break out of the loop since we've extracted from the listing page
@@ -1140,11 +1157,11 @@ class VenueEventScraper:
                                 if len(events) > max_exhibitions_per_venue:
                                     logger.error(f"❌ ERROR: After adding, events count ({len(events)}) exceeds limit ({max_exhibitions_per_venue})!")
                                 if len(events) >= max_exhibitions_per_venue:
-                                    logger.info(f"✅ Reached maximum of {max_exhibitions_per_venue} exhibitions for {venue.name} after listing page extraction")
+                                    logger.debug("Reached maximum exhibitions after listing page extraction")
                                 break
                             else:
                                 # Fallback: find links to individual exhibitions and follow them
-                                logger.info(f"Could not extract from listing page, searching for individual exhibition links...")
+                                logger.debug("Could not extract from listing page, searching for individual exhibition links")
                                 # Find links to individual exhibitions on the listing page
                                 listing_exhibition_links = exhibition_soup.find_all('a', href=lambda href: href and (
                                     '/exhibitions/' in href.lower() or
@@ -1199,7 +1216,7 @@ class VenueEventScraper:
                                             seen_individual_urls.add(individual_url_lower)
                                             # Follow the link and extract the exhibition
                                             try:
-                                                logger.info(f"Following link to individual exhibition: {individual_url}")
+                                                logger.debug("Following link to individual exhibition: %s", individual_url)
                                                 individual_response = self.session.get(individual_url, timeout=10)
                                                 individual_response.raise_for_status()
                                                 individual_soup = BeautifulSoup(individual_response.content, 'html.parser')
@@ -1238,7 +1255,7 @@ class VenueEventScraper:
                 if 'hirshhorn.si.edu' in venue.website_url.lower():
                     tours_page_url = urljoin(venue.website_url, '/explore/tours/')
                     try:
-                        logger.info(f"🔍 Checking Hirshhorn tours page: {tours_page_url}")
+                        logger.debug("Checking Hirshhorn tours page: %s", tours_page_url)
                         tours_response = self.session.get(tours_page_url, timeout=10)
                         if tours_response.status_code == 200:
                             tours_soup = BeautifulSoup(tours_response.content, 'html.parser')
@@ -1246,7 +1263,11 @@ class VenueEventScraper:
                                 tours_soup, venue, tours_page_url, event_type=event_type, time_range=time_range
                             )
                             events.extend(hirshhorn_tours)
-                            logger.info(f"   Found {len(hirshhorn_tours)} Hirshhorn tours")
+                            logger.debug("Found %d Hirshhorn tours", len(hirshhorn_tours))
+                            # Return early - we have tours from dedicated page, skip redundant tour_links/event_links loops
+                            if event_type and event_type.lower() == 'tour' and events:
+                                update_progress(3, 4, f"Found {len(events)} tours. Saving to database...", events_found_add=len(events))
+                                return events
                     except Exception as e:
                         logger.debug(f"⚠️ Error scraping Hirshhorn tours page: {e}")
                 
@@ -1259,7 +1280,7 @@ class VenueEventScraper:
                         if 'hirshhorn.si.edu' in tour_url.lower() and '/explore/tours/' in tour_url.lower():
                             continue
                         
-                        logger.info(f"Scraping tour page: {tour_url}")
+                        logger.debug("Scraping tour page: %s", tour_url)
                         tour_response = self.session.get(tour_url, timeout=10)
                         tour_response.raise_for_status()
                         tour_soup = BeautifulSoup(tour_response.content, 'html.parser')
@@ -1289,13 +1310,13 @@ class VenueEventScraper:
                 # Scrape exhibitions-events page
                 exhibitions_url = urljoin(venue.website_url, '/exhibitions-events')
                 try:
-                    logger.info(f"🔍 Checking British Museum exhibitions-events page: {exhibitions_url}")
+                    logger.debug("Checking British Museum exhibitions-events page: %s", exhibitions_url)
                     exhibitions_response = self.session.get(exhibitions_url, timeout=10)
                     if exhibitions_response.status_code == 200:
                         exhibitions_soup = BeautifulSoup(exhibitions_response.content, 'html.parser')
                         bm_exhibitions = self._extract_british_museum_exhibitions(exhibitions_soup, venue, exhibitions_url, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
                         if bm_exhibitions:
-                            logger.info(f"✅ Extracted {len(bm_exhibitions)} exhibitions from British Museum exhibitions-events page")
+                            logger.debug("Extracted %d exhibitions from British Museum exhibitions-events page", len(bm_exhibitions))
                             events.extend(bm_exhibitions)
                     elif exhibitions_response.status_code == 403:
                         # Try cloudscraper for 403 errors
@@ -1304,7 +1325,7 @@ class VenueEventScraper:
                             exhibitions_soup = BeautifulSoup(html_content, 'html.parser')
                             bm_exhibitions = self._extract_british_museum_exhibitions(exhibitions_soup, venue, exhibitions_url, event_type=event_type, time_range=time_range, max_exhibitions_per_venue=max_exhibitions_per_venue)
                             if bm_exhibitions:
-                                logger.info(f"✅ Extracted {len(bm_exhibitions)} exhibitions from British Museum exhibitions-events page (via cloudscraper)")
+                                logger.debug("Extracted %d exhibitions from British Museum exhibitions-events page (via cloudscraper)", len(bm_exhibitions))
                                 events.extend(bm_exhibitions)
                 except Exception as e:
                     logger.debug(f"Error accessing British Museum exhibitions-events page: {e}")
@@ -1312,13 +1333,13 @@ class VenueEventScraper:
                 # Scrape tours-and-talks page
                 tours_talks_url = urljoin(venue.website_url, '/visit/tours-and-talks')
                 try:
-                    logger.info(f"🔍 Checking British Museum tours-and-talks page: {tours_talks_url}")
+                    logger.debug("Checking British Museum tours-and-talks page: %s", tours_talks_url)
                     tours_response = self.session.get(tours_talks_url, timeout=10)
                     if tours_response.status_code == 200:
                         tours_soup = BeautifulSoup(tours_response.content, 'html.parser')
                         bm_tours_talks = self._extract_british_museum_tours_talks(tours_soup, venue, tours_talks_url, event_type=event_type, time_range=time_range)
                         if bm_tours_talks:
-                            logger.info(f"✅ Extracted {len(bm_tours_talks)} tours/talks from British Museum tours-and-talks page")
+                            logger.debug("Extracted %d tours/talks from British Museum tours-and-talks page", len(bm_tours_talks))
                             events.extend(bm_tours_talks)
                     elif tours_response.status_code == 403:
                         # Try cloudscraper for 403 errors
@@ -1327,27 +1348,27 @@ class VenueEventScraper:
                             tours_soup = BeautifulSoup(html_content, 'html.parser')
                             bm_tours_talks = self._extract_british_museum_tours_talks(tours_soup, venue, tours_talks_url, event_type=event_type, time_range=time_range)
                             if bm_tours_talks:
-                                logger.info(f"✅ Extracted {len(bm_tours_talks)} tours/talks from British Museum tours-and-talks page (via cloudscraper)")
+                                logger.debug("Extracted %d tours/talks from British Museum tours-and-talks page (via cloudscraper)", len(bm_tours_talks))
                                 events.extend(bm_tours_talks)
                 except Exception as e:
                     logger.debug(f"Error accessing British Museum tours-and-talks page: {e}")
                 
                 # Return early if we found events (don't continue with generic scraping)
                 if events:
-                    logger.info(f"✅ British Museum special scraper found {len(events)} total events")
+                    logger.debug("British Museum special scraper found %d total events", len(events))
                     return events[:max_events_per_venue]
             
             # Special handling for OCMA calendar page
             if 'ocma.art' in venue.website_url.lower():
                 calendar_url = urljoin(venue.website_url, '/calendar/')
                 try:
-                    logger.info(f"🔍 Checking OCMA calendar page: {calendar_url}")
+                    logger.debug("Checking OCMA calendar page: %s", calendar_url)
                     calendar_response = self.session.get(calendar_url, timeout=10)
                     if calendar_response.status_code == 200:
                         calendar_soup = BeautifulSoup(calendar_response.content, 'html.parser')
                         ocma_events = self._extract_ocma_calendar_events(calendar_soup, venue, calendar_url, event_type=event_type, time_range=time_range)
                         if ocma_events:
-                            logger.info(f"✅ Extracted {len(ocma_events)} events from OCMA calendar page")
+                            logger.debug("Extracted %d events from OCMA calendar page", len(ocma_events))
                             events.extend(ocma_events)
                 except Exception as e:
                     logger.debug(f"Error accessing OCMA calendar page: {e}")
@@ -1372,7 +1393,7 @@ class VenueEventScraper:
                         if 'ocma.art' in event_url.lower() and '/special-events' in event_url.lower():
                             continue
                         
-                        logger.info(f"Scraping event page: {event_url}")
+                        logger.debug("Scraping event page: %s", event_url)
                         event_response = self.session.get(event_url, timeout=10)
                         event_response.raise_for_status()
                         event_soup = BeautifulSoup(event_response.content, 'html.parser')
@@ -1392,7 +1413,7 @@ class VenueEventScraper:
                 # Try to find the exhibitions page
                 exhibitions_page_url = urljoin(venue.website_url, '/art/exhibitions')
                 try:
-                    logger.info(f"Scraping LACMA exhibitions page: {exhibitions_page_url}")
+                    logger.debug("Scraping LACMA exhibitions page: %s", exhibitions_page_url)
                     exhibitions_response = self.session.get(exhibitions_page_url, timeout=10)
                     if exhibitions_response.status_code == 200:
                         exhibitions_soup = BeautifulSoup(exhibitions_response.content, 'html.parser')
@@ -1401,7 +1422,7 @@ class VenueEventScraper:
                         for link in lacma_exhibition_links[:15]:  # Check first 15 exhibitions
                             try:
                                 exhibition_url = urljoin(venue.website_url, link['href'])
-                                logger.info(f"Scraping LACMA exhibition: {exhibition_url}")
+                                logger.debug("Scraping LACMA exhibition: %s", exhibition_url)
                                 exhibition_response = self.session.get(exhibition_url, timeout=10)
                                 exhibition_response.raise_for_status()
                                 exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
@@ -1464,7 +1485,7 @@ class VenueEventScraper:
                 
                 for tour_url in known_tour_urls:
                     try:
-                        logger.info(f"Scraping known tour page: {tour_url}")
+                        logger.debug("Scraping known tour page: %s", tour_url)
                         tour_response = self.session.get(tour_url, timeout=10)
                         tour_response.raise_for_status()
                         tour_soup = BeautifulSoup(tour_response.content, 'html.parser')
@@ -1524,7 +1545,7 @@ class VenueEventScraper:
             if len(exhibition_events) > max_exhibitions_per_venue:
                 logger.error(f"❌ CRITICAL ERROR: _scrape_venue_website found {len(exhibition_events)} exhibitions for {venue.name}, but limit is {max_exhibitions_per_venue}!")
                 logger.error(f"   Exhibition titles: {[e.get('title') for e in exhibition_events]}")
-            logger.info(f"📦 _scrape_venue_website FINAL RETURN: {len(limited_exhibitions)} exhibitions for {venue.name} (found {len(exhibition_events)}, limit {max_exhibitions_per_venue})")
+            logger.debug("_scrape_venue_website FINAL RETURN: %d exhibitions for %s", len(limited_exhibitions), venue.name)
         
         # ABSOLUTE FINAL CHECK: Never return more than max_exhibitions_per_venue exhibitions
         # This is the last line of defense - slice the list one more time just to be absolutely sure
@@ -1616,9 +1637,9 @@ class VenueEventScraper:
                 
                 events.extend(valid_generic_events)
                 if valid_generic_events:
-                    logger.info(f"✅ Generic scraper found {len(valid_generic_events)} valid events for {venue.name} (filtered {len(generic_events) - len(valid_generic_events)} invalid events)")
+                    logger.info("%s: %d events (generic)", venue.name, len(valid_generic_events))
                 elif generic_events:
-                    logger.info(f"⚠️ Generic scraper found {len(generic_events)} events but all were filtered out by validation")
+                    logger.warning("Generic scraper found %d events but all filtered out for %s", len(generic_events), venue.name)
             except Exception as generic_error:
                 logger.debug(f"Generic scraper fallback failed: {generic_error}")
         
@@ -1628,14 +1649,14 @@ class VenueEventScraper:
         """Extract events from HTML content"""
         events = []
         
-        logger.info(f"🔍 Parsing HTML for {venue.name}...")
+        logger.debug("Parsing HTML for %s", venue.name)
         
         # Look for tour-specific content first
         tour_keywords = ['public guided tour', 'private guided tour', 'premium guided tour', 'accessibility tour', 'multilingual app']
         
         # Find headings that contain tour information
         tour_headings = soup.find_all(['h1', 'h2', 'h3', 'h4'], string=lambda text: text and any(keyword in text.lower() for keyword in tour_keywords))
-        logger.info(f"   Found {len(tour_headings)} tour headings")
+        logger.debug("Found %d tour headings", len(tour_headings))
         
         for heading in tour_headings:
             # Get the parent section
@@ -1664,7 +1685,7 @@ class VenueEventScraper:
         for selector in event_selectors:
             event_elements = soup.select(selector)
             if event_elements:
-                logger.info(f"   Selector '{selector}' found {len(event_elements)} elements")
+                logger.debug("Selector '%s' found %d elements", selector, len(event_elements))
                 total_elements_found += len(event_elements)
             
             for element in event_elements:
@@ -1676,7 +1697,7 @@ class VenueEventScraper:
                     logger.debug(f"Error parsing event element: {e}")
                     continue
         
-        logger.info(f"   Total event elements found: {total_elements_found}, Valid events extracted: {len(events)}")
+        logger.debug("Total event elements found: %d, Valid events extracted: %d", total_elements_found, len(events))
         return events
     
     def _parse_event_element(self, element, venue, tour_url=None, event_type=None, time_range='today'):
@@ -1691,7 +1712,7 @@ class VenueEventScraper:
                 logger.debug(f"   ❌ No title found in element")
                 return None
             
-            logger.info(f"   📝 Extracted title: '{title}'")
+            logger.debug("Extracted title: '%s'", title)
             
             # Extract description first to use in title logic
             description = self._extract_text(element, [
@@ -1723,7 +1744,7 @@ class VenueEventScraper:
                     match = re.search(pattern, element_text)
                     if match:
                         date_text = match.group(1)
-                        logger.info(f"   📅 Found date in element text: {date_text}")
+                        logger.debug("Found date in element text: %s", date_text)
                         break
             
             # Extract location/meeting point with enhanced detection
@@ -1798,11 +1819,11 @@ class VenueEventScraper:
             
             # Validate event quality before returning
             if not self._is_valid_event(event_data):
-                logger.info(f"⚠️ Filtered out: '{title}'")
-                logger.info(f"   Reason: Has time={event_data.get('start_time') is not None}, Has URL={event_data.get('url') != event_data.get('source_url')}, Has desc={bool(description)}, Desc len={len(description or '')}")
+                logger.debug("Filtered out: '%s'", title)
+                logger.debug("Reason: Has time=%s, Has URL=%s, Has desc=%s", event_data.get('start_time') is not None, event_data.get('url') != event_data.get('source_url'), bool(description))
                 return None
             
-            logger.info(f"✅ Valid event found: '{title}'")
+            logger.debug("Valid event found: '%s'", title)
             return event_data
             
         except Exception as e:
@@ -2010,7 +2031,7 @@ class VenueEventScraper:
                             title = "Museum Highlights Tour"
                         else:
                             title = page_title_text
-                        logger.info(f"📝 Extracted real title from page: '{title}'")
+                        logger.debug("Extracted real title from page: '%s'", title)
                         # Clean title before returning
                         return self._clean_title(title)
                 
@@ -2020,7 +2041,7 @@ class VenueEventScraper:
                     h1_text = h1_tag.get_text(strip=True)
                     if 'Collection Tour' in h1_text:
                         title = h1_text
-                        logger.info(f"📝 Extracted title from h1: '{title}'")
+                        logger.debug("Extracted title from h1: '%s'", title)
                         # Clean title before returning
                         return self._clean_title(title)
                         
@@ -2248,14 +2269,14 @@ class VenueEventScraper:
         # If we have a Met Museum URL, scrape the actual page to get schedule info
         if url and 'metmuseum.org' in url:
             try:
-                logger.info(f"🔍 Scraping Met Museum page for schedule: {url}")
+                logger.debug("Scraping Met Museum page for schedule: %s", url)
                 page_html = self._scrape_with_cloudscraper(url)
                 
                 if page_html:
                     soup = BeautifulSoup(page_html, 'html.parser')
                     page_text = soup.get_text()
                     
-                    logger.info(f"📄 Page text sample: {page_text[:500]}")
+                    logger.debug("Page text sample: %s", page_text[:500])
                     
                     # Look for day-of-week patterns with times
                     # Examples: "Fridays 6:30pm - 7:30pm", "Weekdays 3:00pm", "Sundays 1:00pm"
@@ -2270,8 +2291,8 @@ class VenueEventScraper:
                             day_mentioned = match.group(1).lower()
                             weekday = today.strftime('%A').lower()
                             
-                            logger.info(f"📅 Found schedule: {match.group(0)}")
-                            logger.info(f"📅 Day mentioned: {day_mentioned}, Today: {weekday}")
+                            logger.debug("Found schedule: %s", match.group(0))
+                            logger.debug("Day mentioned: %s, Today: %s", day_mentioned, weekday)
                             
                             # Check if today matches the mentioned day
                             if day_mentioned in weekday or (day_mentioned == 'weekday' and weekday not in ['saturday', 'sunday']):
@@ -2299,14 +2320,14 @@ class VenueEventScraper:
                                         end_hour = 0
                                     
                                     end_time = time_class(end_hour, end_minute)
-                                    logger.info(f"⏰ Extracted times from page: {start_time} - {end_time}")
+                                    logger.debug("Extracted times from page: %s - %s", start_time, end_time)
                                 else:
-                                    logger.info(f"⏰ Extracted start time from page: {start_time}")
+                                    logger.debug("Extracted start time from page: %s", start_time)
                                 
                                 break
                             else:
                                 # Day doesn't match - skip this event
-                                logger.info(f"📅 Skipping event: {day_mentioned} tour but today is {weekday}")
+                                logger.debug("Skipping event: %s tour but today is %s", day_mentioned, weekday)
                                 return None, None, None, None
                     
             except Exception as e:
@@ -2326,7 +2347,7 @@ class VenueEventScraper:
                     hour = 0
                 
                 start_time = time(hour, minute)
-                logger.info(f"⏰ Extracted time from URL: {start_time}")
+                logger.debug("Extracted time from URL: %s", start_time)
         
         # If we have a start time but no end time, assume 1-hour duration for tours
         if start_time and not end_time:
@@ -2335,7 +2356,7 @@ class VenueEventScraper:
             start_datetime = datetime.combine(today, start_time)
             end_datetime = start_datetime + timedelta(hours=1)
             end_time = end_datetime.time()
-            logger.info(f"⏰ Assuming 1-hour tour duration: {start_time} - {end_time}")
+            logger.debug("Assuming 1-hour tour duration: %s - %s", start_time, end_time)
         
         # Look for explicit time patterns in date_text
         if date_text:
@@ -2360,7 +2381,7 @@ class VenueEventScraper:
                             parsed_date = date(current_year + 1, month_num, day)
                         start_date = parsed_date
                         end_date = parsed_date
-                        logger.info(f"📅 Parsed date from weekday format: {start_date}")
+                        logger.debug("Parsed date from weekday format: %s", start_date)
                     except ValueError:
                         logger.debug(f"Invalid date: {month_num}/{day}")
             
@@ -2377,7 +2398,7 @@ class VenueEventScraper:
                 if 0 <= start_hour <= 23 and 0 <= start_min <= 59 and 0 <= end_hour <= 23 and 0 <= end_min <= 59:
                     start_time = time_class(start_hour, start_min)
                     end_time = time_class(end_hour, end_min)
-                    logger.info(f"⏰ Parsed 24-hour time range: {start_time} - {end_time}")
+                    logger.debug("Parsed 24-hour time range: %s - %s", start_time, end_time)
             
             # Look for 12-hour time range format with AM/PM (e.g., "5:00 pm–7:00 pm" or "5:00 pm - 7:00 pm")
             if not start_time or not end_time:
@@ -2404,7 +2425,7 @@ class VenueEventScraper:
                     
                     start_time = time_class(start_hour, start_min)
                     end_time = time_class(end_hour, end_min)
-                    logger.info(f"⏰ Parsed 12-hour time range: {start_time} - {end_time}")
+                    logger.debug("Parsed 12-hour time range: %s - %s", start_time, end_time)
             
             # Also check for 12-hour format with AM/PM
             time_patterns = [
@@ -2448,7 +2469,7 @@ class VenueEventScraper:
             start_datetime = datetime.combine(today, start_time)
             end_datetime = start_datetime + timedelta(hours=1)
             end_time = end_datetime.time()
-            logger.info(f"⏰ Assuming 1-hour tour duration: {start_time} - {end_time}")
+            logger.debug("Assuming 1-hour tour duration: %s - %s", start_time, end_time)
         
         return start_date, end_date, start_time, end_time
 
@@ -2582,7 +2603,7 @@ class VenueEventScraper:
                                 break
                         if desc_parts:
                             description = ' '.join(desc_parts)
-                            logger.info(f"📝 Found Hirshhorn description: {description[:100]}...")
+                            logger.debug("Found Hirshhorn description: %s...", description[:100])
             
             # Fallback to standard selectors
             if not description:
@@ -2636,10 +2657,10 @@ class VenueEventScraper:
                     from datetime import timedelta
                     start_date = date.today()
                     end_date = start_date + timedelta(days=730)  # 2 years from now
-                    logger.info(f"✅ Treating '{title}' as permanent/ongoing exhibition (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
+                    logger.debug("Treating '%s' as permanent/ongoing exhibition", title)
                 else:
                     # Date text exists but couldn't parse it - skip
-                    logger.info(f"⚠️ Exhibition '{title}' has unparseable date text '{date_text}' - skipping")
+                    logger.debug("Exhibition '%s' has unparseable date text '%s' - skipping", title, date_text)
                     return None
             
             # For ongoing exhibitions (end_date is None), skip if start_date is in the past
@@ -2648,10 +2669,10 @@ class VenueEventScraper:
             if end_date is None:
                 # Ongoing exhibition - skip if start date is in the past (shouldn't happen, but just in case)
                 if start_date < today:
-                    logger.info(f"⏰ Skipping past ongoing exhibition start: {title} (started {start_date.isoformat()})")
+                    logger.debug("Skipping past ongoing exhibition start: %s", title)
                     return None
             elif end_date < today:
-                logger.info(f"⏰ Exhibition '{title}' ended on {end_date.isoformat()} - skipping")
+                logger.debug("Exhibition '%s' ended - skipping", title)
                 return None
             
             # Extract exhibition details
@@ -2681,7 +2702,7 @@ class VenueEventScraper:
             
             # Validate
             if self._is_valid_event(event_data):
-                logger.info(f"✅ Extracted exhibition from page: '{title}'")
+                logger.debug("Extracted exhibition from page: '%s'", title)
                 return event_data
             else:
                 logger.debug(f"⚠️ Exhibition page did not pass validation: '{title}'")
@@ -2714,7 +2735,7 @@ class VenueEventScraper:
         events = []
         
         try:
-            logger.info(f"🔍 Starting Art Institute events extraction from {page_url}")
+            logger.debug("Starting Art Institute events extraction from %s", page_url)
             
             # Find all date sections first (h3/h2 with dates like "03 Dec Wed" or "03DecWed")
             date_sections = []
@@ -2725,11 +2746,11 @@ class VenueEventScraper:
                 if re.search(r'\d{1,2}\s*[A-Z][a-z]{2,3}\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)', heading_text, re.IGNORECASE):
                     date_sections.append(heading)
             
-            logger.info(f"🔍 Found {len(date_sections)} date sections")
+            logger.debug("Found %d date sections", len(date_sections))
             
             # Find all title elements (these are the event titles)
             title_elements = soup.find_all('strong', class_=re.compile('title', re.I))
-            logger.info(f"🔍 Found {len(title_elements)} title elements")
+            logger.debug("Found %d title elements", len(title_elements))
             
             # Process each title element
             for title_elem in title_elements:
@@ -2769,7 +2790,7 @@ class VenueEventScraper:
                         description_elem = parent.find('p')
                         description_text = description_elem.get_text(strip=True) if description_elem else ''
                         detected_type = self._determine_event_type(venue.venue_type, title, description_text)
-                        logger.info(f"⚠️ No type label found, detected '{detected_type}' from title: '{title}'")
+                        logger.debug("No type label found, detected '%s' from title: '%s'", detected_type, title)
                     
                     # Even if type label was found, double-check with title (label might be wrong)
                     # For example, label says "Tour" but title says "Spotlight Talk"
@@ -2779,7 +2800,7 @@ class VenueEventScraper:
                         title_based_type = self._determine_event_type(venue.venue_type, title, description_text)
                         # If title-based detection is more specific (talk/workshop vs tour), use it
                         if title_based_type in ['talk', 'workshop'] and detected_type == 'tour':
-                            logger.info(f"⚠️ Type label says '{detected_type}' but title suggests '{title_based_type}', using '{title_based_type}': '{title}'")
+                            logger.debug("Type label says '%s' but title suggests '%s', using '%s'", detected_type, title_based_type, title_based_type)
                             detected_type = title_based_type
                     
                     if not detected_type:
@@ -2895,11 +2916,11 @@ class VenueEventScraper:
                     }
                     
                     # Validate event
-                    logger.info(f"🔍 Validating {detected_type} event: '{title}' on {event_date} at {start_time if start_time else 'TBD'}")
-                    logger.info(f"   Event data: type={detected_type}, has_time={start_time is not None}, has_date={event_date is not None}")
+                    logger.debug("Validating %s event: '%s' on %s", detected_type, title, event_date)
+                    logger.debug("Event data: type=%s, has_time=%s, has_date=%s", detected_type, start_time is not None, event_date is not None)
                     if self._is_valid_event(event_data):
                         events.append(event_data)
-                        logger.info(f"✅ Extracted {detected_type} event: '{title}' on {event_date} at {start_time if start_time else 'TBD'}")
+                        logger.debug("Extracted %s event: '%s' on %s", detected_type, title, event_date)
                     else:
                         logger.warning(f"⚠️ Event '{title}' did not pass validation (type: {detected_type}, time: {start_time})")
                         # Log why it failed validation
@@ -2915,17 +2936,17 @@ class VenueEventScraper:
                     logger.error(traceback.format_exc())
                     continue
             
-            logger.info(f"📦 Art Institute events extraction complete: found {len(events)} events")
+            logger.debug("Art Institute events extraction complete: found %d events", len(events))
             if event_type:
                 filtered = [e for e in events if e.get('event_type') == event_type]
-                logger.info(f"   Filtered to {len(filtered)} {event_type} events")
+                logger.debug("Filtered to %d %s events", len(filtered), event_type)
             else:
                 # Log breakdown by type
                 type_counts = {}
                 for e in events:
                     etype = e.get('event_type', 'unknown')
                     type_counts[etype] = type_counts.get(etype, 0) + 1
-                logger.info(f"   Event breakdown by type: {type_counts}")
+                logger.debug("Event breakdown by type: %s", type_counts)
         
         except Exception as e:
             logger.error(f"Error extracting events from Art Institute listing page: {e}")
@@ -2959,7 +2980,7 @@ class VenueEventScraper:
             # Hirshhorn uses a card-based layout where each exhibition has its own page
             # We need to extract links and visit individual pages for full descriptions
             if 'hirshhorn.si.edu' in page_url.lower() and '/exhibitions-events' in page_url.lower():
-                logger.info(f"🔍 Processing Hirshhorn listing page: {page_url}")
+                logger.debug("Processing Hirshhorn listing page: %s", page_url)
                 
                 # Find all exhibition links (format: /exhibitions/[slug]/)
                 exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in str(href).lower() and href != '/exhibitions/' and href != '/exhibitions-events/')
@@ -2984,13 +3005,14 @@ class VenueEventScraper:
                             seen_urls.add(normalized)
                             unique_exhibition_links.append((link, full_url))
                 
-                logger.info(f"📋 Found {len(unique_exhibition_links)} unique Hirshhorn exhibition links")
+                logger.debug("Found %d unique Hirshhorn exhibition links", len(unique_exhibition_links))
                 
                 # Visit each exhibition page to extract full details
-                for link_elem, exhibition_url in unique_exhibition_links[:max_exhibitions_per_venue]:
+                exhibition_batch = unique_exhibition_links[:max_exhibitions_per_venue]
+                for i, (link_elem, exhibition_url) in enumerate(exhibition_batch, 1):
                     if len(events) >= max_exhibitions_per_venue:
                         break
-                    
+                    update_progress(2, 4, f"Scraping exhibition {i}/{len(exhibition_batch)}...", events_found=len(events))
                     try:
                         # Extract title from listing page (faster than visiting page first)
                         title = None
@@ -3015,7 +3037,7 @@ class VenueEventScraper:
                                 date_text = date_elem.get_text(strip=True)
                         
                         # Visit individual exhibition page for full description
-                        logger.info(f"🔍 Fetching Hirshhorn exhibition page: {exhibition_url}")
+                        logger.debug("Fetching Hirshhorn exhibition page: %s", exhibition_url)
                         try:
                             exhibition_response = self.session.get(exhibition_url, timeout=10)
                             exhibition_response.raise_for_status()
@@ -3056,7 +3078,7 @@ class VenueEventScraper:
                                 
                                 if desc_parts:
                                     description = ' '.join(desc_parts)
-                                    logger.info(f"📝 Found Hirshhorn description ({len(description)} chars): {description[:100]}...")
+                                    logger.debug("Found Hirshhorn description (%d chars)", len(description))
                             
                             # Fallback to standard selectors if no description found
                             if not description:
@@ -3174,7 +3196,7 @@ class VenueEventScraper:
                             
                             if self._is_valid_event(event_data):
                                 end_date_str = end_date.isoformat() if end_date else "ongoing"
-                                logger.info(f"✅ Extracted Hirshhorn exhibition: '{title}' ({start_date.isoformat()} to {end_date_str}) [description: {len(description or '')} chars]")
+                                logger.debug("Extracted Hirshhorn exhibition: %s", title)
                                 events.append(event_data)
                         
                         except Exception as e:
@@ -3186,12 +3208,13 @@ class VenueEventScraper:
                         continue
                 
                 if events:
-                    logger.info(f"📦 Hirshhorn listing page extraction complete: found {len(events)} exhibitions")
+                    update_progress(2, 4, f"Finished scraping {len(events)} exhibitions...", events_found=len(events))
+                    logger.info("Hirshhorn: %d exhibitions", len(events))
                     return events[:max_exhibitions_per_venue]
             
             # Special handling for OCMA (Orange County Museum of Art)
             elif 'ocma.art' in page_url.lower() and '/exhibitions' in page_url.lower():
-                logger.info(f"🔍 Processing OCMA listing page: {page_url}")
+                logger.debug("Processing OCMA listing page: %s", page_url)
                 
                 # Find all exhibition links
                 exhibition_links = soup.find_all('a', href=lambda href: href and '/exhibitions/' in str(href).lower() and href != '/exhibitions/')
@@ -3344,7 +3367,7 @@ class VenueEventScraper:
                     })
                 
                 if events:
-                    logger.info(f"📦 OCMA listing page extraction complete: found {len(events)} exhibitions")
+                    logger.debug("OCMA listing page extraction complete: found %d exhibitions", len(events))
                     return events[:max_exhibitions_per_venue]
             
             return events
@@ -3674,11 +3697,11 @@ class VenueEventScraper:
                 original_end_time = end_time
                 if full_url:
                     try:
-                        logger.info(f"   🔍 Fetching event page for details: {full_url}")
+                        logger.debug("Fetching event page for details: %s", full_url)
                         event_response = self.session.get(full_url, timeout=10)
-                        logger.info(f"   📡 Event page response status: {event_response.status_code} for {full_url}")
+                        logger.debug("Event page response status: %s for %s", event_response.status_code, full_url)
                         if event_response.status_code == 200:
-                            logger.info(f"   ✅ Successfully fetched event page: {full_url}")
+                            logger.debug("Successfully fetched event page: %s", full_url)
                             event_soup = BeautifulSoup(event_response.content, 'html.parser')
                             # Look for main content area
                             main_content = event_soup.find('article') or event_soup.find('main') or event_soup
@@ -3689,7 +3712,7 @@ class VenueEventScraper:
                             h2_elements = main_content.find_all('h2') if main_content else []
                             other_elements = main_content.find_all(['h1', 'h3', 'p']) if main_content else []
                             date_time_elements = h2_elements + other_elements  # h2 first, then others
-                            logger.info(f"   🔍 Checking {len(h2_elements)} h2 elements and {len(other_elements)} other elements for date/time on {full_url}")
+                            logger.debug("Checking %d h2 elements and %d other elements for date/time", len(h2_elements), len(other_elements))
                             
                             # Compile patterns once before the loop
                             # Pattern 1: "5:00–6:00 PM" (shared am/pm at the end) - OCMA format
@@ -3708,14 +3731,14 @@ class VenueEventScraper:
                                 elem_text = elem.get_text(strip=True)
                                 # Log all h2 elements (they're most likely to contain date/time)
                                 if elem.name == 'h2':
-                                    logger.info(f"   📝 Checking h2 element: {elem_text[:150]}")
+                                    logger.debug("Checking h2 element: %s", elem_text[:150])
                                 elif date_time_elements.index(elem) < 3:
                                     logger.debug(f"   📝 Checking element {elem.name}: {elem_text[:80]}")
                                 
                                 # Try pattern 1 first (shared am/pm): "5:00–6:00 PM"
                                 match = date_time_pattern1.search(elem_text)
                                 if match:
-                                    logger.info(f"   ✅ Found date/time pattern (shared am/pm) in {elem.name}: {elem_text}")
+                                    logger.debug("Found date/time pattern (shared am/pm) in %s", elem.name)
                                     # Pattern 1 groups: date, start_hour, start_min, end_hour, end_min, am_pm
                                     date_str = match.group(1).strip()
                                     start_time_str = f"{match.group(2)}:{match.group(3)} {match.group(6)}.m."
@@ -3725,7 +3748,7 @@ class VenueEventScraper:
                                 # Try pattern 2 (am/pm after each time): "5:00 PM–6:00 PM"
                                 match = date_time_pattern2.search(elem_text)
                                 if match:
-                                    logger.info(f"   ✅ Found date/time pattern (separate am/pm) in {elem.name}: {elem_text}")
+                                    logger.debug("Found date/time pattern (separate am/pm) in %s", elem.name)
                                     # Pattern 2 groups: date, start_hour, start_min, start_am_pm, end_hour, end_min, end_am_pm
                                     date_str = match.group(1).strip()
                                     start_time_str = f"{match.group(2)}:{match.group(3)} {match.group(4)}.m."
@@ -3776,7 +3799,7 @@ class VenueEventScraper:
                                                     hour = 0
                                                 new_start_time = dt_time(hour, minute)
                                                 start_time = new_start_time
-                                                logger.info(f"   ⏰ Updated start_time from event page: {start_time}")
+                                                logger.debug("Updated start_time from event page: %s", start_time)
                                             except (ValueError, IndexError) as e:
                                                 logger.warning(f"   ⚠️ Failed to parse start_time_str '{start_time_str}': {e}")
                                                 # Keep original time if parsing fails
@@ -3797,7 +3820,7 @@ class VenueEventScraper:
                                                     hour = 0
                                                 new_end_time = dt_time(hour, minute)
                                                 end_time = new_end_time
-                                                logger.info(f"   ⏰ Updated end_time from event page: {end_time}")
+                                                logger.debug("Updated end_time from event page: %s", end_time)
                                             except (ValueError, IndexError) as e:
                                                 logger.warning(f"   ⚠️ Failed to parse end_time_str '{end_time_str}': {e}")
                                                 # Keep original time if parsing fails
@@ -3805,7 +3828,7 @@ class VenueEventScraper:
                                                     end_time = original_end_time
                                     
                                     if start_time or end_time:
-                                        logger.info(f"   ✅ Updated times from event page - Start: {start_time}, End: {end_time}")
+                                        logger.debug("Updated times from event page - Start: %s, End: %s", start_time, end_time)
                                     break
                             
                             # Also look for single time pattern (ONLY if time range wasn't found)
@@ -3867,7 +3890,7 @@ class VenueEventScraper:
                                                 new_start_time = dt_time(hour, minute)
                                                 if not start_time or start_time != new_start_time:
                                                     start_time = new_start_time
-                                                    logger.info(f"   ⏰ Updated start_time from event page (single time): {start_time}")
+                                                    logger.debug("Updated start_time from event page (single time): %s", start_time)
                                             except (ValueError, IndexError) as e:
                                                 logger.warning(f"   ⚠️ Failed to parse time_str '{time_str}': {e}")
                                                 # Keep original time if parsing fails
@@ -3888,12 +3911,12 @@ class VenueEventScraper:
                                 # Use event page description if it's longer/more complete
                                 if event_page_description and (not description or len(event_page_description) > len(description)):
                                     description = event_page_description
-                                    logger.info(f"   📝 Extracted description from event page (length: {len(description)} chars)")
+                                    logger.debug("Extracted description from event page (length: %d chars)", len(description))
                                 elif description and not event_page_description:
                                     logger.debug(f"   📝 Using description from calendar listing (length: {len(description)} chars)")
                                 elif event_page_description:
                                     description = event_page_description
-                                    logger.info(f"   📝 Extracted description from event page (length: {len(description)} chars)")
+                                    logger.debug("Extracted description from event page (length: %d chars)", len(description))
                             
                             # Also get full text content for better parsing (includes headings, etc.)
                             full_text = main_content.get_text() if main_content else ''
@@ -3952,7 +3975,7 @@ class VenueEventScraper:
                                                 start_datetime = datetime.combine(start_date, start_time)
                                                 end_datetime = start_datetime + timedelta(minutes=duration_minutes)
                                                 end_time = end_datetime.time()
-                                                logger.info(f"   ⏱️ Calculated end time from {duration_minutes}min duration (matched pattern: {pattern}): {end_time}")
+                                                logger.debug("Calculated end time from %dmin duration: %s", duration_minutes, end_time)
                                             break
                                     else:
                                         # No duration pattern matched
@@ -3974,7 +3997,7 @@ class VenueEventScraper:
                                         start_datetime = datetime.combine(start_date, start_time)
                                         end_datetime = start_datetime + timedelta(minutes=default_duration_minutes)
                                         end_time = end_datetime.time()
-                                        logger.info(f"   ⏱️ Set default end time for {determined_type}: {end_time} (default duration: {default_duration_minutes} minutes)")
+                                        logger.debug("Set default end time for %s: %s", determined_type, end_time)
                                 
                                 # Extract registration requirement from description
                                 # Look for patterns like "Tickets are free, required", "Registration required", etc.
@@ -4032,7 +4055,7 @@ class VenueEventScraper:
                         start_date_obj, end_date_obj = get_ongoing_exhibition_dates()
                         start_date = start_date_obj
                         end_date = end_date_obj
-                        logger.info(f"   🔄 Treating '{title}' as ongoing/permanent exhibition (start: {start_date.isoformat()}, end: {end_date.isoformat()})")
+                        logger.debug("Treating '%s' as ongoing/permanent exhibition", title)
                     else:
                         logger.warning(f"   ⚠️ Skipping event '{title}' - missing start_date")
                         continue
@@ -4042,12 +4065,8 @@ class VenueEventScraper:
                     title = self._clean_title(title)
                 
                 # Log what we're about to save
-                logger.info(f"   📦 Saving event: '{title}'")
-                logger.info(f"      - Start date: {start_date.isoformat() if start_date else 'None'}")
-                logger.info(f"      - Description: {len(description)} chars" + (f" ({description[:50]}...)" if description else " (empty)"))
-                logger.info(f"      - Start time: {start_time.isoformat() if start_time else 'None'}")
-                logger.info(f"      - End time: {end_time.isoformat() if end_time else 'None'}")
-                logger.info(f"      - URL: {full_url}")
+                logger.debug("Saving event: '%s'", title)
+                logger.debug("Start date: %s, Description: %d chars, Start time: %s, End time: %s", start_date.isoformat() if start_date else 'None', len(description or ''), start_time.isoformat() if start_time else 'None', end_time.isoformat() if end_time else 'None')
                 
                 # Final check: Ensure talks and workshops always have end times
                 # This is a safety net in case duration wasn't found earlier
@@ -4059,7 +4078,7 @@ class VenueEventScraper:
                             start_datetime = datetime.combine(start_date, start_time)
                             end_datetime = start_datetime + timedelta(minutes=60)
                             end_time = end_datetime.time()
-                            logger.info(f"   ⏱️ Final check: Set default end time for talk: {end_time}")
+                            logger.debug("Final check: Set default end time for talk: %s", end_time)
                     elif determined_type == 'workshop':
                         # Default: workshops are usually 2 hours
                         from datetime import datetime, timedelta
@@ -4067,7 +4086,7 @@ class VenueEventScraper:
                             start_datetime = datetime.combine(start_date, start_time)
                             end_datetime = start_datetime + timedelta(minutes=120)
                             end_time = end_datetime.time()
-                            logger.info(f"   ⏱️ Final check: Set default end time for workshop: {end_time}")
+                            logger.debug("Final check: Set default end time for workshop: %s", end_time)
                 
                 events.append({
                     'title': title,
@@ -4090,7 +4109,7 @@ class VenueEventScraper:
                     'organizer': venue.name
                 })
             
-            logger.info(f"📅 Extracted {len(events)} events from OCMA calendar page")
+            logger.debug("Extracted %d events from OCMA calendar page", len(events))
             
         except Exception as e:
             logger.debug(f"Error extracting OCMA calendar events: {e}")
@@ -4212,7 +4231,7 @@ class VenueEventScraper:
                     'organizer': venue.name
                 })
             
-            logger.info(f"📦 Extracted {len(events)} exhibitions from British Museum exhibitions-events page")
+            logger.debug("Extracted %d exhibitions from British Museum exhibitions-events page", len(events))
             
         except Exception as e:
             logger.debug(f"Error extracting British Museum exhibitions: {e}")
@@ -4336,7 +4355,7 @@ class VenueEventScraper:
                     'organizer': venue.name
                 })
             
-            logger.info(f"📅 Extracted {len(events)} tours/talks from British Museum tours-and-talks page")
+            logger.debug("Extracted %d tours/talks from British Museum tours-and-talks page", len(events))
             
         except Exception as e:
             logger.debug(f"Error extracting British Museum tours/talks: {e}")
@@ -4385,7 +4404,7 @@ class VenueEventScraper:
             # Save back to venue
             venue.additional_info = json.dumps(info)
             db.session.commit()
-            logger.info(f"💾 Saved event paths for {venue.name}: {paths}")
+            logger.debug("Saved event paths for %s: %s", venue.name, paths)
         except Exception as e:
             logger.warning(f"⚠️  Failed to save event paths for {venue.name}: {e}")
             db.session.rollback()
@@ -4430,7 +4449,7 @@ class VenueEventScraper:
             ]
         }
         
-        logger.info(f"🔍 Discovering event paths for {venue.name}...")
+        logger.debug("Discovering event paths for %s", venue.name)
         
         for event_type, paths in path_candidates.items():
             for path in paths:
@@ -4464,7 +4483,7 @@ class VenueEventScraper:
                             if event_type not in discovered_paths:
                                 discovered_paths[event_type] = []
                             discovered_paths[event_type].append(path)
-                            logger.info(f"   ✅ Found {event_type} path: {path}")
+                            logger.debug("Found %s path: %s", event_type, path)
                             break  # Found one working path for this type, move to next type
                 
                 except (Timeout, ConnectionError, RequestException) as e:
@@ -4491,7 +4510,7 @@ class VenueEventScraper:
             logger.debug(f"   No saved paths in _use_saved_paths_for_scraping for {venue.name}")
             return events
         
-        logger.info(f"   Using saved paths: {saved_paths}")
+        logger.debug("Using saved paths: %s", saved_paths)
         
         base_url = venue.website_url.rstrip('/')
         parsed = urlparse(base_url)
@@ -4532,7 +4551,7 @@ class VenueEventScraper:
                 # Relative path - construct from base domain
                 full_url = base_domain + path
             try:
-                logger.info(f"📄 Scraping saved {path_type} path: {full_url}")
+                logger.debug("Scraping saved %s path: %s", path_type, full_url)
                 response = self.session.get(full_url, timeout=10)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
@@ -4545,7 +4564,7 @@ class VenueEventScraper:
                     
                     if extracted:
                         events.extend(extracted)
-                        logger.info(f"   ✅ Extracted {len(extracted)} events from {path_type} path")
+                        logger.debug("Extracted %d events from %s path", len(extracted), path_type)
             except Exception as e:
                 logger.debug(f"   ⚠️  Error scraping saved path {path}: {e}")
                 continue
@@ -4570,7 +4589,7 @@ class VenueEventScraper:
         scraped_urls = set()  # Track URLs we've already scraped
         
         try:
-            logger.info(f"🔍 Extracting Hirshhorn tours from JSON-LD structured data")
+            logger.debug("Extracting Hirshhorn tours from JSON-LD")
             
             # First, find all individual tour event page URLs
             tour_event_urls = []
@@ -4636,29 +4655,37 @@ class VenueEventScraper:
                     continue
             
             # Now scrape individual tour event pages for more detailed information
-            logger.info(f"🔍 Found {len(tour_event_urls)} individual tour event pages to scrape")
-            for event_url in tour_event_urls[:max_tours_per_venue]:  # Limit to max_tours_per_venue
+            tour_batch = tour_event_urls[:max_tours_per_venue]
+            logger.debug("Found %d tour event pages to scrape", len(tour_event_urls))
+            for i, event_url in enumerate(tour_batch, 1):
+                update_progress(2, 4, f"Scraping tour {i}/{len(tour_batch)}...", events_found_add=len(events))
                 try:
-                    logger.info(f"📄 Scraping individual tour event page: {event_url}")
+                    logger.debug("Scraping tour event page: %s", event_url)
                     tour_event = self._scrape_hirshhorn_tour_event_page(event_url, venue, page_url, time_range)
                     if tour_event and self._is_valid_event(tour_event):
-                        # Check if we already have this event from JSON-LD
+                        # Check if we already have this event from JSON-LD (match by URL + date + time)
+                        def _tour_key(e):
+                            url = (e.get('url') or '').rstrip('/')
+                            sd = e.get('start_date')
+                            sd_str = sd.isoformat() if hasattr(sd, 'isoformat') else (str(sd)[:10] if sd else '')
+                            st = e.get('start_time')
+                            st_str = st.isoformat()[:8] if hasattr(st, 'isoformat') and st else (str(st) if st else '')
+                            return (url, sd_str, st_str)
                         existing = False
+                        tour_key = _tour_key(tour_event)
                         for existing_event in events:
-                            if (existing_event.get('url') == tour_event.get('url') and 
-                                existing_event.get('start_date') == tour_event.get('start_date')):
-                                # Update existing event with more detailed info from page scraping
+                            if _tour_key(existing_event) == tour_key:
                                 existing_event.update(tour_event)
                                 existing = True
                                 break
-                        
                         if not existing:
                             events.append(tour_event)
                 except Exception as e:
                     logger.debug(f"⚠️ Error scraping tour event page {event_url}: {e}")
                     continue
             
-            logger.info(f"📦 Extracted {len(events)} tours from Hirshhorn tours page")
+            update_progress(2, 4, f"Finished scraping {len(events)} tours...", events_found_add=len(events))
+            logger.info("Hirshhorn: %d tours", len(events))
             return events[:max_tours_per_venue]
         
         except Exception as e:
@@ -4685,7 +4712,7 @@ class VenueEventScraper:
             import html
             import re
             
-            logger.info(f"🔍 Scraping Hirshhorn tour event page: {event_url}")
+            logger.debug("Scraping Hirshhorn tour event page: %s", event_url)
             
             # Fetch the page
             try:
@@ -4729,13 +4756,13 @@ class VenueEventScraper:
                     next_h2 = h1.find_next('h2')
                 if next_h2:
                     date_time_text = next_h2.get_text(strip=True)
-                    logger.info(f"   📅 Found date/time in h2: {date_time_text}")
+                    logger.debug("Found date/time in h2: %s", date_time_text)
                 else:
                     # Also check if h1 itself contains date/time
                     h1_text = h1.get_text(strip=True)
                     if '|' in h1_text and re.search(r'\d{1,2}:\d{2}\s*[ap]m', h1_text, re.IGNORECASE):
                         date_time_text = h1_text
-                        logger.info(f"   📅 Found date/time in h1: {date_time_text}")
+                        logger.debug("Found date/time in h1: %s", date_time_text)
             
             # Also check for date/time in the page text near the title
             if not date_time_text:
@@ -4757,7 +4784,7 @@ class VenueEventScraper:
                         date_time_match = re.search(r'([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})\s*\|\s*(\d{1,2}:\d{2}\s*[ap]m[–—\-]\d{1,2}:\d{2}\s*[ap]m)', combined_text, re.IGNORECASE)
                         if date_time_match:
                             date_time_text = date_time_match.group(0)
-                            logger.info(f"   📅 Found date/time near h1: {date_time_text}")
+                            logger.debug("Found date/time near h1: %s", date_time_text)
             
             # Also search the full page text for date/time patterns
             if not date_time_text:
@@ -4772,7 +4799,7 @@ class VenueEventScraper:
                     date_time_match = re.search(pattern, page_text, re.IGNORECASE)
                     if date_time_match:
                         date_time_text = date_time_match.group(0)
-                        logger.info(f"   📅 Found date/time in page text: {date_time_text}")
+                        logger.debug("Found date/time in page text: %s", date_time_text)
                         break
             
             # Check JSON-LD on the page for structured data (but don't return early - we want to extract more details)
@@ -4795,7 +4822,7 @@ class VenueEventScraper:
                                 dt_start = dt.fromisoformat(start_date_str.replace('Z', '+00:00'))
                                 json_ld_start_date = dt_start.date()
                                 json_ld_start_time = dt_start.time()
-                                logger.info(f"   📅 Found start date/time in JSON-LD: {json_ld_start_date} {json_ld_start_time}")
+                                logger.debug("Found start date/time in JSON-LD: %s %s", json_ld_start_date, json_ld_start_time)
                             except:
                                 pass
                         if end_date_str:
@@ -4804,7 +4831,7 @@ class VenueEventScraper:
                                 dt_end = dt.fromisoformat(end_date_str.replace('Z', '+00:00'))
                                 json_ld_end_date = dt_end.date()
                                 json_ld_end_time = dt_end.time()
-                                logger.info(f"   📅 Found end date/time in JSON-LD: {json_ld_end_date} {json_ld_end_time}")
+                                logger.debug("Found end date/time in JSON-LD: %s %s", json_ld_end_date, json_ld_end_time)
                             except:
                                 pass
                 except:
@@ -4819,11 +4846,11 @@ class VenueEventScraper:
             
             # If we have JSON-LD data, use it as primary source
             if json_ld_start_date and json_ld_start_time:
-                logger.info(f"   ✅ Using JSON-LD date/time: {start_date} {start_time}")
+                logger.debug("Using JSON-LD date/time: %s %s", start_date, start_time)
             
             # Also try to parse from date_time_text if available (this will override JSON-LD if more specific)
             if date_time_text:
-                logger.info(f"   📝 Parsing date/time from text: {date_time_text}")
+                logger.debug("Parsing date/time from text: %s", date_time_text)
                 # Parse date: "December 5, 2025" or "December 6, 2025"
                 date_match = re.search(r'([A-Z][a-z]+)\s+(\d{1,2}),?\s+(\d{4})', date_time_text)
                 if date_match:
@@ -4840,7 +4867,7 @@ class VenueEventScraper:
                     if month:
                         start_date = date(year, month, day)
                         end_date = start_date
-                        logger.info(f"   📅 Parsed date from text: {start_date}")
+                        logger.debug("Parsed date from text: %s", start_date)
             
                 # Parse time range: "11:30 am–12:30 pm" or "11:30 am - 12:30 pm"
                 # Try multiple patterns to handle different dash types and spacing
@@ -4854,7 +4881,7 @@ class VenueEventScraper:
                 for pattern in time_patterns:
                     time_range_match = re.search(pattern, date_time_text, re.IGNORECASE)
                     if time_range_match:
-                        logger.info(f"   ⏰ Matched time pattern: {time_range_match.group(0)}")
+                        logger.debug("Matched time pattern: %s", time_range_match.group(0))
                         break
                 
                 if time_range_match:
@@ -4878,7 +4905,7 @@ class VenueEventScraper:
                     
                     start_time = time_class(start_hour, start_min)
                     end_time = time_class(end_hour, end_min)
-                    logger.info(f"   ✅ Parsed times: {start_time} - {end_time}")
+                    logger.debug("Parsed times: %s - %s", start_time, end_time)
                 else:
                     # Try single time: "11:30 am"
                     single_time_match = re.search(r'(\d{1,2}):(\d{2})\s*([ap]m)', date_time_text, re.IGNORECASE)
@@ -4908,11 +4935,11 @@ class VenueEventScraper:
                     day = int(url_date_match.group(3))
                     start_date = date(year, month, day)
                     end_date = start_date
-                    logger.info(f"   📅 Extracted date from URL: {start_date}")
+                    logger.debug("Extracted date from URL: %s", start_date)
             
             # If we still don't have times, try to extract from page text more broadly
             if not start_time or not end_time:
-                logger.info(f"   🔍 Searching for times in page text (start_time={start_time}, end_time={end_time})")
+                logger.debug("Searching for times in page text")
                 # Look for time patterns anywhere in the page text
                 # Try multiple patterns to handle different dash types
                 time_patterns = [
@@ -4925,7 +4952,7 @@ class VenueEventScraper:
                 for pattern in time_patterns:
                     time_range_match = re.search(pattern, page_text, re.IGNORECASE)
                     if time_range_match:
-                        logger.info(f"   ⏰ Found time range in page text: {time_range_match.group(0)}")
+                        logger.debug("Found time range in page text: %s", time_range_match.group(0))
                         break
                 
                 if time_range_match:
@@ -4949,7 +4976,7 @@ class VenueEventScraper:
                     
                     start_time = time_class(start_hour, start_min)
                     end_time = time_class(end_hour, end_min)
-                    logger.info(f"   ⏰ Extracted times from page text: {start_time} - {end_time}")
+                    logger.debug("Extracted times from page text: %s - %s", start_time, end_time)
                 else:
                     # Try single time pattern
                     single_time_match = re.search(r'(\d{1,2}):(\d{2})\s*([ap]m)', page_text, re.IGNORECASE)
@@ -4969,7 +4996,7 @@ class VenueEventScraper:
                         start_datetime = datetime.combine(start_date or date.today(), start_time)
                         end_datetime = start_datetime + timedelta(hours=1)
                         end_time = end_datetime.time()
-                        logger.info(f"   ⏰ Extracted single time from page text: {start_time} (assuming 1-hour duration: {end_time})")
+                        logger.debug("Extracted single time from page text: %s (assuming 1-hour duration: %s)", start_time, end_time)
             
             # Extract description
             description = ''
@@ -5045,7 +5072,7 @@ class VenueEventScraper:
                         location_part = re.split(r'\s+\d|FREE|Registration|Join|Duration|Minutes|30|60|–', location_part, flags=re.IGNORECASE)[0].strip()
                         if location_part and len(location_part) < 100:  # Reasonable length
                             location = location_part
-                            logger.info(f"   📍 Extracted location from element: {location}")
+                            logger.debug("Extracted location from element: %s", location)
                             break
             
             # If not found in structured elements, search page text
@@ -5057,7 +5084,7 @@ class VenueEventScraper:
                     location = match.group(1).strip()
                     # Clean up - remove extra whitespace
                     location = re.sub(r'\s+', ' ', location)
-                    logger.info(f"   📍 Extracted location from venue pattern: {location}")
+                    logger.debug("Extracted location from venue pattern: %s", location)
                 else:
                     # Pattern 2: "MEET IN THE LOBBY" or "MEET AT THE LOBBY"
                     meeting_patterns = [
@@ -5076,7 +5103,7 @@ class VenueEventScraper:
                                 meeting_point = meeting_point.replace(venue.name, '').strip(' -')
                             if meeting_point and len(meeting_point) < 100:
                                 location = meeting_point
-                                logger.info(f"   📍 Extracted location from meeting pattern: {location}")
+                                logger.debug("Extracted location from meeting pattern: %s", location)
                                 break
             
             # If still not found, try JSON-LD
@@ -5105,7 +5132,7 @@ class VenueEventScraper:
                                         else:
                                             location = loc_name
                                         if location and len(location) < 100:
-                                            logger.info(f"   📍 Extracted location from JSON-LD: {location}")
+                                            logger.debug("Extracted location from JSON-LD: %s", location)
                                             break
                     except:
                         continue
@@ -5152,7 +5179,7 @@ class VenueEventScraper:
                         else:
                             registration_info = registration_text
                     
-                    logger.info(f"   📝 Found registration info: {registration_info} (required: {is_registration_required})")
+                    logger.debug("Found registration info: required=%s", is_registration_required)
                     break
             
             # Look for registration URL/links
@@ -5169,7 +5196,7 @@ class VenueEventScraper:
                     potential_url = potential_url.strip('"\'')
                     if potential_url.startswith('http'):
                         registration_url = potential_url
-                        logger.info(f"   🔗 Found registration URL: {registration_url}")
+                        logger.debug("Found registration URL: %s", registration_url)
                         break
                 if registration_url:
                     break
@@ -5186,7 +5213,7 @@ class VenueEventScraper:
                                 registration_url = urljoin(event_url, href)
                             else:
                                 registration_url = href
-                            logger.info(f"   🔗 Found registration URL from link: {registration_url}")
+                            logger.debug("Found registration URL from link: %s", registration_url)
                             break
             
             # Look for registration opens date/time
@@ -5213,7 +5240,7 @@ class VenueEventScraper:
                         month = month_map.get(month_name)
                         if month:
                             registration_opens_date = date(year, month, day)
-                            logger.info(f"   📅 Found registration opens date: {registration_opens_date}")
+                            logger.debug("Found registration opens date: %s", registration_opens_date)
                     elif ':' in match.group(0):
                         # Time pattern
                         hour = int(match.group(1))
@@ -5224,7 +5251,7 @@ class VenueEventScraper:
                         elif ampm == 'AM' and hour == 12:
                             hour = 0
                         registration_opens_time = time_class(hour, minute)
-                        logger.info(f"   ⏰ Found registration opens time: {registration_opens_time}")
+                        logger.debug("Found registration opens time: %s", registration_opens_time)
                     break
             
             # Clean title
@@ -5286,7 +5313,7 @@ class VenueEventScraper:
                             
                             start_time = time_class(start_hour, start_min)
                             end_time = time_class(end_hour, end_min)
-                            logger.info(f"   ✅ Successfully parsed times from HTML: {start_time} - {end_time}")
+                            logger.debug("Successfully parsed times from HTML: %s - %s", start_time, end_time)
                             break
                         except Exception as e:
                             logger.warning(f"   ⚠️ Error parsing time from HTML: {e}")
@@ -5300,12 +5327,7 @@ class VenueEventScraper:
                     # The update logic in app.py will add times if they become available
             
             # Log extracted information for debugging
-            logger.info(f"   ✅ Successfully extracted tour details:")
-            logger.info(f"      Title: {title}")
-            logger.info(f"      Date: {start_date}")
-            logger.info(f"      Start time: {start_time}")
-            logger.info(f"      End time: {end_time}")
-            logger.info(f"      URL: {event_url}")
+            logger.debug("Successfully extracted tour details: %s on %s", title, start_date)
             
             # Create event data
             start_time_str = start_time.isoformat() if start_time else None
@@ -5336,9 +5358,8 @@ class VenueEventScraper:
             
             # Log success with times if available - CRITICAL LOGGING
             if start_time:
-                logger.info(f"✅ Scraped Hirshhorn tour event page: '{title}' ({start_date.isoformat()} {start_time.isoformat()}{' - ' + end_time.isoformat() if end_time else ''})")
-                logger.info(f"   📤 RETURNING event with start_time='{start_time_str}', end_time='{end_time_str}'")
-                logger.info(f"   📤 Full event data: start_time={tour_event.get('start_time')}, end_time={tour_event.get('end_time')}")
+                logger.debug("Scraped Hirshhorn tour: %s (%s)", title, start_date.isoformat())
+                logger.debug("RETURNING event with start_time=%s, end_time=%s", start_time_str, end_time_str)
             else:
                 logger.warning(f"⚠️ Scraped Hirshhorn tour event page but NO TIMES: '{title}' ({start_date.isoformat()})")
                 logger.warning(f"   📤 RETURNING event with start_time=None, end_time=None")
@@ -5477,7 +5498,7 @@ class VenueEventScraper:
                 'registration_opens_time': None
             }
             
-            logger.info(f"✅ Parsed Hirshhorn tour: '{title}' ({start_date.isoformat()} {start_time.isoformat()})")
+            logger.debug("Parsed Hirshhorn tour: %s", title)
             return tour_event
         
         except Exception as e:
@@ -5493,7 +5514,7 @@ class VenueEventScraper:
         # First, try shared utility function for structured HTML date extraction
         date_text = extract_date_range_from_soup(soup)
         if date_text:
-            logger.info(f"📅 Found date using shared utility: {date_text}")
+            logger.debug("Found date using shared utility: %s", date_text)
             return date_text
         
         # Special handling for Hirshhorn: dates are often in h2 right after h1
@@ -5505,7 +5526,7 @@ class VenueEventScraper:
                 h2_text = next_h2.get_text(strip=True)
                 # Check if it looks like a date range (e.g., "Apr 04, 2025–Jan 03, 2027")
                 if re.search(r'[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}[–—\-]', h2_text):
-                    logger.info(f"📅 Found date in h2 after h1: {h2_text}")
+                    logger.debug("Found date in h2 after h1: %s", h2_text)
                     return h2_text
 
         # Special handling for SFMOMA: dates are often in specific divs or spans
@@ -5527,11 +5548,11 @@ class VenueEventScraper:
                 if date_text and len(date_text) > 5:
                     # Check if it's a date range (contains dash or date pattern)
                     if '–' in date_text or '—' in date_text or ('-' in date_text and len(date_text.split('-')) > 1):
-                        logger.info(f"📅 Found SFMOMA date in {selector}: {date_text}")
+                        logger.debug("Found SFMOMA date in %s: %s", selector, date_text)
                         return date_text
                     # Also check for date patterns even without dash (might be formatted differently)
                     if re.search(r'[A-Z][a-z]{2,9}\s+\d{1,2},?\s*\d{4}', date_text):
-                        logger.info(f"📅 Found SFMOMA date pattern in {selector}: {date_text}")
+                        logger.debug("Found SFMOMA date pattern in %s: %s", selector, date_text)
                         return date_text
         
         # Look for date patterns in various places
@@ -5584,7 +5605,7 @@ class VenueEventScraper:
                 date_text = match.group(1)
                 # Verify it's actually a range
                 if '–' in date_text or '—' in date_text or ('-' in date_text and len(date_text.split('-')) > 1):
-                    logger.info(f"📅 Found date range in page: {date_text}")
+                    logger.debug("Found date range in page: %s", date_text)
                     return date_text
         
         # Third pass: Fall back to single dates from selectors (if no range found)
@@ -5622,7 +5643,7 @@ class VenueEventScraper:
                     end_day = int(match.group(6))
                     start_date = date(start_year, start_month, start_day)
                     end_date = date(end_year, end_month, end_day)
-                    logger.info(f"📅 Parsed exhibition dates (ISO format): {start_date.isoformat()} to {end_date.isoformat()}")
+                    logger.debug("Parsed exhibition dates (ISO format): %s to %s", start_date.isoformat(), end_date.isoformat())
                     return start_date, end_date, start_time, end_time
                 except ValueError as e:
                     logger.debug(f"Invalid ISO date values: {e}")
@@ -5638,7 +5659,7 @@ class VenueEventScraper:
                     start_date = date(year, month, day)
                     # If it's a single date, assume it's the start date and set end date to 1 year later
                     end_date = date(year + 1, month, day)
-                    logger.info(f"📅 Parsed single ISO date: {start_date.isoformat()} (assuming 1 year duration)")
+                    logger.debug("Parsed single ISO date: %s (assuming 1 year duration)", start_date.isoformat())
                     return start_date, end_date, start_time, end_time
                 except ValueError as e:
                     logger.debug(f"Invalid single ISO date value: {e}")
@@ -5678,7 +5699,7 @@ class VenueEventScraper:
                     try:
                         start_date = date(start_year, start_month, start_day)
                         end_date = date(end_year, end_month, end_day)
-                        logger.info(f"📅 Parsed exhibition dates (different years): {start_date.isoformat()} to {end_date.isoformat()}")
+                        logger.debug("Parsed exhibition dates (different years): %s to %s", start_date.isoformat(), end_date.isoformat())
                     except ValueError as e:
                         logger.debug(f"Invalid date values: {e}")
             
@@ -5706,7 +5727,7 @@ class VenueEventScraper:
                         try:
                             start_date = date(start_year, start_month, start_day)
                             end_date = date(end_year, end_month, end_day)
-                            logger.info(f"📅 Parsed exhibition dates (with commas, different years): {start_date.isoformat()} to {end_date.isoformat()}")
+                            logger.debug("Parsed exhibition dates (with commas, different years): %s to %s", start_date.isoformat(), end_date.isoformat())
                         except ValueError as e:
                             logger.debug(f"Invalid date values: {e}")
                 
@@ -5729,7 +5750,7 @@ class VenueEventScraper:
                             try:
                                 start_date = date(year, start_month, start_day)
                                 end_date = date(year, end_month, end_day)
-                                logger.info(f"📅 Parsed exhibition dates (same year): {start_date.isoformat()} to {end_date.isoformat()}")
+                                logger.debug("Parsed exhibition dates (same year): %s to %s", start_date.isoformat(), end_date.isoformat())
                             except ValueError as e:
                                 logger.debug(f"Invalid date values: {e}")
             
@@ -5749,7 +5770,7 @@ class VenueEventScraper:
                         try:
                             start_date = date(year, month, start_day)
                             end_date = date(year, month, end_day)
-                            logger.info(f"📅 Parsed exhibition dates (same month): {start_date.isoformat()} to {end_date.isoformat()}")
+                            logger.debug("Parsed exhibition dates (same month): %s to %s", start_date.isoformat(), end_date.isoformat())
                         except ValueError as e:
                             logger.debug(f"Invalid date values: {e}")
             
@@ -5783,7 +5804,7 @@ class VenueEventScraper:
                             # But only if the through date is in the future
                             if end_date >= today:
                                 start_date = today
-                                logger.info(f"📅 Parsed through date: {end_date.isoformat()} (start: {start_date.isoformat()})")
+                                logger.debug("Parsed through date: %s (start: %s)", end_date.isoformat(), start_date.isoformat())
                         except ValueError as e:
                             logger.debug(f"Invalid through date values: {e}")
             
@@ -5817,7 +5838,7 @@ class VenueEventScraper:
                             # But only if the closing date is in the future
                             if end_date >= today:
                                 start_date = today
-                                logger.info(f"📅 Parsed closing date: {end_date.isoformat()} (start: {start_date.isoformat()})")
+                                logger.debug("Parsed closing date: %s (start: %s)", end_date.isoformat(), start_date.isoformat())
                         except ValueError as e:
                             logger.debug(f"Invalid closing date values: {e}")
             
@@ -5828,7 +5849,7 @@ class VenueEventScraper:
                     from datetime import timedelta
                     start_date = today
                     end_date = today + timedelta(days=730)  # 2 years from now for permanent/ongoing
-                    logger.info(f"📅 Parsed permanent/ongoing exhibition: {start_date.isoformat()} to {end_date.isoformat()}")
+                    logger.debug("Parsed permanent/ongoing exhibition: %s to %s", start_date.isoformat(), end_date.isoformat())
             
             # Pattern: MM/DD/YYYY–MM/DD/YYYY
             if not start_date:
@@ -5845,7 +5866,7 @@ class VenueEventScraper:
                     try:
                         start_date = date(start_year, start_month, start_day)
                         end_date = date(end_year, end_month, end_day)
-                        logger.info(f"📅 Parsed exhibition dates (numeric): {start_date.isoformat()} to {end_date.isoformat()}")
+                        logger.debug("Parsed exhibition dates (numeric): %s to %s", start_date.isoformat(), end_date.isoformat())
                     except ValueError as e:
                         logger.debug(f"Invalid date values: {e}")
         
@@ -5860,7 +5881,7 @@ class VenueEventScraper:
                     from datetime import timedelta
                     start_date = today
                     end_date = today + timedelta(days=730)  # 2 years from now
-                    logger.info(f"📅 Detected permanent exhibition from date text: {start_date.isoformat()} to {end_date.isoformat()}")
+                    logger.debug("Detected permanent exhibition from date text: %s to %s", start_date.isoformat(), end_date.isoformat())
                     return start_date, end_date, start_time, end_time
                 
                 # We tried to parse but failed - log and return None
@@ -5883,7 +5904,7 @@ class VenueEventScraper:
             if img_url and not img_url.startswith('data:') and 'placeholder' not in img_url.lower():
                 if not img_url.startswith('http'):
                     img_url = urljoin(url, img_url)
-                logger.info(f"   📸 Found OG image: {img_url[:80]}...")
+                logger.debug("Found OG image: %s...", img_url[:80])
                 return img_url
         
         # Strategy 2: Schema.org image
@@ -5893,7 +5914,7 @@ class VenueEventScraper:
             if img_url and not img_url.startswith('data:') and 'placeholder' not in img_url.lower():
                 if not img_url.startswith('http'):
                     img_url = urljoin(url, img_url)
-                logger.info(f"   📸 Found schema image: {img_url[:80]}...")
+                logger.debug("Found schema image: %s...", img_url[:80])
                 return img_url
         
         # Strategy 3: Exhibition-specific selectors (prioritize larger/hero images)
@@ -5936,7 +5957,7 @@ class VenueEventScraper:
                     # Final check: skip logos, icons, and theme assets
                     skip_keywords = ['logo', 'icon', 'avatar', 'sponsor', 'si-white', 'theme', '/themes/', '/assets/']
                     if not any(skip in img_src.lower() for skip in skip_keywords):
-                        logger.info(f"   📸 Found image via selector '{selector}': {img_src[:80]}...")
+                        logger.debug("Found image via selector '%s': %s...", selector, img_src[:80])
                         return img_src
         
         # Strategy 4: Look for images in hero/featured sections
@@ -5952,7 +5973,7 @@ class VenueEventScraper:
                     # Skip logos, icons, and theme assets
                     skip_keywords = ['logo', 'icon', 'avatar', 'sponsor', 'si-white', 'theme', '/themes/', '/assets/']
                     if not any(skip in img_src.lower() for skip in skip_keywords):
-                        logger.info(f"   📸 Found image in hero section: {img_src[:80]}...")
+                        logger.debug("Found image in hero section: %s...", img_src[:80])
                         return img_src
         
         # Strategy 5: Look for background images in hero sections
@@ -5965,7 +5986,7 @@ class VenueEventScraper:
                     if img_src and not img_src.startswith('data:') and 'placeholder' not in img_src.lower():
                         if not img_src.startswith('http'):
                             img_src = urljoin(url, img_src)
-                        logger.info(f"   📸 Found background image: {img_src[:80]}...")
+                        logger.debug("Found background image: %s...", img_src[:80])
                         return img_src
         
         # Strategy 6: Find largest image on page (likely the main exhibition image)
@@ -6020,7 +6041,7 @@ class VenueEventScraper:
             # Final check: skip if it's clearly a logo, icon, or theme asset
             skip_keywords = ['logo', 'icon', 'avatar', 'si-white', 'theme', '/themes/', '/assets/']
             if not any(skip in best_image.lower() for skip in skip_keywords):
-                logger.info(f"   📸 Found largest image ({best_size}px): {best_image[:80]}...")
+                logger.debug("Found largest image (%dpx): %s...", best_size, best_image[:80])
                 return best_image
         
         logger.debug(f"   ⚠️ No suitable image found for exhibition page")
@@ -6174,7 +6195,7 @@ class VenueEventScraper:
                 try:
                     price = float(price_match.group(1))
                     details['admission_price'] = price
-                    logger.info(f"   💰 Found admission price: ${price}")
+                    logger.debug("Found admission price: $%s", price)
                     break
                 except ValueError:
                     continue
@@ -6184,7 +6205,7 @@ class VenueEventScraper:
             free_indicators = ['free admission', 'admission free', 'no charge', 'complimentary', 'free entry']
             if any(indicator in text_content.lower() for indicator in free_indicators):
                 details['admission_price'] = 0.0
-                logger.info(f"   🆓 Found free admission indicator")
+                logger.debug("Found free admission indicator")
         
         return details
     
@@ -6238,6 +6259,15 @@ class VenueEventScraper:
             return False
         
         title_lower = title.lower().strip()
+        
+        # Known-good tour/event titles - skip LLM to avoid unnecessary calls
+        known_good_titles = {
+            'public tour', 'walk-in tour', 'walk in tour', 'art tour',
+            'guided tour', 'museum tour', 'collection tour', 'highlights tour',
+            'gallery tour', 'public tours', 'walk-in tours',
+        }
+        if title_lower in known_good_titles:
+            return False
         
         # Titles that are potentially problematic:
         # 1. Very short titles (less than 10 chars) that aren't clearly events
@@ -6590,23 +6620,12 @@ Be strict - if it's clearly a section header or navigation element, mark it as I
         # For now, return empty list
         return []
 
-def update_progress(step, total_steps, message):
-    """Update scraping progress"""
-    progress = {
-        'current_step': step,
-        'total_steps': total_steps,
-        'message': message,
-        'timestamp': datetime.now().isoformat()
-    }
-    
-    with open('scraping_progress.json', 'w') as f:
-        json.dump(progress, f)
-
 def main():
     """Main scraping function"""
     try:
+        reset_llm_fallback_count()
         total_steps = 4
-        
+
         # Step 1: Initialize
         update_progress(1, total_steps, "Initializing venue event scraper...")
         
@@ -6637,7 +6656,10 @@ def main():
         
         with open('dc_scraped_data.json', 'w') as f:
             json.dump(scraped_data, f, indent=2)
-        
+
+        fallback_count = get_llm_fallback_count()
+        if fallback_count:
+            logger.info("LLM fallback used %d time(s)", fallback_count)
         logger.info(f"✅ Successfully scraped {len(events)} events from venues")
         return True
         
