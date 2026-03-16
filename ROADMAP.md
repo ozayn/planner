@@ -352,6 +352,7 @@ These sections remain relevant for maintainers but are not part of the core sugg
   - Sources: `data/sources.json` → DB via reload; JSON is source of truth
   - Events: DB only; no JSON source of truth
 - **Resolve DB vs JSON inconsistencies**, especially around `/api/sources`
+  - **Backlog:** `/api/sources` reads from JSON and filters by JSON city_id (1, 2, 3…); frontend passes DB city_id (e.g. 683 for NYC). Sources return empty when DB id ≠ JSON id. Fix: switch `/api/sources` to read from DB. See `docs/backlog/SOURCES_CITY_ID_FIX_PLAN.md`.
 - **Review production reset/load workflow** — `POST /api/admin/load-all-data`, when to use load-all-data vs reload-* individually
 
 ### Possible future refactors
