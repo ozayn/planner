@@ -24,21 +24,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 FINDING_AWE_URL = 'https://www.nga.gov/calendar/finding-awe'
+NGA_BASE_URL = 'https://www.nga.gov'
 VENUE_NAME = "National Gallery of Art"
 CITY_NAME = "Washington, DC"
 
+
 def create_scraper():
-    """Create a cloudscraper session"""
+    """Create a cloudscraper session (same pattern as nga_comprehensive_scraper)."""
     from scripts.scraper_utils import create_cloudscraper_session
-    scraper = create_cloudscraper_session()
+    scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
     if scraper:
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Referer': f'{NGA_BASE_URL}/',
         })
+    return scraper
+
+
+def _create_fallback_scraper():
+    """Create a fresh cloudscraper session with NGA warmup for 403 retry."""
+    from scripts.scraper_utils import create_cloudscraper_session
+    scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+    if scraper:
+        scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
     return scraper
 
 def parse_time(time_str: str) -> Optional[time]:
@@ -190,28 +202,77 @@ def scrape_individual_event(event_url, scraper=None):
         return None
 
 
+def _is_403_error(e):
+    """Check if exception indicates 403 Forbidden."""
+    if hasattr(e, 'response') and e.response is not None:
+        return getattr(e.response, 'status_code', None) == 403
+    return '403' in str(e) or 'Forbidden' in str(e)
+
+
 def scrape_all_finding_awe_events(save_incrementally=False, max_days_ahead=30):
     scraper = create_scraper()
+    if not scraper:
+        logger.warning("   ⚠️  Finding Awe: cloudscraper not available, skipping.")
+        return []
+
     events = []
-    
     logger.debug(f"🔍 Scraping Finding Awe series from: {FINDING_AWE_URL}")
+
+    response = None
+    got_403 = False
     try:
         response = scraper.get(FINDING_AWE_URL, timeout=20)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
+        if response.status_code == 403:
+            got_403 = True
+            response = None
+        elif response.status_code != 200:
+            logger.error(f"Finding Awe: HTTP {response.status_code}, skipping.")
+            return []
+    except Exception as e:
+        if _is_403_error(e):
+            got_403 = True
+            response = None
+        else:
+            logger.error(f"Finding Awe fatal error: {e}")
+            return []
+
+    if got_403:
+        logger.warning("   ⚠️  Finding Awe returned 403, trying cloudscraper fallback...")
+        try:
+            fallback_scraper = _create_fallback_scraper()
+            if fallback_scraper:
+                time_module.sleep(2)
+                response = fallback_scraper.get(FINDING_AWE_URL, timeout=20)
+                if response.status_code == 200:
+                    logger.info("   ✅ Successfully bypassed 403 using cloudscraper fallback")
+                    scraper = fallback_scraper
+                else:
+                    response = None
+            else:
+                response = None
+        except Exception as fallback_e:
+            logger.warning(f"   ⚠️  Finding Awe: cloudscraper fallback failed, skipping. ({fallback_e})")
+            return []
+
+    if response is None or response.status_code != 200:
+        logger.warning("   ⚠️  Finding Awe returned 403, skipping.")
+        return []
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    try:
         # Find specific event links
         links = set()
         for a in soup.find_all('a', href=True):
             href = a['href']
             if '/calendar/finding-awe/' in href and href != '/calendar/finding-awe':
                 links.add(urllib.parse.urljoin(FINDING_AWE_URL, href))
-        
+
         logger.debug(f"   Found {len(links)} candidate links")
-        
+
         today = date.today()
         cutoff = today + timedelta(days=max_days_ahead) if max_days_ahead else None
-        
+
         processed_count = 0
         for link in links:
             # Quick check for date in URL to skip old events
@@ -228,16 +289,13 @@ def scrape_all_finding_awe_events(save_incrementally=False, max_days_ahead=30):
             if event:
                 events.append(event)
                 processed_count += 1
-                
+
         if save_incrementally and events:
             create_events_in_database(events)
-            
+
         return events
     except Exception as e:
-        if '403' in str(e) or 'Forbidden' in str(e):
-            logger.warning("   ⚠️  Finding Awe returned 403, skipping.")
-        else:
-            logger.error(f"Finding Awe fatal error: {e}")
+        logger.error(f"Finding Awe fatal error: {e}")
         return []
 
 def create_events_in_database(events):
