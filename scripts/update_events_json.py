@@ -52,6 +52,8 @@ def update_events_json():
                     "venue_id": event.venue_id,
                     "venue_name": event.venue.name if event.venue else "",
                     "city_name": event.venue.city.name if event.venue and event.venue.city else "",
+                    "price": event.price,
+                    "admission_price": event.admission_price,
                     "created_at": event.created_at.isoformat() if event.created_at else None,
                     "updated_at": event.updated_at.isoformat() if event.updated_at else None
                 }

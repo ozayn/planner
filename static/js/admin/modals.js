@@ -225,7 +225,12 @@ function generateEventDetailsHTML(event) {
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${event.id}</div>
                     ${addField('Type', event.event_type)}
-                    ${addField('Price', event.price ? `$${event.price}` : (event.admission_price ? `$${event.admission_price}` : null))}
+                    ${addField('Price', (() => {
+                        const p = (event.price !== null && event.price !== undefined) ? event.price : (event.admission_price !== null && event.admission_price !== undefined ? event.admission_price : null);
+                        if (p === null) return null;
+                        const n = Number(p);
+                        return !Number.isNaN(n) ? (n === 0 ? 'Free' : `$${n}`) : `$${p}`;
+                    })())}
                     ${addField('Language', event.language)}
                     ${addField('Organizer', event.organizer)}
                     ${addField('Is Online', event.is_online ? 'Yes (Virtual Event)' : 'No')}
@@ -301,7 +306,7 @@ function generateEventDetailsHTML(event) {
         const tourFields = [];
         if (event.tour_type) tourFields.push(addField('Tour Type', event.tour_type));
         if (event.max_participants) tourFields.push(addField('Max Participants', event.max_participants));
-        if (event.price) tourFields.push(addField('Price', `$${event.price}`));
+        if (event.price !== null && event.price !== undefined) tourFields.push(addField('Price', event.price === 0 ? 'Free' : `$${event.price}`));
         if (event.language) tourFields.push(addField('Language', event.language));
         
         if (tourFields.length > 0) {
@@ -318,7 +323,7 @@ function generateEventDetailsHTML(event) {
         const exhibitionFields = [];
         if (event.exhibition_location) exhibitionFields.push(addField('Exhibition Location', event.exhibition_location));
         if (event.curator) exhibitionFields.push(addField('Curator', event.curator));
-        if (event.admission_price) exhibitionFields.push(addField('Admission Price', `$${event.admission_price}`));
+        if (event.admission_price !== null && event.admission_price !== undefined) exhibitionFields.push(addField('Admission Price', event.admission_price === 0 ? 'Free' : `$${event.admission_price}`));
         if (event.artists) exhibitionFields.push(addField('Artists', event.artists));
         if (event.exhibition_type) exhibitionFields.push(addField('Exhibition Type', event.exhibition_type));
         if (event.collection_period) exhibitionFields.push(addField('Collection Period', event.collection_period));

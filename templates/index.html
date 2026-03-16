@@ -8335,6 +8335,7 @@
                         <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Title', event.title)}
                             ${addField('Type', event.event_type)}
+                            ${addField('Price', getEventPriceDisplay(event))}
                             ${addField('Description', event.description)}
                         </div>
                     </div>
@@ -8398,7 +8399,7 @@
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             ${addField('Tour Type', event.tour_type)}
                             ${addField('Max Participants', event.max_participants)}
-                            ${addField('Price', event.price ? `$${event.price}` : null)}
+                            ${addField('Price', getEventPriceDisplay(event))}
                             ${addField('Language', event.language)}
                         </div>
                     </div>
@@ -8411,6 +8412,7 @@
                             ${addField('Difficulty Level', event.difficulty_level)}
                             ${addField('Equipment Needed', event.equipment_needed)}
                             ${addField('Organizer', event.organizer)}
+                            ${event.description ? `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.06);"><strong>Description:</strong><p style="margin: 8px 0 0 0; color: #4a5568; line-height: 1.5; white-space: pre-wrap;">${event.description.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</p></div>` : ''}
                         </div>
                     </div>
                 `;
