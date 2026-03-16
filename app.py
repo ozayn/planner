@@ -8936,6 +8936,40 @@ def scrape_wharf_dc_endpoint():
             'error': str(e)
         }), 500
 
+@app.route('/api/admin/scrape-shoot-nyc', methods=['POST'])
+def scrape_shoot_nyc_endpoint():
+    """Scrape Shoot New York City workshops (street photography, walking tours)."""
+    try:
+        app_logger.info("Starting Shoot NYC scraping...")
+
+        from scripts.shoot_nyc_scraper import scrape_shoot_nyc_events, create_events_in_database_wrapper
+
+        events = scrape_shoot_nyc_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} Shoot NYC workshop(s) (created: {created}, updated: {updated})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error in Shoot NYC scraping: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0
+        }), 500
+
 @app.route('/api/admin/scrape-dcparade', methods=['POST'])
 def scrape_dcparade_endpoint():
     """Scrape DC Chinese New Year Parade from dcparade.com."""
