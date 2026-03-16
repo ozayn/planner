@@ -40,11 +40,6 @@ def _fetch_eventbrite_price(event_id: str) -> Optional[float]:
     Returns None if API token is missing or request fails.
     Uses same logic as eventbrite_scraper.convert_eventbrite_event_to_our_format.
     """
-    try:
-        from scripts.env_config import ensure_env_loaded
-        ensure_env_loaded()
-    except ImportError:
-        pass
     api_token = os.getenv('EVENTBRITE_API_TOKEN') or os.getenv('EVENTBRITE_PRIVATE_TOKEN')
     if not api_token:
         return None
@@ -188,8 +183,16 @@ def _extract_shoot_nyc_events(html: str, base_url: str) -> List[dict]:
     soup = BeautifulSoup(html, 'html.parser')
     today = date.today()
 
+    try:
+        from scripts.env_config import ensure_env_loaded
+        ensure_env_loaded()
+    except ImportError:
+        pass
+
     # Build urlId -> Eventbrite event ID map for price lookup (from Squarespace JSON)
     urlid_to_eventid = _build_urlid_to_eventid_map()
+    if not urlid_to_eventid and (os.getenv('EVENTBRITE_API_TOKEN') or os.getenv('EVENTBRITE_PRIVATE_TOKEN')):
+        logger.warning("   Squarespace JSON returned no Eventbrite IDs - prices will use text/URL fallback only")
 
     # Find event blocks: look for links to /workshops/ that contain date-like text
     workshop_link_pattern = re.compile(r'/workshops/[a-zA-Z0-9\-]+', re.I)
