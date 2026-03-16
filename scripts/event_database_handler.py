@@ -389,6 +389,50 @@ def detect_baby_friendly(event_data: Dict) -> bool:
     return any(keyword in combined_text for keyword in baby_keywords)
 
 
+def _parse_date_safe(value) -> Optional[date]:
+    """Parse start_date or end_date from string or date object. Returns None if unparseable."""
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00')).date()
+        except (ValueError, AttributeError):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+    return None
+
+
+def is_event_past(event_data: Dict) -> bool:
+    """
+    Return True if event is entirely in the past (should not be saved as new).
+    
+    Rules:
+    - If no start_date: return False (conservative; ongoing exhibitions get dates first)
+    - Multi-day events: keep if end_date >= today (event still running)
+    - Single-day or past multi-day: past if start_date < today
+    
+    Ongoing exhibitions are handled by handle_ongoing_exhibition_dates() before this
+    runs, so they will have start_date=today and pass.
+    """
+    today = date.today()
+    start_date = _parse_date_safe(event_data.get('start_date'))
+    end_date = _parse_date_safe(event_data.get('end_date'))
+    
+    if start_date is None:
+        return False  # No date = not past (ongoing will get dates from handler)
+    
+    # Multi-day event: still current if it ends today or later
+    if end_date is not None and end_date >= today:
+        return False
+    
+    # Single-day or past multi-day: past if start_date before today
+    return start_date < today
+
+
 def handle_ongoing_exhibition_dates(event_data: Dict, logger_instance: Optional[logging.Logger] = None) -> bool:
     """
     Handle missing dates for ongoing/permanent exhibitions.
@@ -443,12 +487,18 @@ def create_events_in_database(
     batch_size: int = 5,
     logger_instance: Optional[logging.Logger] = None,
     source_url: Optional[str] = None,
-    custom_event_processor: Optional[callable] = None
+    custom_event_processor: Optional[callable] = None,
+    skip_past_events: bool = True
 ) -> Tuple[int, int, int]:
     """
     Save events to database with deduplication, venue validation, and immediate commits.
     
     This is the shared handler that all scrapers should use instead of duplicating logic.
+    
+    When skip_past_events=True (default), new past events are not created. Existing events
+    are still updated. Multi-day events with end_date >= today are kept. Ongoing exhibitions
+    get dates from handle_ongoing_exhibition_dates() before this check. Pass skip_past_events=False
+    for archival/backfill flows.
     
     Args:
         events: List of event dictionaries
@@ -460,6 +510,7 @@ def create_events_in_database(
         Venue: Venue model class
         batch_size: Number of events to commit in a batch (default: 5 for immediate saving)
         logger_instance: Optional logger instance (uses module logger if not provided)
+        skip_past_events: If True, skip creating new past events (default). Set False for backfill.
         
     Returns:
         Tuple of (created_count, updated_count, skipped_count)
@@ -558,7 +609,7 @@ def create_events_in_database(
                     logger_instance.info(f"   ✅ No existing tour found - will create new: {title} on {event_data.get('start_date')} at {event_data.get('start_time')} (venue_id: {venue_id})")
             
             if existing:
-                # Update existing event
+                # Update existing event (past-event check does not apply to updates)
                 was_updated = update_existing_event(existing, event_data, venue_id, logger_instance)
                 if was_updated:
                     # Commit immediately for updates
@@ -569,6 +620,11 @@ def create_events_in_database(
                     skipped_count += 1
                     logger_instance.info(f"   ⏭️  Event already exists (no updates needed): {title} on {event_data.get('start_date')} at {event_data.get('start_time')}")
             else:
+                # Skip creating new past events when skip_past_events=True
+                if skip_past_events and is_event_past(event_data):
+                    skipped_count += 1
+                    logger_instance.debug(f"   ⏭️ Skipping past event: '{title}' (start: {event_data.get('start_date')}, end: {event_data.get('end_date')})")
+                    continue
                 # Create new event
                 event = Event()
                 
