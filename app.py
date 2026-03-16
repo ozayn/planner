@@ -9113,6 +9113,77 @@ def scrape_tulipday_endpoint():
         app_logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/admin/scrape-hammer', methods=['POST'])
+def scrape_hammer_endpoint():
+    """Scrape Hammer Museum (UCLA) programs and events from hammer.ucla.edu/programs-events."""
+    try:
+        app_logger.info("Starting Hammer Museum scraping...")
+
+        from scripts.hammer_scraper import scrape_all_hammer_events
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        events = scrape_all_hammer_events()
+
+        if not events:
+            return jsonify({
+                'success': True,
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0,
+                'message': 'No Hammer Museum events found or scraping returned empty.'
+            }), 200
+
+        venue = Venue.query.filter(
+            (Venue.website_url.ilike('%hammer.ucla.edu%')) |
+            (Venue.name.ilike('%hammer museum%'))
+        ).first()
+
+        if not venue:
+            return jsonify({
+                'success': False,
+                'error': 'Hammer Museum venue not found. Load venues from data/venues.json first.',
+                'events_found': len(events),
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0
+            }), 200
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url='https://hammer.ucla.edu/programs-events',
+            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+        )
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} Hammer Museum event(s) (created: {created}, updated: {updated}, skipped: {skipped})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping Hammer Museum: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0
+        }), 500
+
 @app.route('/api/admin/scrape-wit-eventbrite', methods=['POST'])
 def scrape_wit_eventbrite_endpoint():
     """Scrape Washington Improv Theater events from Eventbrite organizer page."""

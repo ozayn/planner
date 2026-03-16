@@ -257,16 +257,19 @@ def update_existing_event(existing, event_data: Dict, venue_id: int, logger) -> 
         updated = True
         updated_fields.append('description')
     
-    # Update event_type if more specific
+    # Update event_type when normalizing to canonical or upgrading
     new_event_type = event_data.get('event_type')
-    if new_event_type:
-        # Allow upgrades from generic types to more specific ones
+    if new_event_type and new_event_type != existing.event_type:
+        canonical_types = {'tour', 'exhibition', 'festival', 'photowalk', 'film', 'workshop', 'talk', 'music', 'improv', 'event'}
+        deprecated_types = {'screening', 'museum_event', 'artist_talk', 'lecture', 'performance'}
+        # Update when: (1) upgrading from generic, (2) normalizing deprecated->canonical, or (3) new is canonical
         should_update_type = (
-            existing.event_type == 'event' and new_event_type != 'event'
-        ) or (
-            existing.event_type == 'performance' and new_event_type == 'improv'
+            (existing.event_type == 'event' and new_event_type != 'event')
+            or (existing.event_type == 'performance' and new_event_type == 'improv')
+            or (existing.event_type in deprecated_types and new_event_type in canonical_types)
+            or (new_event_type in canonical_types and existing.event_type not in canonical_types)
         )
-        if should_update_type and new_event_type != existing.event_type:
+        if should_update_type:
             existing.event_type = new_event_type
             updated = True
             updated_fields.append('event_type')

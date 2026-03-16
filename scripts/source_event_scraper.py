@@ -110,6 +110,19 @@ class SourceEventScraper:
         
         try:
             logger.info(f"Scraping website: {source.url}")
+            if 'hammer.ucla.edu' in source.url.lower():
+                from scripts.hammer_scraper import scrape_all_hammer_events
+                hammer_events = scrape_all_hammer_events()
+                if hammer_events:
+                    venue = Venue.query.filter(
+                        (Venue.website_url.ilike('%hammer.ucla.edu%')) |
+                        (Venue.name.ilike('%hammer museum%'))
+                    ).first()
+                    if venue:
+                        for event in hammer_events:
+                            event['venue_id'] = venue.id
+                            event['city_id'] = venue.city_id
+                    return hammer_events
             if 'tulipday.eu' in source.url.lower():
                 from scripts.tulipday_scraper import scrape_all_tulipday_events
                 tulip_events = scrape_all_tulipday_events()
