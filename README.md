@@ -18,6 +18,29 @@ A minimal, artistic web and mobile app for discovering events in cities worldwid
 - **Use port 5001, never 5000**: App runs on `http://localhost:5001`
 - **Environment variables**: Add API keys to `.env` file (never commit this file)
 
+### **📋 Maintainer Commands (Data Sync)**
+
+**Local source reload**
+```bash
+curl -X POST http://localhost:5001/api/admin/reload-sources
+```
+- Use after editing `data/sources.json`
+- Reloads sources from JSON into the local database
+- Verify source changes locally before deploy/sync
+
+**Production sync (cities, venues, sources)**
+```bash
+# Dry run (preview only)
+DATABASE_URL='YOUR_DATABASE_PUBLIC_URL' /Users/oz/Dropbox/2025/planner/venv/bin/python scripts/sync_json_to_production.py
+
+# Apply changes
+DATABASE_URL='YOUR_DATABASE_PUBLIC_URL' /Users/oz/Dropbox/2025/planner/venv/bin/python scripts/sync_json_to_production.py --apply
+```
+- Syncs cities, venues, and sources only (not events)
+- Run dry run first before `--apply`
+- Use Railway Postgres public URL when running from a laptop (do not use `postgres.railway.internal` locally)
+- Duplicate conflicts are skipped for manual review
+
 ### **🤖 Hybrid OCR + LLM System**
 - **Default OCR**: Tesseract (local), Google Vision API (deployment)
 - **LLM Processing**: Google Gemini for intelligent event extraction

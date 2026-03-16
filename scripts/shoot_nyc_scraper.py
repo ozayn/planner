@@ -139,7 +139,7 @@ def _extract_shoot_nyc_events(html: str, base_url: str) -> List[dict]:
             'end_time': end_time,
             'url': event_url,
             'description': description,
-            'event_type': 'workshop',
+            'event_type': 'photowalk',
             'venue_name': 'Shoot New York City',
             'start_location': location,
             'end_location': location,

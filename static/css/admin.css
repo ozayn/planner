@@ -564,6 +564,22 @@ input, button, textarea {
     box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3) !important;
 }
 
+/* Light NYC scraper button - soft indigo, stays light on hover */
+.add-button[style*="background: #e0e7ff"],
+.add-button[style*="background:#e0e7ff"] {
+    background: #e0e7ff !important;
+    color: #4338ca !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.add-button[style*="background: #e0e7ff"]:hover,
+.add-button[style*="background:#e0e7ff"]:hover {
+    background: rgba(99, 102, 241, 0.15) !important;
+    color: #4338ca !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15) !important;
+}
+
 .filter-summary {
     background: rgba(59, 130, 246, 0.06);
     border: 1px solid rgba(59, 130, 246, 0.15);

@@ -6782,17 +6782,29 @@
             
             // Filter by selected venues - check both main page selection and admin selection
             // Priority: Admin selection (from localStorage) > Main page selection
+            // Admin selection is city-aware: only apply if it includes venues from the CURRENT city
             const adminSelectedVenues = getAdminSelectedVenuesForMainPage();
-            const venuesToFilterBy = adminSelectedVenues.size > 0 ? adminSelectedVenues : selectedVenues;
+            let venuesToFilterBy;
+            if (adminSelectedVenues.size > 0 && allVenues.length > 0) {
+                const currentCityVenueIds = new Set(allVenues.map(v => v.id));
+                const adminVenuesInCurrentCity = new Set([...adminSelectedVenues].filter(id => currentCityVenueIds.has(id)));
+                venuesToFilterBy = adminVenuesInCurrentCity.size > 0 ? adminVenuesInCurrentCity : selectedVenues;
+            } else {
+                venuesToFilterBy = adminSelectedVenues.size > 0 ? adminSelectedVenues : selectedVenues;
+            }
             
             // But if no venues have been loaded yet, show all events from the city
             if (allVenues.length > 0) {
                 // Venues have been loaded, so filter by selected venues
                 if (venuesToFilterBy.size > 0) {
+                    const loadedVenueIds = new Set(allVenues.map(v => v.id));
                     filteredEvents = filteredEvents.filter(event => {
-                        // If event has a venue_id, it must be in selected venues
+                        // If event has a venue_id, it must be in selected venues (when we have that venue loaded)
                         if (event.venue_id) {
-                            return venuesToFilterBy.has(event.venue_id);
+                            if (venuesToFilterBy.has(event.venue_id)) return true;
+                            // Venue not in filter - include if venue wasn't loaded (e.g. different venue_type like "workshop")
+                            if (!loadedVenueIds.has(event.venue_id)) return true;
+                            return false;
                         }
                         // If event has no venue_id, include it (might be from sources or city-wide events)
                         return true;
