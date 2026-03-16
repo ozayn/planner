@@ -9184,6 +9184,84 @@ def scrape_hammer_endpoint():
             'events_skipped': 0
         }), 500
 
+@app.route('/api/admin/scrape-ocma', methods=['POST'])
+def scrape_ocma_endpoint():
+    """Scrape Orange County Museum of Art (OCMA) via built-in venue scraper path."""
+    try:
+        app_logger.info("Starting OCMA scraping...")
+
+        ocma = Venue.query.filter(
+            (Venue.website_url.ilike('%ocma.art%')) |
+            (Venue.name.ilike('%orange county museum%'))
+        ).first()
+
+        if not ocma:
+            return jsonify({
+                'success': False,
+                'error': 'OCMA venue not found. Load venues from data/venues.json first.',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0
+            }), 200
+
+        from scripts.venue_event_scraper import VenueEventScraper
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        scraper = VenueEventScraper()
+        events = scraper.scrape_venue_events(
+            venue_ids=[ocma.id],
+            event_type=None,
+            time_range='this_month',
+            max_exhibitions_per_venue=10,
+            max_events_per_venue=50
+        ) or []
+
+        if not events:
+            return jsonify({
+                'success': True,
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0,
+                'message': 'No OCMA events found.'
+            }), 200
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=ocma.id,
+            city_id=ocma.city_id,
+            venue_name=ocma.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url=ocma.website_url or 'https://ocma.art',
+            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': ocma.name})
+        )
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} OCMA event(s) (created: {created}, updated: {updated}, skipped: {skipped})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping OCMA: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0
+        }), 500
+
 @app.route('/api/admin/scrape-wit-eventbrite', methods=['POST'])
 def scrape_wit_eventbrite_endpoint():
     """Scrape Washington Improv Theater events from Eventbrite organizer page."""

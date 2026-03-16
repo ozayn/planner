@@ -9,6 +9,7 @@ This script is designed to be run from a cronjob and will:
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
 - Scrape Hammer Museum (LA programs and events)
+- Scrape OCMA (Orange County Museum of Art, Irvine)
 - Scrape DC Chinese New Year Parade (seasonal: Jan–Feb only)
 - Tulip Day (seasonal: Mar–Apr only)
 - Save events to the database
@@ -278,7 +279,8 @@ def main():
                             import traceback
                             logger.error(traceback.format_exc())
                     
-                    elif 'africa.si.edu' in venue_url_lower:
+                    elif ('africa.si.edu' in venue_url_lower or
+                          ('african art' in (museum.name or '').lower() and 'si.edu' in venue_url_lower and 'african-art' in venue_url_lower)):
                         logger.info(f"🏛️  African Art | {museum.name}")
                         from scripts.african_art_scraper import scrape_all_african_art_events, create_events_in_database
                         try:
@@ -607,6 +609,48 @@ def main():
                         logger.warning(f"   ⚠️  Hammer Museum venue not found, skipping")
                 else:
                     logger.info(f"   → found 0")
+            except Exception as e:
+                logger.error(f"   ❌ {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
+            # OCMA (Orange County Museum of Art, Irvine/Costa Mesa)
+            logger.info(f"🏛️  OCMA | Orange County Museum of Art")
+            try:
+                ocma = Venue.query.filter(
+                    (Venue.website_url.ilike('%ocma.art%')) |
+                    (Venue.name.ilike('%orange county museum%'))
+                ).first()
+                if ocma:
+                    scraped_events = venue_scraper.scrape_venue_events(
+                        venue_ids=[ocma.id],
+                        event_type=None,
+                        time_range=time_range,
+                        max_exhibitions_per_venue=max_exhibitions_per_venue,
+                        max_events_per_venue=max_events_per_venue
+                    )
+                    if scraped_events:
+                        from scripts.event_database_handler import create_events_in_database as shared_create_events
+                        created, updated, skipped = shared_create_events(
+                            events=scraped_events,
+                            venue_id=ocma.id,
+                            city_id=ocma.city_id,
+                            venue_name=ocma.name,
+                            db=db,
+                            Event=Event,
+                            Venue=Venue,
+                            batch_size=5,
+                            logger_instance=logger,
+                            source_url=ocma.website_url or 'https://ocma.art',
+                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': ocma.name})
+                        )
+                        total_events_saved += created
+                        total_events_found += len(scraped_events)
+                        logger.info(f"   → found {len(scraped_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                else:
+                    logger.warning(f"   ⚠️  OCMA venue not found, skipping")
             except Exception as e:
                 logger.error(f"   ❌ {e}")
                 import traceback

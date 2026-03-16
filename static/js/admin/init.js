@@ -1998,6 +1998,55 @@ async function startAllVenuesScraping() {
     }
 }
 
+async function startOCMAScraping() {
+    showScrapingProgressModal('Orange County Museum of Art (OCMA)', false);
+
+    try {
+        const response = await fetch('/api/admin/scrape-ocma', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {}
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errorMessage}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            onScrapingComplete();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            const msg = `✅ Found ${result.events_found ?? 0} event(s) — created: ${result.events_saved ?? 0}, updated: ${result.events_updated ?? 0}, skipped: ${result.events_skipped ?? 0}`;
+            updateScrapingProgress({
+                percentage: 100,
+                message: msg,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0,
+                events_updated: result.events_updated ?? 0,
+                error: false
+            });
+            if (typeof loadEvents === 'function') loadEvents();
+            onScrapingComplete();
+        } else {
+            const errMsg = result.error || 'Unknown error';
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errMsg}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errMsg}`, 'error');
+            onScrapingComplete();
+        }
+    } catch (error) {
+        console.error('OCMA scraping error:', error);
+        updateScrapingProgress({ percentage: 0, message: `❌ Error: ${error.message}`, error: true });
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        onScrapingComplete();
+    }
+}
+
 async function startWebstersScraping() {
     showScrapingProgressModal('Webster\'s Bookstore Cafe');
     

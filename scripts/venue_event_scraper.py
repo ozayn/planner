@@ -756,7 +756,7 @@ class VenueEventScraper:
                 logger.warning(f"⚠️ African Art specialized scraper failed: {e}, falling back to generic scraper")
         
         # Hirshhorn uses built-in methods in venue_event_scraper, so it continues below
-        has_specialized_scraper = specialized_scraper_used or 'hirshhorn.si.edu' in venue_url_lower
+        has_specialized_scraper = specialized_scraper_used or 'hirshhorn.si.edu' in venue_url_lower or 'ocma.art' in venue_url_lower
         
         # For venues WITHOUT specialized scrapers, try generic scraper
         if not specialized_scraper_used and not has_specialized_scraper:
