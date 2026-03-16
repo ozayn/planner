@@ -8,6 +8,7 @@ This script is designed to be run from a cronjob and will:
 - Scrape Webster's Bookstore Cafe (State College, PA)
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
+- Scrape Hammer Museum (LA programs and events)
 - Save events to the database
 - Log results for monitoring
 
@@ -553,6 +554,43 @@ def main():
                     total_events_saved += created
                     total_events_found += len(shoot_nyc_events)
                     logger.info(f"   → found {len(shoot_nyc_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                else:
+                    logger.info(f"   → found 0")
+            except Exception as e:
+                logger.error(f"   ❌ {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
+            # Hammer Museum (LA programs and events)
+            logger.info(f"🏛️  Hammer Museum | Hammer Museum")
+            try:
+                from scripts.hammer_scraper import scrape_all_hammer_events
+                from scripts.event_database_handler import create_events_in_database as shared_create_events
+                hammer_events = scrape_all_hammer_events()
+                if hammer_events:
+                    venue = Venue.query.filter(
+                        (Venue.website_url.ilike('%hammer.ucla.edu%')) |
+                        (Venue.name.ilike('%hammer museum%'))
+                    ).first()
+                    if venue:
+                        created, updated, skipped = shared_create_events(
+                            events=hammer_events,
+                            venue_id=venue.id,
+                            city_id=venue.city_id,
+                            venue_name=venue.name,
+                            db=db,
+                            Event=Event,
+                            Venue=Venue,
+                            batch_size=5,
+                            logger_instance=logger,
+                            source_url='https://hammer.ucla.edu/programs-events',
+                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+                        )
+                        total_events_saved += created
+                        total_events_found += len(hammer_events)
+                        logger.info(f"   → found {len(hammer_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.warning(f"   ⚠️  Hammer Museum venue not found, skipping")
                 else:
                     logger.info(f"   → found 0")
             except Exception as e:
