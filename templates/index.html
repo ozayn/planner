@@ -7676,7 +7676,9 @@
                 return;
             }
             
-            exportToCalendar(selectedEventsList, 'selected');
+            // Deduplicate by event.id (same event can appear in both allEvents and discoveredEvents)
+            const uniqueSelected = Array.from(new Map(selectedEventsList.map(e => [e.id, e])).values());
+            exportToCalendar(uniqueSelected, 'selected');
         }
 
         // Export all events

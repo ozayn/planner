@@ -413,16 +413,36 @@
     }
 
     /**
-     * Generate VTIMEZONE information for ICS format
-     * 
-     * Note: Most modern calendar applications (Google Calendar, Apple Calendar, Outlook)
-     * will recognize standard IANA timezone names (e.g., "America/Los_Angeles") and
-     * look up the proper DST rules from their internal database. We just need to provide
-     * the TZID - the calendar app will handle the rest.
+     * Format a Date to UTC for ICS (YYYYMMDDTHHMMSSZ)
+     * RFC 5545 requires DTSTAMP and LAST-MODIFIED to be in UTC with Z suffix
+     */
+    function formatDateTimeForICSUTC(date) {
+        const iso = date.toISOString();
+        const [datePart, timePart] = iso.split('T');
+        const dateStr = datePart.replace(/-/g, '');
+        const timeStr = (timePart || '').replace(/\.\d+Z?$/, '').replace(/:/g, '');
+        return `${dateStr}T${timeStr}Z`;
+    }
+
+    /**
+     * Full VTIMEZONE definitions for common US timezones (RFC 5545 compliant).
+     * Includes STANDARD/DAYLIGHT rules so calendar clients correctly handle DST.
+     */
+    const VTIMEZONE_DEFINITIONS = {
+        'America/Los_Angeles': `BEGIN:VTIMEZONE\r\nTZID:America/Los_Angeles\r\nX-LIC-LOCATION:America/Los_Angeles\r\nBEGIN:DAYLIGHT\r\nTZOFFSETFROM:-0800\r\nTZOFFSETTO:-0700\r\nTZNAME:PDT\r\nDTSTART:19700308T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZOFFSETFROM:-0700\r\nTZOFFSETTO:-0800\r\nTZNAME:PST\r\nDTSTART:19701101T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n`,
+        'America/New_York': `BEGIN:VTIMEZONE\r\nTZID:America/New_York\r\nX-LIC-LOCATION:America/New_York\r\nBEGIN:DAYLIGHT\r\nTZOFFSETFROM:-0500\r\nTZOFFSETTO:-0400\r\nTZNAME:EDT\r\nDTSTART:19700308T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZOFFSETFROM:-0400\r\nTZOFFSETTO:-0500\r\nTZNAME:EST\r\nDTSTART:19701101T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n`,
+        'America/Chicago': `BEGIN:VTIMEZONE\r\nTZID:America/Chicago\r\nX-LIC-LOCATION:America/Chicago\r\nBEGIN:DAYLIGHT\r\nTZOFFSETFROM:-0600\r\nTZOFFSETTO:-0500\r\nTZNAME:CDT\r\nDTSTART:19700308T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZOFFSETFROM:-0500\r\nTZOFFSETTO:-0600\r\nTZNAME:CST\r\nDTSTART:19701101T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n`,
+        'America/Denver': `BEGIN:VTIMEZONE\r\nTZID:America/Denver\r\nX-LIC-LOCATION:America/Denver\r\nBEGIN:DAYLIGHT\r\nTZOFFSETFROM:-0700\r\nTZOFFSETTO:-0600\r\nTZNAME:MDT\r\nDTSTART:19700308T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZOFFSETFROM:-0600\r\nTZOFFSETTO:-0700\r\nTZNAME:MST\r\nDTSTART:19701101T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n`
+    };
+
+    /**
+     * Generate VTIMEZONE information for ICS format.
+     * Uses full STANDARD/DAYLIGHT definitions for common US timezones; minimal definition for others.
      */
     function generateVTIMEZONE(timezoneStr) {
-        // Minimal VTIMEZONE definition - calendar apps will look up proper rules
-        // We just need to provide the TZID so they know which timezone to use
+        const fullDef = VTIMEZONE_DEFINITIONS[timezoneStr];
+        if (fullDef) return fullDef;
+        // Fallback: minimal definition for other IANA timezones
         return `BEGIN:VTIMEZONE\r\nTZID:${timezoneStr}\r\nX-LIC-LOCATION:${timezoneStr}\r\nEND:VTIMEZONE\r\n`;
     }
 
@@ -473,12 +493,9 @@
             return '';
         }
         try {
-        // Get current timestamp for DTSTAMP
+        // Get current timestamp for DTSTAMP (RFC 5545: MUST be in UTC with Z suffix)
         const now = new Date();
-        const dtstamp = formatDateTimeForICS(
-            now.toISOString().split('T')[0],
-            now.toTimeString().split(' ')[0].substring(0, 8)
-        );
+        const dtstamp = formatDateTimeForICSUTC(now);
         
         // Get timezone from event - prioritize city_timezone
         let eventTimezone = event.city_timezone;
@@ -525,19 +542,13 @@
         // and increment it when event properties change during scraping
         const sequence = event.sequence || 1;
         
-        // LAST-MODIFIED: Timestamp when event was last modified
-        // Use event.updated_at if available, otherwise use current time
+        // LAST-MODIFIED: Timestamp when event was last modified (RFC 5545: use UTC)
         let lastModified = dtstamp;
         if (event.updated_at) {
-            // Parse event.updated_at (format: ISO string or date)
             try {
                 const updatedDate = new Date(event.updated_at);
-                lastModified = formatDateTimeForICS(
-                    updatedDate.toISOString().split('T')[0],
-                    updatedDate.toTimeString().split(' ')[0].substring(0, 8)
-                );
+                lastModified = formatDateTimeForICSUTC(updatedDate);
             } catch (e) {
-                // If parsing fails, use current time
                 lastModified = dtstamp;
             }
         }
@@ -673,6 +684,8 @@
      */
     function generateICS(events, calendarName = 'Planner Events') {
         const expandedEvents = expandEventsWithRegistrationTasks(events);
+        // Defense-in-depth: deduplicate by id so duplicate input never produces duplicate VEVENTs
+        const uniqueEvents = Array.from(new Map(expandedEvents.map(e => [e.id, e])).values());
         let icsContent = 'BEGIN:VCALENDAR\r\n';
         icsContent += 'VERSION:2.0\r\n';
         icsContent += 'PRODID:-//Event Planner//EN\r\n';
@@ -683,7 +696,7 @@
         
         // Collect unique timezones from events
         const timezones = new Set();
-        expandedEvents.forEach(event => {
+        uniqueEvents.forEach(event => {
             if (event.city_timezone) {
                 timezones.add(event.city_timezone);
             } else if (event.start_time || (event.event_type !== 'exhibition')) {
@@ -698,7 +711,7 @@
         });
         
         // Add events
-        expandedEvents.forEach(event => {
+        uniqueEvents.forEach(event => {
             icsContent += generateICSEvent(event);
         });
         
