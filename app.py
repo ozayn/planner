@@ -9184,6 +9184,79 @@ def scrape_hammer_endpoint():
             'events_skipped': 0
         }), 500
 
+@app.route('/api/admin/scrape-deyoung', methods=['POST'])
+def scrape_deyoung_endpoint():
+    """Scrape de Young Museum (FAMSF) exhibitions from famsf.org."""
+    try:
+        app_logger.info("Starting de Young Museum scraping...")
+
+        from scripts.deyoung_scraper import scrape_all_deyoung_events
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        events = scrape_all_deyoung_events()
+
+        if not events:
+            return jsonify({
+                'success': True,
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0,
+                'message': 'No de Young Museum exhibitions found.'
+            }), 200
+
+        venue = Venue.query.filter(
+            db.or_(
+                Venue.website_url.ilike('%deyoung.famsf.org%'),
+                db.and_(Venue.website_url.ilike('%famsf.org%'), Venue.name.ilike('%de young%'))
+            )
+        ).first()
+
+        if not venue:
+            return jsonify({
+                'success': False,
+                'error': 'de Young Museum venue not found. Load venues from data/venues.json first.',
+                'events_found': len(events),
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0
+            }), 200
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url='https://www.famsf.org/exhibitions?where=de-young',
+            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+        )
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} de Young exhibition(s) (created: {created}, updated: {updated}, skipped: {skipped})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping de Young Museum: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0
+        }), 500
+
 @app.route('/api/admin/scrape-ocma', methods=['POST'])
 def scrape_ocma_endpoint():
     """Scrape Orange County Museum of Art (OCMA) via built-in venue scraper path."""

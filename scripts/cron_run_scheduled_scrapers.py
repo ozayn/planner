@@ -8,6 +8,7 @@ This script is designed to be run from a cronjob and will:
 - Scrape Webster's Bookstore Cafe (State College, PA)
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
+- Scrape de Young Museum (SF exhibitions)
 - Scrape Hammer Museum (LA programs and events)
 - Scrape OCMA (Orange County Museum of Art, Irvine)
 - Scrape DC Chinese New Year Parade (seasonal: Jan–Feb only)
@@ -570,6 +571,43 @@ def main():
                     total_events_saved += created
                     total_events_found += len(shoot_nyc_events)
                     logger.info(f"   → found {len(shoot_nyc_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                else:
+                    logger.info(f"   → found 0")
+            except Exception as e:
+                logger.error(f"   ❌ {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
+            # de Young Museum (SF exhibitions)
+            logger.info(f"🏛️  de Young Museum | de Young Museum")
+            try:
+                from scripts.deyoung_scraper import scrape_all_deyoung_events
+                from scripts.event_database_handler import create_events_in_database as shared_create_events
+                deyoung_events = scrape_all_deyoung_events()
+                if deyoung_events:
+                    venue = Venue.query.filter(
+                        (Venue.website_url.ilike('%deyoung.famsf.org%')) |
+                        (Venue.name.ilike('%de young%'))
+                    ).first()
+                    if venue:
+                        created, updated, skipped = shared_create_events(
+                            events=deyoung_events,
+                            venue_id=venue.id,
+                            city_id=venue.city_id,
+                            venue_name=venue.name,
+                            db=db,
+                            Event=Event,
+                            Venue=Venue,
+                            batch_size=5,
+                            logger_instance=logger,
+                            source_url='https://www.famsf.org/exhibitions?where=de-young',
+                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+                        )
+                        total_events_saved += created
+                        total_events_found += len(deyoung_events)
+                        logger.info(f"   → found {len(deyoung_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.warning(f"   ⚠️  de Young Museum venue not found, skipping")
                 else:
                     logger.info(f"   → found 0")
             except Exception as e:

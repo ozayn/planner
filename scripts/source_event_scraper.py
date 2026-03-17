@@ -136,6 +136,21 @@ class SourceEventScraper:
                             event['venue_id'] = venue.id
                             event['city_id'] = venue.city_id
                 return tulip_events
+            if 'deyoung.famsf.org' in source.url.lower() or ('famsf.org' in source.url.lower() and 'de young' in (source.name or '').lower()):
+                from scripts.deyoung_scraper import scrape_all_deyoung_events
+                deyoung_events = scrape_all_deyoung_events()
+                if deyoung_events:
+                    venue = Venue.query.filter(
+                        db.or_(
+                            Venue.website_url.ilike('%deyoung.famsf.org%'),
+                            db.and_(Venue.website_url.ilike('%famsf.org%'), Venue.name.ilike('%de young%'))
+                        )
+                    ).first()
+                    if venue:
+                        for event in deyoung_events:
+                            event['venue_id'] = venue.id
+                            event['city_id'] = venue.city_id
+                        return deyoung_events
             response = self.session.get(source.url, timeout=15)
             response.raise_for_status()
             

@@ -27,6 +27,7 @@ Welcome to the comprehensive documentation for the Planner application. This dir
 ### 📊 Data Management
 - **[data/VENUE_DATA_MANAGEMENT_GUIDE.md](data/VENUE_DATA_MANAGEMENT_GUIDE.md)** - Venue data management
 - **[data/JSON_SYNC_WORKFLOW.md](data/JSON_SYNC_WORKFLOW.md)** - JSON synchronization workflow
+- **[ADD_VENUE_SOURCE_TEMPLATE.md](ADD_VENUE_SOURCE_TEMPLATE.md)** - Reusable template for adding + fully wiring venue/source
 
 ### 📝 Session Notes
 - **[session-notes/SESSION_NOTES_2025-01-18.md](session-notes/SESSION_NOTES_2025-01-18.md)** - Session notes from January 18, 2025
@@ -73,6 +74,7 @@ Welcome to the comprehensive documentation for the Planner application. This dir
 ### Data Management
 1. Follow [data/VENUE_DATA_MANAGEMENT_GUIDE.md](data/VENUE_DATA_MANAGEMENT_GUIDE.md)
 2. Use [data/JSON_SYNC_WORKFLOW.md](data/JSON_SYNC_WORKFLOW.md)
+3. **Add new venue/source:** Use [ADD_VENUE_SOURCE_TEMPLATE.md](ADD_VENUE_SOURCE_TEMPLATE.md) — reusable template for adding and fully wiring venues/sources
 
 ## 📖 Documentation Standards
 
