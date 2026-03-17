@@ -9335,6 +9335,73 @@ def scrape_ocma_endpoint():
             'events_skipped': 0
         }), 500
 
+@app.route('/api/admin/scrape-university-park-library', methods=['POST'])
+def scrape_university_park_library_endpoint():
+    """Scrape University Park Library (Irvine) from PDF program guide."""
+    try:
+        app_logger.info("Starting University Park Library scraping...")
+
+        venue = Venue.query.filter(Venue.name.ilike('%university park library%')).first()
+        if not venue:
+            return jsonify({
+                'success': False,
+                'error': 'University Park Library venue not found. Load venues from data/venues.json first.',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0
+            }), 200
+
+        from scripts.university_park_library_scraper import scrape_all_university_park_library_events
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        events = scrape_all_university_park_library_events() or []
+
+        if not events:
+            return jsonify({
+                'success': True,
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0,
+                'message': 'No University Park Library events found.'
+            }), 200
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url='https://legacy.cityofirvine.org/civica/filebank/blobdload.asp?BlobID=36797',
+            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+        )
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': f"Found {len(events)} event(s) (created: {created}, updated: {updated}, skipped: {skipped})"
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping University Park Library: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0
+        }), 500
+
 @app.route('/api/admin/scrape-wit-eventbrite', methods=['POST'])
 def scrape_wit_eventbrite_endpoint():
     """Scrape Washington Improv Theater events from Eventbrite organizer page."""

@@ -151,6 +151,18 @@ class SourceEventScraper:
                             event['venue_id'] = venue.id
                             event['city_id'] = venue.city_id
                         return deyoung_events
+            if 'legacy.cityofirvine.org' in source.url.lower() and 'university park' in (source.name or '').lower():
+                from scripts.university_park_library_scraper import scrape_all_university_park_library_events
+                upl_events = scrape_all_university_park_library_events()
+                if upl_events:
+                    venue = Venue.query.filter(
+                        Venue.name.ilike('%university park library%')
+                    ).first()
+                    if venue:
+                        for event in upl_events:
+                            event['venue_id'] = venue.id
+                            event['city_id'] = venue.city_id
+                        return upl_events
             response = self.session.get(source.url, timeout=15)
             response.raise_for_status()
             

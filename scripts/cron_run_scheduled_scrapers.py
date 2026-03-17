@@ -11,6 +11,7 @@ This script is designed to be run from a cronjob and will:
 - Scrape de Young Museum (SF exhibitions)
 - Scrape Hammer Museum (LA programs and events)
 - Scrape OCMA (Orange County Museum of Art, Irvine)
+- Scrape University Park Library (Irvine, PDF program guide)
 - Scrape DC Chinese New Year Parade (seasonal: Jan–Feb only)
 - Tulip Day (seasonal: Mar–Apr only)
 - Save events to the database
@@ -689,6 +690,40 @@ def main():
                         logger.info(f"   → found 0")
                 else:
                     logger.warning(f"   ⚠️  OCMA venue not found, skipping")
+            except Exception as e:
+                logger.error(f"   ❌ {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
+            # University Park Library (Irvine) - PDF program guide
+            logger.info(f"📚 University Park Library | Irvine")
+            try:
+                upl = Venue.query.filter(Venue.name.ilike('%university park library%')).first()
+                if upl:
+                    from scripts.university_park_library_scraper import scrape_all_university_park_library_events
+                    from scripts.event_database_handler import create_events_in_database as shared_create_events
+                    upl_events = scrape_all_university_park_library_events()
+                    if upl_events:
+                        created, updated, skipped = shared_create_events(
+                            events=upl_events,
+                            venue_id=upl.id,
+                            city_id=upl.city_id,
+                            venue_name=upl.name,
+                            db=db,
+                            Event=Event,
+                            Venue=Venue,
+                            batch_size=5,
+                            logger_instance=logger,
+                            source_url='https://legacy.cityofirvine.org/civica/filebank/blobdload.asp?BlobID=36797',
+                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': upl.name})
+                        )
+                        total_events_saved += created
+                        total_events_found += len(upl_events)
+                        logger.info(f"   → found {len(upl_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                else:
+                    logger.warning(f"   ⚠️  University Park Library venue not found, skipping")
             except Exception as e:
                 logger.error(f"   ❌ {e}")
                 import traceback

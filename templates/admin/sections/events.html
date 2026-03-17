@@ -60,7 +60,7 @@
             <!-- DC Museums Section -->
             <div style="margin-bottom: 16px;">
                 <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">📍 Washington, DC</h5>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                <div class="scraper-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 180px)); gap: 8px;">
                     <button onclick="startHirshhornScraping()" class="add-button scraper-btn" style="background: #e91e63;">Hirshhorn</button>
                     <button onclick="startNGAScraping()" class="add-button scraper-btn" style="background: #17a2b8;">NGA</button>
                     <button onclick="startSAAMScraping()" class="add-button scraper-btn" style="background: #8b5cf6;">SAAM</button>
@@ -79,7 +79,7 @@
             <!-- New York City Section -->
             <div style="margin-bottom: 16px;">
                 <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">📍 New York City</h5>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                <div class="scraper-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 180px)); gap: 8px;">
                     <button onclick="startShootNYCScraping()" class="add-button scraper-btn" style="background: #e0e7ff;">Shoot NYC</button>
                 </div>
             </div>
@@ -87,7 +87,7 @@
             <!-- Los Angeles Section -->
             <div style="margin-bottom: 16px;">
                 <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">📍 Los Angeles</h5>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                <div class="scraper-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 180px)); gap: 8px;">
                     <button onclick="startHammerScraping()" class="add-button scraper-btn" style="background: #fef3c7;">Hammer Museum</button>
                 </div>
             </div>
@@ -95,16 +95,24 @@
             <!-- San Francisco Section -->
             <div style="margin-bottom: 16px;">
                 <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">📍 San Francisco</h5>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                <div class="scraper-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 180px)); gap: 8px;">
                     <button onclick="startDeYoungScraping()" class="add-button scraper-btn" style="background: #dbeafe;">de Young Museum</button>
+                </div>
+            </div>
+            
+            <!-- Irvine Section -->
+            <div style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">📍 Irvine</h5>
+                <div class="scraper-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 180px)); gap: 8px;">
+                    <button onclick="startOCMAScraping()" class="add-button scraper-btn" style="background: #e8f5e9;">OCMA</button>
+                    <button onclick="startUniversityParkLibraryScraping()" class="add-button scraper-btn" style="background: #fef3c7;">University Park Library</button>
                 </div>
             </div>
             
             <!-- Other Venues Section -->
             <div>
                 <h5 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">🌍 Other Venues</h5>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
-                    <button onclick="startOCMAScraping()" class="add-button scraper-btn" style="background: #e8f5e9;">OCMA</button>
+                <div class="scraper-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 180px)); gap: 8px;">
                     <button onclick="startWebstersScraping()" class="add-button scraper-btn" style="background: #6f42c1;">Webster's</button>
                     <button onclick="discoverNewVenues()" class="add-button scraper-btn" style="background: #fd7e14;">Discover Venues</button>
                 </div>

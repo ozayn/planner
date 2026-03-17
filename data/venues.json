@@ -5622,6 +5622,32 @@
       "additional_info": "{}",
       "created_at": "2026-03-15T12:00:00.000000",
       "updated_at": "2026-03-15T12:00:00.000000"
+    },
+    "227": {
+      "name": "University Park Library",
+      "venue_type": "library",
+      "address": "4512 Sandburg Way, Irvine, CA",
+      "city_id": 27,
+      "city_name": "Irvine",
+      "description": "University Park Library is a public library in Irvine offering community programs, educational events, talks, workshops, and cultural activities.",
+      "opening_hours": "",
+      "holiday_hours": "",
+      "phone_number": "",
+      "email": "",
+      "website_url": "https://cityofirvine.org/libraries",
+      "ticketing_url": "",
+      "instagram_url": "",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "",
+      "image_url": "",
+      "latitude": null,
+      "longitude": null,
+      "additional_info": "",
+      "created_at": "2026-03-17T00:00:00.000000",
+      "updated_at": "2026-03-17T00:00:00.000000"
     }
   }
 }
