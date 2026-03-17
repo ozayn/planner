@@ -2,6 +2,8 @@
 """
 de Young Museum (FAMSF) scraper.
 Scrapes exhibitions from https://www.famsf.org/exhibitions?where=de-young
+and calendar/program events (tours, talks, workshops, etc.) from
+https://www.famsf.org/calendar?where=de-young
 """
 
 import logging
@@ -17,6 +19,7 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 DEYOUNG_EXHIBITIONS_URL = "https://www.famsf.org/exhibitions?where=de-young"
+DEYOUNG_CALENDAR_URL = "https://www.famsf.org/calendar?where=de-young"
 DEYOUNG_BASE_URL = "https://www.famsf.org"
 VENUE_NAME = "de Young Museum"
 REQUEST_TIMEOUT = 30
@@ -80,6 +83,63 @@ def _extract_image_url(container, base_url: str) -> Optional[str]:
                 if is_valid(part):
                     return urljoin(base_url, part)
     return None
+
+
+def _parse_calendar_time(text: str) -> Optional[tuple]:
+    """
+    Parse time string like "6–7:30 pm", "1 pm", "9:30 am–4 pm", "6 pm – midnight".
+    Returns (start_time, end_time) as "HH:MM" or (start_time, None) if single time.
+    """
+    if not text or not isinstance(text, str):
+        return None
+    text = text.strip().lower()
+    suffix = "pm" if "pm" in text else "am"
+
+    def to_minutes(match) -> int:
+        h = int(match.group(1))
+        m_val = int(match.group(2) or 0)
+        ampm = (match.group(3) or suffix).lower()
+        if ampm == "pm" and h != 12:
+            h += 12
+        elif ampm == "am" and h == 12:
+            h = 0
+        return h * 60 + m_val
+
+    if "midnight" in text:
+        text = text.replace("midnight", "12:00 am")
+
+    time_pat = re.compile(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", re.I)
+    matches = list(time_pat.finditer(text))
+    if not matches:
+        return None
+    start_m = to_minutes(matches[0])
+    start_time = f"{start_m // 60:02d}:{start_m % 60:02d}"
+    end_time = None
+    if len(matches) >= 2:
+        end_m = to_minutes(matches[1])
+        if end_m == 0:
+            end_time = "23:59"
+        else:
+            end_time = f"{end_m // 60:02d}:{end_m % 60:02d}"
+    return (start_time, end_time)
+
+
+def _infer_event_type(card_text: str, title: str) -> str:
+    """Map calendar card text to canonical event_type."""
+    combined = (card_text + " " + title).lower()
+    if "gallery conversation" in combined or "tour" in combined:
+        return "tour"
+    if "reception" in combined or "gala" in combined or "party" in combined:
+        return "event"
+    if "lecture" in combined or "talk" in combined:
+        return "talk"
+    if "workshop" in combined:
+        return "workshop"
+    if "concert" in combined or "music" in combined:
+        return "music"
+    if "film" in combined or "screening" in combined:
+        return "film"
+    return "event"
 
 
 def _parse_date_range(text: str, today: date) -> Optional[tuple]:
@@ -236,14 +296,115 @@ def scrape_deyoung_events() -> List[Dict]:
     return events
 
 
+def _scrape_calendar_events(session, today: date) -> List[Dict]:
+    """
+    Scrape tours, talks, lectures, workshops, and other programs from the de Young calendar.
+    Returns only de Young venue events with parseable dates (skips recurring like "Select Saturdays").
+    """
+    events = []
+    try:
+        resp = session.get(DEYOUNG_CALENDAR_URL, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        html = resp.text
+    except Exception as e:
+        logger.warning(f"Failed to fetch de Young calendar: {e}")
+        return events
+
+    soup = BeautifulSoup(html, "html.parser")
+    seen_urls = set()
+
+    for a in soup.find_all("a", href=True):
+        href = a.get("href", "")
+        if "ticketing.famsf" in href:
+            continue
+        if "/events/" not in href:
+            continue
+        event_url = urljoin(DEYOUNG_BASE_URL, href)
+        if event_url in seen_urls:
+            continue
+        seen_urls.add(event_url)
+
+        title = a.get_text(strip=True)
+        if not title or len(title) < 5 or "Donate" in title:
+            continue
+
+        card = a.find_parent("li")
+        if not card:
+            continue
+
+        card_text = card.get_text()
+        if "Legion" in card_text and "de Young" not in card_text:
+            continue
+        if "de Young" not in card_text:
+            continue
+
+        time_el = card.find("time")
+        if not time_el or not time_el.get("datetime"):
+            continue
+        try:
+            start_date = datetime.strptime(time_el["datetime"], "%Y-%m-%d").date()
+        except (ValueError, KeyError):
+            continue
+        if start_date < today:
+            continue
+
+        start_time, end_time = None, None
+        if time_el.parent:
+            parts = list(time_el.parent.stripped_strings)
+            if len(parts) >= 3:
+                parsed = _parse_calendar_time(parts[2])
+                if parsed:
+                    start_time, end_time = parsed
+
+        event_type = _infer_event_type(card_text, title)
+        image_url = _extract_image_url(card, DEYOUNG_BASE_URL)
+
+        event = {
+            "title": title,
+            "description": "",
+            "start_date": start_date.isoformat(),
+            "end_date": start_date.isoformat(),
+            "start_time": start_time,
+            "end_time": end_time,
+            "url": event_url,
+            "image_url": image_url,
+            "event_type": event_type,
+            "venue_name": VENUE_NAME,
+            "start_location": VENUE_NAME,
+            "end_location": None,
+            "source": "website",
+            "source_url": DEYOUNG_CALENDAR_URL,
+            "organizer": VENUE_NAME,
+        }
+        events.append(event)
+
+    logger.info(f"de Young Museum: scraped {len(events)} calendar/program events")
+    return events
+
+
 def scrape_all_deyoung_events() -> List[Dict]:
-    """Entry point for source/cron scraper. Returns events with venue_id/city_id set by caller."""
-    return scrape_deyoung_events()
+    """Entry point for source/cron scraper. Returns exhibitions + calendar/program events."""
+    session = _get_session()
+    today = date.today()
+
+    exhibitions = scrape_deyoung_events()
+    calendar_events = _scrape_calendar_events(session, today)
+
+    seen_urls = {e["url"] for e in exhibitions}
+    for e in calendar_events:
+        if e["url"] not in seen_urls:
+            seen_urls.add(e["url"])
+            exhibitions.append(e)
+
+    return exhibitions
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     events = scrape_all_deyoung_events()
-    print(f"Found {len(events)} events")
-    for e in events[:5]:
-        print(f"  - {e['title']} | {e['start_date']}–{e['end_date']} | {e['event_type']}")
+    ex = [e for e in events if e["event_type"] == "exhibition"]
+    cal = [e for e in events if e["event_type"] != "exhibition"]
+    print(f"Found {len(events)} events ({len(ex)} exhibitions, {len(cal)} calendar/programs)")
+    for e in events[:8]:
+        time_str = f" {e.get('start_time') or ''}" if e.get("start_time") else ""
+        print(f"  - {e['title'][:50]} | {e['start_date']}{time_str} | {e['event_type']}")
