@@ -3768,6 +3768,9 @@
         let currentPanel = 'venues'; // Track which panel is active
         let statusSectionCollapsed = true; // Track status section state (default: collapsed)
         let selectedEventTypeFilters = new Set(); // Track selected event type filters (can be multiple)
+        // When false, empty type selection means "all types except exhibitions" (initial load / new city).
+        // User can show everything via "All" or enable exhibitions (see setupEventTypeFilters / mobile Type).
+        let includeExhibitionsInDefaultView = false;
         let babyFriendlyFilterActive = false; // Track baby-friendly filter state
         let showExtractedEvents = true; // Track whether to show already extracted events (default: show)
         let showRecurringTours = false; // Track whether to show recurring tours (default: hidden to save space)
@@ -4472,8 +4475,9 @@
                 currentCity = selectedOption ? selectedOption.textContent : 'Selected City';
                 
                 // --- RESET STATE FOR NEW CITY ---
-                // Clear filters to ensure all events are shown by default
+                // Clear filters; default view hides exhibitions until user opts in or clicks "All"
                 selectedEventTypeFilters.clear();
+                includeExhibitionsInDefaultView = false;
                 babyFriendlyFilterActive = false;
 
                 // Reset event type filter buttons to "All"
@@ -6828,9 +6832,9 @@
                     if (selectedEventTypeFilters.has('other') && isOtherEventType(event.event_type)) return true;
                     return selectedEventTypeFilters.has(event.event_type);
                 });
-            } else {
-                // DEFAULT VIEW (All types): Show exhibitions so cities with only exhibitions (e.g. SF/De Young) display events
-                // Previously hid exhibitions to reduce clutter, but that caused empty results for some cities
+            } else if (!includeExhibitionsInDefaultView) {
+                // DEFAULT VIEW (no specific type chips): hide exhibitions to reduce clutter; use Type filter or "All" to include them
+                filteredEvents = filteredEvents.filter(event => event.event_type !== 'exhibition');
             }
             
             // Filter by baby-friendly if filter is active
@@ -7208,8 +7212,9 @@
                     
                     // Toggle selection
                     if (eventType === '') {
-                        // "All" button - clear all other selections
+                        // "All" button - clear all other selections; show every event type including exhibitions
                         selectedEventTypeFilters.clear();
+                        includeExhibitionsInDefaultView = true;
                         babyFriendlyFilterActive = false;
                         filterButtons.forEach(b => {
                             b.classList.remove('active');
@@ -7222,6 +7227,13 @@
                         this.style.color = 'rgba(0,0,0,0.87)';
                         this.style.fontWeight = '500';
                     } else {
+                        // From default (exhibitions hidden), first click on "Exhibitions" shows the full mix including exhibitions
+                        if (!includeExhibitionsInDefaultView && selectedEventTypeFilters.size === 0 && eventType === 'exhibition') {
+                            includeExhibitionsInDefaultView = true;
+                            displayUnifiedEvents();
+                            updateMobileTypeCheckboxes();
+                            return;
+                        }
                         // Specific event type - toggle it
                         if (selectedEventTypeFilters.has(eventType)) {
                             selectedEventTypeFilters.delete(eventType);
@@ -7351,6 +7363,7 @@
                         }
                     } else if (eventType === '') {
                         selectedEventTypeFilters.clear();
+                        includeExhibitionsInDefaultView = true;
                         babyFriendlyFilterActive = false;
                         panel.querySelectorAll('input[type="checkbox"]').forEach(c => {
                             if (c !== this) c.checked = false;
@@ -7369,6 +7382,28 @@
                             allBtn.style.fontWeight = '500';
                         }
                     } else {
+                        if (eventType === 'exhibition' && this.checked && !includeExhibitionsInDefaultView && selectedEventTypeFilters.size === 0 && !babyFriendlyFilterActive) {
+                            includeExhibitionsInDefaultView = true;
+                            this.checked = false;
+                            const allBtn = document.querySelector('.event-type-filter-btn[data-event-type=""]');
+                            if (allBtn) {
+                                allBtn.classList.add('active');
+                                allBtn.style.background = 'rgba(0,0,0,0.08)';
+                                allBtn.style.color = 'rgba(0,0,0,0.87)';
+                                allBtn.style.fontWeight = '500';
+                            }
+                            document.querySelectorAll('.event-type-filter-btn').forEach(b => {
+                                if (b.dataset.eventType !== '') {
+                                    b.classList.remove('active');
+                                    b.style.background = 'rgba(255,255,255,0.6)';
+                                    b.style.color = 'rgba(0,0,0,0.6)';
+                                    b.style.fontWeight = '400';
+                                }
+                            });
+                            updateMobileTypeCheckboxes();
+                            displayUnifiedEvents();
+                            return;
+                        }
                         if (this.checked) {
                             selectedEventTypeFilters.add(eventType);
                         } else {
