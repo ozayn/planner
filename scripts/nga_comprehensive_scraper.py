@@ -44,8 +44,10 @@ NGA_NIGHTS_URL = 'https://www.nga.gov/calendar/national-gallery-nights'
 
 def create_scraper():
     """Create a cloudscraper session to bypass bot detection"""
-    from scripts.scraper_utils import create_cloudscraper_session
-    scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    scraper = create_cloudscraper_session(
+        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('nga')
+    )
     if scraper:
         scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
         import time
@@ -64,8 +66,10 @@ def fetch_with_retry(scraper, url, max_retries=3, delay=2):
     def recreate_scraper():
         """Helper to recreate cloudscraper session"""
         logger.debug(f"   🔧 Recreating cloudscraper session...")
-        from scripts.scraper_utils import create_cloudscraper_session
-        new_scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+        from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+        new_scraper = create_cloudscraper_session(
+            base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('nga')
+        )
         if new_scraper:
             new_scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
             try:

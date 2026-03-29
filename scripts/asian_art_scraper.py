@@ -41,6 +41,22 @@ ASIAN_ART_TOURS_URL = 'https://asia.si.edu/whats-on/tours/'
 ASIAN_ART_FILMS_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Films'
 ASIAN_ART_PERFORMANCES_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Performances'
 
+# Referer for listing/detail requests (aligns with NGA pattern for Smithsonian properties)
+ASIAN_ART_REFERER = f'{ASIAN_ART_BASE_URL}/'
+
+
+def _asian_art_cloudscraper_session():
+    """Cloudscraper session with base URL warmup and SSL verification (NGA-aligned)."""
+    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    cs = create_cloudscraper_session(
+        base_url=ASIAN_ART_BASE_URL,
+        verify_ssl=True,
+        use_proxy=scraper_proxy_opt_in('asian_art'),
+    )
+    if cs:
+        cs.headers.update({'Referer': ASIAN_ART_REFERER})
+    return cs
+
 
 def create_scraper():
     """Create a scraper session"""
@@ -56,9 +72,13 @@ def create_scraper():
         'DNT': '1',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
+        'Referer': ASIAN_ART_REFERER,
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     })
-    
+
+    from scripts.scraper_utils import apply_webshare_proxy_to_session, scraper_proxy_opt_in
+    apply_webshare_proxy_to_session(scraper, use_proxy=scraper_proxy_opt_in('asian_art'))
+
     return scraper
 
 
@@ -264,8 +284,7 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
             if http_err.response is not None and http_err.response.status_code == 403:
                 logger.warning(f"   ⚠️  403 Forbidden on exhibitions, trying cloudscraper...")
                 try:
-                    from scripts.scraper_utils import create_cloudscraper_session
-                    cs = create_cloudscraper_session()
+                    cs = _asian_art_cloudscraper_session()
                     if cs:
                         response = cs.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
                         response.raise_for_status()
@@ -1099,8 +1118,7 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
             if http_err.response is not None and http_err.response.status_code == 403:
                 logger.warning(f"   ⚠️  403 Forbidden on events search, trying cloudscraper...")
                 try:
-                    from scripts.scraper_utils import create_cloudscraper_session
-                    cs = create_cloudscraper_session()
+                    cs = _asian_art_cloudscraper_session()
                     if cs:
                         response = cs.get(events_search_url, timeout=(15, 45))
                         response.raise_for_status()
@@ -1304,9 +1322,24 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
+        response = None
         try:
             response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(15, 45))
             response.raise_for_status()
+        except HTTPError as http_err:
+            if http_err.response is not None and http_err.response.status_code == 403:
+                logger.warning(f"   ⚠️  403 Forbidden on films, trying cloudscraper...")
+                try:
+                    cs = _asian_art_cloudscraper_session()
+                    if cs:
+                        response = cs.get(ASIAN_ART_FILMS_URL, timeout=(15, 45))
+                        response.raise_for_status()
+                except Exception:
+                    logger.warning(f"   ⚠️  Skipping Asian Art films (403). Cloudscraper fallback failed.")
+                    return events
+            else:
+                logger.error(f"❌ HTTP error scraping Asian Art Museum films: {http_err}")
+                return events
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
             logger.error(f"❌ Timeout error scraping Asian Art Museum films: {timeout_error}")
             logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
@@ -1315,6 +1348,8 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
         except (ConnectionError, RequestException) as conn_error:
             logger.error(f"❌ Connection error scraping Asian Art Museum films: {conn_error}")
             logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
+            return events
+        if not response:
             return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1503,9 +1538,24 @@ def scrape_asian_art_performances(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎭 Scraping Asian Art Museum performances from: {ASIAN_ART_PERFORMANCES_URL}")
+        response = None
         try:
             response = scraper.get(ASIAN_ART_PERFORMANCES_URL, timeout=(15, 45))
             response.raise_for_status()
+        except HTTPError as http_err:
+            if http_err.response is not None and http_err.response.status_code == 403:
+                logger.warning(f"   ⚠️  403 Forbidden on performances, trying cloudscraper...")
+                try:
+                    cs = _asian_art_cloudscraper_session()
+                    if cs:
+                        response = cs.get(ASIAN_ART_PERFORMANCES_URL, timeout=(15, 45))
+                        response.raise_for_status()
+                except Exception:
+                    logger.warning(f"   ⚠️  Skipping Asian Art performances (403). Cloudscraper fallback failed.")
+                    return events
+            else:
+                logger.error(f"❌ HTTP error scraping Asian Art Museum performances: {http_err}")
+                return events
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
             logger.error(f"❌ Timeout error scraping Asian Art Museum performances: {timeout_error}")
             logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
@@ -1514,6 +1564,8 @@ def scrape_asian_art_performances(scraper=None) -> List[Dict]:
         except (ConnectionError, RequestException) as conn_error:
             logger.error(f"❌ Connection error scraping Asian Art Museum performances: {conn_error}")
             logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
+            return events
+        if not response:
             return events
         
         soup = BeautifulSoup(response.text, 'html.parser')

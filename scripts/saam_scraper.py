@@ -39,8 +39,8 @@ SAAM_TOURS_URL = 'https://americanart.si.edu/visit/tours'
 
 def create_scraper():
     """Create a cloudscraper session to bypass bot detection"""
-    from scripts.scraper_utils import create_cloudscraper_session
-    scraper = create_cloudscraper_session()
+    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    scraper = create_cloudscraper_session(use_proxy=scraper_proxy_opt_in('saam'))
     if scraper:
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',

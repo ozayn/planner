@@ -31,8 +31,10 @@ CITY_NAME = "Washington, DC"
 
 def create_scraper():
     """Create a cloudscraper session (same pattern as nga_comprehensive_scraper)."""
-    from scripts.scraper_utils import create_cloudscraper_session
-    scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    scraper = create_cloudscraper_session(
+        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('finding_awe')
+    )
     if scraper:
         scraper.headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -47,8 +49,10 @@ def create_scraper():
 
 def _create_fallback_scraper():
     """Create a fresh cloudscraper session with NGA warmup for 403 retry."""
-    from scripts.scraper_utils import create_cloudscraper_session
-    scraper = create_cloudscraper_session(base_url=NGA_BASE_URL, verify_ssl=True)
+    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    scraper = create_cloudscraper_session(
+        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('finding_awe')
+    )
     if scraper:
         scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
     return scraper
