@@ -27,6 +27,7 @@ sys.path.insert(0, str(project_root))
 from bs4 import BeautifulSoup
 
 from scripts.event_database_handler import create_events_in_database
+from scripts.scraper_db_lookup import resolve_city_by_name, resolve_venue_in_city
 from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
 from scripts.wharf_dc_scraper import get_event_urls_from_venue
 
@@ -744,27 +745,43 @@ def parse_big_onion_tours_listing(
     return events
 
 
+def _resolve_big_onion_venue(db, City, Venue):
+    """Big Onion venue in NYC via shared natural-key lookup (see scripts/scraper_db_lookup.py)."""
+    city = resolve_city_by_name(db, City, "New York", "New York")
+    if not city:
+        logger.warning(
+            "Big Onion scraper: city not found — expected a city named 'New York' "
+            "(with state 'New York' if present in the database)"
+        )
+        return None
+    venue = resolve_venue_in_city(
+        db,
+        Venue,
+        city.id,
+        website_contains=["bigonion.com"],
+        name_contains=["big onion"],
+    )
+    if not venue:
+        logger.warning(
+            "Big Onion scraper: venue not found for city %r (id=%s) — "
+            "expect website containing bigonion.com or name containing 'Big Onion'",
+            city.name,
+            city.id,
+        )
+        return None
+    return venue
+
+
 def scrape_big_onion_events():
     """
     Scrape Big Onion Walking Tours using the dedicated listing/detail parser.
     Listing URL comes from venue additional_info.event_paths or BIG_ONION_DEFAULT.
     """
-    from app import app, db, Venue
+    from app import app, db, City, Venue
 
     with app.app_context():
-        venue = (
-            Venue.query.filter(Venue.city_id == 2)
-            .filter(
-                db.or_(
-                    Venue.website_url.ilike("%bigonion.com%"),
-                    Venue.name.ilike("%big onion%"),
-                )
-            )
-            .first()
-        )
-
+        venue = _resolve_big_onion_venue(db, City, Venue)
         if not venue:
-            logger.warning("Big Onion scraper: venue not found (city_id=2, bigonion.com)")
             return []
 
         event_urls = get_event_urls_from_venue(venue)
@@ -781,19 +798,10 @@ def scrape_big_onion_events():
 def create_events_in_database_wrapper(events):
     """Persist Big Onion events; tag source as website."""
 
-    from app import app, db, Venue, Event
+    from app import app, db, City, Venue, Event
 
     with app.app_context():
-        venue = (
-            Venue.query.filter(Venue.city_id == 2)
-            .filter(
-                db.or_(
-                    Venue.website_url.ilike("%bigonion.com%"),
-                    Venue.name.ilike("%big onion%"),
-                )
-            )
-            .first()
-        )
+        venue = _resolve_big_onion_venue(db, City, Venue)
         if not venue:
             return 0, 0, 0
 

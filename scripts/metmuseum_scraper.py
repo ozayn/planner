@@ -16,6 +16,7 @@ sys.path.insert(0, str(project_root))
 
 from scripts.event_database_handler import create_events_in_database
 from scripts.generic_venue_scraper import GenericVenueScraper
+from scripts.scraper_db_lookup import resolve_city_by_name, resolve_venue_in_city
 from scripts.scraper_utils import scraper_proxy_opt_in
 from scripts.wharf_dc_scraper import get_event_urls_from_venue
 
@@ -70,22 +71,28 @@ def scrape_metmuseum_events():
     """
     Scrape Met tours/programs from listing URL(s) in venue additional_info, or default met-tours page.
     """
-    from app import app, db, Venue
+    from app import app, db, City, Venue
 
     with app.app_context():
-        venue = (
-            Venue.query.filter(Venue.city_id == 2)
-            .filter(
-                db.or_(
-                    Venue.website_url.ilike("%metmuseum.org%"),
-                    Venue.name.ilike("%metropolitan museum%"),
-                )
+        city = resolve_city_by_name(db, City, "New York", "New York")
+        if not city:
+            logger.warning(
+                "Metropolitan Museum scraper: city not found — expected 'New York' (state 'New York' if stored)"
             )
-            .first()
+            return []
+        venue = resolve_venue_in_city(
+            db,
+            Venue,
+            city.id,
+            website_contains=["metmuseum.org"],
+            name_contains=["metropolitan museum"],
         )
-
         if not venue:
-            logger.warning("Metropolitan Museum scraper: venue not found (city_id=2, metmuseum.org)")
+            logger.warning(
+                "Metropolitan Museum scraper: venue not found for city %r (id=%s) — metmuseum.org / Metropolitan Museum",
+                city.name,
+                city.id,
+            )
             return []
 
         event_urls = get_event_urls_from_venue(venue)
@@ -112,18 +119,18 @@ def scrape_metmuseum_events():
 def create_events_in_database_wrapper(events):
     """Persist Met events; tag source as website."""
 
-    from app import app, db, Venue, Event
+    from app import app, db, City, Venue, Event
 
     with app.app_context():
-        venue = (
-            Venue.query.filter(Venue.city_id == 2)
-            .filter(
-                db.or_(
-                    Venue.website_url.ilike("%metmuseum.org%"),
-                    Venue.name.ilike("%metropolitan museum%"),
-                )
-            )
-            .first()
+        city = resolve_city_by_name(db, City, "New York", "New York")
+        if not city:
+            return 0, 0, 0
+        venue = resolve_venue_in_city(
+            db,
+            Venue,
+            city.id,
+            website_contains=["metmuseum.org"],
+            name_contains=["metropolitan museum"],
         )
         if not venue:
             return 0, 0, 0

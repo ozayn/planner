@@ -101,9 +101,16 @@ Call in this order:
 
 ---
 
+## Scrapers: resolving cities / venues / sources (no hardcoded IDs)
+
+Local SQLite and production PostgreSQL use **different numeric IDs** for the same logical city or venue. Scrapers should **not** assume `city_id`, `venue_id`, or `source_id` from JSON or from a dev machine.
+
+Use **`scripts/scraper_db_lookup.py`**: `resolve_city_by_name`, `resolve_venue_in_city`, `resolve_source_in_city` — natural keys (name, state, website host substrings, name/handle substrings) within the **current** database session.
+
+---
+
 ## Recommended Future Improvements
 
 - **Stronger natural-key matching for venues** — Match by `name` + `city_name` (or `website_url`) to avoid cross-city collisions
 - **Better duplicate detection** — Pre-reload checks for duplicate names; warnings or blocking
-- **Fewer hardcoded `city_id` values** — Scripts should resolve city by name or use API responses
 - **Optional sync helper tooling** — Script or CLI to run the workflow steps (backup, validate, reload, verify) with minimal manual steps
