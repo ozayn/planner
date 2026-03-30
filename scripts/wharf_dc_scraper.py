@@ -73,6 +73,35 @@ def _parse_wharf_time_range(time_str: str) -> tuple[str | None, str | None]:
     return None, None
 
 
+# Full month names first so "March" does not match as "Mar" only.
+_WHARF_TEXT_DATE_RE = re.compile(
+    r'\b(?:'
+    r'January|February|March|April|May|June|July|August|September|October|November|December|'
+    r'Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?'
+    r')\s+\d{1,2},?\s+\d{4}',
+    re.I,
+)
+
+
+def _date_from_start_date_span(container) -> date | None:
+    """Use schema.org startDate from span[property=startDate] content= (ISO8601)."""
+    span = container.select_one('span[property="startDate"]')
+    if not span:
+        span = container.find('span', attrs={'property': 'startDate'})
+    if not span:
+        return None
+    content = (span.get('content') or '').strip()
+    if not content:
+        return None
+    m = re.match(r'(\d{4}-\d{2}-\d{2})', content)
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1), '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
 def _extract_wharf_events(html: str, base_url: str, venue_name: str) -> list:
     """
     Wharf-specific extraction: page has h3 event titles, date/time/location blocks, Learn More links.
@@ -112,9 +141,11 @@ def _extract_wharf_events(html: str, base_url: str, venue_name: str) -> list:
                     link = urljoin(base_url, href)
                     break
 
-        # Parse date: "Feb. 11, 2026" or "Dec. 21, 2025"
-        date_match = re.search(r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2},?\s+\d{4}', text, re.I)
-        event_date = _parse_wharf_date(date_match.group(0)) if date_match else None
+        # Prefer structured date (live site uses full month names in visible text; content= is ISO8601)
+        event_date = _date_from_start_date_span(container)
+        if not event_date:
+            date_match = _WHARF_TEXT_DATE_RE.search(text)
+            event_date = _parse_wharf_date(date_match.group(0)) if date_match else None
 
         # Parse time: "7pm – 10pm" or "12pm–4pm" (handles en-dash, hyphen, em-dash)
         time_match = re.search(r'\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*[–\-—]\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)', text, re.I)
