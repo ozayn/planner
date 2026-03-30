@@ -30,15 +30,17 @@ curl -X POST http://localhost:5001/api/admin/reload-sources
 
 **Production sync (cities, venues, sources)**
 ```bash
+# Set PRODUCTION_DATABASE_URL in .env (PostgreSQL public URL from Railway), then:
 # Dry run (preview only)
-DATABASE_URL='YOUR_DATABASE_PUBLIC_URL' /Users/oz/Dropbox/2025/planner/venv/bin/python scripts/sync_json_to_production.py
+./venv/bin/python scripts/sync_json_to_production.py
 
 # Apply changes
-DATABASE_URL='YOUR_DATABASE_PUBLIC_URL' /Users/oz/Dropbox/2025/planner/venv/bin/python scripts/sync_json_to_production.py --apply
+./venv/bin/python scripts/sync_json_to_production.py --apply
 ```
 - Syncs cities, venues, and sources only (not events)
 - Run dry run first before `--apply`
-- Use Railway Postgres public URL when running from a laptop (do not use `postgres.railway.internal` locally)
+- Prefer `PRODUCTION_DATABASE_URL` in `.env` so you do not need to prefix the command; falls back to `DATABASE_URL` if it is PostgreSQL
+- Use Railway Postgres **public** URL when running from a laptop (do not use `postgres.railway.internal` locally)
 - Duplicate conflicts are skipped for manual review
 
 ### **🤖 Hybrid OCR + LLM System**

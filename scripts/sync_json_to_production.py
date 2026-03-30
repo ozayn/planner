@@ -9,7 +9,10 @@ Usage:
   Dry run (default):  python scripts/sync_json_to_production.py
   Apply changes:     python scripts/sync_json_to_production.py --apply
 
-Requires: DATABASE_URL pointing to PostgreSQL (e.g. Railway)
+Requires: PRODUCTION_DATABASE_URL (preferred) or DATABASE_URL set to PostgreSQL — e.g. in .env
+  (Railway public URL when running from your laptop). This script sets DATABASE_URL for its
+  process only so the Flask app connects to production; your normal local DATABASE_URL is unchanged
+  outside this run.
 """
 
 import argparse
@@ -19,6 +22,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,19 +34,42 @@ except ImportError:
     pass
 
 
-def _check_postgres():
-    """Ensure DATABASE_URL points to PostgreSQL."""
-    db_url = os.getenv("DATABASE_URL")
+def _production_database_url() -> Optional[str]:
+    """
+    Prefer PRODUCTION_DATABASE_URL so local .env can keep DATABASE_URL=sqlite for the app.
+    Fall back to DATABASE_URL only when it looks like PostgreSQL.
+    """
+    prod = (os.getenv("PRODUCTION_DATABASE_URL") or "").strip()
+    if prod:
+        return prod
+    fb = os.getenv("DATABASE_URL")
+    if not fb:
+        return None
+    low = fb.lower()
+    if "sqlite" in low:
+        return None
+    if "postgresql" in low:
+        return fb
+    return None
+
+
+def _check_postgres() -> bool:
+    """Resolve production PostgreSQL URL and set DATABASE_URL for this process (before app import)."""
+    db_url = _production_database_url()
     if not db_url:
-        print("❌ DATABASE_URL not set.")
-        print("   Set it to your Railway PostgreSQL connection string.")
+        print("❌ No production PostgreSQL connection string.")
+        print(
+            "   Set PRODUCTION_DATABASE_URL in .env (recommended), or DATABASE_URL to a PostgreSQL URL."
+        )
+        print("   Use your Railway public Postgres URL when running this script locally.")
         return False
     if "sqlite" in db_url.lower():
-        print("❌ DATABASE_URL points to SQLite. This script requires PostgreSQL.")
+        print("❌ Production URL points to SQLite. This script requires PostgreSQL.")
         return False
     if "postgresql" not in db_url.lower():
-        print("❌ DATABASE_URL does not appear to be PostgreSQL.")
+        print("❌ Production URL does not appear to be PostgreSQL.")
         return False
+    os.environ["DATABASE_URL"] = db_url
     return True
 
 

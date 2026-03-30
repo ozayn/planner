@@ -42,6 +42,8 @@ Call in this order:
 
 **Avoid:** `POST /api/load-data` — expects an older venues.json structure and can fail or corrupt data.
 
+**Optional — `scripts/sync_json_to_production.py`:** Syncs JSON directly to PostgreSQL from your machine. Set **`PRODUCTION_DATABASE_URL`** in `.env` (Railway public URL; see `.env.example`). The script prefers that variable over `DATABASE_URL` so local development can keep `DATABASE_URL` on SQLite.
+
 ---
 
 ## Verification Steps
