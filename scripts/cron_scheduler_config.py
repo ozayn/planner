@@ -51,6 +51,9 @@ STANDALONE_SCHEDULE_RULES = {
     "websters": (RULE_ALWAYS, None),
     "wharf_dc": (RULE_ALWAYS, None),
     "shoot_nyc": (RULE_ALWAYS, None),
+    "metmuseum": (RULE_ALWAYS, None),
+    "tenement_museum": (RULE_ALWAYS, None),
+    "big_onion": (RULE_ALWAYS, None),
     "hammer": (RULE_ALWAYS, None),
     "dcparade": (RULE_SEASONAL, [1, 2]),  # January, February - Chinese New Year
 }

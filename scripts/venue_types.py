@@ -15,7 +15,8 @@ def get_allowed_venue_types():
         'Shopping District', 'Art District', 'Government Building', 'Observation Tower', 
         'Observation Deck', 'Observatory', 'Aquarium', 'Zoo', 'Cathedral', 
         'Church', 'Temple', 'Shrine', 'Bridge', 'Castle', 'Palace', 'Beach', 
-        'Waterfront', 'Waterway', 'Avenue', 'cafe', 'restaurant', 'bookstore', 'other'
+        'Waterfront', 'Waterway', 'Avenue', 'cafe', 'restaurant', 'bookstore',
+        'Tour', 'Tour Company', 'other'
     ]
 
 def get_venue_type_description():

@@ -8,6 +8,7 @@ This script is designed to be run from a cronjob and will:
 - Scrape Webster's Bookstore Cafe (State College, PA)
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
+- Scrape The Metropolitan Museum of Art (NYC tours & programs)
 - Scrape de Young Museum (SF exhibitions)
 - Scrape Hammer Museum (LA programs and events)
 - Scrape OCMA (Orange County Museum of Art, Irvine)
@@ -578,6 +579,75 @@ def main():
                 logger.error(f"   ❌ {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+
+            # The Metropolitan Museum of Art (NYC — met-tours & programs)
+            rule, months = get_standalone_schedule_rule("metmuseum")
+            if not should_run(rule, months):
+                logger.info(f"⏭️  The Met | skipped (scheduler)")
+            else:
+                logger.info(f"🏛️  The Met | The Metropolitan Museum of Art")
+                try:
+                    from scripts.metmuseum_scraper import scrape_metmuseum_events, create_events_in_database_wrapper
+                    met_events = scrape_metmuseum_events()
+                    if met_events:
+                        created, updated, skipped = create_events_in_database_wrapper(met_events)
+                        total_events_saved += created
+                        total_events_found += len(met_events)
+                        logger.info(f"   → found {len(met_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            # Tenement Museum (NYC — tours & programs)
+            rule, months = get_standalone_schedule_rule("tenement_museum")
+            if not should_run(rule, months):
+                logger.info(f"⏭️  Tenement Museum | skipped (scheduler)")
+            else:
+                logger.info(f"🏠  Tenement Museum | Tenement Museum")
+                try:
+                    from scripts.tenement_museum_scraper import (
+                        create_events_in_database_wrapper,
+                        scrape_tenement_museum_events,
+                    )
+                    tenement_events = scrape_tenement_museum_events()
+                    if tenement_events:
+                        created, updated, skipped = create_events_in_database_wrapper(tenement_events)
+                        total_events_saved += created
+                        total_events_found += len(tenement_events)
+                        logger.info(f"   → found {len(tenement_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            # Big Onion Walking Tours (NYC)
+            rule, months = get_standalone_schedule_rule("big_onion")
+            if not should_run(rule, months):
+                logger.info(f"⏭️  Big Onion | skipped (scheduler)")
+            else:
+                logger.info(f"🧅  Big Onion | Big Onion Walking Tours")
+                try:
+                    from scripts.big_onion_scraper import (
+                        create_events_in_database_wrapper,
+                        scrape_big_onion_events,
+                    )
+                    big_onion_events = scrape_big_onion_events()
+                    if big_onion_events:
+                        created, updated, skipped = create_events_in_database_wrapper(big_onion_events)
+                        total_events_saved += created
+                        total_events_found += len(big_onion_events)
+                        logger.info(f"   → found {len(big_onion_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
 
             # de Young Museum (SF exhibitions)
             logger.info(f"🏛️  de Young Museum | de Young Museum")

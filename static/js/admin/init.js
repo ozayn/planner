@@ -2029,6 +2029,7 @@ async function startOCMAScraping() {
                 events_found: result.events_found ?? 0,
                 events_saved: result.events_saved ?? 0,
                 events_updated: result.events_updated ?? 0,
+                events_skipped: result.events_skipped ?? 0,
                 error: false
             });
             if (typeof loadEvents === 'function') loadEvents();
@@ -2074,6 +2075,7 @@ async function startUniversityParkLibraryScraping() {
                 events_found: result.events_found ?? 0,
                 events_saved: result.events_saved ?? 0,
                 events_updated: result.events_updated ?? 0,
+                events_skipped: result.events_skipped ?? 0,
                 error: false
             });
             if (typeof loadEvents === 'function') loadEvents();
@@ -2563,6 +2565,153 @@ async function startShootNYCScraping() {
         }
     } catch (error) {
         console.error('Shoot NYC scraping error:', error);
+        updateScrapingProgress({ percentage: 0, message: `❌ Error: ${error.message}`, error: true });
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        onScrapingComplete();
+    }
+}
+
+async function startMetMuseumScraping() {
+    showScrapingProgressModal('The Metropolitan Museum of Art', false);
+
+    try {
+        const response = await fetch('/api/admin/scrape-metmuseum', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {}
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errorMessage}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            onScrapingComplete();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            const msg = `✅ Found ${result.events_found ?? 0} event(s) — created: ${result.events_saved ?? 0}, updated: ${result.events_updated ?? 0}, skipped: ${result.events_skipped ?? 0}`;
+            updateScrapingProgress({
+                percentage: 100,
+                message: msg,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0,
+                events_updated: result.events_updated ?? 0,
+                error: false
+            });
+            if (typeof loadEvents === 'function') loadEvents();
+            onScrapingComplete();
+        } else {
+            const errMsg = result.error || 'Unknown error';
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errMsg}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errMsg}`, 'error');
+            onScrapingComplete();
+        }
+    } catch (error) {
+        console.error('The Met scraping error:', error);
+        updateScrapingProgress({ percentage: 0, message: `❌ Error: ${error.message}`, error: true });
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        onScrapingComplete();
+    }
+}
+
+async function startTenementMuseumScraping() {
+    showScrapingProgressModal('Tenement Museum', false);
+
+    try {
+        const response = await fetch('/api/admin/scrape-tenement-museum', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {}
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errorMessage}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            onScrapingComplete();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            const msg = `✅ Found ${result.events_found ?? 0} event(s) — created: ${result.events_saved ?? 0}, updated: ${result.events_updated ?? 0}, skipped: ${result.events_skipped ?? 0}`;
+            updateScrapingProgress({
+                percentage: 100,
+                message: msg,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0,
+                events_updated: result.events_updated ?? 0,
+                error: false
+            });
+            if (typeof loadEvents === 'function') loadEvents();
+            onScrapingComplete();
+        } else {
+            const errMsg = result.error || 'Unknown error';
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errMsg}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errMsg}`, 'error');
+            onScrapingComplete();
+        }
+    } catch (error) {
+        console.error('Tenement Museum scraping error:', error);
+        updateScrapingProgress({ percentage: 0, message: `❌ Error: ${error.message}`, error: true });
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        onScrapingComplete();
+    }
+}
+
+async function startBigOnionScraping() {
+    showScrapingProgressModal('Big Onion Walking Tours', false);
+
+    try {
+        const response = await fetch('/api/admin/scrape-big-onion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {}
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errorMessage}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            onScrapingComplete();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            const msg = `✅ Found ${result.events_found ?? 0} event(s) — created: ${result.events_saved ?? 0}, updated: ${result.events_updated ?? 0}, skipped: ${result.events_skipped ?? 0}`;
+            updateScrapingProgress({
+                percentage: 100,
+                message: msg,
+                events_found: result.events_found ?? 0,
+                events_saved: result.events_saved ?? 0,
+                events_updated: result.events_updated ?? 0,
+                error: false
+            });
+            if (typeof loadEvents === 'function') loadEvents();
+            onScrapingComplete();
+        } else {
+            const errMsg = result.error || 'Unknown error';
+            updateScrapingProgress({ percentage: 0, message: `❌ Error: ${errMsg}`, error: true });
+            updateScrapingStatus(`❌ Error: ${errMsg}`, 'error');
+            onScrapingComplete();
+        }
+    } catch (error) {
+        console.error('Big Onion scraping error:', error);
         updateScrapingProgress({ percentage: 0, message: `❌ Error: ${error.message}`, error: true });
         updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
         onScrapingComplete();
@@ -3076,8 +3225,12 @@ function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
     lastEventsSavedCount = 0;
     lastTableRefreshTime = 0;
     
-    // Create modal if it doesn't exist
+    // Create modal if it doesn't exist (replace legacy markup missing the four stat cards)
     let modal = document.getElementById('scrapingProgressModal');
+    if (modal && !modal.querySelector('#eventsCreated')) {
+        modal.remove();
+        modal = null;
+    }
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'scrapingProgressModal';
@@ -3104,8 +3257,16 @@ function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
                             <div id="eventsFound" style="font-size: 28px; font-weight: bold; color: #3b82f6; line-height: 1.2;">0</div>
                         </div>
                         <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
-                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Events Saved</div>
-                            <div id="eventsSaved" style="font-size: 28px; font-weight: bold; color: #10b981; line-height: 1.2;">0</div>
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Created</div>
+                            <div id="eventsCreated" style="font-size: 28px; font-weight: bold; color: #10b981; line-height: 1.2;">0</div>
+                        </div>
+                        <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Updated</div>
+                            <div id="eventsUpdated" style="font-size: 28px; font-weight: bold; color: #f59e0b; line-height: 1.2;">0</div>
+                        </div>
+                        <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Skipped</div>
+                            <div id="eventsSkipped" style="font-size: 28px; font-weight: bold; color: #64748b; line-height: 1.2;">0</div>
                         </div>
                     </div>
                     <div id="additionalStats" class="stats-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
@@ -3145,7 +3306,9 @@ function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
         const progressBar = document.getElementById('progressBar');
         const progressMessage = document.getElementById('progressMessage');
         const eventsFound = document.getElementById('eventsFound');
-        const eventsSaved = document.getElementById('eventsSaved');
+        const eventsCreated = document.getElementById('eventsCreated');
+        const eventsUpdated = document.getElementById('eventsUpdated');
+        const eventsSkipped = document.getElementById('eventsSkipped');
         const recentEvents = document.getElementById('recentEvents');
         
         if (progressBar) {
@@ -3160,8 +3323,14 @@ function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
         if (eventsFound) {
             eventsFound.textContent = '0';
         }
-        if (eventsSaved) {
-            eventsSaved.textContent = '0';
+        if (eventsCreated) {
+            eventsCreated.textContent = '0';
+        }
+        if (eventsUpdated) {
+            eventsUpdated.textContent = '0';
+        }
+        if (eventsSkipped) {
+            eventsSkipped.textContent = '0';
         }
         if (recentEvents) {
             recentEvents.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px; font-size: 0.9375rem;">No events extracted yet...</div>';
@@ -3183,7 +3352,7 @@ function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
         }
         progressPollInterval = setInterval(pollScrapingProgress, 1000); // Poll every second
     } else {
-        updateScrapingProgress({ percentage: 0, message: `Scraping ${sourceName}…`, events_found: 0, events_saved: 0 });
+        updateScrapingProgress({ percentage: 0, message: `Scraping ${sourceName}…`, events_found: 0, events_saved: 0, events_updated: 0, events_skipped: 0 });
     }
 }
 
@@ -3287,7 +3456,9 @@ function updateScrapingProgress(progress) {
     const progressBar = document.getElementById('progressBar');
     const progressMessage = document.getElementById('progressMessage');
     const eventsFound = document.getElementById('eventsFound');
-    const eventsSaved = document.getElementById('eventsSaved');
+    const eventsCreated = document.getElementById('eventsCreated');
+    const eventsUpdated = document.getElementById('eventsUpdated');
+    const eventsSkipped = document.getElementById('eventsSkipped');
     const recentEvents = document.getElementById('recentEvents');
     
     if (!progressBar) return;
@@ -3311,11 +3482,23 @@ function updateScrapingProgress(progress) {
     progressMessage.style.borderLeftColor = isError ? '#ef4444' : '#3b82f6';
     progressMessage.style.background = isError ? '#fef2f2' : '#f0f9ff';
     
+    const n = (v) => {
+        if (v === undefined || v === null) return 0;
+        const x = Number(v);
+        return Number.isFinite(x) ? x : 0;
+    };
     if (eventsFound) {
-        eventsFound.textContent = progress.events_found || 0;
+        eventsFound.textContent = String(n(progress.events_found));
     }
-    if (eventsSaved) {
-        eventsSaved.textContent = progress.events_saved || 0;
+    // API field `events_saved` is the created row count (same as message line "created:")
+    if (eventsCreated) {
+        eventsCreated.textContent = String(n(progress.events_saved));
+    }
+    if (eventsUpdated) {
+        eventsUpdated.textContent = String(n(progress.events_updated));
+    }
+    if (eventsSkipped) {
+        eventsSkipped.textContent = String(n(progress.events_skipped));
     }
     
     // Show/hide venues processed

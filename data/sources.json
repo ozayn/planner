@@ -3,7 +3,7 @@
     "version": "1.0",
     "created": "2026-02-05",
     "description": "Sources exported from database - always most updated version",
-    "total_sources": 60,
+    "total_sources": 62,
     "last_updated": "2026-03-15 12:00:00"
   },
   "sources": {
@@ -905,19 +905,19 @@
       "handle": "bigonion.com",
       "source_type": "website",
       "url": "https://bigonion.com/our-tours/",
-      "description": "Big Onion Walking Tours offers historical and cultural walking tours throughout NYC. Founded in 1991, they provide in-depth guided tours exploring neighborhoods including Greenwich Village, Lower East Side, Brooklyn, Harlem, Financial District, and more. Tours focus on history, architecture, immigration, labor, social justice, and Revolutionary War era.",
+      "description": "Big Onion Walking Tours lists public walking tours, neighborhood tours, and history tours in New York City.",
       "city_id": 2,
       "covers_multiple_cities": false,
       "covered_cities": "",
-      "event_types": "[\"tours\", \"walking_tours\", \"historical_tours\", \"cultural_events\", \"neighborhood_tours\", \"architecture_tours\", \"food_tours\", \"educational_events\"]",
+      "event_types": "[\"tour\", \"talk\", \"event\"]",
       "is_active": true,
       "reliability_score": 5.0,
-      "posting_frequency": "weekly",
-      "notes": "Award-winning historical walking tour company. 'Best Place To Take Out Of Town Guests' - Village Voice 2014. Tours led by graduate students and historians. Covers all major NYC neighborhoods with themed tours including Revolutionary NY, Gangs of NY, Immigrant NY, Greenwich Village, Brooklyn Bridge, Harlem Renaissance, Jewish Lower East Side, and multi-ethnic food tours.",
-      "scraping_pattern": "Check the tours page for scheduled walking tours across NYC neighborhoods. Look for tour dates, times, meeting locations, and special themed tours. Tours typically include: Lower Manhattan, Greenwich Village, Brooklyn Heights, Central Park, Harlem, Lower East Side, Chelsea, East Village, Upper East Side, and specialty food/holiday tours.",
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
       "last_checked": null,
       "created_at": "2025-10-08T20:50:45.859955",
-      "updated_at": "2025-10-08T20:50:45.859956"
+      "updated_at": "2026-03-30T00:00:00.000000"
     },
     "49": {
       "name": "Ellis Island Hard Hat Tours",
@@ -1146,6 +1146,44 @@
       "last_checked": null,
       "created_at": "2026-03-17T00:00:00.000000",
       "updated_at": "2026-03-17T00:00:00.000000"
+    },
+    "61": {
+      "name": "The Metropolitan Museum of Art",
+      "handle": "metmuseum.org",
+      "source_type": "website",
+      "url": "https://www.metmuseum.org/events/programs/met-tours",
+      "description": "The Met’s tours and programs page lists museum highlights tours, collection tours, talks, workshops, films, and other public programs in New York.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"exhibition\", \"tour\", \"talk\", \"workshop\", \"film\", \"event\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "",
+      "notes": "Official Met website programs listing (distinct from Instagram source id 40).",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2026-03-30T00:00:00.000000",
+      "updated_at": "2026-03-30T00:00:00.000000"
+    },
+    "62": {
+      "name": "Tenement Museum",
+      "handle": "tenement.org",
+      "source_type": "website",
+      "url": "https://www.tenement.org/tours/",
+      "description": "The Tenement Museum tours page lists guided apartment tours, walking tours, and related public programs in New York.",
+      "city_id": 2,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"tour\", \"talk\", \"event\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "",
+      "notes": "",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2026-03-30T00:00:00.000000",
+      "updated_at": "2026-03-30T00:00:00.000000"
     }
   }
 }

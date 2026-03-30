@@ -416,3 +416,33 @@ async function clearVisits() {
         alert('An error occurred while clearing visits.');
     }
 }
+
+/**
+ * Format stored event times (HH:MM / HH:MM:SS, city-local wall clock) for display.
+ * Does not use Date or Intl — avoids browser-timezone conversion of itinerary times.
+ */
+window.formatStoredTimeLocal12h = function formatStoredTimeLocal12h(value) {
+    if (value === null || value === undefined) return '';
+    const s = String(value).trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
+    if (!m) return s;
+    const h = parseInt(m[1], 10);
+    const min = m[2];
+    if (Number.isNaN(h) || h < 0 || h > 23) return s;
+    const mi = parseInt(min, 10);
+    if (Number.isNaN(mi) || mi < 0 || mi > 59) return s;
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${min} ${ampm}`;
+};
+
+/** Minutes since midnight for HH:MM(:SS) city-local times (no Date/timezone). */
+window.parseStoredTimeToMinutes = function parseStoredTimeToMinutes(value) {
+    if (value === null || value === undefined) return null;
+    const m = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (Number.isNaN(h) || h < 0 || h > 23 || Number.isNaN(min) || min < 0 || min > 59) return null;
+    return h * 60 + min;
+};

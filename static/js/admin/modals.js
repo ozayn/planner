@@ -147,26 +147,23 @@ function generateEventDetailsHTML(event) {
         return `<div style="margin-bottom: 8px;"><strong>${label}:</strong> ${displayValue}</div>`;
     };
     
-    // Helper function to calculate duration between two times
+    // Helper function to calculate duration between two times (city-local HH:MM, no Date/timezone)
     const calculateDuration = (startTime, endTime) => {
         if (!startTime || !endTime) return null;
-        try {
-            const start = new Date('2000-01-01 ' + startTime);
-            const end = new Date('2000-01-01 ' + endTime);
-            const diffMs = end - start;
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-            
-            if (diffHours > 0 && diffMinutes > 0) {
-                return `${diffHours}h ${diffMinutes}m`;
-            } else if (diffHours > 0) {
-                return `${diffHours}h`;
-            } else {
-                return `${diffMinutes}m`;
-            }
-        } catch (e) {
-            return null;
+        const sm = typeof parseStoredTimeToMinutes === 'function' ? parseStoredTimeToMinutes(startTime) : null;
+        const em = typeof parseStoredTimeToMinutes === 'function' ? parseStoredTimeToMinutes(endTime) : null;
+        if (sm === null || em === null) return null;
+        let diff = em - sm;
+        if (diff < 0) diff += 24 * 60;
+        const diffHours = Math.floor(diff / 60);
+        const diffMinutes = diff % 60;
+        if (diffHours > 0 && diffMinutes > 0) {
+            return `${diffHours}h ${diffMinutes}m`;
         }
+        if (diffHours > 0) {
+            return `${diffHours}h`;
+        }
+        return `${diffMinutes}m`;
     };
     
     // Format description to show more text
@@ -243,12 +240,12 @@ function generateEventDetailsHTML(event) {
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     ${addField('Start Date', event.start_date)}
                     ${addField('End Date', event.end_date)}
-                    ${addField('Start Time', event.start_time)}
-                    ${addField('End Time', event.end_time)}
+                    ${addField('Start Time', event.start_time && typeof formatStoredTimeLocal12h === 'function' ? formatStoredTimeLocal12h(event.start_time) : event.start_time)}
+                    ${addField('End Time', event.end_time && typeof formatStoredTimeLocal12h === 'function' ? formatStoredTimeLocal12h(event.end_time) : event.end_time)}
                     ${addField('Duration', event.start_time && event.end_time ? calculateDuration(event.start_time, event.end_time) : null)}
                     <div style="margin-bottom: 8px; padding: 8px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196f3;">
                         <strong>🌍 Timezone:</strong> ${event.city_timezone || 'Not specified'}
-                        ${event.city_timezone ? `<br><small style="color: #666;">All times shown in local timezone</small>` : ''}
+                        ${event.city_timezone ? `<br><small style="color: #666;">Stored event-city times (not converted to your browser timezone)</small>` : ''}
                     </div>
                 </div>
             </div>

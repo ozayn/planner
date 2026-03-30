@@ -853,7 +853,10 @@ function formatFieldValue(fieldName, value, config = {}) {
         case 'start_time':
         case 'end_time':
             try {
-                return new Date(`2000-01-01T${value}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                if (typeof formatStoredTimeLocal12h === 'function') {
+                    return formatStoredTimeLocal12h(value);
+                }
+                return value;
             } catch (e) {
                 return value;
             }

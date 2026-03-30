@@ -35,7 +35,11 @@ from urllib3.exceptions import NameResolutionError, NewConnectionError
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scripts.scraper_utils import create_cloudscraper_session, CLOUDSCRAPER_AVAILABLE
+from scripts.scraper_utils import (
+    CLOUDSCRAPER_AVAILABLE,
+    apply_webshare_proxy_to_session,
+    create_cloudscraper_session,
+)
 
 try:
     from dotenv import load_dotenv
@@ -52,8 +56,14 @@ class GenericVenueScraper:
     This is designed to work alongside specialized scrapers as a fallback.
     """
     
-    def __init__(self):
-        """Initialize the generic scraper with common patterns"""
+    def __init__(self, use_proxy: bool = False):
+        """Initialize the generic scraper with common patterns.
+
+        Args:
+            use_proxy: If True, attach Webshare proxy from WEBSHARE_PROXY_* when
+                scraper_proxy_opt_in (or equivalent) is used by the caller.
+        """
+        self._use_proxy = use_proxy
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -90,6 +100,8 @@ class GenericVenueScraper:
         adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
+
+        apply_webshare_proxy_to_session(self.session, use_proxy=use_proxy)
         
         # Cloudscraper instance (created on demand)
         self._cloudscraper = None
@@ -100,7 +112,10 @@ class GenericVenueScraper:
     def _get_cloudscraper(self, base_url=None):
         """Get or create a cloudscraper instance (uses shared session helper)."""
         if self._cloudscraper is None and CLOUDSCRAPER_AVAILABLE:
-            self._cloudscraper = create_cloudscraper_session(base_url=base_url)
+            self._cloudscraper = create_cloudscraper_session(
+                base_url=base_url,
+                use_proxy=self._use_proxy,
+            )
         return self._cloudscraper
     
     def _fetch_with_retry(self, url, use_cloudscraper=False, base_url=None, max_retries=3, delay=2):
@@ -2674,8 +2689,10 @@ Important:
             parsed = urlparse(url)
             path = parsed.path.strip('/')
             if not path or path in ['', 'index', 'home', 'index.html', 'home.html']:
-                # Allow if it's an exhibition/event listing page (no specific event)
-                if not any(keyword in url_lower for keyword in ['/exhibitions', '/events', '/programs', '/calendar']):
+                # Allow if it's an exhibition/event/program/tour listing page (no specific event)
+                if not any(keyword in url_lower for keyword in [
+                    '/exhibitions', '/events', '/programs', '/calendar', '/tours', '/tour',
+                ]):
                     logger.debug(f"   ⏭️  Skipping event with homepage URL: {url}")
                     return False
             
@@ -2699,12 +2716,13 @@ Important:
             logger.debug(f"   ⏭️  Skipping event with only title, no other info: {title[:50]}")
             return False
         
-        # CRITICAL: Tours and talks must have a start time - if they don't, they're probably not actually tours/talks
+        # Tours/talks: require start_time only when a start_date exists (scheduled occurrence).
+        # Listing cards often have title only with no time (e.g. recurring tour products).
         event_type = event.get('event_type', '').lower()
-        if event_type in ['tour', 'talk']:
+        if event_type in ['tour', 'talk'] and has_date:
             start_time = event.get('start_time')
             if not start_time or start_time == 'None' or (isinstance(start_time, str) and start_time.strip() == ''):
-                logger.debug(f"   ⏭️  Skipping {event_type} without start time: {title[:50]}")
+                logger.debug(f"   ⏭️  Skipping {event_type} with date but no start time: {title[:50]}")
                 return False
         
         # Filter out non-event content (articles, videos, etc.) - these return None as event_type

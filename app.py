@@ -5041,6 +5041,24 @@ def reload_sources_from_json():
             # Use name as key for matching
             key = source.name.lower().strip()
             existing_sources[key] = source
+
+        # Secondary index: (normalized handle, city_id) → source — avoids duplicates when
+        # JSON renames a source but handle/url stay the same (e.g. Big Onion Walking Tours).
+        def _normalize_source_handle_key(handle):
+            if not handle:
+                return None
+            h = str(handle).strip().lower()
+            if h.startswith('@'):
+                h = h[1:]
+            return h or None
+
+        existing_sources_by_handle_city = {}
+        for source in Source.query.all():
+            hk = _normalize_source_handle_key(source.handle)
+            if hk:
+                tkey = (hk, source.city_id)
+                if tkey not in existing_sources_by_handle_city:
+                    existing_sources_by_handle_city[tkey] = source
         
         app_logger.info(f"📍 Found {len(existing_sources)} existing sources in database")
         
@@ -5064,9 +5082,13 @@ def reload_sources_from_json():
                     sources_skipped += 1
                     continue
                 
-                # Check if source already exists
+                # Check if source already exists (by name, then by handle + city)
                 key = source_name.lower()
                 existing_source = existing_sources.get(key)
+                if not existing_source:
+                    hk = _normalize_source_handle_key(source_info.get('handle'))
+                    if hk:
+                        existing_source = existing_sources_by_handle_city.get((hk, actual_city_id))
                 
                 if existing_source:
                     # Update existing source (preserve ID to keep events linked)
@@ -5085,6 +5107,7 @@ def reload_sources_from_json():
                     existing_source.notes = source_info.get('notes', '')
                     existing_source.scraping_pattern = source_info.get('scraping_pattern', '')
                     sources_updated += 1
+                    existing_sources[source_name.lower()] = existing_source
                 else:
                     # Add new source
                     source = Source(
@@ -5311,6 +5334,19 @@ def reload_venues_from_json():
         venues_matched_in_db = 0
         
         app_logger.info(f"JSON has {venues_found_in_json} venues (flat structure)")
+
+        from urllib.parse import urlparse
+
+        def _venue_host_from_url(url):
+            if not url:
+                return None
+            try:
+                netloc = urlparse(url).netloc.lower()
+                if netloc.startswith('www.'):
+                    netloc = netloc[4:]
+                return netloc or None
+            except Exception:
+                return None
         
         # Handle flat structure: each key is a venue ID, value is venue data
         for venue_id, venue_data in venues_section.items():
@@ -5324,6 +5360,24 @@ def reload_venues_from_json():
             
             # Find existing venue by name only (city_id might differ between local and production)
             venue = Venue.query.filter_by(name=venue_name).first()
+
+            # Resolve city early for fallback match (same city + same website host, e.g. Big Onion)
+            city = None
+            if city_name:
+                city = City.query.filter_by(name=city_name).first()
+                if not city and ',' in city_name:
+                    city_name_base = city_name.split(',')[0].strip()
+                    city = City.query.filter(City.name.like(f"{city_name_base}%")).first()
+
+            if not venue and city:
+                wu = venue_data.get('website_url') or ''
+                host = _venue_host_from_url(wu)
+                if host:
+                    venue = Venue.query.filter(
+                        Venue.city_id == city.id,
+                        Venue.website_url.isnot(None),
+                        Venue.website_url.ilike(f'%{host}%'),
+                    ).first()
             
             if venue:
                 venues_matched_in_db += 1
@@ -5333,7 +5387,8 @@ def reload_venues_from_json():
                 if old_url != new_url:
                     app_logger.info(f"✓ Updating {venue.name}: {old_url} → {new_url}")
                 
-                # Update venue with JSON data
+                # Update venue with JSON data (name may change when matching by website host)
+                venue.name = venue_name
                 venue.venue_type = venue_data.get('venue_type', venue.venue_type)
                 venue.address = venue_data.get('address', venue.address)
                 venue.latitude = venue_data.get('latitude', venue.latitude)
@@ -5357,13 +5412,9 @@ def reload_venues_from_json():
                 venue.updated_at = datetime.utcnow()
                 updated_count += 1
             else:
-                # Venue doesn't exist - create it
-                # Find city by name (city_id differs between local and production)
-                city = None
-                if city_name:
-                    # Try exact match first
+                # Venue doesn't exist - create it (reuse city resolved above if possible)
+                if not city and city_name:
                     city = City.query.filter_by(name=city_name).first()
-                    # If not found, try partial match (e.g., "Irvine" matches "Irvine, California, United States")
                     if not city and ',' in city_name:
                         city_name_base = city_name.split(',')[0].strip()
                         city = City.query.filter(City.name.like(f"{city_name_base}%")).first()
@@ -8968,6 +9019,122 @@ def scrape_shoot_nyc_endpoint():
             'events_saved': 0,
             'events_updated': 0,
             'events_skipped': 0
+        }), 500
+
+@app.route('/api/admin/scrape-metmuseum', methods=['POST'])
+def scrape_metmuseum_endpoint():
+    """Scrape The Metropolitan Museum of Art tours & programs (met-tours listing)."""
+    try:
+        app_logger.info("Starting The Met (Metropolitan Museum) scraping...")
+
+        from scripts.metmuseum_scraper import scrape_metmuseum_events, create_events_in_database_wrapper
+
+        events = scrape_metmuseum_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': (
+                f"Found {len(events)} The Met event(s) (created: {created}, updated: {updated}, skipped: {skipped})"
+            ),
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping The Met: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0,
+        }), 500
+
+@app.route('/api/admin/scrape-tenement-museum', methods=['POST'])
+def scrape_tenement_museum_endpoint():
+    """Scrape Tenement Museum tours & programs (tenement.org/tours/ listing)."""
+    try:
+        app_logger.info("Starting Tenement Museum scraping...")
+
+        from scripts.tenement_museum_scraper import (
+            create_events_in_database_wrapper,
+            scrape_tenement_museum_events,
+        )
+
+        events = scrape_tenement_museum_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': (
+                f"Found {len(events)} Tenement Museum event(s) (created: {created}, "
+                f"updated: {updated}, skipped: {skipped})"
+            ),
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping Tenement Museum: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0,
+        }), 500
+
+@app.route('/api/admin/scrape-big-onion', methods=['POST'])
+def scrape_big_onion_endpoint():
+    """Scrape Big Onion Walking Tours (bigonion.com listing)."""
+    try:
+        app_logger.info("Starting Big Onion Walking Tours scraping...")
+
+        from scripts.big_onion_scraper import (
+            create_events_in_database_wrapper,
+            scrape_big_onion_events,
+        )
+
+        events = scrape_big_onion_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': (
+                f"Found {len(events)} Big Onion event(s) (created: {created}, "
+                f"updated: {updated}, skipped: {skipped})"
+            ),
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping Big Onion Walking Tours: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0,
         }), 500
 
 @app.route('/api/admin/scrape-dcparade', methods=['POST'])

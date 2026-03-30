@@ -7504,7 +7504,7 @@
                         ${event.event_type !== 'exhibition' ? `
                         <div class="event-detail">
                             <span class="event-detail-label">Time:</span>
-                            <span class="event-detail-value">${event.start_time || 'TBD'}</span>
+                            <span class="event-detail-value">${event.start_time ? formatTime(event.start_time) : 'TBD'}</span>
                         </div>
                         ` : ''}
                         `}
@@ -7780,15 +7780,18 @@
             });
         }
         
-        // Format time (HH:MM:SS or HH:MM) to 12-hour format
+        // Format time (HH:MM:SS or HH:MM) to 12-hour — city-local wall time, no Date/Intl (no browser TZ shift)
         function formatTime(timeString) {
             if (!timeString) return '';
-            const parts = timeString.split(':');
-            const hours = parseInt(parts[0]);
-            const minutes = parts[1] || '00';
+            const s = String(timeString).trim();
+            const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
+            if (!m) return s;
+            const hours = parseInt(m[1], 10);
+            const minutes = m[2];
+            if (Number.isNaN(hours) || hours < 0 || hours > 23) return s;
             const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
             const ampm = hours >= 12 ? 'PM' : 'AM';
-            return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
+            return `${hour12}:${minutes} ${ampm}`;
         }
         
         // Format date range for exhibitions (more compact)
