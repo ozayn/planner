@@ -6,6 +6,7 @@ from .session import (
     create_cloudscraper_session,
     create_scraper_session,
     get_webshare_proxy_dict,
+    probe_public_ip_with_session,
     scraper_proxy_opt_in,
 )
 from .date_parser import parse_date
@@ -17,6 +18,7 @@ __all__ = [
     'CLOUDSCRAPER_AVAILABLE',
     'apply_webshare_proxy_to_session',
     'get_webshare_proxy_dict',
+    'probe_public_ip_with_session',
     'scraper_proxy_opt_in',
     'parse_date',
     'parse_time',

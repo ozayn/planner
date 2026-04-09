@@ -1,10 +1,21 @@
-"""Reusable session setup for scrapers: headers, retries, optional cloudscraper."""
+"""Reusable session setup for scrapers: headers, retries, optional cloudscraper.
+
+Proxy bootstrap logging (see ``_should_log_proxy_session_bootstrap``; no credentials logged):
+
+- **Railway / deploy-like:** INFO line on each ``create_scraper_session`` / ``create_cloudscraper_session``
+  unless ``SCRAPER_PROXY_SESSION_LOG=0``.
+- **Local:** no INFO line unless ``SCRAPER_PROXY_SESSION_LOG=1`` (or simulate deploy via
+  ``PLANNER_SIMULATE_DEPLOY_PROXY``).
+
+Optional ``scraper_key=`` on session factories labels logs; callers may omit it.
+"""
 
 import logging
 import os
 import platform as plat_module
 import ssl
 from typing import Dict, Optional
+from urllib.parse import urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -63,6 +74,78 @@ def _deploy_like_runtime() -> bool:
     if _env_truthy('PLANNER_SIMULATE_DEPLOY_PROXY'):
         return True
     return False
+
+
+def _should_log_proxy_session_bootstrap() -> bool:
+    """
+    INFO-level proxy bootstrap logs (session creation).
+
+    - Disabled: SCRAPER_PROXY_SESSION_LOG=0 (or false/off).
+    - Enabled: SCRAPER_PROXY_SESSION_LOG=1, or deploy-like runtime when not explicitly off.
+    - Local: set SCRAPER_PROXY_SESSION_LOG=1 to enable without simulating deploy.
+    """
+    v = os.environ.get("SCRAPER_PROXY_SESSION_LOG", "").strip().lower()
+    if v in ("0", "false", "no", "off"):
+        return False
+    if v in ("1", "true", "yes", "on"):
+        return True
+    return _deploy_like_runtime()
+
+
+def _proxy_env_presence_label() -> str:
+    """Non-secret summary of whether Webshare proxy env vars are set."""
+    if os.environ.get("WEBSHARE_PROXY_URL", "").strip():
+        return "WEBSHARE_PROXY_URL=set"
+    h = os.environ.get("WEBSHARE_PROXY_HTTP", "").strip()
+    s = os.environ.get("WEBSHARE_PROXY_HTTPS", "").strip()
+    if h or s:
+        return "WEBSHARE_PROXY_HTTP/HTTPS=set"
+    return "no_WEBSHARE_PROXY_*"
+
+
+def _redact_proxy_url_for_log(proxy_url: str) -> str:
+    """Log proxy endpoint without credentials (host/port only, user masked)."""
+    try:
+        p = urlparse(proxy_url)
+        scheme = p.scheme or "http"
+        host = p.hostname or "?"
+        port = f":{p.port}" if p.port else ""
+        if p.username or p.password:
+            return f"{scheme}://***:***@{host}{port}"
+        return f"{scheme}://{host}{port}"
+    except Exception:
+        return "(unparseable proxy url)"
+
+
+def _log_proxy_session_created(
+    *,
+    session_kind: str,
+    scraper_key: Optional[str],
+    use_proxy_requested: bool,
+    proxy_applied: bool,
+) -> None:
+    """Single INFO line: env, runtime, whether proxy was attached (no secrets)."""
+    if not _should_log_proxy_session_bootstrap():
+        return
+    runtime = "deploy" if _deploy_like_runtime() else "local"
+    env_label = _proxy_env_presence_label()
+    key_part = f"scraper_key={scraper_key}" if scraper_key else "scraper_key=(none)"
+    proxies = get_webshare_proxy_dict()
+    endpoint = ""
+    if proxy_applied and proxies:
+        raw = (proxies.get("https") or proxies.get("http") or "").strip()
+        if raw:
+            endpoint = f" proxy_endpoint={_redact_proxy_url_for_log(raw)}"
+    logger.info(
+        "scraper_proxy_session %s %s runtime=%s webshare_env=%s use_proxy_requested=%s proxy_applied=%s%s",
+        session_kind,
+        key_part,
+        runtime,
+        env_label,
+        use_proxy_requested,
+        proxy_applied,
+        endpoint,
+    )
 
 
 def scraper_proxy_opt_in(scraper_key: str) -> bool:
@@ -156,7 +239,9 @@ def apply_webshare_proxy_to_session(session: requests.Session, use_proxy: bool =
         logger.debug('use_proxy=True but no WEBSHARE_PROXY_* env vars set; session unchanged')
         return False
     session.proxies.update(proxies)
-    logger.debug('Applied Webshare proxy from environment to session')
+    raw = (proxies.get("https") or proxies.get("http") or "").strip()
+    redacted = _redact_proxy_url_for_log(raw) if raw else ""
+    logger.debug("Applied Webshare proxy to session: %s", redacted or "(unknown)")
     return True
 
 
@@ -171,12 +256,32 @@ class _SSLAdapter(HTTPAdapter):
         return super().init_poolmanager(*args, **kwargs)
 
 
+def probe_public_ip_with_session(
+    session: requests.Session,
+    timeout: float = 15.0,
+) -> Optional[str]:
+    """
+    One GET to a simple IP echo service using the given session (respects proxies).
+
+    For verifying that traffic egresses through Webshare when the session has proxies set.
+    """
+    for url in ("https://api.ipify.org", "https://ipinfo.io/ip"):
+        try:
+            r = session.get(url, timeout=timeout)
+            if r.status_code == 200 and r.text.strip():
+                return r.text.strip()[:200]
+        except Exception as e:
+            logger.debug("probe_public_ip_with_session: %s failed: %s", url, e)
+    return None
+
+
 def create_scraper_session(
     verify_ssl: bool = True,
     use_retries: bool = True,
     retry_total: int = 3,
     retry_backoff: float = 1.0,
     use_proxy: bool = False,
+    scraper_key: Optional[str] = None,
 ) -> requests.Session:
     """
     Create a requests Session with browser-like headers and retry logic.
@@ -187,6 +292,7 @@ def create_scraper_session(
         retry_total: Number of retries.
         retry_backoff: Backoff factor between retries.
         use_proxy: If True, attach Webshare proxy from WEBSHARE_PROXY_* env when set.
+        scraper_key: Optional label for proxy bootstrap logs (e.g. ``nga``, ``big_onion``).
 
     Returns:
         Configured requests.Session.
@@ -195,7 +301,13 @@ def create_scraper_session(
     session.headers.update(DEFAULT_HEADERS)
     session.verify = verify_ssl
 
-    apply_webshare_proxy_to_session(session, use_proxy=use_proxy)
+    applied = apply_webshare_proxy_to_session(session, use_proxy=use_proxy)
+    _log_proxy_session_created(
+        session_kind="requests",
+        scraper_key=scraper_key,
+        use_proxy_requested=use_proxy,
+        proxy_applied=applied,
+    )
 
     if not verify_ssl:
         try:
@@ -225,6 +337,7 @@ def create_cloudscraper_session(
     base_url: Optional[str] = None,
     verify_ssl: bool = False,
     use_proxy: bool = False,
+    scraper_key: Optional[str] = None,
 ):
     """
     Create a cloudscraper session for sites that block standard requests.
@@ -238,6 +351,7 @@ def create_cloudscraper_session(
             If False (default), disable SSL verification and use custom adapter
             for sites with cert issues (Hirshhorn, tulipday, etc.).
         use_proxy: If True, attach Webshare proxy from WEBSHARE_PROXY_* env when set.
+        scraper_key: Optional label for proxy bootstrap logs (e.g. ``nga``, ``big_onion``).
 
     Returns None if cloudscraper is not installed.
     """
@@ -253,7 +367,13 @@ def create_cloudscraper_session(
         scraper.headers.update(DEFAULT_HEADERS)
         scraper.verify = verify_ssl
 
-        apply_webshare_proxy_to_session(scraper, use_proxy=use_proxy)
+        applied = apply_webshare_proxy_to_session(scraper, use_proxy=use_proxy)
+        _log_proxy_session_created(
+            session_kind="cloudscraper",
+            scraper_key=scraper_key,
+            use_proxy_requested=use_proxy,
+            proxy_applied=applied,
+        )
 
         if not verify_ssl:
             try:
