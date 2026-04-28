@@ -235,6 +235,35 @@
             max-width: 420px;
         }
 
+        .planner-support-footer {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 16px 16px 28px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.45);
+            line-height: 1.55;
+        }
+
+        .planner-support-footer .planner-support-copy {
+            margin: 0 auto 12px;
+        }
+
+        .planner-support-footer .planner-support-actions {
+            margin: 0;
+        }
+
+        .planner-support-footer a {
+            color: rgba(0, 0, 0, 0.5);
+            font-weight: 500;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .planner-support-footer a:hover {
+            color: rgba(0, 0, 0, 0.65);
+        }
+
         .header-controls {
             display: block;
         }
@@ -3709,6 +3738,15 @@
 
         </div>
     </div>
+
+    {% if planner_support_url %}
+    <footer class="planner-support-footer" role="contentinfo">
+        <p class="planner-support-copy">Planner is an independent event discovery project developed as a personal passion project. If you find it useful, you can support its continued development.</p>
+        <p class="planner-support-actions">
+            <a href="{{ planner_support_url }}" target="_blank" rel="noopener noreferrer" aria-label="Support this project (opens in a new tab)">Support this project</a>
+        </p>
+    </footer>
+    {% endif %}
 
     <!-- Notification -->
     <div id="notification" class="notification"></div>

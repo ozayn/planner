@@ -144,6 +144,22 @@ app.config['WTF_CSRF_ENABLED'] = False
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour
 csrf = CSRFProtect(app)
 
+
+def _planner_support_url():
+    """Stripe Payment Link (or similar); None when unset or not http(s)."""
+    raw = (os.environ.get('PLANNER_SUPPORT_URL') or '').strip()
+    if not raw:
+        return None
+    if not (raw.startswith('https://') or raw.startswith('http://')):
+        return None
+    return raw
+
+
+@app.context_processor
+def inject_planner_support():
+    return {'planner_support_url': _planner_support_url()}
+
+
 # Google OAuth Configuration
 if GOOGLE_OAUTH_AVAILABLE:
     GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
