@@ -4,7 +4,7 @@
     "created": "2026-03-14",
     "description": "Venues exported from database - always most updated version",
     "total_venues": 218,
-    "last_updated": "2026-03-15 12:00:00"
+    "last_updated": "2026-05-05 12:00:00"
   },
   "venues": {
     "1": {
@@ -1105,13 +1105,13 @@
       "address": "2520 Massachusetts Ave NW, Washington, DC 20008",
       "city_id": 1,
       "city_name": "Washington",
-      "description": "The Japanese Embassy promotes Japan-US friendship through cultural festivals, traditional ceremonies, art exhibitions, and celebrations of Japanese culture and heritage.",
+      "description": "The Embassy of Japan hosts cultural programs, talks, screenings, and public events in Washington, DC. The mission also promotes Japan-US friendship through cultural festivals, traditional ceremonies, and celebrations of Japanese culture and heritage.",
       "opening_hours": "By appointment - Contact embassy for cultural events and tours",
       "holiday_hours": "",
       "phone_number": "(202) 238-6700",
       "email": "",
       "website_url": "https://www.us.emb-japan.go.jp",
-      "ticketing_url": "",
+      "ticketing_url": "https://www.eventbrite.com/o/10807307274",
       "instagram_url": "https://www.instagram.com/japanembdc",
       "facebook_url": "https://www.facebook.com/JapanEmbDC",
       "twitter_url": "https://twitter.com/JapanEmbDC",
@@ -1123,7 +1123,7 @@
       "longitude": -77.0478,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001528\"}",
       "created_at": "2025-10-08T20:42:31.667066",
-      "updated_at": "2026-02-05T20:19:22.775724"
+      "updated_at": "2026-05-05T12:00:00.000000"
     },
     "46": {
       "name": "Embassy of Canada",

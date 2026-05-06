@@ -716,6 +716,9 @@ EVENTBRITE_API_TOKEN=your_eventbrite_personal_oauth_token
 # EVENTBRITE_PRIVATE_TOKEN=your_eventbrite_personal_oauth_token
 # Optional: Public token for anonymous access (limited functionality)
 # EVENTBRITE_PUBLIC_TOKEN=ZRQRSTL4V3Y5X2X5X2X5
+#
+# DC embassy Eventbrite: cron and Admin "Embassy Events" scrape every embassy whose DB ticketing_url
+# contains eventbrite (organizer page). Keep venues.json / DB in sync so each embassy is included.
 
 # Flask Configuration
 FLASK_ENV=development

@@ -88,6 +88,15 @@ class EventbriteScraper:
         match = re.search(r'eventbrite\.(?:com|fi|co\.uk|de|fr|es|it|nl|se|no|dk|fi)/o/[^/]+-(\d+)', url, re.IGNORECASE)
         if match:
             return match.group(1)
+
+        # Pattern 1b: Organizer page with numeric path only, e.g. /o/10807307274
+        match_numeric = re.search(
+            r'eventbrite\.(?:com|fi|co\.uk|de|fr|es|it|nl|se|no|dk|fi)/o/(\d+)(?:/|\?|#|$)',
+            url,
+            re.IGNORECASE,
+        )
+        if match_numeric:
+            return match_numeric.group(1)
         
         # Pattern 2: Event page - try to get organizer from event
         if '/e/' in url:
@@ -972,7 +981,8 @@ def scrape_dc_embassy_events(city_id: Optional[int] = None, time_range: str = 't
     Enhanced scraper for DC embassy events from Eventbrite.
     
     This function:
-    1. Scrapes events from embassies that already have Eventbrite URLs
+    1. Scrapes events from all DC embassies that already have an Eventbrite organizer URL on ticketing_url
+       (same inclusion idea as cron is_embassy_with_eventbrite: no embassy-specific branches)
     2. Optionally searches for Eventbrite organizers for embassies without URLs
     3. Scrapes events from found organizers
     

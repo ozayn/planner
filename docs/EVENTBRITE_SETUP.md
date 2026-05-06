@@ -71,6 +71,10 @@ The scraper includes automatic pagination and respects rate limits.
 
 ## Using the Eventbrite Scraper
 
+### DC embassies (shared flow)
+
+Admin **Embassy Events** and the weekly `scripts/cron_run_scheduled_scrapers.py` run use the same rule: every DC venue whose `venue_type` is an embassy **and** whose `ticketing_url` points at Eventbrite (organizer page) is scraped with `EventbriteScraper.scrape_venue_events`. Examples include embassies with `/o/...` organizer links once `data/venues.json` is synced to the database (or the URL is set in Admin → Venues).
+
 ### Via API Endpoint
 
 ```bash
@@ -87,6 +91,8 @@ curl -X POST http://localhost:5001/api/admin/scrape-eventbrite \
   -H "Content-Type: application/json" \
   -d '{"venue_id": 123, "time_range": "this_week"}'
 ```
+
+When nothing is saved, the API still returns **HTTP 200** with `success: true`, `events_found: 0`, and optional `reason` / `hint` (e.g. missing API token or ticketing URL on the venue).
 
 ### Via Command Line
 

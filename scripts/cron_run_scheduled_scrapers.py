@@ -4,7 +4,7 @@ Cronjob script to scrape Washington DC museums, embassies, and source scrapers
 
 This script is designed to be run from a cronjob and will:
 - Scrape museums with specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn)
-- Scrape embassies with Eventbrite ticketing URLs
+- Scrape embassies with Eventbrite ticketing URLs (organizer URLs on venue.ticketing_url, e.g. Embassy of Japan /o/10807307274)
 - Scrape Webster's Bookstore Cafe (State College, PA)
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
@@ -96,18 +96,22 @@ def has_specialized_scraper(venue):
     return False
 
 def is_embassy_with_eventbrite(venue):
-    """Check if a venue is an embassy with Eventbrite ticketing URL"""
+    """
+    True when this venue should join the shared DC embassy Eventbrite scrape (cron + admin "Embassy Events").
+
+    Criteria: venue_type contains "embassy" and ticketing_url contains "eventbrite" (organizer page, e.g.
+    https://www.eventbrite.com/o/name-id or /o/10807307274). No per-embassy allowlist — sync venues.json
+    or Admin so the DB row has ticketing_url set (same pattern for Italy, Korea Cultural Center venues, Japan, etc.).
+    """
     venue_type_lower = (venue.venue_type or '').lower()
     ticketing_url_lower = (venue.ticketing_url or '').lower()
-    
-    # Check if it's an embassy
+
     if 'embassy' not in venue_type_lower:
         return False
-    
-    # Check if it has an Eventbrite URL
+
     if 'eventbrite' in ticketing_url_lower:
         return True
-    
+
     return False
 
 def main():

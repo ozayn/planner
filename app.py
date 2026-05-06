@@ -8377,7 +8377,7 @@ def search_eventbrite_organizer():
 
 @app.route('/api/admin/scrape-eventbrite', methods=['POST'])
 def scrape_eventbrite():
-    """Scrape events from Eventbrite for venues with Eventbrite ticketing URLs"""
+    """Scrape Eventbrite for venue_id or all venues in city_id with eventbrite on ticketing_url (shared scraper; embassies use the same fields as cron)."""
     try:
         data = request.get_json() or {}
         venue_id = data.get('venue_id')
@@ -8401,12 +8401,34 @@ def scrape_eventbrite():
             events = scrape_all_eventbrite_venues(time_range=time_range)
         
         if not events:
+            reason = 'no_events_in_range'
+            hint = None
+            if venue_id:
+                v = Venue.query.get(venue_id)
+                if not v:
+                    reason = 'venue_not_found'
+                    hint = f'No venue with id {venue_id} in the database.'
+                elif not (v.ticketing_url or '').strip() or 'eventbrite' not in v.ticketing_url.lower():
+                    reason = 'missing_eventbrite_ticketing_url'
+                    hint = 'Set this venue’s ticketing URL to the Eventbrite organizer page (e.g. /o/… or /o/name-id) and reload from data or Admin → Venues.'
+                elif not (os.getenv('EVENTBRITE_API_TOKEN') or os.getenv('EVENTBRITE_PRIVATE_TOKEN')):
+                    reason = 'eventbrite_api_token_missing'
+                    hint = 'Set EVENTBRITE_API_TOKEN or EVENTBRITE_PRIVATE_TOKEN in the environment.'
+                else:
+                    hint = 'Organizer returned no live events in this date range, or events were filtered (e.g. past dates, language rules). Try time_range "all" via API/script.'
+            elif city_id:
+                hint = 'No venues in this city have an Eventbrite ticketing URL, or none returned live events.'
+            else:
+                hint = 'No venues with Eventbrite ticketing URLs returned live events.'
             return jsonify({
-                'success': False,
-                'error': 'No events found from Eventbrite',
+                'success': True,
+                'message': 'No Eventbrite events to save for this request.',
                 'events_found': 0,
-                'events_saved': 0
-            }), 404
+                'events_saved': 0,
+                'events_skipped': 0,
+                'reason': reason,
+                'hint': hint,
+            }), 200
         
         # Save events to database (similar to other scrapers)
         events_saved = 0
@@ -8495,7 +8517,7 @@ def scrape_eventbrite():
 
 @app.route('/api/admin/scrape-dc-embassy-eventbrite', methods=['POST'])
 def scrape_dc_embassy_eventbrite():
-    """Scrape events from Eventbrite for DC embassy venues"""
+    """Scrape Eventbrite for all Washington DC venues with venue_type embassy and an Eventbrite organizer URL on ticketing_url (shared scripts/eventbrite_scraper.py path; no per-embassy code)."""
     try:
         # Handle empty request body gracefully
         try:
