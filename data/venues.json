@@ -3,8 +3,8 @@
     "version": "1.0",
     "created": "2026-03-14",
     "description": "Venues exported from database - always most updated version",
-    "total_venues": 218,
-    "last_updated": "2026-05-05 12:00:00"
+    "total_venues": 230,
+    "last_updated": "2026-05-06 14:00:00"
   },
   "venues": {
     "1": {
@@ -1227,7 +1227,7 @@
       "longitude": -77.0378,
       "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy - typically remains open during government shutdown.\", \"last_updated\": \"2025-10-21T22:15:05.001546\"}",
       "created_at": "2025-10-08T20:42:31.667146",
-      "updated_at": "2026-02-05T20:19:22.776524"
+      "updated_at": "2026-05-06T12:00:00.000000"
     },
     "50": {
       "name": "Embassy of Brazil",
@@ -5700,6 +5700,32 @@
       "additional_info": "{\"event_paths\": {\"tours\": \"https://bigonion.com/our-tours/\"}}",
       "created_at": "2026-03-30T00:00:00.000000",
       "updated_at": "2026-03-30T00:00:00.000000"
+    },
+    "230": {
+      "name": "Austrian Cultural Forum Washington",
+      "venue_type": "embassy",
+      "address": "3524 International Court NW, Washington, DC 20008",
+      "city_id": 1,
+      "city_name": "Washington",
+      "description": "Austrian Cultural Forum Washington presents public cultural programs including talks, screenings, performances, exhibitions, and related events in Washington, DC.",
+      "opening_hours": "Varies by program — see website",
+      "holiday_hours": "",
+      "phone_number": "",
+      "email": "",
+      "website_url": "https://www.acfdc.org",
+      "ticketing_url": "https://www.eventbrite.com/o/3158032560",
+      "instagram_url": "",
+      "facebook_url": "",
+      "twitter_url": "",
+      "youtube_url": "",
+      "tiktok_url": "",
+      "admission_fee": "",
+      "image_url": "",
+      "latitude": 38.9347,
+      "longitude": -77.0744,
+      "additional_info": "{\"closure_status\": \"open\", \"event_paths\": {\"events\": \"https://www.acfdc.org/events\"}}",
+      "created_at": "2026-05-06T14:00:00.000000",
+      "updated_at": "2026-05-06T14:00:00.000000"
     }
   }
 }

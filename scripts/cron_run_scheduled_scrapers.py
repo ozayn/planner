@@ -6,6 +6,7 @@ This script is designed to be run from a cronjob and will:
 - Scrape museums with specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn)
 - Scrape embassies with Eventbrite ticketing URLs (organizer URLs on venue.ticketing_url, e.g. Embassy of Japan /o/10807307274)
 - Scrape Webster's Bookstore Cafe (State College, PA)
+- Scrape Austrian Cultural Forum Washington (acfdc.org /events via VenueEventScraper)
 - Scrape The Wharf DC
 - Scrape Shoot New York City (NYC workshops)
 - Scrape The Metropolitan Museum of Art (NYC tours & programs)
@@ -566,6 +567,54 @@ def main():
                 logger.error(f"   ❌ {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+
+            # Austrian Cultural Forum Washington (acfdc.org — shared VenueEventScraper + event_paths.events)
+            rule, months = get_standalone_schedule_rule("acfdc_dc")
+            if not should_run(rule, months):
+                logger.info(f"⏭️  ACF DC | skipped (scheduler)")
+            else:
+                logger.info(f"🏛️  ACF DC | Austrian Cultural Forum Washington")
+                try:
+                    acf = Venue.query.filter(
+                        (Venue.website_url.ilike('%acfdc.org%'))
+                        | (Venue.name.ilike('%austrian cultural forum%washington%'))
+                    ).first()
+                    if acf:
+                        scraped_events = venue_scraper.scrape_venue_events(
+                            venue_ids=[acf.id],
+                            event_type=None,
+                            time_range=time_range,
+                            max_exhibitions_per_venue=max_exhibitions_per_venue,
+                            max_events_per_venue=max_events_per_venue,
+                        )
+                        if scraped_events:
+                            from scripts.event_database_handler import create_events_in_database as shared_create_events
+                            created, updated, skipped = shared_create_events(
+                                events=scraped_events,
+                                venue_id=acf.id,
+                                city_id=acf.city_id,
+                                venue_name=acf.name,
+                                db=db,
+                                Event=Event,
+                                Venue=Venue,
+                                batch_size=5,
+                                logger_instance=logger,
+                                source_url='https://www.acfdc.org/events',
+                                custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': acf.name}),
+                            )
+                            total_events_saved += created
+                            total_events_found += len(scraped_events)
+                            logger.info(
+                                f"   → found {len(scraped_events)}, saved {created}, updated {updated}, skipped {skipped}"
+                            )
+                        else:
+                            logger.info(f"   → found 0")
+                    else:
+                        logger.warning(f"   ⚠️  ACF DC venue not found, skipping")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
 
             # Shoot New York City (NYC workshops)
             logger.info(f"📷 Shoot NYC | Shoot New York City")

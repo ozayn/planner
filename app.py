@@ -9540,6 +9540,90 @@ def scrape_ocma_endpoint():
             'events_skipped': 0
         }), 500
 
+
+@app.route('/api/admin/scrape-acfdc-dc', methods=['POST'])
+def scrape_acfdc_dc_endpoint():
+    """Scrape Austrian Cultural Forum Washington (acfdc.org) via shared VenueEventScraper and saved /events path."""
+    try:
+        app_logger.info("Starting Austrian Cultural Forum Washington (ACF DC) scraping...")
+
+        acf = Venue.query.filter(
+            (Venue.website_url.ilike('%acfdc.org%'))
+            | (Venue.name.ilike('%austrian cultural forum%washington%'))
+        ).first()
+
+        if not acf:
+            return jsonify({
+                'success': False,
+                'error': 'Austrian Cultural Forum Washington venue not found. Load venues from data/venues.json first.',
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0,
+            }), 200
+
+        from scripts.venue_event_scraper import VenueEventScraper
+        from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+        scraper = VenueEventScraper()
+        events = scraper.scrape_venue_events(
+            venue_ids=[acf.id],
+            event_type=None,
+            time_range='this_month',
+            max_exhibitions_per_venue=10,
+            max_events_per_venue=50,
+        ) or []
+
+        events_url = 'https://www.acfdc.org/events'
+
+        if not events:
+            return jsonify({
+                'success': True,
+                'events_found': 0,
+                'events_saved': 0,
+                'events_updated': 0,
+                'events_skipped': 0,
+                'message': 'No ACF DC events found.',
+            }), 200
+
+        created, updated, skipped = shared_create_events(
+            events=events,
+            venue_id=acf.id,
+            city_id=acf.city_id,
+            venue_name=acf.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=app_logger,
+            source_url=events_url,
+            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': acf.name}),
+        )
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': (
+                f"Found {len(events)} ACF DC event(s) (created: {created}, updated: {updated}, skipped: {skipped})"
+            ),
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping ACF DC: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0,
+        }), 500
+
+
 @app.route('/api/admin/scrape-university-park-library', methods=['POST'])
 def scrape_university_park_library_endpoint():
     """Scrape University Park Library (Irvine) from PDF program guide."""

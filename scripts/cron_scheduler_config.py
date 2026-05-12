@@ -49,6 +49,7 @@ VENUE_SCHEDULE_RULES = {
 # Value: (rule, seasonal_months or None)
 STANDALONE_SCHEDULE_RULES = {
     "websters": (RULE_ALWAYS, None),
+    "acfdc_dc": (RULE_ALWAYS, None),
     "wharf_dc": (RULE_ALWAYS, None),
     "shoot_nyc": (RULE_ALWAYS, None),
     "metmuseum": (RULE_ALWAYS, None),
