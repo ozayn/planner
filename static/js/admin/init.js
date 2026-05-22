@@ -3002,6 +3002,88 @@ async function startDeYoungScraping() {
     }
 }
 
+const AMERICAN_HISTORY_VENUE_NAME = 'Smithsonian National Museum of American History';
+const AMERICAN_HISTORY_VENUE_JSON_ID = 28;
+
+async function resolveAmericanHistoryVenueId() {
+    try {
+        const response = await fetch('/api/admin/venues');
+        if (!response.ok) {
+            return AMERICAN_HISTORY_VENUE_JSON_ID;
+        }
+        const venues = await response.json();
+        if (venues.error || !Array.isArray(venues)) {
+            return AMERICAN_HISTORY_VENUE_JSON_ID;
+        }
+        const match = venues.find(
+            (v) => (v.name || '').trim() === AMERICAN_HISTORY_VENUE_NAME
+        );
+        return match?.id ?? AMERICAN_HISTORY_VENUE_JSON_ID;
+    } catch (e) {
+        console.warn('Could not resolve American History venue id, using JSON id:', e);
+        return AMERICAN_HISTORY_VENUE_JSON_ID;
+    }
+}
+
+async function startAmericanHistoryEventbriteScraping() {
+    showScrapingProgressModal('American History (Eventbrite)');
+
+    try {
+        const venueId = await resolveAmericanHistoryVenueId();
+        const response = await fetch('/api/admin/scrape-eventbrite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ venue_id: venueId, time_range: 'this_month' })
+        });
+
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                try {
+                    const errorText = await response.text();
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                } catch (e2) {
+                    // Ignore parsing errors
+                }
+            }
+            updateScrapingStatus(`❌ Error: ${errorMessage}`, 'error');
+            onScrapingComplete();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            const found = result.events_found ?? 0;
+            const saved = result.events_saved ?? 0;
+            let message = result.message || `✅ Found ${found} events, saved ${saved}`;
+            if (found === 0 && result.hint) {
+                message = `${message} ${result.hint}`;
+            }
+            updateScrapingProgress({
+                percentage: 100,
+                message,
+                events_found: found,
+                events_saved: saved
+            });
+            await loadEvents();
+            onScrapingComplete();
+        } else {
+            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            onScrapingComplete();
+        }
+    } catch (error) {
+        console.error('American History Eventbrite scraping error:', error);
+        updateScrapingStatus(`❌ Error: ${error.message}`, 'error');
+        onScrapingComplete();
+    }
+}
+
 async function startWITScraping() {
     showScrapingProgressModal('Washington Improv Theater');
     
