@@ -276,8 +276,183 @@ def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2
 # Use shared parse_date_range from utils
 from scripts.utils import parse_date_range
 
+_ASIAN_ART_TOUR_TITLE_KEYWORDS = (
+    'tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led',
+)
 
-def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
+
+def _asian_art_extract_listing_from_event_link(link) -> Dict:
+    """Title, date, time, and image from a search/listing card (no detail-page GET)."""
+    listing_data: Dict = {}
+    h3 = link.find_parent('h3') or (link.parent if link.parent and link.parent.name == 'h3' else None)
+    if not h3:
+        return listing_data
+
+    title = link.get_text(strip=True) or h3.get_text(strip=True)
+    if not title:
+        return listing_data
+    listing_data['title'] = title
+
+    container = h3.parent
+    date_found = False
+    time_found = False
+    image_found = False
+
+    for _level in range(8):
+        if not container:
+            break
+
+        container_text = container.get_text()
+        container_text = re.sub(r'(20\d{2})([1-9]|1[0-2]:)', r'\1 \2', container_text)
+
+        if not date_found:
+            date_patterns = [
+                r'([A-Za-z]+day,?\s+[A-Za-z]+\s+\d{1,2},?\s+20\d{2})',
+                r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})',
+            ]
+            for pattern in date_patterns:
+                date_match = re.search(pattern, container_text, re.I)
+                if date_match:
+                    event_date = parse_single_date(date_match.group(1))
+                    if event_date:
+                        listing_data['start_date'] = event_date
+                        listing_data['end_date'] = event_date
+                        date_found = True
+                        break
+
+        if not time_found:
+            time_range_pattern = (
+                r'\b([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\s*[–\-]\s*'
+                r'([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\b'
+            )
+            time_range_match = re.search(time_range_pattern, container_text, re.I)
+            if time_range_match:
+                start_hour = int(time_range_match.group(1))
+                start_minute = int(time_range_match.group(2))
+                start_am_pm = time_range_match.group(3)
+                end_hour = int(time_range_match.group(4))
+                end_minute = int(time_range_match.group(5))
+                end_am_pm = time_range_match.group(6)
+
+                start_hour_24 = start_hour
+                if 'pm' in start_am_pm.lower() and start_hour != 12:
+                    start_hour_24 = start_hour + 12
+                elif 'am' in start_am_pm.lower() and start_hour == 12:
+                    start_hour_24 = 0
+
+                end_hour_24 = end_hour
+                if 'pm' in end_am_pm.lower() and end_hour != 12:
+                    end_hour_24 = end_hour + 12
+                elif 'am' in end_am_pm.lower() and end_hour == 12:
+                    end_hour_24 = 0
+
+                if 0 <= start_hour_24 < 24 and 0 <= start_minute < 60:
+                    listing_data['start_time'] = time(start_hour_24, start_minute)
+                if 0 <= end_hour_24 < 24 and 0 <= end_minute < 60:
+                    listing_data['end_time'] = time(end_hour_24, end_minute)
+                time_found = True
+
+        if not image_found:
+            for img in container.find_all('img'):
+                img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
+                if not img_src:
+                    continue
+                skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg', 'site-header', 'nav-background']
+                if any(pattern in img_src.lower() for pattern in skip_patterns):
+                    continue
+                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or 'trumba.com' in img_src.lower():
+                    listing_data['image_url'] = urljoin(ASIAN_ART_BASE_URL, img_src)
+                    image_found = True
+                    break
+
+        if date_found and time_found and image_found:
+            break
+
+        container = container.parent if container else None
+
+    return listing_data
+
+
+def _asian_art_listing_sufficient_for_event(listing_data: Dict) -> bool:
+    """Title + start_date are enough to persist; matches event_database_handler requirements."""
+    return bool(listing_data.get('title') and listing_data.get('start_date'))
+
+
+def _asian_art_infer_event_type_from_title(title: str, default: str = 'event') -> str:
+    title_lower = (title or '').lower()
+    if any(keyword in title_lower for keyword in _ASIAN_ART_TOUR_TITLE_KEYWORDS):
+        return 'tour'
+    return default
+
+
+def _asian_art_build_event_from_listing(
+    listing_data: Dict,
+    full_url: str,
+    event_type: str,
+    description_fallback: str,
+) -> Dict:
+    event = dict(listing_data)
+    event['source_url'] = full_url
+    event['social_media_url'] = full_url
+    event['event_type'] = event_type
+    event['organizer'] = VENUE_NAME
+    event['social_media_platform'] = 'website'
+    event['description'] = description_fallback
+    event['language'] = 'English'
+    return event
+
+
+def _asian_art_merge_listing_over_detail(event_data: Dict, listing_data: Dict) -> None:
+    """Listing dates/times/images override detail when both are present."""
+    if listing_data.get('start_date'):
+        event_data['start_date'] = listing_data['start_date']
+        event_data['end_date'] = listing_data['end_date']
+    if listing_data.get('start_time'):
+        event_data['start_time'] = listing_data['start_time']
+    if listing_data.get('end_time'):
+        event_data['end_time'] = listing_data['end_time']
+    if listing_data.get('title'):
+        event_data['title'] = listing_data['title']
+    if listing_data.get('image_url'):
+        event_data['image_url'] = listing_data['image_url']
+
+
+def _asian_art_resolve_event_from_listing(
+    scraper,
+    listing_data: Dict,
+    full_url: str,
+    event_type: str,
+    description_fallback: str,
+) -> Optional[Dict]:
+    """
+    Prefer listing card data; fetch detail only when start_date is missing from listing.
+    Detail GETs use a single retry to limit Cloudflare challenge noise.
+    """
+    if _asian_art_listing_sufficient_for_event(listing_data):
+        resolved_type = event_type
+        if event_type == 'event':
+            resolved_type = _asian_art_infer_event_type_from_title(listing_data['title'], default='event')
+        logger.debug("   asian_art: listing-only (skip detail) %s", full_url)
+        return _asian_art_build_event_from_listing(listing_data, full_url, resolved_type, description_fallback)
+
+    event_data = scrape_event_detail(scraper, full_url, max_retries=1)
+    if event_data:
+        if event_type != 'event':
+            event_data['event_type'] = event_type
+        event_data['source_url'] = full_url
+        event_data['social_media_url'] = full_url
+        _asian_art_merge_listing_over_detail(event_data, listing_data)
+        return event_data
+
+    if listing_data.get('title'):
+        resolved_type = event_type if event_type != 'event' else _asian_art_infer_event_type_from_title(
+            listing_data['title'], default='event'
+        )
+        return _asian_art_build_event_from_listing(listing_data, full_url, resolved_type, description_fallback)
+    return None
+
+
+def scrape_exhibition_detail(scraper, url: str, max_retries: int = 1) -> Optional[Dict]:
     """Scrape details from an individual exhibition page with retry logic"""
     logger.debug(f"   📄 Scraping exhibition page: {url}")
     response = fetch_asian_art_page(scraper, url, max_retries=max_retries, delay=2)
@@ -586,8 +761,12 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
                     if desc_paragraphs:
                         description = ' '.join(desc_paragraphs)
             
-            # If we found an exhibition URL, try to scrape more details
-            if exhibition_url and exhibition_url not in [ASIAN_ART_EXHIBITIONS_URL, ASIAN_ART_EXHIBITIONS_URL + '/']:
+            # Detail only when listing lacks a parseable date string (reduces Cloudflare challenge traffic)
+            if (
+                exhibition_url
+                and exhibition_url not in [ASIAN_ART_EXHIBITIONS_URL, ASIAN_ART_EXHIBITIONS_URL + '/']
+                and not date_text
+            ):
                 try:
                     detail_data = scrape_exhibition_detail(scraper, exhibition_url)
                     if detail_data:
@@ -721,7 +900,7 @@ def parse_single_date(date_string: str) -> Optional[date]:
     return None
 
 
-def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
+def scrape_event_detail(scraper, url: str, max_retries: int = 1) -> Optional[Dict]:
     """Scrape details from an individual event page with retry logic"""
     logger.debug(f"   📄 Scraping event page: {url}")
     response = fetch_asian_art_page(scraper, url, max_retries=max_retries, delay=2)
@@ -1255,147 +1434,17 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
             if full_url in processed_urls:
                 continue
             processed_urls.add(full_url)
-            
-            # Extract basic info from listing page first
-            listing_data = {}
-            h3 = link.find_parent('h3') or (link.parent if link.parent and link.parent.name == 'h3' else None)
-            
-            if h3:
-                title = link.get_text(strip=True) or h3.get_text(strip=True)
-                listing_data['title'] = title
-                
-                # Get container around this event to find date/time
-                container = h3.parent
-                date_found = False
-                time_found = False
-                image_found = False
-                
-                for level in range(8):
-                    if not container:
-                        break
-                    
-                    container_text = container.get_text()
-                    
-                    # Normalize text: add space between year and time
-                    container_text = re.sub(r'(20\d{2})([1-9]|1[0-2]:)', r'\1 \2', container_text)
-                    
-                    # Extract date from listing (only once)
-                    if not date_found:
-                        date_patterns = [
-                            r'([A-Za-z]+day,?\s+[A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # Friday, December 5, 2025
-                            r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # December 5, 2025
-                        ]
-                        for pattern in date_patterns:
-                            date_match = re.search(pattern, container_text, re.I)
-                            if date_match:
-                                event_date = parse_single_date(date_match.group(1))
-                                if event_date:
-                                    listing_data['start_date'] = event_date
-                                    listing_data['end_date'] = event_date
-                                    date_found = True
-                                    break
-                    
-                    # Extract time range from listing (only once)
-                    if not time_found:
-                        time_range_pattern = r'\b([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\s*[–\-]\s*([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\b'
-                        time_range_match = re.search(time_range_pattern, container_text, re.I)
-                        
-                        if time_range_match:
-                            # Found time range - extract both times
-                            start_hour = int(time_range_match.group(1))
-                            start_minute = int(time_range_match.group(2))
-                            start_am_pm = time_range_match.group(3)
-                            end_hour = int(time_range_match.group(4))
-                            end_minute = int(time_range_match.group(5))
-                            end_am_pm = time_range_match.group(6)
-                            
-                            # Convert start time to 24-hour format
-                            start_hour_24 = start_hour
-                            if 'pm' in start_am_pm.lower() and start_hour != 12:
-                                start_hour_24 = start_hour + 12
-                            elif 'am' in start_am_pm.lower() and start_hour == 12:
-                                start_hour_24 = 0
-                            
-                            # Convert end time to 24-hour format
-                            end_hour_24 = end_hour
-                            if 'pm' in end_am_pm.lower() and end_hour != 12:
-                                end_hour_24 = end_hour + 12
-                            elif 'am' in end_am_pm.lower() and end_hour == 12:
-                                end_hour_24 = 0
-                            
-                            if 0 <= start_hour_24 < 24 and 0 <= start_minute < 60:
-                                listing_data['start_time'] = time(start_hour_24, start_minute)
-                            if 0 <= end_hour_24 < 24 and 0 <= end_minute < 60:
-                                listing_data['end_time'] = time(end_hour_24, end_minute)
-                            time_found = True
-                    
-                    # Extract image from listing page (only once)
-                    if not image_found:
-                        imgs = container.find_all('img')
-                        for img in imgs:
-                            img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
-                            if img_src:
-                                # Skip small icons/logos
-                                skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg', 'site-header', 'nav-background']
-                                if any(pattern in img_src.lower() for pattern in skip_patterns):
-                                    continue
-                                
-                                # Check if it's a real image file
-                                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or 'trumba.com' in img_src.lower():
-                                    # Build full URL
-                                    image_url = urljoin(ASIAN_ART_BASE_URL, img_src)
-                                    listing_data['image_url'] = image_url
-                                    image_found = True
-                                    break
-                    
-                    # Continue searching even if we found date/time, but break if we found everything
-                    if date_found and time_found and image_found:
-                        break
-                    
-                    container = container.parent if container else None
-            
-                # Scrape individual event page for full details
-                # Use listing data as fallback if detail page scraping fails
-                event_data = scrape_event_detail(scraper, full_url)
-                
-                if event_data:
-                    # Always ensure URL is set to the canonical full_url (ensures consistency)
-                    event_data['source_url'] = full_url
-                    event_data['social_media_url'] = full_url
-                    
-                    # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
-                    if listing_data.get('start_date'):
-                        event_data['start_date'] = listing_data['start_date']
-                        event_data['end_date'] = listing_data['end_date']
-                    if listing_data.get('start_time'):
-                        event_data['start_time'] = listing_data['start_time']
-                    if listing_data.get('end_time'):
-                        event_data['end_time'] = listing_data['end_time']
-                    if listing_data.get('title'):
-                        event_data['title'] = listing_data['title']  # Use listing title if available
-                    
-                    # Use listing page image if available, otherwise use detail page image
-                    if listing_data.get('image_url'):
-                        event_data['image_url'] = listing_data['image_url']
-                    
-                    events.append(event_data)
-                elif listing_data.get('title'):
-                    # If detail page scraping failed but we have listing data, use that
-                    # Determine event type from title
-                    title_lower = listing_data.get('title', '').lower()
-                    determined_event_type = 'event'  # default
-                    tour_keywords = ['tour', 'tours', 'guided tour', 'walking tour', 'collection tour', 'docent-led', 'docent led']
-                    if any(keyword in title_lower for keyword in tour_keywords):
-                        determined_event_type = 'tour'
-                    
-                    listing_data['source_url'] = full_url
-                    listing_data['event_type'] = determined_event_type
-                    listing_data['organizer'] = VENUE_NAME
-                    listing_data['social_media_platform'] = 'website'
-                    listing_data['social_media_url'] = full_url
-                    listing_data['description'] = f"Event at {VENUE_NAME}"
-                    listing_data['language'] = 'English'
-                    events.append(listing_data)
+
+            listing_data = _asian_art_extract_listing_from_event_link(link)
+            event_item = _asian_art_resolve_event_from_listing(
+                scraper,
+                listing_data,
+                full_url,
+                event_type='event',
+                description_fallback=f"Event at {VENUE_NAME}",
+            )
+            if event_item:
+                events.append(event_item)
         
         logger.info(f"   ✅ Found {len(events)} events")
         
@@ -1443,143 +1492,17 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
             if full_url in processed_urls:
                 continue
             processed_urls.add(full_url)
-            
-            # Extract basic info from listing page first
-            listing_data = {}
-            h3 = link.find_parent('h3') or (link.parent if link.parent and link.parent.name == 'h3' else None)
-            
-            if h3:
-                title = link.get_text(strip=True) or h3.get_text(strip=True)
-                listing_data['title'] = title
-                
-                # Get container around this event to find date/time
-                container = h3.parent
-                date_found = False
-                time_found = False
-                image_found = False
-                
-                for level in range(8):
-                    if not container:
-                        break
-                    
-                    container_text = container.get_text()
-                    
-                    # Normalize text: add space between year and time
-                    container_text = re.sub(r'(20\d{2})([1-9]|1[0-2]:)', r'\1 \2', container_text)
-                    
-                    # Extract date from listing (only once)
-                    if not date_found:
-                        date_patterns = [
-                            r'([A-Za-z]+day,?\s+[A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # Friday, December 5, 2025
-                            r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # December 5, 2025
-                        ]
-                        for pattern in date_patterns:
-                            date_match = re.search(pattern, container_text, re.I)
-                            if date_match:
-                                event_date = parse_single_date(date_match.group(1))
-                                if event_date:
-                                    listing_data['start_date'] = event_date
-                                    listing_data['end_date'] = event_date
-                                    date_found = True
-                                    break
-                    
-                    # Extract time range from listing (only once)
-                    if not time_found:
-                        time_range_pattern = r'\b([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\s*[–\-]\s*([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\b'
-                        time_range_match = re.search(time_range_pattern, container_text, re.I)
-                        
-                        if time_range_match:
-                            # Found time range - extract both times
-                            start_hour = int(time_range_match.group(1))
-                            start_minute = int(time_range_match.group(2))
-                            start_am_pm = time_range_match.group(3)
-                            end_hour = int(time_range_match.group(4))
-                            end_minute = int(time_range_match.group(5))
-                            end_am_pm = time_range_match.group(6)
-                            
-                            # Convert start time to 24-hour format
-                            start_hour_24 = start_hour
-                            if 'pm' in start_am_pm.lower() and start_hour != 12:
-                                start_hour_24 = start_hour + 12
-                            elif 'am' in start_am_pm.lower() and start_hour == 12:
-                                start_hour_24 = 0
-                            
-                            # Convert end time to 24-hour format
-                            end_hour_24 = end_hour
-                            if 'pm' in end_am_pm.lower() and end_hour != 12:
-                                end_hour_24 = end_hour + 12
-                            elif 'am' in end_am_pm.lower() and end_hour == 12:
-                                end_hour_24 = 0
-                            
-                            if 0 <= start_hour_24 < 24 and 0 <= start_minute < 60:
-                                listing_data['start_time'] = time(start_hour_24, start_minute)
-                            if 0 <= end_hour_24 < 24 and 0 <= end_minute < 60:
-                                listing_data['end_time'] = time(end_hour_24, end_minute)
-                            time_found = True
-                    
-                    # Extract image from listing page (only once)
-                    if not image_found:
-                        imgs = container.find_all('img')
-                        for img in imgs:
-                            img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
-                            if img_src:
-                                # Skip small icons/logos
-                                skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg', 'site-header', 'nav-background']
-                                if any(pattern in img_src.lower() for pattern in skip_patterns):
-                                    continue
-                                
-                                # Check if it's a real image file
-                                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or 'trumba.com' in img_src.lower():
-                                    # Build full URL
-                                    image_url = urljoin(ASIAN_ART_BASE_URL, img_src)
-                                    listing_data['image_url'] = image_url
-                                    image_found = True
-                                    break
-                    
-                    # Continue searching even if we found date/time, but break if we found everything
-                    if date_found and time_found and image_found:
-                        break
-                    
-                    container = container.parent if container else None
-            
-            # Scrape individual event page for full details
-            # Use listing data as fallback if detail page scraping fails
-            event_data = scrape_event_detail(scraper, full_url)
-            
-            if event_data:
-                # Set event type to 'film'
-                event_data['event_type'] = 'film'
-                
-                # Always ensure URL is set to the canonical full_url (ensures consistency)
-                event_data['source_url'] = full_url
-                event_data['social_media_url'] = full_url
-                
-                # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
-                if listing_data.get('start_date'):
-                    event_data['start_date'] = listing_data['start_date']
-                    event_data['end_date'] = listing_data['end_date']
-                if listing_data.get('start_time'):
-                    event_data['start_time'] = listing_data['start_time']
-                if listing_data.get('end_time'):
-                    event_data['end_time'] = listing_data['end_time']
-                if listing_data.get('title'):
-                    event_data['title'] = listing_data['title']  # Use listing title if available
-                
-                # Use listing page image if available, otherwise use detail page image
-                if listing_data.get('image_url'):
-                    event_data['image_url'] = listing_data['image_url']
-                
-                events.append(event_data)
-            elif listing_data.get('title'):
-                # If detail page scraping failed but we have listing data, use that
-                listing_data['source_url'] = full_url
-                listing_data['event_type'] = 'film'
-                listing_data['organizer'] = VENUE_NAME
-                listing_data['social_media_platform'] = 'website'
-                listing_data['social_media_url'] = full_url
-                listing_data['description'] = f"Film event at {VENUE_NAME}"
-                listing_data['language'] = 'English'
-                events.append(listing_data)
+
+            listing_data = _asian_art_extract_listing_from_event_link(link)
+            event_item = _asian_art_resolve_event_from_listing(
+                scraper,
+                listing_data,
+                full_url,
+                event_type='film',
+                description_fallback=f"Film event at {VENUE_NAME}",
+            )
+            if event_item:
+                events.append(event_item)
         
         logger.info(f"   ✅ Found {len(events)} film events")
         
@@ -1634,143 +1557,17 @@ def scrape_asian_art_performances(scraper=None) -> List[Dict]:
             if full_url in processed_urls:
                 continue
             processed_urls.add(full_url)
-            
-            # Extract basic info from listing page first
-            listing_data = {}
-            h3 = link.find_parent('h3') or (link.parent if link.parent and link.parent.name == 'h3' else None)
-            
-            if h3:
-                title = link.get_text(strip=True) or h3.get_text(strip=True)
-                listing_data['title'] = title
-                
-                # Get container around this event to find date/time
-                container = h3.parent
-                date_found = False
-                time_found = False
-                image_found = False
-                
-                for level in range(8):
-                    if not container:
-                        break
-                    
-                    container_text = container.get_text()
-                    
-                    # Normalize text: add space between year and time
-                    container_text = re.sub(r'(20\d{2})([1-9]|1[0-2]:)', r'\1 \2', container_text)
-                    
-                    # Extract date from listing (only once)
-                    if not date_found:
-                        date_patterns = [
-                            r'([A-Za-z]+day,?\s+[A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # Friday, December 5, 2025
-                            r'([A-Za-z]+\s+\d{1,2},?\s+20\d{2})',  # December 5, 2025
-                        ]
-                        for pattern in date_patterns:
-                            date_match = re.search(pattern, container_text, re.I)
-                            if date_match:
-                                event_date = parse_single_date(date_match.group(1))
-                                if event_date:
-                                    listing_data['start_date'] = event_date
-                                    listing_data['end_date'] = event_date
-                                    date_found = True
-                                    break
-                    
-                    # Extract time range from listing (only once)
-                    if not time_found:
-                        time_range_pattern = r'\b([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\s*[–\-]\s*([1-9]|1[0-2]):([0-5]\d)\s*([ap]\.?m\.?)\b'
-                        time_range_match = re.search(time_range_pattern, container_text, re.I)
-                        
-                        if time_range_match:
-                            # Found time range - extract both times
-                            start_hour = int(time_range_match.group(1))
-                            start_minute = int(time_range_match.group(2))
-                            start_am_pm = time_range_match.group(3)
-                            end_hour = int(time_range_match.group(4))
-                            end_minute = int(time_range_match.group(5))
-                            end_am_pm = time_range_match.group(6)
-                            
-                            # Convert start time to 24-hour format
-                            start_hour_24 = start_hour
-                            if 'pm' in start_am_pm.lower() and start_hour != 12:
-                                start_hour_24 = start_hour + 12
-                            elif 'am' in start_am_pm.lower() and start_hour == 12:
-                                start_hour_24 = 0
-                            
-                            # Convert end time to 24-hour format
-                            end_hour_24 = end_hour
-                            if 'pm' in end_am_pm.lower() and end_hour != 12:
-                                end_hour_24 = end_hour + 12
-                            elif 'am' in end_am_pm.lower() and end_hour == 12:
-                                end_hour_24 = 0
-                            
-                            if 0 <= start_hour_24 < 24 and 0 <= start_minute < 60:
-                                listing_data['start_time'] = time(start_hour_24, start_minute)
-                            if 0 <= end_hour_24 < 24 and 0 <= end_minute < 60:
-                                listing_data['end_time'] = time(end_hour_24, end_minute)
-                            time_found = True
-                    
-                    # Extract image from listing page (only once)
-                    if not image_found:
-                        imgs = container.find_all('img')
-                        for img in imgs:
-                            img_src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-original')
-                            if img_src:
-                                # Skip small icons/logos
-                                skip_patterns = ['icon', 'logo', 'favicon', 'avatar', 'social', 'svg', 'site-header', 'nav-background']
-                                if any(pattern in img_src.lower() for pattern in skip_patterns):
-                                    continue
-                                
-                                # Check if it's a real image file
-                                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or 'trumba.com' in img_src.lower():
-                                    # Build full URL
-                                    image_url = urljoin(ASIAN_ART_BASE_URL, img_src)
-                                    listing_data['image_url'] = image_url
-                                    image_found = True
-                                    break
-                    
-                    # Continue searching even if we found date/time, but break if we found everything
-                    if date_found and time_found and image_found:
-                        break
-                    
-                    container = container.parent if container else None
-            
-            # Scrape individual event page for full details
-            # Use listing data as fallback if detail page scraping fails
-            event_data = scrape_event_detail(scraper, full_url)
-            
-            if event_data:
-                # Set event type to 'performance'
-                event_data['event_type'] = 'performance'
-                
-                # Always ensure URL is set to the canonical full_url (ensures consistency)
-                event_data['source_url'] = full_url
-                event_data['social_media_url'] = full_url
-                
-                # Merge listing data with detail page data (listing takes precedence for dates/times/images if available)
-                if listing_data.get('start_date'):
-                    event_data['start_date'] = listing_data['start_date']
-                    event_data['end_date'] = listing_data['end_date']
-                if listing_data.get('start_time'):
-                    event_data['start_time'] = listing_data['start_time']
-                if listing_data.get('end_time'):
-                    event_data['end_time'] = listing_data['end_time']
-                if listing_data.get('title'):
-                    event_data['title'] = listing_data['title']  # Use listing title if available
-                
-                # Use listing page image if available, otherwise use detail page image
-                if listing_data.get('image_url'):
-                    event_data['image_url'] = listing_data['image_url']
-                
-                events.append(event_data)
-            elif listing_data.get('title'):
-                # If detail page scraping failed but we have listing data, use that
-                listing_data['source_url'] = full_url
-                listing_data['event_type'] = 'performance'
-                listing_data['organizer'] = VENUE_NAME
-                listing_data['social_media_platform'] = 'website'
-                listing_data['social_media_url'] = full_url
-                listing_data['description'] = f"Performance event at {VENUE_NAME}"
-                listing_data['language'] = 'English'
-                events.append(listing_data)
+
+            listing_data = _asian_art_extract_listing_from_event_link(link)
+            event_item = _asian_art_resolve_event_from_listing(
+                scraper,
+                listing_data,
+                full_url,
+                event_type='performance',
+                description_fallback=f"Performance event at {VENUE_NAME}",
+            )
+            if event_item:
+                events.append(event_item)
         
         logger.info(f"   ✅ Found {len(events)} performance events")
         
