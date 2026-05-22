@@ -3026,7 +3026,16 @@ async function resolveAmericanHistoryVenueId() {
 }
 
 async function startAmericanHistoryEventbriteScraping() {
-    showScrapingProgressModal('American History (Eventbrite)');
+    // No polling: scrape-eventbrite does not write scraping_progress.json (polling would show stale parade/other runs).
+    showScrapingProgressModal('American History (Eventbrite)', false);
+    updateScrapingProgress({
+        percentage: 5,
+        message: 'Starting American History Eventbrite scraping...',
+        events_found: 0,
+        events_saved: 0,
+        events_updated: 0,
+        events_skipped: 0
+    });
 
     try {
         const venueId = await resolveAmericanHistoryVenueId();
