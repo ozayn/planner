@@ -1241,6 +1241,25 @@
       "last_checked": null,
       "created_at": "2026-05-06T14:00:00.000000",
       "updated_at": "2026-05-06T14:00:00.000000"
+    },
+    "66": {
+      "name": "Smithsonian National Museum of American History Eventbrite",
+      "handle": "eventbrite.com",
+      "source_type": "eventbrite",
+      "url": "https://www.eventbrite.com/o/national-museum-of-american-history-12222839118",
+      "description": "Eventbrite organizer page for National Museum of American History public programs, talks, tours, and special events in Washington, DC.",
+      "city_id": 1,
+      "covers_multiple_cities": false,
+      "covered_cities": "",
+      "event_types": "[\"event\", \"talk\", \"tour\", \"workshop\", \"exhibition\", \"family\"]",
+      "is_active": true,
+      "reliability_score": 5.0,
+      "posting_frequency": "weekly",
+      "notes": "Organizer ID 12222839118; events ingested via shared Eventbrite API scraper (venue 28 ticketing_url).",
+      "scraping_pattern": "",
+      "last_checked": null,
+      "created_at": "2026-05-22T12:00:00.000000",
+      "updated_at": "2026-05-22T12:00:00.000000"
     }
   }
 }

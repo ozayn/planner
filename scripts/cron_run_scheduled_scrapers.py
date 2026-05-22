@@ -115,6 +115,33 @@ def is_embassy_with_eventbrite(venue):
 
     return False
 
+
+# Non-embassy DC venues with Eventbrite organizer on ticketing_url (sync from venues.json).
+EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS = (
+    'washington improv theater',
+    'smithsonian national museum of american history',
+)
+
+
+def get_eventbrite_extra_venues(all_venues):
+    """DC museums/venues using shared Eventbrite scraper (not embassy cron bucket)."""
+    extra = []
+    seen_ids = set()
+    for venue in all_venues:
+        name_lower = (venue.name or '').lower()
+        if not any(frag in name_lower for frag in EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS):
+            continue
+        if not venue.ticketing_url or 'eventbrite' not in venue.ticketing_url.lower():
+            logger.debug(f"   ⚠️  Eventbrite extra skipped (no Eventbrite ticketing_url): {venue.name}")
+            continue
+        if venue.id in seen_ids:
+            continue
+        seen_ids.add(venue.id)
+        extra.append(venue)
+        logger.debug(f"✅ Eventbrite extra venue: {venue.name}")
+    return extra
+
+
 def main():
     """Main function to scrape DC museum events"""
     start_time = datetime.now()
@@ -161,14 +188,10 @@ def main():
                     embassies.append(venue)
                     logger.debug(f"✅ Embassy with Eventbrite: {venue.name}")
 
-            # Washington Improv Theater (Eventbrite organizer)
-            wit_venue = None
-            for venue in all_venues:
-                if 'washington improv theater' in (venue.name or '').lower():
-                    wit_venue = venue
-                    break
-            
-            total_venues = len(museums) + len(embassies) + (1 if wit_venue else 0)
+            # Non-embassy venues with Eventbrite organizer URLs (WIT, American History, etc.)
+            eventbrite_extra_venues = get_eventbrite_extra_venues(all_venues)
+
+            total_venues = len(museums) + len(embassies) + len(eventbrite_extra_venues)
             logger.debug(f"Found {len(museums)} museums, {len(embassies)} embassies, total {total_venues} venues")
             
             if total_venues == 0:
@@ -498,30 +521,31 @@ def main():
                         db.session.rollback()
                         continue
 
-            # Scrape Washington Improv Theater via Eventbrite
-            if wit_venue:
-                logger.info(f"🏛️  Eventbrite (WIT) | {wit_venue.name}")
+            # Scrape non-embassy Eventbrite venues (shared EventbriteScraper path)
+            for eb_venue in eventbrite_extra_venues:
+                logger.info(f"🏛️  Eventbrite | {eb_venue.name}")
                 try:
-                    wit_events = eventbrite_scraper.scrape_venue_events(
-                        venue=wit_venue,
+                    eb_events = eventbrite_scraper.scrape_venue_events(
+                        venue=eb_venue,
                         time_range=time_range
                     )
-                    if wit_events:
-                        events_count = len(wit_events)
+                    if eb_events:
+                        events_count = len(eb_events)
                         total_events_found += events_count
                         from scripts.event_database_handler import create_events_in_database as shared_create_events
+                        venue_name = eb_venue.name
                         created, updated, skipped = shared_create_events(
-                            events=wit_events,
-                            venue_id=wit_venue.id,
-                            city_id=wit_venue.city_id,
-                            venue_name=wit_venue.name,
+                            events=eb_events,
+                            venue_id=eb_venue.id,
+                            city_id=eb_venue.city_id,
+                            venue_name=venue_name,
                             db=db,
                             Event=Event,
                             Venue=Venue,
                             batch_size=5,
                             logger_instance=logger,
-                            source_url=wit_venue.ticketing_url or wit_venue.website_url,
-                            custom_event_processor=lambda e: e.update({'source': 'eventbrite', 'organizer': wit_venue.name})
+                            source_url=eb_venue.ticketing_url or eb_venue.website_url,
+                            custom_event_processor=lambda e, vn=venue_name: e.update({'source': 'eventbrite', 'organizer': vn})
                         )
                         total_events_saved += created
                         if created > 0:

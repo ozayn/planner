@@ -14,7 +14,6 @@ from urllib.parse import urljoin, urlparse
 import requests
 from requests.exceptions import Timeout, RequestException, ConnectionError, ReadTimeout, ConnectTimeout, HTTPError
 from socket import timeout as SocketTimeout
-import urllib3
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -43,43 +42,163 @@ ASIAN_ART_PERFORMANCES_URL = 'https://asia.si.edu/whats-on/events/search/?edan_f
 
 # Referer for listing/detail requests (aligns with NGA pattern for Smithsonian properties)
 ASIAN_ART_REFERER = f'{ASIAN_ART_BASE_URL}/'
+ASIAN_ART_SCRAPER_KEY = 'asian_art'
 
 
-def _asian_art_cloudscraper_session():
-    """Cloudscraper session with base URL warmup and SSL verification (NGA-aligned)."""
-    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
-    cs = create_cloudscraper_session(
-        base_url=ASIAN_ART_BASE_URL,
-        verify_ssl=True,
-        use_proxy=scraper_proxy_opt_in('asian_art'),
-    )
-    if cs:
-        cs.headers.update({'Referer': ASIAN_ART_REFERER})
-    return cs
+def _asian_art_session_headers(session) -> None:
+    """Consistent Referer/Origin for asia.si.edu (NGA-aligned)."""
+    if not session:
+        return
+    session.headers.update({
+        'Referer': ASIAN_ART_REFERER,
+        'Origin': ASIAN_ART_BASE_URL,
+        'Sec-Fetch-Site': 'same-origin',
+    })
 
 
 def create_scraper():
-    """Create a scraper session"""
-    # Suppress SSL warnings
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
-    scraper = requests.Session()
-    scraper.verify = False
-    
-    scraper.headers.update({
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Referer': ASIAN_ART_REFERER,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    })
+    """Primary cloudscraper session with warmup; requests+proxy fallback if unavailable."""
+    import time
+    from scripts.scraper_utils import (
+        create_cloudscraper_session,
+        create_scraper_session,
+        scraper_proxy_opt_in,
+    )
 
-    from scripts.scraper_utils import apply_webshare_proxy_to_session, scraper_proxy_opt_in
-    apply_webshare_proxy_to_session(scraper, use_proxy=scraper_proxy_opt_in('asian_art'))
+    use_proxy = scraper_proxy_opt_in(ASIAN_ART_SCRAPER_KEY)
+    scraper = create_cloudscraper_session(
+        base_url=ASIAN_ART_BASE_URL,
+        verify_ssl=True,
+        use_proxy=use_proxy,
+        scraper_key=ASIAN_ART_SCRAPER_KEY,
+    )
+    if scraper:
+        _asian_art_session_headers(scraper)
+        time.sleep(1)
+        return scraper
 
+    logger.warning(
+        "   asian_art: cloudscraper unavailable; using requests session (scraper_key=%s)",
+        ASIAN_ART_SCRAPER_KEY,
+    )
+    scraper = create_scraper_session(
+        verify_ssl=True,
+        use_proxy=use_proxy,
+        scraper_key=ASIAN_ART_SCRAPER_KEY,
+    )
+    _asian_art_session_headers(scraper)
     return scraper
+
+
+def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2):
+    """
+    Fetch a page with retries; recreate session on 403 (same pattern as NGA fetch_with_retry).
+    Returns a Response on success, or None after all attempts fail.
+    """
+    import time
+
+    current_scraper = scraper
+
+    def recreate():
+        logger.warning("   asian_art: recreating session after 403/error (scraper_key=%s)", ASIAN_ART_SCRAPER_KEY)
+        new_scraper = create_scraper()
+        return new_scraper or current_scraper
+
+    last_status = None
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                wait_time = delay * (2 ** (attempt - 1))
+                logger.info(
+                    "   asian_art: retry %s/%s in %ss url=%s",
+                    attempt + 1,
+                    max_retries,
+                    wait_time,
+                    url,
+                )
+                time.sleep(wait_time)
+                current_scraper = recreate()
+
+            if not current_scraper:
+                logger.warning("   asian_art: no session available url=%s", url)
+                return None
+
+            response = current_scraper.get(url, timeout=(15, 45))
+            last_status = response.status_code
+
+            if response.status_code == 403 and attempt < max_retries - 1:
+                logger.warning(
+                    "   asian_art: 403 on attempt %s/%s url=%s — fresh session",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate()
+                time.sleep(delay)
+                continue
+
+            response.raise_for_status()
+            return response
+
+        except HTTPError as http_err:
+            resp = getattr(http_err, 'response', None)
+            last_status = getattr(resp, 'status_code', None) if resp is not None else last_status
+            if last_status == 403 and attempt < max_retries - 1:
+                logger.warning(
+                    "   asian_art: 403 on attempt %s/%s url=%s — fresh session",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate()
+                time.sleep(delay)
+                continue
+            logger.warning(
+                "   asian_art: fetch failed final_status=%s url=%s (%s)",
+                last_status,
+                url,
+                http_err,
+            )
+            return None
+        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout, ConnectionError, RequestException) as e:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    "   asian_art: %s on attempt %s/%s url=%s",
+                    type(e).__name__,
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate()
+                continue
+            logger.warning(
+                "   asian_art: fetch failed final_status=%s url=%s (%s)",
+                last_status,
+                url,
+                type(e).__name__,
+            )
+            return None
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    "   asian_art: error on attempt %s/%s url=%s: %s",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                    e,
+                )
+                current_scraper = recreate()
+                continue
+            logger.warning(
+                "   asian_art: fetch failed final_status=%s url=%s (%s)",
+                last_status,
+                url,
+                e,
+            )
+            return None
+
+    logger.warning("   asian_art: fetch failed final_status=%s url=%s", last_status, url)
+    return None
 
 
 # Use shared parse_date_range from utils
@@ -88,34 +207,11 @@ from scripts.utils import parse_date_range
 
 def scrape_exhibition_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
     """Scrape details from an individual exhibition page with retry logic"""
-    import time
-    
-    for attempt in range(max_retries):
-        try:
-            logger.debug(f"   📄 Scraping exhibition page: {url} (attempt {attempt + 1}/{max_retries})")
-            # Use longer timeout: (connect timeout, read timeout) - increased for slow connections
-            response = scraper.get(url, timeout=(15, 45))
-            response.raise_for_status()
-            break  # Success, exit retry loop
-        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
-            if attempt < max_retries - 1:
-                wait_time = 2 * (attempt + 1)  # Exponential backoff: 2s, 4s
-                logger.debug(f"   ⏳ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
-                time.sleep(wait_time)
-                continue
-            else:
-                logger.warning(f"   ⚠️ Timeout scraping exhibition detail {url} after {max_retries} attempts: {type(e).__name__}")
-                return None
-        except (ConnectionError, RequestException) as e:
-            if attempt < max_retries - 1:
-                wait_time = 2 * (attempt + 1)
-                logger.debug(f"   ⏳ Connection error on attempt {attempt + 1}, retrying in {wait_time}s...")
-                time.sleep(wait_time)
-                continue
-            else:
-                logger.warning(f"   ⚠️ Connection error scraping exhibition detail {url} after {max_retries} attempts: {type(e).__name__}")
-                return None
-    
+    logger.debug(f"   📄 Scraping exhibition page: {url}")
+    response = fetch_asian_art_page(scraper, url, max_retries=max_retries, delay=2)
+    if not response:
+        return None
+
     try:
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -276,33 +372,9 @@ def scrape_asian_art_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping Asian Art Museum exhibitions from: {ASIAN_ART_EXHIBITIONS_URL}")
-        response = None
-        try:
-            response = scraper.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
-            response.raise_for_status()
-        except HTTPError as http_err:
-            if http_err.response is not None and http_err.response.status_code == 403:
-                logger.warning(f"   ⚠️  403 Forbidden on exhibitions, trying cloudscraper...")
-                try:
-                    cs = _asian_art_cloudscraper_session()
-                    if cs:
-                        response = cs.get(ASIAN_ART_EXHIBITIONS_URL, timeout=(15, 45))
-                        response.raise_for_status()
-                except Exception:
-                    logger.warning(f"   ⚠️  Skipping Asian Art exhibitions (403). Cloudscraper fallback failed.")
-                    return events
-            else:
-                logger.error(f"❌ HTTP error scraping Asian Art Museum exhibitions: {http_err}")
-                return events
-        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
-            logger.error(f"❌ Timeout error scraping Asian Art Museum exhibitions: {timeout_error}")
-            logger.error(f"   URL: {ASIAN_ART_EXHIBITIONS_URL}")
-            return events
-        except (ConnectionError, RequestException) as conn_error:
-            logger.error(f"❌ Connection error scraping Asian Art Museum exhibitions: {conn_error}")
-            logger.error(f"   URL: {ASIAN_ART_EXHIBITIONS_URL}")
-            return events
+        response = fetch_asian_art_page(scraper, ASIAN_ART_EXHIBITIONS_URL)
         if not response:
+            logger.warning("   ⚠️  Skipping Asian Art exhibitions (fetch failed).")
             return events
 
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -579,34 +651,11 @@ def parse_single_date(date_string: str) -> Optional[date]:
 
 def scrape_event_detail(scraper, url: str, max_retries: int = 2) -> Optional[Dict]:
     """Scrape details from an individual event page with retry logic"""
-    import time as time_module
-    
-    for attempt in range(max_retries):
-        try:
-            logger.debug(f"   📄 Scraping event page: {url} (attempt {attempt + 1}/{max_retries})")
-            # Use longer timeout: (connect timeout, read timeout) - increased for slow connections
-            response = scraper.get(url, timeout=(15, 45))
-            response.raise_for_status()
-            break  # Success, exit retry loop
-        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as e:
-            if attempt < max_retries - 1:
-                wait_time = 2 * (attempt + 1)  # Exponential backoff: 2s, 4s
-                logger.debug(f"   ⏳ Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
-                time_module.sleep(wait_time)
-                continue
-            else:
-                logger.warning(f"   ⚠️ Timeout scraping event detail {url} after {max_retries} attempts: {type(e).__name__}")
-                return None
-        except (ConnectionError, RequestException) as e:
-            if attempt < max_retries - 1:
-                wait_time = 2 * (attempt + 1)
-                logger.debug(f"   ⏳ Connection error on attempt {attempt + 1}, retrying in {wait_time}s...")
-                time_module.sleep(wait_time)
-                continue
-            else:
-                logger.warning(f"   ⚠️ Connection error scraping event detail {url} after {max_retries} attempts: {type(e).__name__}")
-                return None
-    
+    logger.debug(f"   📄 Scraping event page: {url}")
+    response = fetch_asian_art_page(scraper, url, max_retries=max_retries, delay=2)
+    if not response:
+        return None
+
     try:
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1110,33 +1159,9 @@ def scrape_asian_art_events(scraper=None) -> List[Dict]:
     try:
         events_search_url = 'https://asia.si.edu/whats-on/events/search/'
         logger.info(f"🔍 Scraping Asian Art Museum events from: {events_search_url}")
-        response = None
-        try:
-            response = scraper.get(events_search_url, timeout=(15, 45))
-            response.raise_for_status()
-        except HTTPError as http_err:
-            if http_err.response is not None and http_err.response.status_code == 403:
-                logger.warning(f"   ⚠️  403 Forbidden on events search, trying cloudscraper...")
-                try:
-                    cs = _asian_art_cloudscraper_session()
-                    if cs:
-                        response = cs.get(events_search_url, timeout=(15, 45))
-                        response.raise_for_status()
-                except Exception:
-                    logger.warning(f"   ⚠️  Skipping Asian Art events (403). Cloudscraper fallback failed.")
-                    return events
-            else:
-                logger.error(f"❌ HTTP error scraping Asian Art Museum events: {http_err}")
-                return events
-        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
-            logger.error(f"❌ Timeout error scraping Asian Art Museum events: {timeout_error}")
-            logger.error(f"   URL: {events_search_url}")
-            return events
-        except (ConnectionError, RequestException) as conn_error:
-            logger.error(f"❌ Connection error scraping Asian Art Museum events: {conn_error}")
-            logger.error(f"   URL: {events_search_url}")
-            return events
+        response = fetch_asian_art_page(scraper, events_search_url)
         if not response:
+            logger.warning("   ⚠️  Skipping Asian Art events (fetch failed).")
             return events
 
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1322,34 +1347,9 @@ def scrape_asian_art_films(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎬 Scraping Asian Art Museum films from: {ASIAN_ART_FILMS_URL}")
-        response = None
-        try:
-            response = scraper.get(ASIAN_ART_FILMS_URL, timeout=(15, 45))
-            response.raise_for_status()
-        except HTTPError as http_err:
-            if http_err.response is not None and http_err.response.status_code == 403:
-                logger.warning(f"   ⚠️  403 Forbidden on films, trying cloudscraper...")
-                try:
-                    cs = _asian_art_cloudscraper_session()
-                    if cs:
-                        response = cs.get(ASIAN_ART_FILMS_URL, timeout=(15, 45))
-                        response.raise_for_status()
-                except Exception:
-                    logger.warning(f"   ⚠️  Skipping Asian Art films (403). Cloudscraper fallback failed.")
-                    return events
-            else:
-                logger.error(f"❌ HTTP error scraping Asian Art Museum films: {http_err}")
-                return events
-        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
-            logger.error(f"❌ Timeout error scraping Asian Art Museum films: {timeout_error}")
-            logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
-            logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
-            return events
-        except (ConnectionError, RequestException) as conn_error:
-            logger.error(f"❌ Connection error scraping Asian Art Museum films: {conn_error}")
-            logger.error(f"   URL: {ASIAN_ART_FILMS_URL}")
-            return events
+        response = fetch_asian_art_page(scraper, ASIAN_ART_FILMS_URL)
         if not response:
+            logger.warning("   ⚠️  Skipping Asian Art films (fetch failed).")
             return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1538,34 +1538,9 @@ def scrape_asian_art_performances(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🎭 Scraping Asian Art Museum performances from: {ASIAN_ART_PERFORMANCES_URL}")
-        response = None
-        try:
-            response = scraper.get(ASIAN_ART_PERFORMANCES_URL, timeout=(15, 45))
-            response.raise_for_status()
-        except HTTPError as http_err:
-            if http_err.response is not None and http_err.response.status_code == 403:
-                logger.warning(f"   ⚠️  403 Forbidden on performances, trying cloudscraper...")
-                try:
-                    cs = _asian_art_cloudscraper_session()
-                    if cs:
-                        response = cs.get(ASIAN_ART_PERFORMANCES_URL, timeout=(15, 45))
-                        response.raise_for_status()
-                except Exception:
-                    logger.warning(f"   ⚠️  Skipping Asian Art performances (403). Cloudscraper fallback failed.")
-                    return events
-            else:
-                logger.error(f"❌ HTTP error scraping Asian Art Museum performances: {http_err}")
-                return events
-        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout) as timeout_error:
-            logger.error(f"❌ Timeout error scraping Asian Art Museum performances: {timeout_error}")
-            logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
-            logger.error(f"   This may indicate the server is slow or unresponsive. Try again later.")
-            return events
-        except (ConnectionError, RequestException) as conn_error:
-            logger.error(f"❌ Connection error scraping Asian Art Museum performances: {conn_error}")
-            logger.error(f"   URL: {ASIAN_ART_PERFORMANCES_URL}")
-            return events
+        response = fetch_asian_art_page(scraper, ASIAN_ART_PERFORMANCES_URL)
         if not response:
+            logger.warning("   ⚠️  Skipping Asian Art performances (fetch failed).")
             return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -1754,7 +1729,17 @@ def scrape_all_asian_art_events() -> List[Dict]:
     
     try:
         scraper = create_scraper()
-        
+        if not scraper:
+            logger.error("asian_art: could not create session (scraper_key=%s)", ASIAN_ART_SCRAPER_KEY)
+            return all_events
+        logger.info(
+            "asian_art: session ready scraper_key=%s session_type=%s",
+            ASIAN_ART_SCRAPER_KEY,
+            type(scraper).__name__,
+        )
+
+        import time as _time
+
         # Scrape exhibitions
         try:
             update_scraping_progress(1, total_steps, "Scraping exhibitions...", events_found=len(all_events), venue_name=VENUE_NAME)
@@ -1768,7 +1753,9 @@ def scrape_all_asian_art_events() -> List[Dict]:
             import traceback
             logger.error(traceback.format_exc())
             # Continue with other event types even if exhibitions fail
-        
+
+        _time.sleep(2)
+
         # Scrape events (talks, tours, programs)
         try:
             update_scraping_progress(2, total_steps, "Scraping events (talks, tours, programs)...", events_found=len(all_events), venue_name=VENUE_NAME)
@@ -1782,7 +1769,9 @@ def scrape_all_asian_art_events() -> List[Dict]:
             import traceback
             logger.error(traceback.format_exc())
             # Continue even if events fail
-        
+
+        _time.sleep(2)
+
         # Scrape films
         try:
             update_scraping_progress(3, total_steps, "Scraping films...", events_found=len(all_events), venue_name=VENUE_NAME)
@@ -1796,7 +1785,9 @@ def scrape_all_asian_art_events() -> List[Dict]:
             import traceback
             logger.error(traceback.format_exc())
             # Continue even if films fail
-        
+
+        _time.sleep(2)
+
         # Scrape performances
         try:
             update_scraping_progress(4, total_steps, "Scraping performances...", events_found=len(all_events), venue_name=VENUE_NAME)

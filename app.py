@@ -68,7 +68,9 @@ try:
     import pytz
 except ImportError as e:
     print(f"❌ Error importing Flask components: {e}")
-    print("   Please run: source venv/bin/activate")
+    print("   Fix: use the venv interpreter (zsh aliases like python=python3 can bypass venv):")
+    print("   ./venv/bin/python your_script.py")
+    print("   Or after activate: command python your_script.py")
     sys.exit(1)
 
 # Import field cleaning utilities
