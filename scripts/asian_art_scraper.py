@@ -91,11 +91,19 @@ def _asian_art_log_final_403(response, url: str, final_status: Optional[int] = N
 
 
 def _asian_art_should_preflight(url: str) -> bool:
-    """Deep /whats-on/ pages get a same-session visit to the hub first."""
-    path = urlparse(url).path.rstrip('/')
+    """
+    Deep /whats-on/ pages may visit the hub first — except search listings that
+    already return 200 without it (events/films/performances + event: detail URLs).
+    """
+    path = urlparse(url).path.rstrip('/') or ''
     if not path.startswith('/whats-on'):
         return False
-    return path != '/whats-on'
+    if path == '/whats-on':
+        return False
+    # Verified working without hub preflight; hub GET is often 403 (cf-mitigated=challenge)
+    if path.startswith('/whats-on/events/search'):
+        return False
+    return True
 
 
 def _asian_art_get_with_preflight(session, url: str):
