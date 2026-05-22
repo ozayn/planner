@@ -39,21 +39,81 @@ ASIAN_ART_EVENTS_URL = 'https://asia.si.edu/whats-on/events/'
 ASIAN_ART_TOURS_URL = 'https://asia.si.edu/whats-on/tours/'
 ASIAN_ART_FILMS_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Films'
 ASIAN_ART_PERFORMANCES_URL = 'https://asia.si.edu/whats-on/events/search/?edan_fq[]=p.event.topics:Performances'
+ASIAN_ART_WHATS_ON_URL = 'https://asia.si.edu/whats-on/'
 
 # Referer for listing/detail requests (aligns with NGA pattern for Smithsonian properties)
 ASIAN_ART_REFERER = f'{ASIAN_ART_BASE_URL}/'
 ASIAN_ART_SCRAPER_KEY = 'asian_art'
+ASIAN_ART_PREFLIGHT_DELAY_SEC = 2
 
 
 def _asian_art_session_headers(session) -> None:
-    """Consistent Referer/Origin for asia.si.edu (NGA-aligned)."""
+    """Referer + encoding for asia.si.edu (NGA-aligned; no Origin on document GETs)."""
     if not session:
         return
+    # gzip/deflate only (no br): Cloudflare often returns br; without brotli installed,
+    # response.text is unreadable. Same approach as scripts/metmuseum_scraper.py.
     session.headers.update({
+        'Accept-Encoding': 'gzip, deflate',
         'Referer': ASIAN_ART_REFERER,
-        'Origin': ASIAN_ART_BASE_URL,
         'Sec-Fetch-Site': 'same-origin',
     })
+
+
+def _asian_art_body_snippet(response, max_len: int = 200) -> str:
+    """Short single-line preview for Cloudflare challenge diagnostics."""
+    if response is None:
+        return ''
+    try:
+        text = re.sub(r'\s+', ' ', (response.text or '')).strip()
+    except Exception:
+        return ''
+    return text[:max_len]
+
+
+def _asian_art_log_final_403(response, url: str, final_status: Optional[int] = None) -> None:
+    """Log decode-friendly Cloudflare context on final 403 only."""
+    status = final_status
+    if status is None and response is not None:
+        status = getattr(response, 'status_code', None)
+    headers = getattr(response, 'headers', None) or {}
+    logger.warning(
+        "   asian_art: fetch failed final_status=%s url=%s server=%s cf_mitigated=%s "
+        "cf_ray=%s content_encoding=%s body_snippet=%s",
+        status,
+        url,
+        headers.get('server'),
+        headers.get('cf-mitigated'),
+        headers.get('cf-ray'),
+        headers.get('content-encoding'),
+        _asian_art_body_snippet(response),
+    )
+
+
+def _asian_art_should_preflight(url: str) -> bool:
+    """Deep /whats-on/ pages get a same-session visit to the hub first."""
+    path = urlparse(url).path.rstrip('/')
+    if not path.startswith('/whats-on'):
+        return False
+    return path != '/whats-on'
+
+
+def _asian_art_get_with_preflight(session, url: str):
+    """Same-session GET; optional /whats-on/ preflight before deeper listing/detail URLs."""
+    import time
+
+    if _asian_art_should_preflight(url):
+        preflight = session.get(ASIAN_ART_WHATS_ON_URL, timeout=(15, 45))
+        logger.info(
+            "   asian_art: preflight whats-on status=%s cf_mitigated=%s",
+            preflight.status_code,
+            preflight.headers.get('cf-mitigated'),
+        )
+        time.sleep(ASIAN_ART_PREFLIGHT_DELAY_SEC)
+        session.headers['Referer'] = ASIAN_ART_WHATS_ON_URL
+        session.headers['Sec-Fetch-Site'] = 'same-origin'
+
+    return session.get(url, timeout=(15, 45))
 
 
 def create_scraper():
@@ -105,6 +165,7 @@ def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2
         return new_scraper or current_scraper
 
     last_status = None
+    last_response = None
     for attempt in range(max_retries):
         try:
             if attempt > 0:
@@ -123,7 +184,8 @@ def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2
                 logger.warning("   asian_art: no session available url=%s", url)
                 return None
 
-            response = current_scraper.get(url, timeout=(15, 45))
+            response = _asian_art_get_with_preflight(current_scraper, url)
+            last_response = response
             last_status = response.status_code
 
             if response.status_code == 403 and attempt < max_retries - 1:
@@ -137,11 +199,15 @@ def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2
                 time.sleep(delay)
                 continue
 
+            if response.status_code == 403:
+                _asian_art_log_final_403(response, url)
+                return None
+
             response.raise_for_status()
             return response
 
         except HTTPError as http_err:
-            resp = getattr(http_err, 'response', None)
+            resp = getattr(http_err, 'response', None) or last_response
             last_status = getattr(resp, 'status_code', None) if resp is not None else last_status
             if last_status == 403 and attempt < max_retries - 1:
                 logger.warning(
@@ -153,12 +219,15 @@ def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2
                 current_scraper = recreate()
                 time.sleep(delay)
                 continue
-            logger.warning(
-                "   asian_art: fetch failed final_status=%s url=%s (%s)",
-                last_status,
-                url,
-                http_err,
-            )
+            if last_status == 403:
+                _asian_art_log_final_403(resp, url)
+            else:
+                logger.warning(
+                    "   asian_art: fetch failed final_status=%s url=%s (%s)",
+                    last_status,
+                    url,
+                    http_err,
+                )
             return None
         except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout, ConnectionError, RequestException) as e:
             if attempt < max_retries - 1:
@@ -197,7 +266,10 @@ def fetch_asian_art_page(scraper, url: str, max_retries: int = 3, delay: int = 2
             )
             return None
 
-    logger.warning("   asian_art: fetch failed final_status=%s url=%s", last_status, url)
+    if last_status == 403:
+        _asian_art_log_final_403(last_response, url)
+    else:
+        logger.warning("   asian_art: fetch failed final_status=%s url=%s", last_status, url)
     return None
 
 
