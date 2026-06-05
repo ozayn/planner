@@ -1,0 +1,8 @@
+# Railpack/Railway uses mise to install Python (see runtime.txt).
+# Mise 2026.3+ verifies GitHub artifact attestations for prebuilt Python;
+# older patch releases (e.g. 3.12.0) have none and fail install.
+[tools]
+python = "3.12.11"
+
+[settings]
+python.github_attestations = false
