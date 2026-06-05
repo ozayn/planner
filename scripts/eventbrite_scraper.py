@@ -32,6 +32,37 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def is_diplomatic_eventbrite_venue(venue) -> bool:
+    """
+    True when a venue should join the shared embassy-style Eventbrite scrape (cron + admin Embassy Events).
+
+    Includes:
+    - embassies (venue_type contains "embassy")
+    - embassy-adjacent cultural institutes (venue_type == "cultural_center")
+
+    Requires ticketing_url to contain "eventbrite" (organizer page, e.g. /o/name-id).
+    Does not include arts_center, museum, or other venue types.
+    """
+    venue_type_lower = (venue.venue_type or '').lower()
+    ticketing_url_lower = (venue.ticketing_url or '').lower()
+
+    if 'eventbrite' not in ticketing_url_lower:
+        return False
+
+    if 'embassy' in venue_type_lower:
+        return True
+
+    if venue_type_lower == 'cultural_center':
+        return True
+
+    return False
+
+
+# Cron alias (same grouping rule)
+is_embassy_with_eventbrite = is_diplomatic_eventbrite_venue
+
+
 class EventbriteScraper:
     """Scrapes events from Eventbrite using their API"""
     
@@ -981,8 +1012,8 @@ def scrape_dc_embassy_events(city_id: Optional[int] = None, time_range: str = 't
     Enhanced scraper for DC embassy events from Eventbrite.
     
     This function:
-    1. Scrapes events from all DC embassies that already have an Eventbrite organizer URL on ticketing_url
-       (same inclusion idea as cron is_embassy_with_eventbrite: no embassy-specific branches)
+    1. Scrapes events from DC embassies and embassy-adjacent cultural centers with Eventbrite on ticketing_url
+       (same inclusion as cron is_diplomatic_eventbrite_venue / is_embassy_with_eventbrite)
     2. Optionally searches for Eventbrite organizers for embassies without URLs
     3. Scrapes events from found organizers
     
@@ -1021,12 +1052,12 @@ def _scrape_dc_embassy_events_impl(city_id: Optional[int] = None, time_range: st
             return []
         city_id = dc_city.id
         
-        # Get all DC embassy venues
-        embassy_venues = Venue.query.filter_by(
-            city_id=city_id,
-            venue_type='embassy'
-        ).all()
-        
+        all_city_venues = Venue.query.filter_by(city_id=city_id).all()
+        embassy_venues = [
+            v for v in all_city_venues
+            if 'embassy' in (v.venue_type or '').lower()
+        ]
+
         logger.info(f"Found {len(embassy_venues)} DC embassy venues")
         
         scraper = EventbriteScraper()
@@ -1047,11 +1078,14 @@ def _scrape_dc_embassy_events_impl(city_id: Optional[int] = None, time_range: st
             start_date = today
             end_date = today + timedelta(days=30)
         
-        # Process embassies with Eventbrite URLs (handle both .com and .fi domains)
-        venues_with_urls = [v for v in embassy_venues if v.ticketing_url and 'eventbrite' in v.ticketing_url.lower()]
-        venues_without_urls = [v for v in embassy_venues if not v.ticketing_url or 'eventbrite' not in v.ticketing_url.lower()]
-        
-        logger.info(f"  - {len(venues_with_urls)} embassies with Eventbrite URLs")
+        # Embassies + cultural_center venues with Eventbrite organizer URLs
+        venues_with_urls = [v for v in all_city_venues if is_diplomatic_eventbrite_venue(v)]
+        venues_without_urls = [
+            v for v in embassy_venues
+            if not v.ticketing_url or 'eventbrite' not in v.ticketing_url.lower()
+        ]
+
+        logger.info(f"  - {len(venues_with_urls)} diplomatic/cultural venues with Eventbrite URLs")
         logger.info(f"  - {len(venues_without_urls)} embassies without Eventbrite URLs")
         
         # Scrape from embassies with URLs

@@ -97,30 +97,15 @@ def has_specialized_scraper(venue):
     return False
 
 def is_embassy_with_eventbrite(venue):
-    """
-    True when this venue should join the shared DC embassy Eventbrite scrape (cron + admin "Embassy Events").
-
-    Criteria: venue_type contains "embassy" and ticketing_url contains "eventbrite" (organizer page, e.g.
-    https://www.eventbrite.com/o/name-id or /o/10807307274). No per-embassy allowlist — sync venues.json
-    or Admin so the DB row has ticketing_url set (same pattern for Italy, Korea Cultural Center venues, Japan, etc.).
-    """
-    venue_type_lower = (venue.venue_type or '').lower()
-    ticketing_url_lower = (venue.ticketing_url or '').lower()
-
-    if 'embassy' not in venue_type_lower:
-        return False
-
-    if 'eventbrite' in ticketing_url_lower:
-        return True
-
-    return False
+    """See scripts.eventbrite_scraper.is_diplomatic_eventbrite_venue (embassy + cultural_center + Eventbrite URL)."""
+    from scripts.eventbrite_scraper import is_diplomatic_eventbrite_venue
+    return is_diplomatic_eventbrite_venue(venue)
 
 
-# Non-embassy DC venues with Eventbrite organizer on ticketing_url (sync from venues.json).
+# Non-embassy DC venues with Eventbrite organizer on ticketing_url (museums, theaters; not cultural_center).
 EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS = (
     'washington improv theater',
     'smithsonian national museum of american history',
-    'sultan qaboos cultural center',
 )
 
 
@@ -182,12 +167,12 @@ def main():
                     museums.append(venue)
                     logger.debug(f"✅ Museum with specialized scraper: {venue.name}")
             
-            # Filter to embassies with Eventbrite links
+            # Embassies + embassy-adjacent cultural centers with Eventbrite organizer URLs
             embassies = []
             for venue in all_venues:
                 if is_embassy_with_eventbrite(venue):
                     embassies.append(venue)
-                    logger.debug(f"✅ Embassy with Eventbrite: {venue.name}")
+                    logger.debug(f"✅ Diplomatic/cultural Eventbrite: {venue.name}")
 
             # Non-embassy venues with Eventbrite organizer URLs (WIT, American History, etc.)
             eventbrite_extra_venues = get_eventbrite_extra_venues(all_venues)

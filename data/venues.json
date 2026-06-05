@@ -5755,7 +5755,7 @@
     },
     "232": {
       "name": "Sultan Qaboos Cultural Center",
-      "venue_type": "arts_center",
+      "venue_type": "cultural_center",
       "address": "1100 16th St NW, Washington, DC 20036",
       "city_id": 1,
       "city_name": "Washington",
@@ -5775,9 +5775,9 @@
       "image_url": "",
       "latitude": 38.9037,
       "longitude": -77.0366,
-      "additional_info": "{\"closure_status\": \"open\"}",
+      "additional_info": "{\"closure_status\": \"open\", \"closure_reason\": \"Embassy cultural center - typically remains open during government shutdown.\"}",
       "created_at": "2026-05-22T17:00:00.000000",
-      "updated_at": "2026-05-22T17:00:00.000000"
+      "updated_at": "2026-05-22T19:00:00.000000"
     }
   }
 }
