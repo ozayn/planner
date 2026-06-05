@@ -120,6 +120,7 @@ def is_embassy_with_eventbrite(venue):
 EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS = (
     'washington improv theater',
     'smithsonian national museum of american history',
+    'sultan qaboos cultural center',
 )
 
 
