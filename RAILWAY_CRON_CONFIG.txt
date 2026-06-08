@@ -1,30 +1,40 @@
 Railway Cron Configuration
 ==========================
 
-Service: DC Museums Scraper (or add to existing web service)
+Two operational buckets — use separate Railway cron services (or schedules):
 
+--- Stable cron (main) ---
 Start Command:
 python scripts/cron_run_scheduled_scrapers.py
 
-Cron Schedule:
-25 20 * * 1
+Suggested schedule:
+25 20 * * 1    (Monday 8:25 PM UTC ≈ 3:25 PM ET EST)
 
-This runs every Monday at 8:25 PM UTC
-= 3:25 PM ET (EST) / 4:25 PM ET (EDT)
+Runs: NGA, SAAM, African Art, Eventbrite embassies/extras, Meetup, Wharf DC,
+Webster's, ACF DC, NYC/SF/LA standalone scrapers, seasonal DC Parade / Tulip Day, etc.
 
-Note: During daylight saving time (EDT), this will run at 4:25 PM ET.
-To keep it at 3:25 PM ET year-round, update the schedule twice per year:
-- EST (Nov-Mar): 25 20 * * 1 (8:25 PM UTC)
-- EDT (Mar-Nov): 25 19 * * 1 (7:25 PM UTC)
+Log file: logs/cron_stable_YYYYMMDD.log
+
+--- Protected cron (403 / Cloudflare / proxy-sensitive) ---
+Start Command:
+python scripts/cron_run_protected_scrapers.py
+
+Suggested schedule (offset from stable, e.g. 30 min later):
+55 20 * * 1    (Monday 8:55 PM UTC)
+
+Runs: Smithsonian Asian Art, National Portrait Gallery, Hirshhorn only.
+
+Log file: logs/cron_protected_YYYYMMDD.log
+
+Bucket classification: scripts/cron_bucket_config.py
 
 Setup Steps:
-1. Go to Railway Dashboard → Your Project
-2. Either add cron schedule to existing service OR create new service
-3. Settings tab → Cron Schedule section
-4. Enter: 25 20 * * 1
-5. Save
+1. Railway Dashboard → Project → add or duplicate cron service per bucket
+2. Set Start Command and Cron Schedule for each
+3. Save
 
 Environment Variables Needed:
 - DATABASE_URL (auto-provided if using Railway Postgres)
 - FLASK_ENV=production
+- SCRAPER_PROXY_* / Webshare vars if using proxy for protected scrapers
 - Any API keys (GROQ_API_KEY, etc.)

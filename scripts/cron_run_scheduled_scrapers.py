@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
 """
-Cronjob script to scrape Washington DC museums, embassies, and source scrapers
+Cronjob script to scrape Washington DC museums, embassies, and standalone venue scrapers.
 
-This script is designed to be run from a cronjob and will:
-- Scrape museums with specialized scrapers (NGA, SAAM, NPG, Asian Art, African Art, Hirshhorn)
-- Scrape embassies with Eventbrite ticketing URLs (organizer URLs on venue.ticketing_url, e.g. Embassy of Japan /o/10807307274)
-- Scrape Webster's Bookstore Cafe (State College, PA)
-- Scrape Austrian Cultural Forum Washington (acfdc.org /events via VenueEventScraper)
-- Scrape The Wharf DC
-- Scrape Shoot New York City (NYC workshops)
-- Scrape The Metropolitan Museum of Art (NYC tours & programs)
-- Scrape de Young Museum (SF exhibitions)
-- Scrape Hammer Museum (LA programs and events)
-- Scrape OCMA (Orange County Museum of Art, Irvine)
-- Scrape University Park Library (Irvine, PDF program guide)
-- Scrape DC Chinese New Year Parade (seasonal: Jan–Feb only)
-- Tulip Day (seasonal: Mar–Apr only)
-- Save events to the database
-- Log results for monitoring
+Operational buckets (see scripts/cron_bucket_config.py):
+- stable (default): Eventbrite, Meetup, reliable venue scrapers — main cron
+- protected: Asian Art, NPG, Hirshhorn — separate cron (403/Cloudflare/proxy-sensitive)
 
-Per-scraper run rules (always vs seasonal) are defined in scripts/cron_scheduler_config.py.
+Per-scraper run rules (always vs seasonal) are in scripts/cron_scheduler_config.py.
 
 Usage:
-    # Run from project root with virtual environment activated
     source venv/bin/activate && python scripts/cron_run_scheduled_scrapers.py
+    source venv/bin/activate && python scripts/cron_run_protected_scrapers.py
 
-Cronjob example (runs every Monday at 2 AM):
-    0 2 * * 1 cd /path/to/planner && source venv/bin/activate && python scripts/cron_run_scheduled_scrapers.py >> logs/cron_run_scheduled_scrapers.log 2>&1
+Cronjob examples:
+    python scripts/cron_run_scheduled_scrapers.py --bucket stable
+    python scripts/cron_run_protected_scrapers.py
 """
 
+import argparse
 import os
 import sys
 import logging
@@ -39,27 +28,35 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-# Setup logging before importing app (to catch any import errors)
-log_dir = project_root / 'logs'
-log_dir.mkdir(exist_ok=True)
-
-log_file = log_dir / f'cron_run_scheduled_scrapers_{datetime.now().strftime("%Y%m%d")}.log'
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
 logger = logging.getLogger(__name__)
 
+from scripts.cron_bucket_config import (
+    BUCKET_STABLE,
+    BUCKET_PROTECTED,
+    bucket_display_name,
+    bucket_runs_stable_sections,
+    get_venue_scraper_bucket,
+)
 from scripts.cron_scheduler_config import (
     should_run,
     get_venue_schedule_rule,
     get_standalone_schedule_rule,
 )
+
+
+def configure_logging(bucket: str) -> None:
+    log_dir = project_root / 'logs'
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / f'cron_{bucket}_{datetime.now().strftime("%Y%m%d")}.log'
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(sys.stdout),
+        ],
+        force=True,
+    )
 
 def has_specialized_scraper(venue):
     """Check if a venue has a specialized scraper"""
@@ -128,10 +125,17 @@ def get_eventbrite_extra_venues(all_venues):
     return extra
 
 
-def main():
-    """Main function to scrape DC museum events"""
+def run_scheduled_scrapers(bucket: str = BUCKET_STABLE) -> int:
+    """Run scheduled scrapers for the given operational bucket."""
+    if bucket not in (BUCKET_STABLE, BUCKET_PROTECTED):
+        raise ValueError(f"Unknown cron bucket: {bucket}")
+
+    configure_logging(bucket)
     start_time = datetime.now()
-    logger.info(f"🏛️  Cron: DC Museums & Embassies — {start_time.strftime('%Y-%m-%d %H:%M')}")
+    logger.info(
+        f"🏛️  {bucket_display_name(bucket)} ({bucket}): scheduled scrapers — "
+        f"{start_time.strftime('%Y-%m-%d %H:%M')}"
+    )
     
     try:
         from app import app, db, Venue, City, Event
@@ -164,24 +168,31 @@ def main():
                 
                 # Check if it has a specialized scraper
                 if has_specialized_scraper(venue):
-                    museums.append(venue)
-                    logger.debug(f"✅ Museum with specialized scraper: {venue.name}")
+                    if get_venue_scraper_bucket(venue.website_url, venue.name) == bucket:
+                        museums.append(venue)
+                        logger.debug(f"✅ Museum with specialized scraper [{bucket}]: {venue.name}")
             
-            # Embassies + embassy-adjacent cultural centers with Eventbrite organizer URLs
+            # Embassies + Eventbrite extras + standalone scrapers: stable cron only
             embassies = []
-            for venue in all_venues:
-                if is_embassy_with_eventbrite(venue):
-                    embassies.append(venue)
-                    logger.debug(f"✅ Diplomatic/cultural Eventbrite: {venue.name}")
-
-            # Non-embassy venues with Eventbrite organizer URLs (WIT, American History, etc.)
-            eventbrite_extra_venues = get_eventbrite_extra_venues(all_venues)
+            eventbrite_extra_venues = []
+            if bucket_runs_stable_sections(bucket):
+                for venue in all_venues:
+                    if is_embassy_with_eventbrite(venue):
+                        embassies.append(venue)
+                        logger.debug(f"✅ Diplomatic/cultural Eventbrite: {venue.name}")
+                eventbrite_extra_venues = get_eventbrite_extra_venues(all_venues)
 
             total_venues = len(museums) + len(embassies) + len(eventbrite_extra_venues)
-            logger.debug(f"Found {len(museums)} museums, {len(embassies)} embassies, total {total_venues} venues")
+            logger.info(
+                f"📋 Bucket={bucket}: {len(museums)} museum scrapers, "
+                f"{len(embassies)} Eventbrite embassies, {len(eventbrite_extra_venues)} Eventbrite extras"
+            )
             
-            if total_venues == 0:
-                logger.warning("⚠️  No venues found to scrape")
+            if total_venues == 0 and not bucket_runs_stable_sections(bucket):
+                logger.warning(f"⚠️  No {bucket} museum scrapers matched for this run")
+                return 0
+            if total_venues == 0 and bucket_runs_stable_sections(bucket):
+                logger.warning("⚠️  No venues found to scrape in stable bucket")
                 return 0
             
             if museums:
@@ -432,8 +443,8 @@ def main():
                     db.session.rollback()
                     continue
             
-            # Scrape embassies with Eventbrite
-            if embassies:
+            # Scrape embassies with Eventbrite (stable cron only)
+            if bucket_runs_stable_sections(bucket) and embassies:
                 for embassy in embassies:
                     saved_count = 0
                     skipped_count = 0
@@ -507,7 +518,9 @@ def main():
                         db.session.rollback()
                         continue
 
-            # Scrape non-embassy Eventbrite venues (shared EventbriteScraper path)
+            # Scrape non-embassy Eventbrite venues (stable cron only)
+            if not bucket_runs_stable_sections(bucket):
+                eventbrite_extra_venues = []
             for eb_venue in eventbrite_extra_venues:
                 logger.info(f"🏛️  Eventbrite | {eb_venue.name}")
                 try:
@@ -543,6 +556,18 @@ def main():
                     logger.error(f"   ❌ {e}")
                     import traceback
                     logger.error(traceback.format_exc())
+
+            if not bucket_runs_stable_sections(bucket):
+                end_time = datetime.now()
+                duration = end_time - start_time
+                logger.info(
+                    f"📊 {bucket_display_name(bucket)} summary: venues {venues_processed} "
+                    f"(with events: {venues_with_events}, failed: {venues_failed}) | "
+                    f"found {total_events_found} | saved {total_events_saved} | {duration}"
+                )
+                return 0 if venues_failed == 0 else 1
+
+            # --- Stable-only standalone scrapers below ---
 
             # Webster's Bookstore Cafe (State College, PA)
             logger.info(f"🏛️  Webster's | Webster's Bookstore Cafe")
@@ -906,16 +931,32 @@ def main():
             # Final summary
             end_time = datetime.now()
             duration = end_time - start_time
-            logger.info(f"📊 Summary: venues {venues_processed} (with events: {venues_with_events}, failed: {venues_failed}) | found {total_events_found} | saved {total_events_saved} | {duration}")
+            logger.info(
+                f"📊 {bucket_display_name(bucket)} summary: venues {venues_processed} "
+                f"(with events: {venues_with_events}, failed: {venues_failed}) | "
+                f"found {total_events_found} | saved {total_events_saved} | {duration}"
+            )
             
             return 0 if venues_failed == 0 else 1
     
     except Exception as e:
-        logger.error(f"❌ Fatal error in cronjob: {e}")
+        logger.error(f"❌ Fatal error in {bucket_display_name(bucket)}: {e}")
         import traceback
         logger.error(traceback.format_exc())
         return 1
 
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description='Run scheduled venue scrapers by operational bucket')
+    parser.add_argument(
+        '--bucket',
+        choices=[BUCKET_STABLE, BUCKET_PROTECTED],
+        default=BUCKET_STABLE,
+        help='stable = main cron; protected = Cloudflare/403-sensitive scrapers',
+    )
+    args = parser.parse_args()
+    return run_scheduled_scrapers(args.bucket)
+
+
 if __name__ == '__main__':
-    exit_code = main()
-    sys.exit(exit_code)
+    sys.exit(main())

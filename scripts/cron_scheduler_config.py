@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Scheduler config for cron_run_scheduled_scrapers.py.
+Scheduler config for cron_run_scheduled_scrapers.py (stable and protected buckets).
+
+Operational bucket (stable vs protected) is in scripts/cron_bucket_config.py.
 
 Defines per-scraper run rules:
 - always: run every cron execution
