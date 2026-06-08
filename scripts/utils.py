@@ -103,11 +103,33 @@ def ensure_venv_activated():
     
     return False
 
+
+def _get_planner_app_module():
+    """Return app.py's module whether the server runs as `app` (gunicorn) or `python app.py` (__main__)."""
+    import app as app_module
+
+    try:
+        from flask import has_app_context, current_app
+        if has_app_context():
+            for candidate in (sys.modules.get('__main__'), app_module):
+                if candidate is not None and getattr(candidate, 'app', None) is current_app._get_current_object():
+                    return candidate
+    except Exception:
+        pass
+
+    main = sys.modules.get('__main__')
+    if main is not None:
+        main_file = getattr(main, '__file__', None)
+        if main_file and Path(main_file).resolve().name == 'app.py' and hasattr(main, 'db'):
+            return main
+    return app_module
+
+
 def check_city_duplicate_active(name, state, country, exclude_id=None):
     """Check if a city already exists (prevents duplicates during save)"""
     # Import here to avoid circular imports
     try:
-        from app import City
+        City = _get_planner_app_module().City
         
         # Normalize the input
         normalized_name = normalize_city_with_nlp(name) if name else ""
@@ -165,7 +187,7 @@ def check_event_duplicate(title, start_date, venue_id=None, city_id=None, exclud
     """Check if an event already exists (prevents duplicates during save)"""
     # Import here to avoid circular imports
     try:
-        from app import Event
+        Event = _get_planner_app_module().Event
         
         # Normalize the input
         normalized_title = normalize_text_field(title) if title else ""
@@ -214,7 +236,7 @@ def check_venue_duplicate(name, city_id, exclude_id=None):
     """Check if a venue already exists in the same city (prevents duplicates during save)"""
     # Import here to avoid circular imports
     try:
-        from app import Venue
+        Venue = _get_planner_app_module().Venue
         
         # Normalize the input
         normalized_name = normalize_text_field(name) if name else ""
@@ -1885,7 +1907,9 @@ def check_city_duplicate(name: str, country: str, state: str = None) -> tuple[bo
     """Check if a city already exists in the database"""
     try:
         # Import here to avoid circular imports
-        from app import City, db
+        app_module = _get_planner_app_module()
+        City = app_module.City
+        db = app_module.db
         
         # Format the names first
         formatted_name = format_city_name(name)
@@ -1934,7 +1958,11 @@ def cleanup_duplicate_cities():
     """Clean up duplicate cities using NLP-based intelligent matching"""
     try:
         # Import here to avoid circular imports
-        from app import City, Venue, Event, db
+        app_module = _get_planner_app_module()
+        City = app_module.City
+        Venue = app_module.Venue
+        Event = app_module.Event
+        db = app_module.db
         
         print("🧹 Starting NLP-powered city cleanup process...")
         
