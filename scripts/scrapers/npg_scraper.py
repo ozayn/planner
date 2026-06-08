@@ -11,6 +11,9 @@ from datetime import datetime, date, time, timedelta
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
+import requests
+from requests.exceptions import Timeout, RequestException, ConnectionError, ReadTimeout, ConnectTimeout, HTTPError
+from socket import timeout as SocketTimeout
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -36,17 +39,208 @@ NPG_TOURS_URL = 'https://npg.si.edu/docent-tours'
 NPG_ADULT_PROGRAMS_URL = 'https://npg.si.edu/adult-programs'
 NPG_FAMILY_PROGRAMS_URL = 'https://npg.si.edu/families'
 
+NPG_SCRAPER_KEY = 'npg'
+NPG_REFERER = f'{NPG_BASE_URL}/'
+
+
+def _npg_session_headers(session) -> None:
+    """Browser-like headers for npg.si.edu (gzip/deflate only — no br without brotli)."""
+    if not session:
+        return
+    session.headers.update({
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Referer': NPG_REFERER,
+        'Sec-Fetch-Site': 'same-origin',
+    })
+
+
+def _npg_body_snippet(response, max_len: int = 200) -> str:
+    """Short single-line preview for Cloudflare challenge diagnostics."""
+    if response is None:
+        return ''
+    try:
+        text = re.sub(r'\s+', ' ', (response.text or '')).strip()
+    except Exception:
+        return ''
+    return text[:max_len]
+
+
+def _npg_log_final_403(response, url: str, final_status: Optional[int] = None) -> None:
+    """Log decode-friendly Cloudflare context on final 403 only."""
+    status = final_status
+    if status is None and response is not None:
+        status = getattr(response, 'status_code', None)
+    headers = getattr(response, 'headers', None) or {}
+    logger.warning(
+        "   npg: fetch failed final_status=%s url=%s server=%s cf_mitigated=%s "
+        "cf_ray=%s content_encoding=%s body_snippet=%s",
+        status,
+        url,
+        headers.get('server'),
+        headers.get('cf-mitigated'),
+        headers.get('cf-ray'),
+        headers.get('content-encoding'),
+        _npg_body_snippet(response),
+    )
+
 
 def create_scraper():
-    """Create a cloudscraper session to bypass bot detection (npg.si.edu returns 403 for plain requests)"""
-    from scripts.scraper_utils import create_cloudscraper_session
-    scraper = create_cloudscraper_session()
+    """Cloudscraper session with optional Webshare proxy; requests fallback if unavailable."""
+    import time
+    from scripts.scraper_utils import (
+        create_cloudscraper_session,
+        create_scraper_session,
+        scraper_proxy_opt_in,
+    )
+
+    use_proxy = scraper_proxy_opt_in(NPG_SCRAPER_KEY)
+    scraper = create_cloudscraper_session(
+        base_url=NPG_BASE_URL,
+        verify_ssl=True,
+        use_proxy=use_proxy,
+        scraper_key=NPG_SCRAPER_KEY,
+    )
     if scraper:
-        scraper.headers.update({
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-        })
+        _npg_session_headers(scraper)
+        time.sleep(1)
+        return scraper
+
+    logger.warning(
+        "   npg: cloudscraper unavailable; using requests session (scraper_key=%s)",
+        NPG_SCRAPER_KEY,
+    )
+    scraper = create_scraper_session(
+        verify_ssl=True,
+        use_proxy=use_proxy,
+        scraper_key=NPG_SCRAPER_KEY,
+    )
+    _npg_session_headers(scraper)
     return scraper
+
+
+def fetch_npg_page(scraper, url: str, max_retries: int = 3, delay: int = 2):
+    """
+    Fetch an NPG page with retries; recreate session on 403.
+    Returns a Response on success, or None after all attempts fail.
+    """
+    import time
+
+    current_scraper = scraper
+
+    def recreate():
+        logger.warning("   npg: recreating session after 403/error (scraper_key=%s)", NPG_SCRAPER_KEY)
+        new_scraper = create_scraper()
+        return new_scraper or current_scraper
+
+    last_status = None
+    last_response = None
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                wait_time = delay * (2 ** (attempt - 1))
+                logger.info(
+                    "   npg: retry %s/%s in %ss url=%s",
+                    attempt + 1,
+                    max_retries,
+                    wait_time,
+                    url,
+                )
+                time.sleep(wait_time)
+                current_scraper = recreate()
+
+            if not current_scraper:
+                logger.warning("   npg: no session available url=%s", url)
+                return None
+
+            response = current_scraper.get(url, timeout=(15, 45))
+            last_response = response
+            last_status = response.status_code
+
+            if response.status_code == 403 and attempt < max_retries - 1:
+                logger.warning(
+                    "   npg: 403 on attempt %s/%s url=%s — fresh session",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate()
+                time.sleep(delay)
+                continue
+
+            if response.status_code == 403:
+                _npg_log_final_403(response, url)
+                return None
+
+            response.raise_for_status()
+            return response
+
+        except HTTPError as http_err:
+            resp = getattr(http_err, 'response', None) or last_response
+            last_status = getattr(resp, 'status_code', None) if resp is not None else last_status
+            if last_status == 403 and attempt < max_retries - 1:
+                logger.warning(
+                    "   npg: 403 on attempt %s/%s url=%s — fresh session",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate()
+                time.sleep(delay)
+                continue
+            if last_status == 403:
+                _npg_log_final_403(resp, url)
+            else:
+                logger.warning(
+                    "   npg: fetch failed final_status=%s url=%s (%s)",
+                    last_status,
+                    url,
+                    http_err,
+                )
+            return None
+        except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout, ConnectionError, RequestException) as e:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    "   npg: %s on attempt %s/%s url=%s",
+                    type(e).__name__,
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate()
+                continue
+            logger.warning(
+                "   npg: fetch failed final_status=%s url=%s (%s)",
+                last_status,
+                url,
+                type(e).__name__,
+            )
+            return None
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    "   npg: error on attempt %s/%s url=%s: %s",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                    e,
+                )
+                current_scraper = recreate()
+                continue
+            logger.warning(
+                "   npg: fetch failed final_status=%s url=%s (%s)",
+                last_status,
+                url,
+                e,
+            )
+            return None
+
+    if last_status == 403:
+        _npg_log_final_403(last_response, url)
+    else:
+        logger.warning("   npg: fetch failed final_status=%s url=%s", last_status, url)
+    return None
 
 
 # Use shared parse_date_range from utils
@@ -169,8 +363,10 @@ def scrape_npg_exhibitions(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping NPG exhibitions from: {NPG_EXHIBITIONS_URL}")
-        response = scraper.get(NPG_EXHIBITIONS_URL, timeout=15)
-        response.raise_for_status()
+        response = fetch_npg_page(scraper, NPG_EXHIBITIONS_URL)
+        if not response:
+            logger.warning("   ⚠️  Skipping NPG exhibitions (fetch failed).")
+            return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -405,8 +601,9 @@ def scrape_exhibition_detail(scraper, url: str) -> Optional[Dict]:
     """Scrape details from an individual exhibition page"""
     try:
         logger.debug(f"   📄 Scraping exhibition page: {url}")
-        response = scraper.get(url, timeout=15)
-        response.raise_for_status()
+        response = fetch_npg_page(scraper, url, max_retries=2)
+        if not response:
+            return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -576,8 +773,10 @@ def scrape_npg_tours(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping NPG tours from: {NPG_TOURS_URL}")
-        response = scraper.get(NPG_TOURS_URL, timeout=15)
-        response.raise_for_status()
+        response = fetch_npg_page(scraper, NPG_TOURS_URL)
+        if not response:
+            logger.warning("   ⚠️  Skipping NPG tours (fetch failed).")
+            return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -668,8 +867,10 @@ def scrape_npg_events(scraper=None) -> List[Dict]:
     
     try:
         logger.info(f"🔍 Scraping NPG events from: {NPG_EVENTS_URL}")
-        response = scraper.get(NPG_EVENTS_URL, timeout=15)
-        response.raise_for_status()
+        response = fetch_npg_page(scraper, NPG_EVENTS_URL)
+        if not response:
+            logger.warning("   ⚠️  Skipping NPG events (fetch failed).")
+            return events
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -710,17 +911,12 @@ def scrape_npg_events(scraper=None) -> List[Dict]:
 
 
 def scrape_event_detail(scraper, url: str) -> Optional[Dict]:
-    """Scrape details from an individual event page. Uses cloudscraper fallback on 403."""
+    """Scrape details from an individual event page."""
     try:
         logger.debug(f"   📄 Scraping event page: {url}")
-        response = scraper.get(url, timeout=15)
-        if response.status_code == 403:
-            logger.debug(f"   403 on {url}, trying cloudscraper...")
-            from scripts.scraper_utils import create_cloudscraper_session
-            cs = create_cloudscraper_session()
-            if cs:
-                response = cs.get(url, timeout=15)
-        response.raise_for_status()
+        response = fetch_npg_page(scraper, url, max_retries=2)
+        if not response:
+            return None
 
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -994,93 +1190,98 @@ def scrape_npg_programs(scraper=None) -> List[Dict]:
     # 1. Scrape adult programs
     try:
         logger.info(f"🔍 Scraping NPG adult programs from: {NPG_ADULT_PROGRAMS_URL}")
-        response = scraper.get(NPG_ADULT_PROGRAMS_URL, timeout=15)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Hardcoded recurring programs on adult page
-        program_headings = soup.find_all(['h2', 'h3', 'h4'])
-        for heading in program_headings:
-            heading_text = heading.get_text(strip=True)
-            heading_lower = heading_text.lower()
-            
-            if 'conversation circle' in heading_lower:
-                if 'Conversation Circle' in processed_titles: continue
-                processed_titles.add('Conversation Circle')
-                container = heading.parent or heading.find_next_sibling()
-                if container:
-                    container_text = container.get_text()
-                    time_match = re.search(r'(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)', container_text, re.I)
-                    start_time_str = f"{time_match.group(1)}:{time_match.group(2)} {time_match.group(3)}" if time_match else '10:00 a.m.'
+        response = fetch_npg_page(scraper, NPG_ADULT_PROGRAMS_URL)
+        if not response:
+            logger.warning("   ⚠️  Skipping NPG adult programs (fetch failed).")
+        else:
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Hardcoded recurring programs on adult page
+            program_headings = soup.find_all(['h2', 'h3', 'h4'])
+            for heading in program_headings:
+                heading_text = heading.get_text(strip=True)
+                heading_lower = heading_text.lower()
+
+                if 'conversation circle' in heading_lower:
+                    if 'Conversation Circle' in processed_titles:
+                        continue
+                    processed_titles.add('Conversation Circle')
+                    container = heading.parent or heading.find_next_sibling()
+                    if container:
+                        container_text = container.get_text()
+                        time_match = re.search(r'(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)', container_text, re.I)
+                        start_time_str = f"{time_match.group(1)}:{time_match.group(2)} {time_match.group(3)}" if time_match else '10:00 a.m.'
+                        today = date.today()
+                        week_count = 0
+                        for i in range(60):
+                            program_date = today + timedelta(days=i)
+                            if program_date.weekday() == 4:  # Friday
+                                week_count += 1
+                                if week_count % 2 == 1:
+                                    events.append({
+                                        'title': 'Conversation Circle',
+                                        'description': 'Every other Friday from 10:00 a.m. to 12:00 p.m. practice conversational skills.',
+                                        'event_type': 'program',
+                                        'start_date': program_date, 'end_date': program_date,
+                                        'start_time': start_time_str, 'end_time': '12:00 p.m.',
+                                        'meeting_point': 'G Street Lobby',
+                                        'url': NPG_ADULT_PROGRAMS_URL, 'source_url': NPG_ADULT_PROGRAMS_URL,
+                                        'organizer': VENUE_NAME, 'social_media_platform': 'website', 'social_media_url': NPG_ADULT_PROGRAMS_URL,
+                                    })
+                elif 'drawn to figures' in heading_lower or 'drawn to figure' in heading_lower:
+                    if 'Drawn to Figures' in processed_titles:
+                        continue
+                    processed_titles.add('Drawn to Figures')
                     today = date.today()
-                    week_count = 0
-                    for i in range(60):
+                    last_month = -1
+                    for i in range(90):
                         program_date = today + timedelta(days=i)
-                        if program_date.weekday() == 4: # Friday
-                            week_count += 1
-                            if week_count % 2 == 1:
+                        if program_date.weekday() == 1:  # Tuesday
+                            if program_date.month != last_month:
                                 events.append({
-                                    'title': 'Conversation Circle',
-                                    'description': 'Every other Friday from 10:00 a.m. to 12:00 p.m. practice conversational skills.',
-                                    'event_type': 'program',
+                                    'title': 'Drawn to Figures',
+                                    'description': 'Monthly on select Tuesdays. Join drop-in sketching sessions.',
+                                    'event_type': 'workshop',
                                     'start_date': program_date, 'end_date': program_date,
-                                    'start_time': start_time_str, 'end_time': '12:00 p.m.',
-                                    'meeting_point': 'G Street Lobby',
+                                    'start_time': '11:30 a.m.', 'end_time': '1:30 p.m.',
+                                    'meeting_point': 'Galleries',
                                     'url': NPG_ADULT_PROGRAMS_URL, 'source_url': NPG_ADULT_PROGRAMS_URL,
                                     'organizer': VENUE_NAME, 'social_media_platform': 'website', 'social_media_url': NPG_ADULT_PROGRAMS_URL,
                                 })
-            elif 'drawn to figures' in heading_lower or 'drawn to figure' in heading_lower:
-                if 'Drawn to Figures' in processed_titles: continue
-                processed_titles.add('Drawn to Figures')
-                today = date.today()
-                last_month = -1
-                for i in range(90):
-                    program_date = today + timedelta(days=i)
-                    if program_date.weekday() == 1: # Tuesday
-                        if program_date.month != last_month:
-                            events.append({
-                                'title': 'Drawn to Figures',
-                                'description': 'Monthly on select Tuesdays. Join drop-in sketching sessions.',
-                                'event_type': 'workshop',
-                                'start_date': program_date, 'end_date': program_date,
-                                'start_time': '11:30 a.m.', 'end_time': '1:30 p.m.',
-                                'meeting_point': 'Galleries',
-                                'url': NPG_ADULT_PROGRAMS_URL, 'source_url': NPG_ADULT_PROGRAMS_URL,
-                                'organizer': VENUE_NAME, 'social_media_platform': 'website', 'social_media_url': NPG_ADULT_PROGRAMS_URL,
-                            })
-                            last_month = program_date.month
+                                last_month = program_date.month
 
-        # Links on adult page
-        for link in soup.find_all('a', href=re.compile(r'/event/|/program')):
-            full_url = urljoin(NPG_BASE_URL, link.get('href', ''))
-            if full_url not in processed_urls:
-                processed_urls.add(full_url)
-                if '/event/' in full_url:
-                    program_data = scrape_event_detail(scraper, full_url)
-                    if program_data and program_data.get('title') not in processed_titles:
-                        events.append(program_data)
-                        processed_titles.add(program_data.get('title'))
+            # Links on adult page
+            for link in soup.find_all('a', href=re.compile(r'/event/|/program')):
+                full_url = urljoin(NPG_BASE_URL, link.get('href', ''))
+                if full_url not in processed_urls:
+                    processed_urls.add(full_url)
+                    if '/event/' in full_url:
+                        program_data = scrape_event_detail(scraper, full_url)
+                        if program_data and program_data.get('title') not in processed_titles:
+                            events.append(program_data)
+                            processed_titles.add(program_data.get('title'))
     except Exception as e:
         logger.error(f"❌ Error scraping NPG adult programs: {e}")
 
     # 2. Scrape family programs
     try:
         logger.info(f"🔍 Scraping NPG family programs from: {NPG_FAMILY_PROGRAMS_URL}")
-        response = scraper.get(NPG_FAMILY_PROGRAMS_URL, timeout=15)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Links on family page
-        for link in soup.find_all('a', href=re.compile(r'/event/|/program')):
-            full_url = urljoin(NPG_BASE_URL, link.get('href', ''))
-            if full_url not in processed_urls:
-                processed_urls.add(full_url)
-                if '/event/' in full_url:
-                    program_data = scrape_event_detail(scraper, full_url)
-                    if program_data and program_data.get('title') not in processed_titles:
-                        events.append(program_data)
-                        processed_titles.add(program_data.get('title'))
+        response = fetch_npg_page(scraper, NPG_FAMILY_PROGRAMS_URL)
+        if not response:
+            logger.warning("   ⚠️  Skipping NPG family programs (fetch failed).")
+        else:
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Links on family page
+            for link in soup.find_all('a', href=re.compile(r'/event/|/program')):
+                full_url = urljoin(NPG_BASE_URL, link.get('href', ''))
+                if full_url not in processed_urls:
+                    processed_urls.add(full_url)
+                    if '/event/' in full_url:
+                        program_data = scrape_event_detail(scraper, full_url)
+                        if program_data and program_data.get('title') not in processed_titles:
+                            events.append(program_data)
+                            processed_titles.add(program_data.get('title'))
     except Exception as e:
         logger.error(f"❌ Error scraping NPG family programs: {e}")
 
