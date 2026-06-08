@@ -2,7 +2,7 @@
 """
 Operational buckets for scheduled cron scrapers.
 
-- stable: Eventbrite (embassies, cultural centers, extras), Meetup, reliable direct scrapers (NGA, SAAM, …)
+- stable: Eventbrite (embassies, cultural centers, extras), Meetup, reliable direct scrapers (SAAM, …)
 - protected: troublesome direct website scrapers only (403 / Cloudflare / proxy-sensitive)
 
 Eventbrite-backed venues always use the shared Eventbrite flow on stable cron, even when they are
@@ -16,6 +16,7 @@ BUCKET_PROTECTED = "protected"
 
 # Direct website scrapers with recurring operational trouble (not Eventbrite flow).
 PROTECTED_DIRECT_URL_FRAGMENT: dict[str, str] = {
+    "nga.gov": BUCKET_PROTECTED,           # National Gallery of Art
     "asia.si.edu": BUCKET_PROTECTED,       # Smithsonian National Museum of Asian Art
     "npg.si.edu": BUCKET_PROTECTED,        # National Portrait Gallery
     "hirshhorn.si.edu": BUCKET_PROTECTED,  # Hirshhorn Museum
@@ -28,6 +29,7 @@ PROTECTED_DIRECT_URL_FRAGMENT: dict[str, str] = {
 
 # Fallback when URL does not match (Freer/Sackler share asia.si.edu; name guard)
 PROTECTED_DIRECT_NAME_FRAGMENT: dict[str, str] = {
+    "national gallery of art": BUCKET_PROTECTED,
     "hirshhorn": BUCKET_PROTECTED,
     "national portrait gallery": BUCKET_PROTECTED,
     "smithsonian national museum of asian art": BUCKET_PROTECTED,

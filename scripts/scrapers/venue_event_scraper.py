@@ -10,7 +10,15 @@ import os
 import sys
 import json
 import requests
-from requests.exceptions import Timeout, ConnectionError, RequestException
+from requests.exceptions import (
+    Timeout,
+    ConnectionError,
+    RequestException,
+    ReadTimeout,
+    ConnectTimeout,
+    HTTPError,
+)
+from socket import timeout as SocketTimeout
 import logging
 from datetime import datetime, timedelta, date, time as time_class
 from bs4 import BeautifulSoup
@@ -30,6 +38,10 @@ from scripts.enhanced_llm_fallback import get_llm_fallback_count, reset_llm_fall
 # Setup logging - use scraper helper for SCRAPER_DEBUG=1 support
 logging.basicConfig(level=logging.INFO)
 logger = get_scraper_logger(__name__)
+
+HIRSHHORN_SCRAPER_KEY = 'hirshhorn'
+HIRSHHORN_BASE_URL = 'https://hirshhorn.si.edu'
+
 
 def update_progress(step, total_steps, message, merge_existing=True, events_found=None, events_found_add=None):
     """Update scraping progress. When merge_existing=True, preserves events_found, events_saved, recent_events.
@@ -111,7 +123,8 @@ class VenueEventScraper:
         self.session.mount('http://', http_adapter)
         self.session.mount('https://', https_adapter)
         self.scraped_events = []
-        
+        self._last_scrape_failure = None
+
     def scrape_venue_events(self, venue_ids=None, city_id=None, event_type=None, time_range='today', max_exhibitions_per_venue=5, max_events_per_venue=10):
         """Scrape events from selected venues - focused on TODAY
         
@@ -920,39 +933,56 @@ class VenueEventScraper:
         
         try:
             logger.debug("Scraping website: %s", venue.website_url)
-            try:
-                # Use shorter timeout to prevent worker hangs (10 seconds per venue)
-                response = self.session.get(venue.website_url, timeout=10)
-                response.raise_for_status()
-            except Timeout:
-                logger.error(f"⏱️ Timeout error accessing {venue.website_url} (10s timeout) - skipping")
-                return events
-            except ConnectionError as e:
-                logger.error(f"🔌 Connection error accessing {venue.website_url}: {e} - skipping")
-                return events
-            except RequestException as e:
-                # Check if it's a 403 Forbidden error - try cloudscraper as fallback
-                if hasattr(e, 'response') and e.response is not None and e.response.status_code == 403:
-                    logger.warning(f"⚠️  403 Forbidden for {venue.website_url}, trying cloudscraper...")
-                    try:
-                        html_content = self._scrape_with_cloudscraper(venue.website_url)
-                        if html_content:
-                            soup = BeautifulSoup(html_content, 'html.parser')
-                            logger.info(f"✅ Successfully bypassed 403 using cloudscraper for {venue.website_url}")
-                            # Continue with scraping using the cloudscraper result - skip the normal soup creation below
-                        else:
-                            logger.warning(f"⚠️ Cloudscraper also failed for {venue.website_url} - skipping this venue (site may have strong bot protection)")
-                            return events  # Return empty list, don't crash
-                    except Exception as cloudscraper_error:
-                        logger.warning(f"⚠️ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping this venue")
-                        return events  # Return empty list, don't crash
+            soup = None
+            is_hirshhorn_site = 'hirshhorn.si.edu' in (venue.website_url or '').lower()
+            if is_hirshhorn_site:
+                response = self._fetch_hirshhorn_page(venue.website_url)
+                if not response:
+                    exhibitions_hub = urljoin(venue.website_url, '/exhibitions-events/')
+                    logger.info("   hirshhorn: homepage fetch failed; trying %s", exhibitions_hub)
+                    response = self._fetch_hirshhorn_page(exhibitions_hub)
+                if response:
+                    soup = BeautifulSoup(response.text, 'html.parser')
                 else:
-                    logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
+                    logger.warning(
+                        "⚠️ Hirshhorn fetch failed for homepage and exhibitions-events hub — skipping venue"
+                    )
                     return events
             else:
-                # Only create soup from response if we didn't use cloudscraper fallback
-                soup = BeautifulSoup(response.content, 'html.parser')
-            
+                try:
+                    # Use shorter timeout to prevent worker hangs (10 seconds per venue)
+                    response = self.session.get(venue.website_url, timeout=10)
+                    response.raise_for_status()
+                except Timeout:
+                    logger.error(f"⏱️ Timeout error accessing {venue.website_url} (10s timeout) - skipping")
+                    return events
+                except ConnectionError as e:
+                    logger.error(f"🔌 Connection error accessing {venue.website_url}: {e} - skipping")
+                    return events
+                except RequestException as e:
+                    # Check if it's a 403 Forbidden error - try cloudscraper as fallback
+                    if hasattr(e, 'response') and e.response is not None and e.response.status_code == 403:
+                        logger.warning(f"⚠️  403 Forbidden for {venue.website_url}, trying cloudscraper...")
+                        try:
+                            html_content = self._scrape_with_cloudscraper(venue.website_url)
+                            if html_content:
+                                soup = BeautifulSoup(html_content, 'html.parser')
+                                logger.info(f"✅ Successfully bypassed 403 using cloudscraper for {venue.website_url}")
+                            else:
+                                logger.warning(f"⚠️ Cloudscraper also failed for {venue.website_url} - skipping this venue (site may have strong bot protection)")
+                                return events
+                        except Exception as cloudscraper_error:
+                            logger.warning(f"⚠️ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping this venue")
+                            return events
+                    else:
+                        logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
+                        return events
+                else:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+
+            if soup is None:
+                return events
+
             # Check for Art Institute of Chicago events page (/events)
             # This page lists all events (tours, talks, workshops) with their types
             if 'artic.edu' in venue.website_url:
@@ -1037,9 +1067,15 @@ class VenueEventScraper:
                     try:
                         exhibition_url = urljoin(venue.website_url, link['href'])
                         logger.debug("Scraping exhibition page: %s", exhibition_url)
-                        exhibition_response = self.session.get(exhibition_url, timeout=10)
-                        exhibition_response.raise_for_status()
-                        exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
+                        if 'hirshhorn.si.edu' in exhibition_url.lower():
+                            exhibition_response = self._fetch_hirshhorn_page(exhibition_url, max_retries=2)
+                            if not exhibition_response:
+                                continue
+                            exhibition_soup = BeautifulSoup(exhibition_response.text, 'html.parser')
+                        else:
+                            exhibition_response = self.session.get(exhibition_url, timeout=10)
+                            exhibition_response.raise_for_status()
+                            exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
                         
                         # For exhibition pages, treat the page itself as an exhibition event
                         # Check if this is an individual exhibition page (not a listing page)
@@ -1256,8 +1292,8 @@ class VenueEventScraper:
                     tours_page_url = urljoin(venue.website_url, '/explore/tours/')
                     try:
                         logger.debug("Checking Hirshhorn tours page: %s", tours_page_url)
-                        tours_response = self.session.get(tours_page_url, timeout=10)
-                        if tours_response.status_code == 200:
+                        tours_response = self._fetch_hirshhorn_page(tours_page_url)
+                        if tours_response and tours_response.status_code == 200:
                             tours_soup = BeautifulSoup(tours_response.content, 'html.parser')
                             hirshhorn_tours = self._extract_hirshhorn_tours(
                                 tours_soup, venue, tours_page_url, event_type=event_type, time_range=time_range
@@ -2176,8 +2212,221 @@ class VenueEventScraper:
         
         return meeting_point
 
+    def _hirshhorn_body_snippet(self, response, max_len: int = 200) -> str:
+        if response is None:
+            return ''
+        try:
+            text = re.sub(r'\s+', ' ', (response.text or '')).strip()
+        except Exception:
+            return ''
+        return text[:max_len]
+
+    def _hirshhorn_log_final_403(
+        self,
+        response,
+        url: str,
+        *,
+        proxy_used: bool,
+        cloudscraper_used: bool,
+    ) -> None:
+        headers = getattr(response, 'headers', None) or {}
+        status = getattr(response, 'status_code', None)
+        logger.warning(
+            "   hirshhorn: fetch failed final_status=%s url=%s server=%s cf_mitigated=%s "
+            "cf_ray=%s content_encoding=%s proxy_used=%s cloudscraper_used=%s body_snippet=%s",
+            status,
+            url,
+            headers.get('server'),
+            headers.get('cf-mitigated'),
+            headers.get('cf-ray'),
+            headers.get('content-encoding'),
+            proxy_used,
+            cloudscraper_used,
+            self._hirshhorn_body_snippet(response),
+        )
+        self._last_scrape_failure = {
+            'kind': 'bot_protection',
+            'venue': 'hirshhorn',
+            'url': url,
+            'status': status,
+            'proxy_used': proxy_used,
+            'cloudscraper_used': cloudscraper_used,
+            'server': headers.get('server'),
+            'cf_mitigated': headers.get('cf-mitigated'),
+            'cf_ray': headers.get('cf-ray'),
+        }
+
+    def _create_hirshhorn_session(self):
+        from scripts.scraper_utils import (
+            create_cloudscraper_session,
+            create_scraper_session,
+            scraper_proxy_opt_in,
+        )
+
+        use_proxy = scraper_proxy_opt_in(HIRSHHORN_SCRAPER_KEY)
+        scraper = create_cloudscraper_session(
+            base_url=HIRSHHORN_BASE_URL,
+            verify_ssl=False,
+            use_proxy=use_proxy,
+            scraper_key=HIRSHHORN_SCRAPER_KEY,
+        )
+        if scraper:
+            scraper.headers.update({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Referer': f'{HIRSHHORN_BASE_URL}/',
+                'Sec-Fetch-Site': 'same-origin',
+            })
+            return scraper, use_proxy, True
+
+        logger.warning(
+            "   hirshhorn: cloudscraper unavailable; using requests session (scraper_key=%s)",
+            HIRSHHORN_SCRAPER_KEY,
+        )
+        scraper = create_scraper_session(
+            verify_ssl=False,
+            use_proxy=use_proxy,
+            scraper_key=HIRSHHORN_SCRAPER_KEY,
+        )
+        scraper.headers.update({
+            'Accept-Encoding': 'gzip, deflate',
+            'Referer': f'{HIRSHHORN_BASE_URL}/',
+        })
+        return scraper, use_proxy, False
+
+    def _fetch_hirshhorn_page(self, url: str, max_retries: int = 3, delay: int = 2):
+        """Fetch hirshhorn.si.edu with retries, proxy opt-in, and final-403 diagnostics."""
+        current_scraper = None
+        proxy_used = False
+        cloudscraper_used = False
+        last_status = None
+        last_response = None
+
+        def recreate():
+            nonlocal current_scraper, proxy_used, cloudscraper_used
+            logger.warning(
+                "   hirshhorn: recreating session after 403/error (scraper_key=%s)",
+                HIRSHHORN_SCRAPER_KEY,
+            )
+            current_scraper, proxy_used, cloudscraper_used = self._create_hirshhorn_session()
+            return current_scraper
+
+        current_scraper, proxy_used, cloudscraper_used = self._create_hirshhorn_session()
+
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    wait_time = delay * (2 ** (attempt - 1))
+                    logger.info(
+                        "   hirshhorn: retry %s/%s in %ss url=%s",
+                        attempt + 1,
+                        max_retries,
+                        wait_time,
+                        url,
+                    )
+                    time.sleep(wait_time)
+                    recreate()
+
+                if not current_scraper:
+                    logger.warning("   hirshhorn: no session available url=%s", url)
+                    return None
+
+                response = current_scraper.get(url, timeout=(15, 45), verify=False)
+                last_response = response
+                last_status = response.status_code
+
+                if response.status_code == 403 and attempt < max_retries - 1:
+                    logger.warning(
+                        "   hirshhorn: 403 on attempt %s/%s url=%s — fresh session",
+                        attempt + 1,
+                        max_retries,
+                        url,
+                    )
+                    recreate()
+                    time.sleep(delay)
+                    continue
+
+                if response.status_code == 403:
+                    self._hirshhorn_log_final_403(
+                        response,
+                        url,
+                        proxy_used=proxy_used,
+                        cloudscraper_used=cloudscraper_used,
+                    )
+                    return None
+
+                response.raise_for_status()
+                return response
+
+            except HTTPError as http_err:
+                resp = getattr(http_err, 'response', None) or last_response
+                last_status = getattr(resp, 'status_code', None) if resp is not None else last_status
+                if last_status == 403 and attempt < max_retries - 1:
+                    recreate()
+                    time.sleep(delay)
+                    continue
+                if last_status == 403:
+                    self._hirshhorn_log_final_403(
+                        resp,
+                        url,
+                        proxy_used=proxy_used,
+                        cloudscraper_used=cloudscraper_used,
+                    )
+                else:
+                    logger.warning(
+                        "   hirshhorn: fetch failed final_status=%s url=%s (%s)",
+                        last_status,
+                        url,
+                        http_err,
+                    )
+                return None
+            except (Timeout, ReadTimeout, ConnectTimeout, SocketTimeout, ConnectionError, RequestException) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        "   hirshhorn: %s on attempt %s/%s url=%s",
+                        type(e).__name__,
+                        attempt + 1,
+                        max_retries,
+                        url,
+                    )
+                    recreate()
+                    continue
+                logger.warning(
+                    "   hirshhorn: fetch failed final_status=%s url=%s (%s)",
+                    last_status,
+                    url,
+                    type(e).__name__,
+                )
+                return None
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    recreate()
+                    continue
+                logger.warning(
+                    "   hirshhorn: fetch failed final_status=%s url=%s (%s)",
+                    last_status,
+                    url,
+                    e,
+                )
+                return None
+
+        if last_status == 403:
+            self._hirshhorn_log_final_403(
+                last_response,
+                url,
+                proxy_used=proxy_used,
+                cloudscraper_used=cloudscraper_used,
+            )
+        else:
+            logger.warning("   hirshhorn: fetch failed final_status=%s url=%s", last_status, url)
+        return None
+
     def _scrape_with_cloudscraper(self, url):
         """Scrape a page using cloudscraper to bypass bot protection (Railway-compatible)"""
+        if 'hirshhorn.si.edu' in (url or '').lower():
+            response = self._fetch_hirshhorn_page(url)
+            return response.text if response else None
         try:
             from scripts.scraper_utils import create_cloudscraper_session
             scraper = create_cloudscraper_session()
@@ -3000,9 +3249,10 @@ class VenueEventScraper:
                         # Visit individual exhibition page for full description
                         logger.debug("Fetching Hirshhorn exhibition page: %s", exhibition_url)
                         try:
-                            exhibition_response = self.session.get(exhibition_url, timeout=10)
-                            exhibition_response.raise_for_status()
-                            exhibition_soup = BeautifulSoup(exhibition_response.content, 'html.parser')
+                            exhibition_response = self._fetch_hirshhorn_page(exhibition_url, max_retries=2)
+                            if not exhibition_response:
+                                continue
+                            exhibition_soup = BeautifulSoup(exhibition_response.text, 'html.parser')
                             
                             # Extract title from page if not found (usually in h1)
                             if not title or len(title) < 5:
@@ -4674,16 +4924,12 @@ class VenueEventScraper:
             import re
             
             logger.debug("Scraping Hirshhorn tour event page: %s", event_url)
-            
-            # Fetch the page
-            try:
-                response = self.session.get(event_url, timeout=10)
-                response.raise_for_status()
-            except Exception as e:
-                logger.debug(f"⚠️ Error fetching tour event page: {e}")
+
+            response = self._fetch_hirshhorn_page(event_url, max_retries=2)
+            if not response:
                 return None
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
+
+            soup = BeautifulSoup(response.text, 'html.parser')
             
             # Extract title from h1
             title = None

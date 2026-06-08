@@ -2284,8 +2284,17 @@ async function startDCEmbassyEventbriteScraping() {
 }
 
 async function startNGAScraping() {
-    showScrapingProgressModal('National Gallery of Art');
-    
+    // No polling until scrape-nga writes scraping_progress.json; polling would show stale parade/other runs.
+    showScrapingProgressModal('National Gallery of Art', false);
+    updateScrapingProgress({
+        percentage: 5,
+        message: 'Starting National Gallery of Art scraping...',
+        events_found: 0,
+        events_saved: 0,
+        events_updated: 0,
+        events_skipped: 0
+    });
+
     try {
         // NGA scrape takes 2-5 min - use 6 min timeout to avoid "Failed to fetch"
         const controller = new AbortController();
@@ -3551,6 +3560,10 @@ function showScrapingProgressModal(sourceName = 'Scraping', usePolling = true) {
         }
         progressPollInterval = setInterval(pollScrapingProgress, 1000); // Poll every second
     } else {
+        if (progressPollInterval) {
+            clearInterval(progressPollInterval);
+            progressPollInterval = null;
+        }
         updateScrapingProgress({ percentage: 0, message: `Scraping ${sourceName}…`, events_found: 0, events_saved: 0, events_updated: 0, events_skipped: 0 });
     }
 }

@@ -3,7 +3,7 @@
 Cronjob script to scrape Washington DC museums, embassies, and standalone venue scrapers.
 
 Operational buckets (see scripts/cron_bucket_config.py):
-- stable (default): Eventbrite (embassies/cultural centers/extras), Meetup, NGA, SAAM, …
+- stable (default): Eventbrite (embassies/cultural centers/extras), Meetup, SAAM, …
 - protected: troublesome direct website scrapers only (Asian Art, NPG, Hirshhorn, …)
 
 Per-scraper run rules (always vs seasonal) are in scripts/cron_scheduler_config.py.

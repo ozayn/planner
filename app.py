@@ -10456,13 +10456,35 @@ def scrape_hirshhorn():
             json.dump(progress_data, f)
         
         if not scraped_events:
+            failure = getattr(scraper, '_last_scrape_failure', None) or {}
+            if failure.get('kind') == 'bot_protection':
+                error_message = (
+                    f"Hirshhorn scrape blocked by bot protection (HTTP {failure.get('status', 403)}). "
+                    f"URL: {failure.get('url')}. "
+                    f"proxy_used={failure.get('proxy_used')}, "
+                    f"cloudscraper_used={failure.get('cloudscraper_used')}. "
+                    "On Railway protected cron, set WEBSHARE_PROXY_URL; locally try USE_PROXY_HIRSHHORN=1."
+                )
+                progress_data.update({
+                    'percentage': 100,
+                    'message': f'❌ {error_message}',
+                    'error': True,
+                })
+                with open('scraping_progress.json', 'w') as f:
+                    json.dump(progress_data, f)
+            else:
+                error_message = (
+                    'No exhibitions or tours found or scraping failed. '
+                    'Check server logs for hirshhorn: fetch failed lines.'
+                )
             return jsonify({
                 'success': False,
-                'error': 'No exhibitions or tours found or scraping failed. Check logs for details.',
+                'error': error_message,
                 'events_found': 0,
                 'events_saved': 0,
                 'exhibitions_found': len(exhibitions) if exhibitions else 0,
-                'tours_found': len(tours) if tours else 0
+                'tours_found': len(tours) if tours else 0,
+                'scrape_failure': failure or None,
             }), 404
         
         # Update progress - events found

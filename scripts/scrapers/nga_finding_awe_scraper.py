@@ -29,11 +29,25 @@ VENUE_NAME = "National Gallery of Art"
 CITY_NAME = "Washington, DC"
 
 
+def _finding_awe_use_proxy() -> bool:
+    """Finding Awe follows NGA proxy disable (DISABLE_PROXY_NGA) and its own key."""
+    import os
+    from scripts.scraper_utils import scraper_proxy_opt_in
+    if os.getenv('DISABLE_PROXY_NGA', '').strip().lower() in ('1', 'true', 'yes', 'on'):
+        return False
+    return scraper_proxy_opt_in('finding_awe')
+
+
 def create_scraper():
     """Create a cloudscraper session (same pattern as nga_comprehensive_scraper)."""
-    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    from scripts.scraper_utils import create_cloudscraper_session
+    use_proxy = _finding_awe_use_proxy()
+    logger.info(
+        "   nga finding_awe: session mode proxy_enabled=%s (DISABLE_PROXY_NGA disables both)",
+        use_proxy,
+    )
     scraper = create_cloudscraper_session(
-        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('finding_awe')
+        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=use_proxy, scraper_key='finding_awe'
     )
     if scraper:
         scraper.headers.update({
@@ -49,9 +63,9 @@ def create_scraper():
 
 def _create_fallback_scraper():
     """Create a fresh cloudscraper session with NGA warmup for 403 retry."""
-    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    from scripts.scraper_utils import create_cloudscraper_session
     scraper = create_cloudscraper_session(
-        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('finding_awe')
+        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=_finding_awe_use_proxy(), scraper_key='finding_awe'
     )
     if scraper:
         scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})

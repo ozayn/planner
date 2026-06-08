@@ -41,78 +41,227 @@ NGA_LECTURES_URL = 'https://www.nga.gov/calendar/lectures'
 NGA_FILMS_BASE_URL = 'https://www.nga.gov/calendar'  # Films use type parameter
 NGA_NIGHTS_URL = 'https://www.nga.gov/calendar/national-gallery-nights'
 
+NGA_SCRAPER_KEY = 'nga'
+
+
+def nga_use_proxy() -> bool:
+    """Whether NGA HTTP requests use Webshare proxy (see DISABLE_PROXY_NGA)."""
+    from scripts.scraper_utils import scraper_proxy_opt_in
+    return scraper_proxy_opt_in(NGA_SCRAPER_KEY)
+
+
+def _nga_body_snippet(response, max_len: int = 200) -> str:
+    if response is None:
+        return ''
+    try:
+        text = re.sub(r'\s+', ' ', (getattr(response, 'text', '') or '')).strip()
+    except Exception:
+        return ''
+    return text[:max_len]
+
+
+def _nga_log_fetch_failure(
+    response,
+    url: str,
+    *,
+    proxy_enabled: bool,
+    failure_kind: str,
+    final_status=None,
+    exc=None,
+) -> None:
+    """Log proxy vs upstream failure context for NGA fetches."""
+    headers = getattr(response, 'headers', None) or {}
+    status = final_status
+    if status is None and response is not None:
+        status = getattr(response, 'status_code', None)
+    logger.warning(
+        "   nga: fetch failed kind=%s url=%s proxy_enabled=%s final_status=%s server=%s "
+        "cf_mitigated=%s cf_ray=%s content_encoding=%s body_snippet=%s error=%s",
+        failure_kind,
+        url,
+        proxy_enabled,
+        status,
+        headers.get('server'),
+        headers.get('cf-mitigated'),
+        headers.get('cf-ray'),
+        headers.get('content-encoding'),
+        _nga_body_snippet(response),
+        exc,
+    )
+
 
 def create_scraper():
-    """Create a cloudscraper session to bypass bot detection"""
-    from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
+    """Create a cloudscraper session to bypass bot detection."""
+    import time
+    from scripts.scraper_utils import create_cloudscraper_session
+
+    use_proxy = nga_use_proxy()
+    logger.info(
+        "   nga: session mode proxy_enabled=%s (set DISABLE_PROXY_NGA=1 for direct egress)",
+        use_proxy,
+    )
     scraper = create_cloudscraper_session(
-        base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('nga')
+        base_url=NGA_BASE_URL,
+        verify_ssl=True,
+        use_proxy=use_proxy,
+        scraper_key=NGA_SCRAPER_KEY,
     )
     if scraper:
-        scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
-        import time
-        time.sleep(1)  # Small delay after initial request
+        scraper.headers.update({
+            'Referer': f'{NGA_BASE_URL}/',
+            'Accept-Encoding': 'gzip, deflate',
+        })
+        time.sleep(1)
     return scraper
 
 
 def fetch_with_retry(scraper, url, max_retries=3, delay=2):
-    """Fetch URL with retry logic and exponential backoff"""
+    """Fetch URL with retry logic; return Response or None (with diagnostics on final failure)."""
     import time
-    import platform
-    
-    # Track the original scraper
-    current_scraper = scraper
-    
+    from requests.exceptions import HTTPError, ProxyError, RequestException
+
+    proxy_enabled = nga_use_proxy()
+    current_scraper = scraper or create_scraper()
+    last_response = None
+    last_status = None
+
     def recreate_scraper():
-        """Helper to recreate cloudscraper session"""
-        logger.debug(f"   🔧 Recreating cloudscraper session...")
-        from scripts.scraper_utils import create_cloudscraper_session, scraper_proxy_opt_in
-        new_scraper = create_cloudscraper_session(
-            base_url=NGA_BASE_URL, verify_ssl=True, use_proxy=scraper_proxy_opt_in('nga')
-        )
-        if new_scraper:
-            new_scraper.headers.update({'Referer': f'{NGA_BASE_URL}/'})
-            try:
-                time.sleep(2)
-            except Exception:
-                pass
-        return new_scraper
-    
+        logger.debug("   nga: recreating cloudscraper session (proxy_enabled=%s)", proxy_enabled)
+        return create_scraper()
+
     for attempt in range(max_retries):
         try:
             if attempt > 0:
-                wait_time = delay * (2 ** (attempt - 1))  # Exponential backoff
-                logger.debug(f"   ⏳ Retrying in {wait_time} seconds (attempt {attempt + 1}/{max_retries})...")
+                wait_time = delay * (2 ** (attempt - 1))
+                logger.info(
+                    "   nga: retry %s/%s in %ss url=%s",
+                    attempt + 1,
+                    max_retries,
+                    wait_time,
+                    url,
+                )
                 time.sleep(wait_time)
-                # Recreate scraper for fresh session on retry
                 current_scraper = recreate_scraper()
-            
+
+            if not current_scraper:
+                logger.error("   nga: no session available url=%s", url)
+                return None
+
             response = current_scraper.get(url, timeout=20)
-            
-            # If we get a 403, recreate scraper and retry
+            last_response = response
+            last_status = response.status_code
+
             if response.status_code == 403 and attempt < max_retries - 1:
-                logger.warning(f"   ⚠️  403 Forbidden on attempt {attempt + 1}, will retry with fresh session...")
-                # Recreate scraper immediately for 403 errors
+                logger.warning(
+                    "   nga: upstream 403 on attempt %s/%s url=%s — fresh session",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
                 current_scraper = recreate_scraper()
                 continue
-            
+
+            if response.status_code == 403:
+                _nga_log_fetch_failure(
+                    response,
+                    url,
+                    proxy_enabled=proxy_enabled,
+                    failure_kind='upstream_403',
+                    final_status=403,
+                )
+                return None
+
             response.raise_for_status()
             return response
-            
-        except Exception as e:
-            if attempt == max_retries - 1:
-                if not scraper:
-                    logger.error(f"   ❌ Scraper is None, cannot fetch {url}")
-                elif '403' in str(e) or 'Forbidden' in str(e):
-                    logger.warning(f"   ⚠️  403 after {max_retries} attempts (skipping): {url}")
-                else:
-                    logger.error(f"   ❌ Failed to fetch {url} after {max_retries} attempts: {e}")
-                raise
-            logger.warning(f"   ⚠️  Error on attempt {attempt + 1}: {e}")
-            # Recreate scraper on exception too
+
+        except ProxyError as exc:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    "   nga: proxy tunnel failure on attempt %s/%s url=%s (%s)",
+                    attempt + 1,
+                    max_retries,
+                    url,
+                    exc,
+                )
+                current_scraper = recreate_scraper()
+                continue
+            _nga_log_fetch_failure(
+                last_response,
+                url,
+                proxy_enabled=proxy_enabled,
+                failure_kind='proxy_tunnel',
+                final_status=last_status,
+                exc=exc,
+            )
+            return None
+        except HTTPError as http_err:
+            resp = getattr(http_err, 'response', None) or last_response
+            last_status = getattr(resp, 'status_code', None) if resp is not None else last_status
+            if last_status == 403 and attempt < max_retries - 1:
+                current_scraper = recreate_scraper()
+                continue
+            if last_status == 403:
+                _nga_log_fetch_failure(
+                    resp,
+                    url,
+                    proxy_enabled=proxy_enabled,
+                    failure_kind='upstream_403',
+                    final_status=403,
+                    exc=http_err,
+                )
+            else:
+                _nga_log_fetch_failure(
+                    resp,
+                    url,
+                    proxy_enabled=proxy_enabled,
+                    failure_kind='http_error',
+                    final_status=last_status,
+                    exc=http_err,
+                )
+            return None
+        except RequestException as exc:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    "   nga: %s on attempt %s/%s url=%s",
+                    type(exc).__name__,
+                    attempt + 1,
+                    max_retries,
+                    url,
+                )
+                current_scraper = recreate_scraper()
+                continue
+            kind = 'proxy_tunnel' if 'proxy' in str(exc).lower() else 'request_error'
+            _nga_log_fetch_failure(
+                last_response,
+                url,
+                proxy_enabled=proxy_enabled,
+                failure_kind=kind,
+                final_status=last_status,
+                exc=exc,
+            )
+            return None
+        except Exception as exc:
             if attempt < max_retries - 1:
                 current_scraper = recreate_scraper()
-    
+                continue
+            _nga_log_fetch_failure(
+                last_response,
+                url,
+                proxy_enabled=proxy_enabled,
+                failure_kind='error',
+                final_status=last_status,
+                exc=exc,
+            )
+            return None
+
+    if last_status == 403:
+        _nga_log_fetch_failure(
+            last_response,
+            url,
+            proxy_enabled=proxy_enabled,
+            failure_kind='upstream_403',
+            final_status=403,
+        )
     return None
 
 
@@ -239,6 +388,43 @@ def scrape_all_nga_events():
         return all_events
 
 
+def _nga_exhibition_from_listing_link(link, exhibition_url):
+    """Use calendar listing card text when title and dates are already on the page."""
+    from scripts.utils import clean_event_title
+
+    title = clean_event_title((link.get_text() or '').strip())
+    if not title:
+        return None
+
+    container = link.find_parent(['article', 'div', 'li', 'section']) or link.parent
+    blob = container.get_text(' ', strip=True) if container else ''
+    start_date, end_date = extract_exhibition_dates(blob, BeautifulSoup('', 'html.parser'))
+    if not start_date:
+        return None
+
+    image_url = None
+    if container:
+        img = container.find('img')
+        if img:
+            src = img.get('src') or img.get('data-src')
+            if src:
+                image_url = urljoin(NGA_BASE_URL, src)
+
+    return {
+        'title': title,
+        'description': '',
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat() if end_date else None,
+        'start_time': None,
+        'end_time': None,
+        'location': None,
+        'url': exhibition_url,
+        'image_url': image_url,
+        'event_type': 'exhibition',
+        'is_online': False,
+    }
+
+
 def scrape_nga_exhibitions(scraper):
     """Scrape NGA exhibitions from the calendar page with pagination"""
     events = []
@@ -248,8 +434,9 @@ def scrape_nga_exhibitions(scraper):
         return events
     
     try:
-        # Get all exhibition links from paginated calendar page
-        exhibition_links = []
+        # (url, listing <a>) pairs from paginated calendar pages
+        exhibition_entries = []
+        seen_urls = set()
         page = 1
         max_pages = 10  # Limit to first 10 pages
         
@@ -271,47 +458,45 @@ def scrape_nga_exhibitions(scraper):
                 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Find all exhibition links on this page
-                page_links = []
+                page_entries = []
                 all_links = soup.find_all('a', href=True)
                 
                 for link in all_links:
                     href = link.get('href', '')
-                    # Match exhibition URLs: /exhibitions/name (not just /exhibitions)
-                    if '/exhibitions/' in href.lower() and href.lower() != '/exhibitions' and href.lower() != '/exhibitions/':
+                    if '/exhibitions/' in href.lower() and href.lower() not in ('/exhibitions', '/exhibitions/'):
                         full_url = href if href.startswith('http') else urljoin(NGA_BASE_URL, href)
-                        # Make sure it's a specific exhibition page, not the main exhibitions page
-                        if full_url not in exhibition_links and full_url not in page_links:
-                            # Check if it's a valid exhibition URL (has a slug after /exhibitions/)
-                            url_parts = full_url.split('/exhibitions/')
-                            if len(url_parts) > 1 and url_parts[1].strip():
-                                page_links.append(full_url)
+                        if full_url in seen_urls:
+                            continue
+                        url_parts = full_url.split('/exhibitions/')
+                        if len(url_parts) > 1 and url_parts[1].strip():
+                            seen_urls.add(full_url)
+                            page_entries.append((full_url, link))
                 
-                if not page_links:
-                    # No more links found, we've reached the end
+                if not page_entries:
                     logger.debug(f"   No more exhibition links found on page {page}, stopping pagination")
                     break
                 
-                exhibition_links.extend(page_links)
-                logger.debug(f"   Found {len(page_links)} exhibition links on page {page} (total: {len(exhibition_links)})")
+                exhibition_entries.extend(page_entries)
+                logger.debug(f"   Found {len(page_entries)} exhibition links on page {page} (total: {len(exhibition_entries)})")
                 
                 page += 1
-                
-                # Delay to be respectful and avoid rate limiting
                 import time
-                time.sleep(2)  # Increased delay to avoid 403 errors
+                time.sleep(2)
                 
             except Exception as e:
                 logger.warning(f"   ⚠️  Error fetching exhibitions page {page}: {e}")
                 break
         
-        logger.debug(f"   Found {len(exhibition_links)} total exhibition links")
+        logger.debug(f"   Found {len(exhibition_entries)} total exhibition links")
         
-        # Scrape each exhibition
-        for i, exhibition_url in enumerate(exhibition_links, 1):
+        for i, (exhibition_url, link) in enumerate(exhibition_entries, 1):
             try:
-                logger.debug(f"   📄 Scraping exhibition {i}/{len(exhibition_links)}: {exhibition_url}")
-                event_data = scrape_nga_exhibition_page(exhibition_url, scraper)
+                logger.debug(f"   📄 Scraping exhibition {i}/{len(exhibition_entries)}: {exhibition_url}")
+                event_data = _nga_exhibition_from_listing_link(link, exhibition_url)
+                if event_data:
+                    logger.debug("   nga: using listing-card data for %s", event_data.get('title'))
+                else:
+                    event_data = scrape_nga_exhibition_page(exhibition_url, scraper)
                 if event_data:
                     events.append(event_data)
             except Exception as e:
