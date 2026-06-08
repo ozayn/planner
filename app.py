@@ -6069,6 +6069,18 @@ def edit_city():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+def _apply_venue_update_field(venue, data, field, cleaner=clean_text_field, required=False):
+    """Apply one venue field from admin JSON; empty cleaned values keep the existing DB value."""
+    if field not in data:
+        return
+    cleaned = cleaner(data[field]) if cleaner else data[field]
+    if cleaned is None:
+        if required:
+            return
+        return
+    setattr(venue, field, cleaned)
+
+
 @app.route('/api/admin/edit-venue', methods=['POST'])
 def edit_venue():
     """Edit venue details"""
@@ -6085,7 +6097,7 @@ def edit_venue():
             return jsonify({'error': 'Venue not found'}), 404
         
         # Prepare updated values for duplicate checking
-        updated_name = clean_text_field(data.get('name', venue.name))
+        updated_name = clean_text_field(data.get('name', venue.name)) or venue.name
         updated_city_id = data.get('city_id', venue.city_id)
         
         # Check for duplicates before updating
@@ -6097,47 +6109,26 @@ def edit_venue():
             else:
                 return jsonify({'error': f'Similar venue already exists in this city: "{duplicate_venue.name}" (ID: {duplicate_venue.id})'}), 400
         
-        # Update fields with cleaning
-        if 'name' in data:
-            venue.name = clean_text_field(data['name'])
-        if 'venue_type' in data:
-            venue.venue_type = clean_text_field(data['venue_type'])
-        if 'description' in data:
-            venue.description = clean_text_field(data['description'])
-        if 'address' in data:
-            venue.address = clean_text_field(data['address'])
-        if 'latitude' in data:
-            venue.latitude = clean_numeric_field(data['latitude'])
-        if 'longitude' in data:
-            venue.longitude = clean_numeric_field(data['longitude'])
-        if 'phone_number' in data:
-            venue.phone_number = clean_phone_field(data['phone_number'])
-        if 'email' in data:
-            venue.email = clean_email_field(data['email'])
-        if 'opening_hours' in data:
-            venue.opening_hours = clean_text_field(data['opening_hours'])
-        if 'holiday_hours' in data:
-            venue.holiday_hours = clean_text_field(data['holiday_hours'])
-        if 'website_url' in data:
-            venue.website_url = clean_url_field(data['website_url'])
-        if 'ticketing_url' in data:
-            venue.ticketing_url = clean_url_field(data['ticketing_url'])
-        if 'instagram_url' in data:
-            venue.instagram_url = clean_url_field(data['instagram_url'])
-        if 'facebook_url' in data:
-            venue.facebook_url = clean_url_field(data['facebook_url'])
-        if 'twitter_url' in data:
-            venue.twitter_url = clean_url_field(data['twitter_url'])
-        if 'youtube_url' in data:
-            venue.youtube_url = clean_url_field(data['youtube_url'])
-        if 'tiktok_url' in data:
-            venue.tiktok_url = clean_url_field(data['tiktok_url'])
-        if 'image_url' in data:
-            venue.image_url = clean_url_field(data['image_url'])
-        if 'tour_info' in data:
-            venue.tour_info = clean_text_field(data['tour_info'])
-        if 'admission_fee' in data:
-            venue.admission_fee = clean_text_field(data['admission_fee'])
+        _apply_venue_update_field(venue, data, 'name', required=True)
+        _apply_venue_update_field(venue, data, 'venue_type', required=True)
+        _apply_venue_update_field(venue, data, 'description')
+        _apply_venue_update_field(venue, data, 'address')
+        _apply_venue_update_field(venue, data, 'latitude', clean_numeric_field)
+        _apply_venue_update_field(venue, data, 'longitude', clean_numeric_field)
+        _apply_venue_update_field(venue, data, 'phone_number', clean_phone_field)
+        _apply_venue_update_field(venue, data, 'email', clean_email_field)
+        _apply_venue_update_field(venue, data, 'opening_hours')
+        _apply_venue_update_field(venue, data, 'holiday_hours')
+        _apply_venue_update_field(venue, data, 'website_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'ticketing_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'instagram_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'facebook_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'twitter_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'youtube_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'tiktok_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'image_url', clean_url_field)
+        _apply_venue_update_field(venue, data, 'tour_info')
+        _apply_venue_update_field(venue, data, 'admission_fee')
         if 'visibility' in data:
             vis = (data.get('visibility') or 'public').strip().lower()
             venue.visibility = vis if vis in ('public', 'admin_only') else 'public'

@@ -53,8 +53,10 @@ def register_generic_crud_endpoints(app, db, City, Venue, Event):
                     if not data:
                         return jsonify({'error': 'No JSON data provided'}), 400
                     
-                    # Update fields (excluding protected fields)
+                    # Update fields (excluding protected fields); skip nulls for partial updates
                     for key, value in data.items():
+                        if value is None:
+                            continue
                         if hasattr(item, key) and key not in exclude_fields:
                             setattr(item, key, value)
                     

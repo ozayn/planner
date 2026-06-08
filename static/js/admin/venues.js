@@ -978,7 +978,15 @@ function editVenue(id) {
     // Populate the edit form with current venue data
     document.getElementById('editVenueId').value = venue.id;
     document.getElementById('editVenueName').value = venue.name || '';
-    document.getElementById('editVenueType').value = venue.venue_type || '';
+    const typeSelect = document.getElementById('editVenueType');
+    const venueType = venue.venue_type || '';
+    if (venueType && !Array.from(typeSelect.options).some(opt => opt.value === venueType)) {
+        const extra = document.createElement('option');
+        extra.value = venueType;
+        extra.textContent = venueType.replace(/_/g, ' ');
+        typeSelect.appendChild(extra);
+    }
+    typeSelect.value = venueType;
     document.getElementById('editVenueAddress').value = venue.address || '';
     document.getElementById('editVenueDescription').value = venue.description || '';
     document.getElementById('editVenueHours').value = venue.opening_hours || '';
