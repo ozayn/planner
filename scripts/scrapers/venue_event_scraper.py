@@ -384,12 +384,20 @@ class VenueEventScraper:
                 logger.debug(f"   ✅ Merged venue into session")
         except Exception as e:
             logger.debug(f"   ⚠️  Could not refresh/merge venue: {e}, continuing with existing object")
+
+        is_hirshhorn = self._is_hirshhorn_venue(venue)
+        if is_hirshhorn:
+            logger.info(
+                "hirshhorn: using hardened scrape path for %s (website_url=%s)",
+                venue.name,
+                venue.website_url,
+            )
         
         saved_paths = self._get_venue_event_paths(venue)
         has_saved_paths = bool(saved_paths)
         logger.debug("Saved paths check: has_saved_paths=%s, paths=%s", has_saved_paths, saved_paths)
         
-        if has_saved_paths:
+        if has_saved_paths and not is_hirshhorn:
             logger.debug("Found saved paths for %s: %s", venue.name, saved_paths)
             logger.debug("Using saved paths directly, skipping discovery")
             saved_path_events = self._use_saved_paths_for_scraping(venue, event_type=event_type, max_exhibitions_per_venue=max_exhibitions_per_venue, max_events_per_venue=max_events_per_venue)
@@ -410,6 +418,11 @@ class VenueEventScraper:
             # CRITICAL: Return immediately if saved paths exist - do NOT continue to generic scraper/discovery
             logger.debug("Returning early: saved paths exist")
             return events
+        elif has_saved_paths and is_hirshhorn:
+            logger.info(
+                "hirshhorn: ignoring saved event_paths for %s — using hardened discovery",
+                venue.name,
+            )
         else:
             logger.debug(f"   No saved paths found for {venue.name} in additional_info - will use generic scraper/discovery")
         
@@ -769,7 +782,7 @@ class VenueEventScraper:
                 logger.warning(f"⚠️ African Art specialized scraper failed: {e}, falling back to generic scraper")
         
         # Hirshhorn uses built-in methods in venue_event_scraper, so it continues below
-        has_specialized_scraper = specialized_scraper_used or 'hirshhorn.si.edu' in venue_url_lower or 'ocma.art' in venue_url_lower
+        has_specialized_scraper = specialized_scraper_used or is_hirshhorn or 'ocma.art' in venue_url_lower
         
         # For venues WITHOUT specialized scrapers, try generic scraper
         if not specialized_scraper_used and not has_specialized_scraper:
@@ -934,8 +947,7 @@ class VenueEventScraper:
         try:
             logger.debug("Scraping website: %s", venue.website_url)
             soup = None
-            is_hirshhorn_site = 'hirshhorn.si.edu' in (venue.website_url or '').lower()
-            if is_hirshhorn_site:
+            if is_hirshhorn:
                 response = self._fetch_hirshhorn_page(venue.website_url)
                 if not response:
                     exhibitions_hub = urljoin(venue.website_url, '/exhibitions-events/')
@@ -962,18 +974,28 @@ class VenueEventScraper:
                 except RequestException as e:
                     # Check if it's a 403 Forbidden error - try cloudscraper as fallback
                     if hasattr(e, 'response') and e.response is not None and e.response.status_code == 403:
-                        logger.warning(f"⚠️  403 Forbidden for {venue.website_url}, trying cloudscraper...")
-                        try:
-                            html_content = self._scrape_with_cloudscraper(venue.website_url)
-                            if html_content:
-                                soup = BeautifulSoup(html_content, 'html.parser')
-                                logger.info(f"✅ Successfully bypassed 403 using cloudscraper for {venue.website_url}")
+                        if self._is_hirshhorn_venue(venue) or 'hirshhorn.si.edu' in (venue.website_url or '').lower():
+                            logger.warning(
+                                "hirshhorn: routing 403 away from generic cloudscraper to hardened fetch"
+                            )
+                            response = self._fetch_hirshhorn_page(venue.website_url)
+                            if response:
+                                soup = BeautifulSoup(response.text, 'html.parser')
                             else:
-                                logger.warning(f"⚠️ Cloudscraper also failed for {venue.website_url} - skipping this venue (site may have strong bot protection)")
                                 return events
-                        except Exception as cloudscraper_error:
-                            logger.warning(f"⚠️ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping this venue")
-                            return events
+                        else:
+                            logger.warning(f"⚠️  403 Forbidden for {venue.website_url}, trying cloudscraper...")
+                            try:
+                                html_content = self._scrape_with_cloudscraper(venue.website_url)
+                                if html_content:
+                                    soup = BeautifulSoup(html_content, 'html.parser')
+                                    logger.info(f"✅ Successfully bypassed 403 using cloudscraper for {venue.website_url}")
+                                else:
+                                    logger.warning(f"⚠️ Cloudscraper also failed for {venue.website_url} - skipping this venue (site may have strong bot protection)")
+                                    return events
+                            except Exception as cloudscraper_error:
+                                logger.warning(f"⚠️ Cloudscraper fallback failed for {venue.website_url}: {cloudscraper_error} - skipping this venue")
+                                return events
                     else:
                         logger.error(f"❌ Request error accessing {venue.website_url}: {e} - skipping")
                         return events
@@ -2211,6 +2233,11 @@ class VenueEventScraper:
                     break
         
         return meeting_point
+
+    def _is_hirshhorn_venue(self, venue) -> bool:
+        url = (getattr(venue, 'website_url', None) or '').lower()
+        name = (getattr(venue, 'name', None) or '').lower()
+        return 'hirshhorn.si.edu' in url or 'hirshhorn' in name
 
     def _hirshhorn_body_snippet(self, response, max_len: int = 200) -> str:
         if response is None:
@@ -4763,9 +4790,17 @@ class VenueEventScraper:
                 full_url = base_domain + path
             try:
                 logger.debug("Scraping saved %s path: %s", path_type, full_url)
-                response = self.session.get(full_url, timeout=10)
-                if response.status_code == 200:
+                if self._is_hirshhorn_venue(venue):
+                    response = self._fetch_hirshhorn_page(full_url)
+                    if not response:
+                        continue
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                else:
+                    response = self.session.get(full_url, timeout=10)
+                    if response.status_code != 200:
+                        continue
                     soup = BeautifulSoup(response.content, 'html.parser')
+                if soup:
                     # Use existing extraction methods based on path type
                     if path_type == 'exhibitions':
                         extracted = self._extract_exhibitions_from_listing_page(soup, venue, full_url, event_type=event_type, time_range='this_month', max_exhibitions_per_venue=max_exhibitions_per_venue)
