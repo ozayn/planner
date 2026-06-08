@@ -3,8 +3,8 @@
 Cronjob script to scrape Washington DC museums, embassies, and standalone venue scrapers.
 
 Operational buckets (see scripts/cron_bucket_config.py):
-- stable (default): Eventbrite, Meetup, reliable venue scrapers — main cron
-- protected: Asian Art, NPG, Hirshhorn — separate cron (403/Cloudflare/proxy-sensitive)
+- stable (default): Eventbrite (embassies/cultural centers/extras), Meetup, NGA, SAAM, …
+- protected: troublesome direct website scrapers only (Asian Art, NPG, Hirshhorn, …)
 
 Per-scraper run rules (always vs seasonal) are in scripts/cron_scheduler_config.py.
 
@@ -35,8 +35,10 @@ from scripts.cron_bucket_config import (
     BUCKET_PROTECTED,
     bucket_display_name,
     bucket_runs_stable_sections,
+    is_protected_direct_scraper_venue,
     resolve_venue_scraper_bucket,
     standalone_runs_in_bucket,
+    venue_uses_shared_eventbrite_cron,
 )
 from scripts.cron_scheduler_config import (
     should_run,
@@ -101,23 +103,16 @@ def is_embassy_with_eventbrite(venue):
     return is_diplomatic_eventbrite_venue(venue)
 
 
-# Non-embassy DC venues with Eventbrite organizer on ticketing_url (museums, theaters; not cultural_center).
-EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS = (
-    'washington improv theater',
-    'smithsonian national museum of american history',
-)
-
-
 def get_eventbrite_extra_venues(all_venues):
-    """DC museums/venues using shared Eventbrite scraper (not embassy cron bucket)."""
+    """DC venues using shared Eventbrite scraper (non-diplomatic; stable cron only)."""
+    from scripts.eventbrite_scraper import is_diplomatic_eventbrite_venue
+
     extra = []
     seen_ids = set()
     for venue in all_venues:
-        name_lower = (venue.name or '').lower()
-        if not any(frag in name_lower for frag in EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS):
+        if is_diplomatic_eventbrite_venue(venue):
             continue
-        if not venue.ticketing_url or 'eventbrite' not in venue.ticketing_url.lower():
-            logger.debug(f"   ⚠️  Eventbrite extra skipped (no Eventbrite ticketing_url): {venue.name}")
+        if not venue_uses_shared_eventbrite_cron(venue):
             continue
         if venue.id in seen_ids:
             continue
@@ -172,12 +167,20 @@ def run_scheduled_scrapers(bucket: str = BUCKET_STABLE) -> int:
                 if not venue.website_url or 'example.com' in venue.website_url:
                     continue
                 
-                # Check if it has a specialized scraper
+                # Check if it has a specialized scraper (direct website flow, not Eventbrite-only)
                 if has_specialized_scraper(venue):
+                    if venue_uses_shared_eventbrite_cron(venue) and not is_protected_direct_scraper_venue(
+                        venue.website_url, venue.name
+                    ):
+                        logger.debug(
+                            f"⏭️  Skipping direct scraper for Eventbrite-only venue: {venue.name}"
+                        )
+                        continue
                     if resolve_venue_scraper_bucket(
                         venue.website_url,
                         venue.name,
                         getattr(venue, 'cron_bucket', None),
+                        venue=venue,
                     ) == bucket:
                         museums.append(venue)
                         logger.debug(f"✅ Museum with specialized scraper [{bucket}]: {venue.name}")

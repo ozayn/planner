@@ -2,18 +2,20 @@
 """
 Operational buckets for scheduled cron scrapers.
 
-- stable: reliable sources (Eventbrite, Meetup, most venue HTML scrapers)
-- protected: recurring 403 / Cloudflare / proxy-sensitive or heavy sources (NGA, Asian Art, NPG, Hirshhorn, OCMA, etc.)
+- stable: Eventbrite (embassies, cultural centers, extras), Meetup, reliable direct scrapers (NGA, SAAM, …)
+- protected: troublesome direct website scrapers only (403 / Cloudflare / proxy-sensitive)
 
-Classify new scrapers here when adding them to cron_run_scheduled_scrapers.py.
+Eventbrite-backed venues always use the shared Eventbrite flow on stable cron, even when they are
+embassies or cultural centers. Protected is not used for venue type alone.
+
+Classify new *direct* scrapers here when adding them to cron_run_scheduled_scrapers.py.
 """
 
 BUCKET_STABLE = "stable"
 BUCKET_PROTECTED = "protected"
 
-# Specialized museum scrapers matched by venue.website_url fragment
-VENUE_URL_BUCKET: dict[str, str] = {
-    "nga.gov": BUCKET_PROTECTED,           # National Gallery of Art
+# Direct website scrapers with recurring operational trouble (not Eventbrite flow).
+PROTECTED_DIRECT_URL_FRAGMENT: dict[str, str] = {
     "asia.si.edu": BUCKET_PROTECTED,       # Smithsonian National Museum of Asian Art
     "npg.si.edu": BUCKET_PROTECTED,        # National Portrait Gallery
     "hirshhorn.si.edu": BUCKET_PROTECTED,  # Hirshhorn Museum
@@ -25,8 +27,7 @@ VENUE_URL_BUCKET: dict[str, str] = {
 }
 
 # Fallback when URL does not match (Freer/Sackler share asia.si.edu; name guard)
-VENUE_NAME_BUCKET: dict[str, str] = {
-    "national gallery of art": BUCKET_PROTECTED,
+PROTECTED_DIRECT_NAME_FRAGMENT: dict[str, str] = {
     "hirshhorn": BUCKET_PROTECTED,
     "national portrait gallery": BUCKET_PROTECTED,
     "smithsonian national museum of asian art": BUCKET_PROTECTED,
@@ -37,6 +38,16 @@ VENUE_NAME_BUCKET: dict[str, str] = {
     "tenement museum": BUCKET_PROTECTED,
     "de young": BUCKET_PROTECTED,
 }
+
+# Backward-compatible aliases
+VENUE_URL_BUCKET = PROTECTED_DIRECT_URL_FRAGMENT
+VENUE_NAME_BUCKET = PROTECTED_DIRECT_NAME_FRAGMENT
+
+# Non-embassy DC venues scraped via shared Eventbrite on stable cron (see cron_run_scheduled_scrapers).
+EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS = (
+    "washington improv theater",
+    "smithsonian national museum of american history",
+)
 
 # Standalone scraper blocks in cron_run_scheduled_scrapers (default: stable)
 STANDALONE_SCRAPER_BUCKET: dict[str, str] = {
@@ -63,29 +74,60 @@ def parse_venue_cron_bucket_setting(value) -> str | None:
     return None
 
 
-def get_venue_scraper_bucket_heuristic(website_url: str, venue_name: str = "") -> str:
-    """Return stable or protected bucket from URL/name rules (no admin override)."""
+def is_protected_direct_scraper_venue(website_url: str, venue_name: str = "") -> bool:
+    """True when cron runs a troublesome direct website scraper for this venue (not Eventbrite)."""
     url_lower = (website_url or "").lower()
-    for fragment, bucket in VENUE_URL_BUCKET.items():
+    for fragment in PROTECTED_DIRECT_URL_FRAGMENT:
         if fragment in url_lower:
-            return bucket
+            return True
     name_lower = (venue_name or "").lower()
-    for fragment, bucket in VENUE_NAME_BUCKET.items():
+    for fragment in PROTECTED_DIRECT_NAME_FRAGMENT:
         if fragment in name_lower:
-            return bucket
+            return True
+    return False
+
+
+def get_venue_scraper_bucket_heuristic(website_url: str, venue_name: str = "") -> str:
+    """Return stable or protected from direct-scraper rules only (no admin override)."""
+    if is_protected_direct_scraper_venue(website_url, venue_name):
+        return BUCKET_PROTECTED
     return BUCKET_STABLE
+
+
+def venue_uses_shared_eventbrite_cron(venue) -> bool:
+    """
+    True when stable cron scrapes this venue via the shared Eventbrite flow.
+
+    Includes diplomatic/cultural Eventbrite venues and named Eventbrite extras.
+    Does not include museums that only have an Eventbrite ticketing_url but are
+    scraped via a protected direct website scraper (e.g. NPG, Asian Art).
+    """
+    from scripts.eventbrite_scraper import is_diplomatic_eventbrite_venue
+
+    if is_diplomatic_eventbrite_venue(venue):
+        return True
+
+    name_lower = (venue.name or "").lower()
+    if not any(frag in name_lower for frag in EVENTBRITE_EXTRA_VENUE_NAME_FRAGMENTS):
+        return False
+    return "eventbrite" in (venue.ticketing_url or "").lower()
 
 
 def resolve_venue_scraper_bucket(
     website_url: str,
     venue_name: str = "",
     cron_bucket=None,
+    venue=None,
 ) -> str:
-    """Cron bucket for a venue: explicit admin setting wins, else code heuristics."""
+    """Cron bucket for a venue: explicit admin setting wins, else direct-scraper / Eventbrite rules."""
     explicit = parse_venue_cron_bucket_setting(cron_bucket)
     if explicit:
         return explicit
-    return get_venue_scraper_bucket_heuristic(website_url, venue_name)
+    if is_protected_direct_scraper_venue(website_url, venue_name):
+        return BUCKET_PROTECTED
+    if venue is not None and venue_uses_shared_eventbrite_cron(venue):
+        return BUCKET_STABLE
+    return BUCKET_STABLE
 
 
 def get_venue_scraper_bucket(website_url: str, venue_name: str = "") -> str:
@@ -100,5 +142,5 @@ def bucket_display_name(bucket: str) -> str:
 
 
 def bucket_runs_stable_sections(bucket: str) -> bool:
-    """Embassies and Eventbrite extras run on stable cron only (standalones use standalone_runs_in_bucket)."""
+    """Eventbrite embassies/extras and other stable-only sections (standalones use standalone_runs_in_bucket)."""
     return bucket == BUCKET_STABLE
