@@ -89,7 +89,8 @@ def _photo_url(apollo: Dict[str, Any], event: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _format_location(apollo: Dict[str, Any], event: Dict[str, Any]) -> str:
+def _format_venue_location(apollo: Dict[str, Any], event: Dict[str, Any]) -> str:
+    """Meetup Apollo venue ref — typically the walk start / meeting point."""
     venue = _resolve_ref(apollo, event.get("venue"))
     if not venue:
         return ""
@@ -100,6 +101,42 @@ def _format_location(apollo: Dict[str, Any], event: Dict[str, Any]) -> str:
         venue.get("state") or "",
     ]
     return ", ".join(p.strip() for p in parts if p and str(p).strip())
+
+
+def _clean_location_label(value: str) -> str:
+    """Strip markdown emphasis and collapse whitespace from a location line."""
+    if not value:
+        return ""
+    text = re.sub(r"\*+", "", value)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    return re.sub(r"\s+", " ", text).strip(" .")
+
+
+_START_LOCATION_RE = re.compile(
+    r"^\s*\*{0,2}Start\s+Location\*{0,2}\s*:\s*(.+?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_END_LOCATION_RE = re.compile(
+    r"^\s*\*{0,2}(?:Exit|End)\s+Location\*{0,2}\s*:\s*(.+?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _parse_walk_locations(description: str) -> Tuple[str, str]:
+    """
+    Extract labeled start/end locations from Meetup event description.
+
+    Apollo Event has a single ``venue`` (start); end/exit is usually only in prose, e.g.
+    ``**Start Location:**`` and ``**Exit Location:**`` / ``**End Location:**``.
+    """
+    if not description:
+        return "", ""
+
+    start_match = _START_LOCATION_RE.search(description)
+    end_match = _END_LOCATION_RE.search(description)
+    start_loc = _clean_location_label(start_match.group(1)) if start_match else ""
+    end_loc = _clean_location_label(end_match.group(1)) if end_match else ""
+    return start_loc, end_loc
 
 
 def _parse_iso_datetime(value: Optional[str]) -> Tuple[Optional[date], Optional[time]]:
@@ -113,12 +150,62 @@ def _parse_iso_datetime(value: Optional[str]) -> Tuple[Optional[date], Optional[
 
 
 def _infer_event_type(title: str, description: str = "") -> str:
+    """Default ``walk`` for this group; only a few clear keyword overrides."""
     blob = f"{title} {description}".lower()
-    if any(word in blob for word in ("walk", "hike", "mile", "mi.", " mi ", "trail")):
-        return "tour"
-    if "photowalk" in blob or "photo walk" in blob:
+
+    if any(
+        phrase in blob
+        for phrase in (
+            "photowalk",
+            "photo walk",
+            "photography walk",
+            "street photography",
+            "camera walk",
+        )
+    ) or re.search(r"\b(photography|photographers?|camera)\b", blob):
         return "photowalk"
-    return "meetup"
+
+    if re.search(r"\b(hike|hiking|hikes)\b", blob) or any(
+        phrase in blob
+        for phrase in (
+            "nature trail",
+            "forest trail",
+            "mountain trail",
+            "national park",
+            "state park",
+        )
+    ):
+        return "hike"
+
+    if any(
+        phrase in blob
+        for phrase in (
+            "guided tour",
+            "walking tour",
+            "museum tour",
+            "historical tour",
+            "history tour",
+        )
+    ):
+        return "tour"
+
+    return "walk"
+
+
+def _sync_inferred_event_types(db, Event, venue_id: int, events: List[Dict[str, Any]]) -> None:
+    """Persist inferred types on re-scrape (walk/hike are outside handler canonical_types)."""
+    changed = False
+    for ev in events:
+        target = ev.get("event_type") or "walk"
+        url = (ev.get("url") or "").strip()
+        if not url:
+            continue
+        row = db.session.query(Event).filter(Event.url == url, Event.venue_id == venue_id).first()
+        if row and row.event_type != target:
+            row.event_type = target
+            changed = True
+    if changed:
+        db.session.commit()
 
 
 def _belongs_to_group(event: Dict[str, Any]) -> bool:
@@ -170,7 +257,10 @@ def _events_from_apollo(apollo: Dict[str, Any]) -> List[Dict[str, Any]]:
             continue
 
         description = (node.get("description") or "").strip()
-        location = _format_location(apollo, node)
+        venue_location = _format_venue_location(apollo, node)
+        desc_start, desc_end = _parse_walk_locations(description)
+        start_location = desc_start or venue_location
+        end_location = desc_end
 
         events.append({
             "title": title,
@@ -179,7 +269,8 @@ def _events_from_apollo(apollo: Dict[str, Any]) -> List[Dict[str, Any]]:
             "end_date": end_date or start_date,
             "start_time": start_time,
             "end_time": end_time,
-            "start_location": location,
+            "start_location": start_location,
+            "end_location": end_location,
             "url": normalized_url,
             "source_url": normalized_url,
             "registration_url": normalized_url,
@@ -248,7 +339,7 @@ def create_events_in_database_wrapper(events: List[Dict[str, Any]]):
             e["organizer"] = venue.name
             e["venue_name"] = venue.name
 
-        return create_events_in_database(
+        result = create_events_in_database(
             events=events,
             venue_id=venue.id,
             city_id=venue.city_id,
@@ -259,6 +350,8 @@ def create_events_in_database_wrapper(events: List[Dict[str, Any]]):
             source_url=GROUP_URL,
             custom_event_processor=processor,
         )
+        _sync_inferred_event_types(db, Event, venue.id, events)
+        return result
 
 
 def main():
