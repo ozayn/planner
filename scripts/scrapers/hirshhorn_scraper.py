@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Hirshhorn Museum — API-first scraper scaffold.
+Hirshhorn Museum — API-first scraper (Tribe Events REST API).
 
-Probes WordPress Tribe Events + exhibition REST endpoints before HTML discovery.
-Run with --probe to test viability from Railway or locally.
+Tours/programs are fetched from /wp-json/tribe/events/v1/events.
+Exhibitions are deferred while wp/v2/exhibition and listing HTML remain blocked.
+
+Run: python scripts/scrapers/hirshhorn_scraper.py --probe
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ from scripts.scraper_logging import get_scraper_logger
 
 logger = get_scraper_logger(__name__)
 
+VENUE_NAME = 'Smithsonian Hirshhorn Museum and Sculpture Garden'
 HIRSHHORN_SCRAPER_KEY = 'hirshhorn'
 HIRSHHORN_BASE_URL = 'https://hirshhorn.si.edu'
 HIRSHHORN_REFERER = f'{HIRSHHORN_BASE_URL}/exhibitions-events/'
@@ -407,36 +410,57 @@ def _events_from_listing_jsonld(html_text: str) -> List[Dict[str, Any]]:
     return events
 
 
-def scrape_hirshhorn_tours(
+def scrape_hirshhorn_tribe_events(
     *,
     per_page: int = 50,
     start_date: Optional[str] = None,
+    max_pages: int = 20,
     session=None,
     session_meta: Optional[Tuple[bool, bool]] = None,
 ) -> List[Dict[str, Any]]:
-    """Tours/programs from Tribe Events REST API (scaffold — no DB write)."""
+    """Tours/programs from paginated Tribe Events REST API."""
     if session is None:
         session, proxy_used, cloudscraper_used = create_hirshhorn_session()
         session_meta = (proxy_used, cloudscraper_used)
 
-    params = f'per_page={per_page}'
-    if start_date:
-        params += f'&start_date={start_date}'
-    url = f'{TRIBE_EVENTS_API}?{params}'
+    start = start_date or date.today().isoformat()
+    url: Optional[str] = f'{TRIBE_EVENTS_API}?per_page={per_page}&start_date={start}'
+    mapped: List[Dict[str, Any]] = []
+    page = 0
 
-    payload, meta = fetch_hirshhorn_json(url, session=session, session_meta=session_meta)
-    if not payload or not isinstance(payload, dict):
-        logger.info('hirshhorn: tours API unavailable status=%s', meta.get('status'))
-        return []
+    while url and page < max_pages:
+        page += 1
+        payload, meta = fetch_hirshhorn_json(url, session=session, session_meta=session_meta)
+        if not payload or not isinstance(payload, dict):
+            if page == 1:
+                logger.warning(
+                    'hirshhorn: Tribe Events API unavailable status=%s proxy_used=%s',
+                    meta.get('status'),
+                    meta.get('proxy_used'),
+                )
+            break
 
-    raw_events = payload.get('events') or []
-    mapped = [_map_tribe_event(ev) for ev in raw_events if isinstance(ev, dict)]
-    logger.info(
-        'hirshhorn: tribe API returned %d events (mapped %d)',
-        len(raw_events),
-        len(mapped),
-    )
+        raw_events = payload.get('events') or []
+        mapped.extend(_map_tribe_event(ev) for ev in raw_events if isinstance(ev, dict))
+        total = payload.get('total')
+        logger.info(
+            'hirshhorn: Tribe API page %s — %d events (running total %d, api total %s)',
+            page,
+            len(raw_events),
+            len(mapped),
+            total,
+        )
+        url = payload.get('next_rest_url') or None
+        if not raw_events:
+            break
+
+    logger.info('hirshhorn: Tribe API-backed tours/programs count=%d', len(mapped))
     return mapped
+
+
+def scrape_hirshhorn_tours(**kwargs) -> List[Dict[str, Any]]:
+    """Alias for scrape_hirshhorn_tribe_events."""
+    return scrape_hirshhorn_tribe_events(**kwargs)
 
 
 def scrape_hirshhorn_exhibitions(
@@ -482,27 +506,56 @@ def scrape_all_hirshhorn_events(
     tour_start_date: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
-    API-first aggregate (scaffold). Runs probe summary, then best-effort fetch.
-    Not wired to admin/cron yet.
+    Hirshhorn scrape entrypoint: Tribe Events API for tours/programs only.
+    Exhibitions are skipped until wp/v2/exhibition or listing HTML is reachable.
     """
-    session, proxy_used, cloudscraper_used = create_hirshhorn_session()
-    session_meta = (proxy_used, cloudscraper_used)
-
-    tours = scrape_hirshhorn_tours(
-        start_date=tour_start_date,
-        session=session,
-        session_meta=session_meta,
-    )
-    exhibitions = scrape_hirshhorn_exhibitions(session=session, session_meta=session_meta)
-
-    combined = exhibitions + tours
     logger.info(
-        'hirshhorn: scrape_all total=%d (exhibitions=%d tours=%d)',
-        len(combined),
-        len(exhibitions),
-        len(tours),
+        'hirshhorn: using Tribe Events API for tours/programs; '
+        'exhibitions skipped (exhibition API and listing HTML currently blocked)'
     )
-    return combined
+    events = scrape_hirshhorn_tribe_events(start_date=tour_start_date)
+    logger.info(
+        'hirshhorn: scrape_all total=%d (exhibitions=0 deferred, tribe_api=%d)',
+        len(events),
+        len(events),
+    )
+    return events
+
+
+def create_events_in_database(events: List[Dict[str, Any]]) -> Tuple[int, int, int]:
+    """Persist Hirshhorn Tribe API events via shared handler."""
+    from app import app, db, Event, Venue
+    from scripts.event_database_handler import create_events_in_database as shared_create_events
+
+    with app.app_context():
+        venue = Venue.query.filter(
+            db.func.lower(Venue.name).like('%hirshhorn%')
+        ).first()
+        if not venue:
+            logger.error("hirshhorn: venue not found (name like '%%hirshhorn%%')")
+            return 0, 0, 0
+
+        def processor(event_data: Dict[str, Any]) -> None:
+            event_data['source'] = 'website'
+            event_data['organizer'] = venue.name
+            if not event_data.get('venue_id'):
+                event_data['venue_id'] = venue.id
+            if not event_data.get('city_id'):
+                event_data['city_id'] = venue.city_id
+
+        return shared_create_events(
+            events=events,
+            venue_id=venue.id,
+            city_id=venue.city_id,
+            venue_name=venue.name,
+            db=db,
+            Event=Event,
+            Venue=Venue,
+            batch_size=5,
+            logger_instance=logger,
+            source_url=TRIBE_EVENTS_API,
+            custom_event_processor=processor,
+        )
 
 
 def main() -> int:

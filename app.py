@@ -10346,16 +10346,16 @@ def scrape_african_art():
 
 @app.route('/api/admin/scrape-hirshhorn', methods=['POST'])
 def scrape_hirshhorn():
-    """Scrape exhibitions and tours from Hirshhorn Museum and Sculpture Garden."""
+    """Scrape Hirshhorn tours/programs via Tribe Events REST API (exhibitions deferred)."""
     try:
-        app_logger.info("Starting Hirshhorn Museum scraping...")
+        app_logger.info("Starting Hirshhorn Museum scraping (Tribe Events API)...")
         
         # Initialize progress tracking
         progress_data = {
             'current_step': 1,
             'total_steps': 3,
             'percentage': 10,
-            'message': 'Starting Hirshhorn Museum scraping...',
+            'message': 'Starting Hirshhorn Tribe Events API scrape...',
             'timestamp': datetime.utcnow().isoformat() + 'Z',
             'events_found': 0,
             'events_saved': 0,
@@ -10394,54 +10394,26 @@ def scrape_hirshhorn():
             'current_step': 2,
             'total_steps': 3,  # Ensure total_steps is always included
             'percentage': 20,
-            'message': f'Scraping exhibitions and tours from {hirshhorn.name}...',
+            'message': f'Scraping tours/programs from Tribe Events API ({hirshhorn.name}); exhibitions skipped...',
             'current_venue': hirshhorn.name
         })
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        # Import the venue event scraper
-        from scripts.venue_event_scraper import VenueEventScraper
-        
-        # Scrape Hirshhorn exhibitions and tours
-        scraper = VenueEventScraper()
-        
-        # First scrape exhibitions
-        exhibitions = []
-        tours = []
+        from scripts.hirshhorn_scraper import scrape_all_hirshhorn_events, create_events_in_database
         
         try:
-            exhibitions = scraper.scrape_venue_events(
-                venue_ids=[hirshhorn.id],
-                event_type='exhibition',
-                time_range='all',  # Get all current and future exhibitions
-                max_exhibitions_per_venue=10,
-                max_events_per_venue=10
-            ) or []
-            
-            # Then scrape tours
-            tours = scraper.scrape_venue_events(
-                venue_ids=[hirshhorn.id],
-                event_type='tour',
-                time_range='all',  # Get all current and future tours
-                max_exhibitions_per_venue=5,
-                max_events_per_venue=20
-            ) or []
-            
-            # Combine both types
-            scraped_events = exhibitions + tours
-            
-            # Handle case where scraper returns None
-            if scraped_events is None:
-                app_logger.warning("Hirshhorn scraper returned None - treating as empty list")
-                scraped_events = []
+            scraped_events = scrape_all_hirshhorn_events() or []
         except Exception as scrape_error:
             app_logger.error(f"Exception during Hirshhorn scraping: {scrape_error}")
             import traceback
             app_logger.error(traceback.format_exc())
             scraped_events = []
         
-        app_logger.info(f"Scraped {len(scraped_events) if scraped_events else 0} events from Hirshhorn")
+        app_logger.info(
+            "Hirshhorn Tribe API: %d tours/programs (exhibitions deferred)",
+            len(scraped_events),
+        )
         
         # Update progress - events found
         progress_data.update({
@@ -10456,367 +10428,100 @@ def scrape_hirshhorn():
             json.dump(progress_data, f)
         
         if not scraped_events:
-            failure = getattr(scraper, '_last_scrape_failure', None) or {}
-            if failure.get('kind') == 'bot_protection':
-                error_message = (
-                    f"Hirshhorn scrape blocked by bot protection (HTTP {failure.get('status', 403)}). "
-                    f"URL: {failure.get('url')}. "
-                    f"proxy_used={failure.get('proxy_used')}, "
-                    f"cloudscraper_used={failure.get('cloudscraper_used')}. "
-                    "On Railway protected cron, set WEBSHARE_PROXY_URL; locally try USE_PROXY_HIRSHHORN=1."
-                )
-                progress_data.update({
-                    'percentage': 100,
-                    'message': f'❌ {error_message}',
-                    'error': True,
-                })
-                with open('scraping_progress.json', 'w') as f:
-                    json.dump(progress_data, f)
-            else:
-                error_message = (
-                    'No exhibitions or tours found or scraping failed. '
-                    'Check server logs for hirshhorn: fetch failed lines.'
-                )
+            error_message = (
+                'No Hirshhorn tours/programs from Tribe Events API. '
+                'Exhibitions are currently skipped (exhibition API and listing HTML blocked). '
+                'Check server logs for hirshhorn: Tribe Events API unavailable.'
+            )
+            progress_data.update({
+                'percentage': 100,
+                'message': f'❌ {error_message}',
+                'error': True,
+            })
+            with open('scraping_progress.json', 'w') as f:
+                json.dump(progress_data, f)
             return jsonify({
                 'success': False,
                 'error': error_message,
                 'events_found': 0,
                 'events_saved': 0,
-                'exhibitions_found': len(exhibitions) if exhibitions else 0,
-                'tours_found': len(tours) if tours else 0,
-                'scrape_failure': failure or None,
+                'exhibitions_found': 0,
+                'tours_found': 0,
             }), 404
         
-        # Update progress - events found
         progress_data.update({
             'current_step': 3,
-            'total_steps': 3,  # Ensure total_steps is always included
+            'total_steps': 3,
             'percentage': 60,
-            'message': f'Found {len(scraped_events)} events. Saving to database...',
+            'message': f'Found {len(scraped_events)} Tribe API events. Saving to database...',
             'events_found': len(scraped_events),
             'venues_processed': 1
         })
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        # Save events to database using the same logic as the main scrape endpoint
-        events_saved = 0
-        events_updated = 0
-        venue_exhibition_counts = {}
-        max_exhibitions_per_venue = 10
-        recent_events_list = []
+        created_count, updated_count, skipped_count = create_events_in_database(scraped_events)
+        events_saved = created_count
+        events_updated = updated_count
+        recent_events_list = [
+            {
+                'title': e.get('title', 'Unknown'),
+                'type': e.get('event_type', 'unknown'),
+                'date': str(e.get('start_date')) if e.get('start_date') else None,
+                'time': str(e.get('start_time')) if e.get('start_time') else None,
+            }
+            for e in scraped_events[:10]
+        ]
         
-        total_to_save = len(scraped_events)
-        for idx, event_data in enumerate(scraped_events):
-            try:
-                # Update progress at start of each event
-                progress_data.update({
-                    'current_step': 3,
-                    'total_steps': 3,
-                    'percentage': 60 + int(((idx + 1) / total_to_save) * 35) if total_to_save else 90,
-                    'message': f'Saving event {idx + 1}/{total_to_save}...',
-                    'events_saved': events_saved,
-                    'recent_events': recent_events_list[-10:]
-                })
-                with open('scraping_progress.json', 'w') as f:
-                    json.dump(progress_data, f)
-                
-                title = event_data.get('title', 'Untitled Event')
-                venue_id = event_data.get('venue_id')
-                city_id_event = event_data.get('city_id', hirshhorn.city_id)
-                start_date_str = event_data.get('start_date')
-                event_type = event_data.get('event_type', 'exhibition')
-                
-                # Check for duplicates (same logic as main scrape endpoint)
-                from datetime import datetime as dt
-                if start_date_str:
-                    start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
-                else:
-                    from datetime import date
-                    start_date = date.today()
-                
-                # Check if event already exists - UPDATE instead of skip
-                event_url = event_data.get('url', '')
-                existing_event = None
-                start_time_str = event_data.get('start_time')
-                end_time_str = event_data.get('end_time')
-                
-                # For tours: match by URL + start_date + start_time to preserve multiple sessions per day
-                if event_type == 'tour' and event_url:
-                    normalized_url = event_url.rstrip('/')
-                    query = Event.query.filter(
-                        (Event.url == event_url) | (Event.url == normalized_url),
-                        Event.event_type == 'tour',
-                        Event.city_id == city_id_event,
-                        Event.start_date == start_date
-                    )
-                    # Add start_time when available - prevents collapsing same-day sessions
-                    if start_time_str and start_time_str != 'None' and str(start_time_str).strip():
-                        try:
-                            parsed_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
-                        except ValueError:
-                            try:
-                                parsed_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
-                            except ValueError:
-                                parsed_start_time = None
-                        if parsed_start_time:
-                            query = query.filter(Event.start_time == parsed_start_time)
-                    existing_event = query.first()
-                
-                # If not found by URL+time, try title + venue + date (+ time for tours)
-                if not existing_event:
-                    q = Event.query.filter_by(
-                        title=title,
-                        venue_id=venue_id,
-                        city_id=city_id_event,
-                        start_date=start_date
-                    )
-                    if event_type == 'tour' and start_time_str and start_time_str != 'None' and str(start_time_str).strip():
-                        try:
-                            pt = dt.strptime(str(start_time_str), '%H:%M:%S').time()
-                        except ValueError:
-                            try:
-                                pt = dt.strptime(str(start_time_str), '%H:%M').time()
-                            except ValueError:
-                                pt = None
-                        if pt:
-                            q = q.filter(Event.start_time == pt)
-                    existing_event = q.first()
-                
-                # If event exists, UPDATE it instead of skipping
-                if existing_event:
-                    app_logger.info(f"🔄 Updating existing event: '{title}' (venue_id: {venue_id}, date: {start_date})")
-                    app_logger.info(f"   Current times - start: {existing_event.start_time}, end: {existing_event.end_time}")
-                    app_logger.info(f"   Scraped times - start: {start_time_str}, end: {end_time_str}")
-                    event = existing_event
-                    updated_fields = []
-                    
-                    # Update fields if new data is available
-                    if event_data.get('description') and event_data.get('description') != event.description:
-                        event.description = event_data.get('description')
-                        updated_fields.append('description')
-                    
-                    if event_data.get('url') and event_data.get('url') != event.url:
-                        event.url = event_data.get('url')
-                        updated_fields.append('url')
-                    
-                    if event_data.get('image_url') and event_data.get('image_url') != event.image_url:
-                        event.image_url = event_data.get('image_url')
-                        updated_fields.append('image_url')
-                    
-                    # Update times if they're missing or if new times are provided
-                    if start_time_str and start_time_str != 'None' and str(start_time_str).strip():
-                        try:
-                            new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
-                        except ValueError:
-                            try:
-                                new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
-                            except ValueError:
-                                new_start_time = None
-                        
-                        if new_start_time:
-                            old_start_time = event.start_time
-                            if not event.start_time or event.start_time != new_start_time:
-                                event.start_time = new_start_time
-                                updated_fields.append('start_time')
-                                app_logger.info(f"   ⏰ Updated start_time: {new_start_time} (was: {old_start_time})")
-                    
-                    if end_time_str and end_time_str != 'None' and str(end_time_str).strip():
-                        try:
-                            new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
-                        except ValueError:
-                            try:
-                                new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
-                            except ValueError:
-                                new_end_time = None
-                        
-                        if new_end_time:
-                            old_end_time = event.end_time
-                            if not event.end_time or event.end_time != new_end_time:
-                                event.end_time = new_end_time
-                                updated_fields.append('end_time')
-                                app_logger.info(f"   ⏰ Updated end_time: {new_end_time} (was: {old_end_time})")
-                    
-                    # FORCED UPDATE for missing times
-                    if (not event.start_time and start_time_str and start_time_str != 'None' and str(start_time_str).strip()) or \
-                       (not event.end_time and end_time_str and end_time_str != 'None' and str(end_time_str).strip()):
-                        if not event.start_time and start_time_str and start_time_str != 'None' and str(start_time_str).strip():
-                            try:
-                                new_start_time = dt.strptime(str(start_time_str), '%H:%M:%S').time()
-                            except ValueError:
-                                try:
-                                    new_start_time = dt.strptime(str(start_time_str), '%H:%M').time()
-                                except ValueError:
-                                    new_start_time = None
-                            if new_start_time:
-                                event.start_time = new_start_time
-                                if 'start_time' not in updated_fields:
-                                    updated_fields.append('start_time')
-                                app_logger.info(f"   ⏰ FORCED UPDATE: Added missing start_time: {new_start_time}")
-                        
-                        if not event.end_time and end_time_str and end_time_str != 'None' and str(end_time_str).strip():
-                            try:
-                                new_end_time = dt.strptime(str(end_time_str), '%H:%M:%S').time()
-                            except ValueError:
-                                try:
-                                    new_end_time = dt.strptime(str(end_time_str), '%H:%M').time()
-                                except ValueError:
-                                    new_end_time = None
-                            if new_end_time:
-                                event.end_time = new_end_time
-                                if 'end_time' not in updated_fields:
-                                    updated_fields.append('end_time')
-                                app_logger.info(f"   ⏰ FORCED UPDATE: Added missing end_time: {new_end_time}")
-                    
-                    if updated_fields:
-                        app_logger.info(f"   ✅ Updated fields: {', '.join(updated_fields)}")
-                        events_saved += 1
-                        events_updated += 1
-                        # Add to recent events
-                        recent_events_list.append({
-                            'title': title,
-                            'event_type': event_type,
-                            'start_date': start_date.isoformat(),
-                            'start_time': str(event.start_time) if event.start_time else None,
-                            'start_location': event.start_location
-                        })
-                        # Update progress after each save
-                        progress_data.update({
-                            'current_step': 3,
-                            'total_steps': 3,
-                            'percentage': 60 + int((events_saved / len(scraped_events)) * 35) if scraped_events else 90,
-                            'message': f'Saving event {idx + 1}/{len(scraped_events)}...',
-                            'events_saved': events_saved,
-                            'recent_events': recent_events_list[-10:]
-                        })
-                        with open('scraping_progress.json', 'w') as f:
-                            json.dump(progress_data, f)
-                    else:
-                        app_logger.info(f"   ℹ️ No changes needed")
-                    
-                    # Continue to next event (don't create new one)
-                    continue
-                
-                # Check exhibition count limit (only for new events)
-                if event_type == 'exhibition' and venue_id:
-                    current_count = venue_exhibition_counts.get(venue_id, 0)
-                    if current_count >= max_exhibitions_per_venue:
-                        continue
-                    venue_exhibition_counts[venue_id] = current_count + 1
-                
-                # Create new event
-                event = Event()
-                event.title = title
-                event.description = event_data.get('description', '')
-                event.event_type = event_type
-                event.url = event_data.get('url', '')
-                event.image_url = event_data.get('image_url', '')
-                event.start_date = start_date
-                
-                end_date_str = event_data.get('end_date')
-                if end_date_str:
-                    event.end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
-                
-                # Times - handle both HH:MM:SS and HH:MM formats
-                if start_time_str and start_time_str != 'None':
-                    try:
-                        event.start_time = dt.strptime(start_time_str, '%H:%M:%S').time()
-                    except ValueError:
-                        try:
-                            event.start_time = dt.strptime(start_time_str, '%H:%M').time()
-                        except ValueError:
-                            app_logger.warning(f"Could not parse start_time '{start_time_str}' for event '{title}'")
-                            event.start_time = None
-                
-                if end_time_str and end_time_str != 'None':
-                    try:
-                        event.end_time = dt.strptime(end_time_str, '%H:%M:%S').time()
-                    except ValueError:
-                        try:
-                            event.end_time = dt.strptime(end_time_str, '%H:%M').time()
-                        except ValueError:
-                            app_logger.warning(f"Could not parse end_time '{end_time_str}' for event '{title}'")
-                            event.end_time = None
-                
-                event.start_location = event_data.get('start_location', '')
-                event.venue_id = venue_id
-                event.city_id = city_id_event
-                event.source = 'website'
-                event.source_url = event_data.get('source_url', '')
-                event.organizer = event_data.get('organizer', '')
-                
-                # Registration information
-                if hasattr(Event, 'is_registration_required'):
-                    event.is_registration_required = event_data.get('is_registration_required', False)
-                if hasattr(Event, 'registration_url'):
-                    event.registration_url = event_data.get('registration_url')
-                if hasattr(Event, 'registration_info'):
-                    event.registration_info = event_data.get('registration_info')
-                
-                db.session.add(event)
-                events_saved += 1
-                
-                # Add to recent events
-                recent_events_list.append({
-                    'title': title,
-                    'event_type': event_type,
-                    'start_date': start_date.isoformat(),
-                    'start_time': str(event.start_time) if event.start_time else None,
-                    'start_location': event.start_location
-                })
-                
-                # Update progress after each save
-                progress_data.update({
-                    'current_step': 3,
-                    'total_steps': 3,
-                    'percentage': 60 + int((events_saved / len(scraped_events)) * 35),
-                    'message': f'Saving event {idx + 1}/{len(scraped_events)}...',
-                    'events_saved': events_saved,
-                    'recent_events': recent_events_list[-10:]
-                })
-                with open('scraping_progress.json', 'w') as f:
-                    json.dump(progress_data, f)
-                
-            except Exception as e:
-                app_logger.error(f"Error saving event {event_data.get('title', 'Unknown')}: {e}")
-                continue
+        total_venue_events = Event.query.filter_by(venue_id=hirshhorn.id).count()
+        app_logger.info(
+            "Hirshhorn scraping completed: found %d Tribe API events, created %d, updated %d, skipped %d (%d total in DB); exhibitions deferred",
+            len(scraped_events),
+            created_count,
+            updated_count,
+            skipped_count,
+            total_venue_events,
+        )
         
-        # Commit all events
-        db.session.commit()
+        if len(scraped_events) > 0 and events_saved == 0 and skipped_count > 0:
+            message = (
+                f'Found {len(scraped_events)} Tribe API tours/programs, all already in database '
+                f'({total_venue_events} total for Hirshhorn). Exhibitions skipped.'
+            )
+        elif events_saved > 0:
+            message = (
+                f'Saved {events_saved} new Tribe API tours/programs ({total_venue_events} total for Hirshhorn). '
+                f'Exhibitions skipped (blocked).'
+            )
+        else:
+            message = (
+                f'Found {len(scraped_events)} Tribe API tours/programs ({total_venue_events} total for Hirshhorn). '
+                f'Exhibitions skipped (blocked).'
+            )
         
-        # Final progress update (include events_found so modal shows correct numbers)
         progress_data.update({
             'current_step': 3,
             'total_steps': 3,
             'percentage': 100,
-            'message': f'✅ Scraping completed! Found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated)',
+            'message': f'✅ {message}',
             'events_found': len(scraped_events),
             'events_saved': events_saved,
-            'recent_events': recent_events_list[-10:]  # Keep last 10
+            'recent_events': recent_events_list,
         })
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        # Total events for this venue in DB (helps explain modal vs table count)
-        total_venue_events = Event.query.filter_by(venue_id=hirshhorn.id).count()
-
-        app_logger.info(f"Hirshhorn scraping completed: found {len(scraped_events)} events, saved {events_saved} ({events_updated} updated), {total_venue_events} total in DB")
-
-        # Provide clearer message when events are found but skipped as duplicates
-        if len(scraped_events) > 0 and events_saved == 0:
-            message = f'Found {len(scraped_events)} events, all already in database ({total_venue_events} total for Hirshhorn).'
-        elif events_saved > 0:
-            message = f'Successfully scraped {len(scraped_events)} events, saved {events_saved} new ({total_venue_events} total for Hirshhorn).'
-        else:
-            message = f'Successfully scraped {len(scraped_events)} events, saved {events_saved} ({total_venue_events} total for Hirshhorn).'
-
         return jsonify({
             'success': True,
             'events_found': len(scraped_events),
             'events_saved': events_saved,
             'events_updated': events_updated,
+            'events_skipped': skipped_count,
+            'exhibitions_found': 0,
+            'tours_found': len(scraped_events),
             'total_venue_events': total_venue_events,
-            'message': message
+            'message': message,
+            'exhibitions_deferred': True,
         })
         
     except Exception as e:

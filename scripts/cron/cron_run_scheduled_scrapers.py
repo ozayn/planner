@@ -339,39 +339,24 @@ def run_scheduled_scrapers(bucket: str = BUCKET_STABLE) -> int:
                             logger.error(traceback.format_exc())
                     
                     elif 'hirshhorn.si.edu' in venue_url_lower:
-                        logger.info(f"🏛️  Hirshhorn | {museum.name}")
-                        scraped_events = venue_scraper.scrape_venue_events(
-                            venue_ids=[museum.id],
-                            city_id=dc_city.id,
-                            event_type=None,
-                            time_range=time_range,
-                            max_exhibitions_per_venue=max_exhibitions_per_venue,
-                            max_events_per_venue=max_events_per_venue
-                        )
-                        if scraped_events:
-                            from scripts.event_database_handler import create_events_in_database as shared_create_events
-                            def generic_event_processor(event_data):
-                                event_data['source'] = 'website'
-                                if not event_data.get('organizer'):
-                                    event_data['organizer'] = museum.name
-                            created, updated, skipped = shared_create_events(
-                                events=scraped_events,
-                                venue_id=museum.id,
-                                city_id=museum.city_id,
-                                venue_name=museum.name,
-                                db=db,
-                                Event=Event,
-                                Venue=Venue,
-                                batch_size=5,
-                                logger_instance=logger,
-                                source_url=museum.website_url,
-                                custom_event_processor=generic_event_processor
+                        logger.info(f"🏛️  Hirshhorn | {museum.name} (Tribe Events API)")
+                        from scripts.hirshhorn_scraper import scrape_all_hirshhorn_events, create_events_in_database
+                        try:
+                            scraped_events = scrape_all_hirshhorn_events() or []
+                            if scraped_events:
+                                created, updated, skipped = create_events_in_database(scraped_events)
+                                saved_count = created
+                                updated_count = updated
+                                skipped_count = skipped
+                                total_events_saved += saved_count
+                            logger.info(
+                                f"   → Tribe API: found {len(scraped_events)}, saved {saved_count}, "
+                                f"updated {updated_count}, skipped {skipped_count} (exhibitions deferred)"
                             )
-                            saved_count = created
-                            updated_count = updated
-                            skipped_count = skipped
-                            total_events_saved += saved_count
-                        logger.info(f"   → found {len(scraped_events)}, saved {saved_count}, updated {updated_count}, skipped {skipped_count}")
+                        except Exception as e:
+                            logger.error(f"   ❌ {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
                     
                     elif 'sunscinema.com' in venue_url_lower:
                         logger.info(f"🏛️  Suns Cinema | {museum.name}")
