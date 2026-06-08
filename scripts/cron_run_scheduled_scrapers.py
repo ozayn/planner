@@ -35,7 +35,7 @@ from scripts.cron_bucket_config import (
     BUCKET_PROTECTED,
     bucket_display_name,
     bucket_runs_stable_sections,
-    get_venue_scraper_bucket,
+    resolve_venue_scraper_bucket,
 )
 from scripts.cron_scheduler_config import (
     should_run,
@@ -168,7 +168,11 @@ def run_scheduled_scrapers(bucket: str = BUCKET_STABLE) -> int:
                 
                 # Check if it has a specialized scraper
                 if has_specialized_scraper(venue):
-                    if get_venue_scraper_bucket(venue.website_url, venue.name) == bucket:
+                    if resolve_venue_scraper_bucket(
+                        venue.website_url,
+                        venue.name,
+                        getattr(venue, 'cron_bucket', None),
+                    ) == bucket:
                         museums.append(venue)
                         logger.debug(f"✅ Museum with specialized scraper [{bucket}]: {venue.name}")
             

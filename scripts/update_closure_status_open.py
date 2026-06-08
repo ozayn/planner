@@ -1,16 +1,40 @@
 #!/usr/bin/env python3
 """
-Update venues.json: museums are no longer closed due to government shutdown.
-Sets closure_status to 'open' and clears government-shutdown holiday_hours.
+Remove stale government-shutdown closure notes from data/venues.json.
+
+- Clears holiday_hours with TEMPORARILY CLOSED / government shutdown text
+- Sets closure_status to open when it was closed only for the shutdown
+- Removes closure_reason text that references government shutdown
+- Preserves other additional_info keys (event_paths, scraping_paths, etc.)
 """
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 project_root = Path(__file__).parent.parent
 venues_path = project_root / "data" / "venues.json"
+
+SHUTDOWN_HOLIDAY_PREFIX = "TEMPORARILY CLOSED: Closed due to government shutdown."
+
+
+def _has_shutdown_text(text: str) -> bool:
+    return "government shutdown" in (text or "").lower()
+
+
+def _clean_additional_info(ai: dict, now: str) -> bool:
+    changed = False
+    reason = ai.get("closure_reason") or ""
+
+    if _has_shutdown_text(reason):
+        if ai.get("closure_status") == "closed":
+            ai["closure_status"] = "open"
+        del ai["closure_reason"]
+        ai["last_updated"] = now
+        changed = True
+
+    return changed
 
 
 def main():
@@ -18,42 +42,39 @@ def main():
         data = json.load(f)
 
     venues = data.get("venues", {})
-    updated_count = 0
+    updated = []
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")
 
     for vid, venue in venues.items():
         changed = False
+        changes = []
 
-        # Parse additional_info
-        ai_str = venue.get("additional_info") or "{}"
-        try:
-            ai = json.loads(ai_str)
-        except json.JSONDecodeError:
-            continue
-
-        # If closed due to government shutdown → open
-        if ai.get("closure_status") == "closed" and "government shutdown" in (ai.get("closure_reason") or "").lower():
-            ai["closure_status"] = "open"
-            ai["closure_reason"] = "Open - check venue website for current hours."
-            ai["last_updated"] = now
-            venue["additional_info"] = json.dumps(ai)
-            changed = True
-
-        # Clear holiday_hours with government shutdown message
         hh = venue.get("holiday_hours") or ""
-        if "government shutdown" in hh.lower() and "TEMPORARILY CLOSED" in hh:
+        if _has_shutdown_text(hh):
             venue["holiday_hours"] = ""
             changed = True
+            changes.append("holiday_hours cleared")
+
+        ai_str = venue.get("additional_info") or ""
+        if ai_str.strip():
+            try:
+                ai = json.loads(ai_str)
+            except json.JSONDecodeError:
+                ai = None
+            if isinstance(ai, dict) and _clean_additional_info(ai, now):
+                venue["additional_info"] = json.dumps(ai)
+                changed = True
+                changes.append("additional_info updated")
 
         if changed:
-            updated_count += 1
-            print(f"  ✅ {venue.get('name', vid)}")
+            updated.append((vid, venue.get("name", vid), changes))
+            print(f"  ✅ [{vid}] {venue.get('name', vid)} — {', '.join(changes)}")
 
-    # Write back
     with open(venues_path, "w") as f:
         json.dump(data, f, indent=2)
+        f.write("\n")
 
-    print(f"\n🎉 Updated {updated_count} venues - museums no longer marked as closed")
+    print(f"\n🎉 Updated {len(updated)} venues — removed government-shutdown closure notes")
     return 0
 
 

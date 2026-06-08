@@ -546,12 +546,13 @@ window.addEventListener('resize', updateAllTablesViewMode);
 function getFieldConfig(tableType) {
     const configs = {
         venues: {
-            order: ['id', 'name', 'venue_type', 'visibility', 'city_name', 'address', 'opening_hours', 'phone_number', 'email', 'website_url', 'ticketing_url', 'image_url', 'latitude', 'longitude', 'facebook_url', 'instagram_url', 'twitter_url', 'youtube_url', 'tiktok_url', 'holiday_hours', 'admission_fee', 'tour_info', 'description', 'additional_info', 'created_at', 'updated_at'],
+            order: ['id', 'name', 'venue_type', 'visibility', 'cron_bucket', 'city_name', 'address', 'opening_hours', 'phone_number', 'email', 'website_url', 'ticketing_url', 'image_url', 'latitude', 'longitude', 'facebook_url', 'instagram_url', 'twitter_url', 'youtube_url', 'tiktok_url', 'holiday_hours', 'admission_fee', 'tour_info', 'description', 'additional_info', 'created_at', 'updated_at'],
             fields: {
                 id: { label: 'ID', visible: true, sortable: true },
                 name: { label: 'Name', visible: true, sortable: true },
                 venue_type: { label: 'Type', visible: true, sortable: true },
                 visibility: { label: 'Visibility', visible: true, sortable: true },
+                cron_bucket: { label: 'Cron', visible: true, sortable: true },
                 city_name: { label: 'City', visible: true, sortable: true },
                 address: { label: 'Address', visible: true, sortable: true },
                 opening_hours: { label: 'Hours', visible: true, sortable: false },
@@ -785,6 +786,15 @@ function formatFieldValue(fieldName, value, config = {}) {
                 return '<span class="badge badge-default" title="Hidden from public users">Admin only</span>';
             }
             return '<span class="badge">Public</span>';
+
+        case 'cron_bucket':
+            if (value === 'protected') {
+                return '<span class="badge badge-default" title="Runs in protected cron">Protected</span>';
+            }
+            if (value === 'stable') {
+                return '<span class="badge">Stable</span>';
+            }
+            return '<span class="badge">Inherit</span>';
         
         case 'event_type':
             return `<span class="badge badge-event">${value}</span>`;

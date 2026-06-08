@@ -78,6 +78,14 @@
                     <option value="admin_only">Admin only — events hidden from public users</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="editVenueCronBucket">Cron bucket</label>
+                <select id="editVenueCronBucket">
+                    <option value="inherit">Inherit — use code defaults (URL/name rules)</option>
+                    <option value="stable">Stable cron — main weekly scrape</option>
+                    <option value="protected">Protected cron — heavy / 403-sensitive scrape</option>
+                </select>
+            </div>
         </form>
         </div>
         <div class="modal-actions" style="flex-shrink: 0; padding: 15px 20px; border-top: 1px solid #e5e7eb; background: white;">

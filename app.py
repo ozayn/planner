@@ -474,6 +474,7 @@ def migrate_venues_schema():
                 for col_name, col_type, default_sql in (
                     ('ticketing_url', 'VARCHAR(200)', None),
                     ('visibility', 'VARCHAR(20)', "DEFAULT 'public'"),
+                    ('cron_bucket', 'VARCHAR(20)', None),
                 ):
                     railway_cursor.execute(
                         """
@@ -515,6 +516,11 @@ def migrate_venues_schema():
                         "ALTER TABLE venues ADD COLUMN visibility VARCHAR(20) DEFAULT 'public'"
                     ))
                     added_columns.append('visibility')
+                if 'cron_bucket' not in existing_columns:
+                    conn.execute(sqlalchemy.text(
+                        "ALTER TABLE venues ADD COLUMN cron_bucket VARCHAR(20)"
+                    ))
+                    added_columns.append('cron_bucket')
                 if added_columns:
                     conn.commit()
             if added_columns:
@@ -675,6 +681,7 @@ class Venue(db.Model):
     admission_fee = db.Column(db.Text)
     additional_info = db.Column(db.Text)  # JSON blob for extra venue details
     visibility = db.Column(db.String(20), default='public', nullable=False)  # public | admin_only
+    cron_bucket = db.Column(db.String(20))  # NULL = inherit; stable | protected
     city_id = db.Column(db.Integer, db.ForeignKey('cities.id', ondelete='CASCADE'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -753,6 +760,7 @@ class Venue(db.Model):
             'admission_fee': self.admission_fee,
             'additional_info': self.additional_info,
             'visibility': self.visibility if hasattr(self, 'visibility') and self.visibility else 'public',
+            'cron_bucket': self.cron_bucket if hasattr(self, 'cron_bucket') and self.cron_bucket else None,
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
             'city_timezone': self._get_city_timezone(),
@@ -6318,6 +6326,9 @@ def edit_venue():
         if 'visibility' in data:
             vis = (data.get('visibility') or 'public').strip().lower()
             venue.visibility = vis if vis in ('public', 'admin_only') else 'public'
+        if 'cron_bucket' in data:
+            from scripts.cron_bucket_config import parse_venue_cron_bucket_setting
+            venue.cron_bucket = parse_venue_cron_bucket_setting(data.get('cron_bucket'))
         
         db.session.commit()
         

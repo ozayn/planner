@@ -443,6 +443,7 @@ function generateVenueDetailsHTML(venue) {
                     <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${venue.id}</div>
                     ${addField('Type', venue.venue_type)}
                     ${addField('Venue visibility', venue.visibility === 'admin_only' ? 'Admin only' : 'Public')}
+                    ${addField('Cron bucket', venue.cron_bucket ? (venue.cron_bucket === 'protected' ? 'Protected' : 'Stable') : 'Inherit')}
                     ${addField('Description', venue.description)}
                     ${addField('City', venue.city_name)}
                 </div>
