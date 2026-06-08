@@ -393,6 +393,8 @@ def run_sync(apply: bool):
                     existing.tour_info = info.get("tour_info", existing.tour_info)
                     existing.admission_fee = info.get("admission_fee", existing.admission_fee)
                     existing.additional_info = info.get("additional_info", existing.additional_info)
+                    if "visibility" in info:
+                        existing.visibility = info.get("visibility") or "public"
                     existing.updated_at = datetime.utcnow()
             else:
                 stats["venues"]["create"] += 1
@@ -428,6 +430,7 @@ def run_sync(apply: bool):
                         tour_info=info.get("tour_info"),
                         admission_fee=info.get("admission_fee"),
                         additional_info=info.get("additional_info"),
+                        visibility=info.get("visibility") or "public",
                     )
                     db.session.add(new_venue)
 

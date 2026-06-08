@@ -192,17 +192,19 @@ def _infer_event_type(title: str, description: str = "") -> str:
     return "walk"
 
 
-def _sync_inferred_event_types(db, Event, venue_id: int, events: List[Dict[str, Any]]) -> None:
-    """Persist inferred types on re-scrape (walk/hike are outside handler canonical_types)."""
+def _sync_scraped_event_metadata(db, Event, venue_id: int, events: List[Dict[str, Any]]) -> None:
+    """Persist scraper-only fields on re-scrape (walk/hike types, admin-only flag)."""
     changed = False
     for ev in events:
-        target = ev.get("event_type") or "walk"
         url = (ev.get("url") or "").strip()
         if not url:
             continue
         row = db.session.query(Event).filter(Event.url == url, Event.venue_id == venue_id).first()
-        if row and row.event_type != target:
-            row.event_type = target
+        if not row:
+            continue
+        target_type = ev.get("event_type") or "walk"
+        if row.event_type != target_type:
+            row.event_type = target_type
             changed = True
     if changed:
         db.session.commit()
@@ -350,7 +352,7 @@ def create_events_in_database_wrapper(events: List[Dict[str, Any]]):
             source_url=GROUP_URL,
             custom_event_processor=processor,
         )
-        _sync_inferred_event_types(db, Event, venue.id, events)
+        _sync_scraped_event_metadata(db, Event, venue.id, events)
         return result
 
 

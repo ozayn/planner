@@ -288,7 +288,8 @@ async function handleEditVenue(event) {
         email: document.getElementById('editVenueEmail').value.trim(),
         website_url: document.getElementById('editVenueWebsite').value.trim(),
         ticketing_url: document.getElementById('editVenueTicketing').value.trim(),
-        admission_fee: document.getElementById('editVenueAdmission').value.trim()
+        admission_fee: document.getElementById('editVenueAdmission').value.trim(),
+        visibility: document.getElementById('editVenueVisibility').value
     };
     
     try {

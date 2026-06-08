@@ -987,6 +987,7 @@ function editVenue(id) {
     document.getElementById('editVenueWebsite').value = venue.website_url || '';
     document.getElementById('editVenueTicketing').value = venue.ticketing_url || '';
     document.getElementById('editVenueAdmission').value = venue.admission_fee || '';
+    document.getElementById('editVenueVisibility').value = venue.visibility || 'public';
     
     // Clear Eventbrite search results
     const resultsDiv = document.getElementById('eventbriteSearchResults');

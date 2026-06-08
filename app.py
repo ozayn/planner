@@ -339,6 +339,7 @@ def migrate_events_schema():
                 ('is_online', 'BOOLEAN'),
                 # Baby-friendly field
                 ('is_baby_friendly', 'BOOLEAN'),
+                ('is_admin_only', 'BOOLEAN'),
                 # Registration fields
                 ('is_registration_required', 'BOOLEAN'),
                 ('registration_opens_date', 'DATE'),
@@ -366,6 +367,8 @@ def migrate_events_schema():
                         if col_name == 'is_online':
                             railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
                         elif col_name == 'is_baby_friendly':
+                            railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
+                        elif col_name == 'is_admin_only':
                             railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
                         elif col_name == 'is_registration_required':
                             railway_cursor.execute(f"ALTER TABLE events ADD COLUMN {col_name} {pg_type} DEFAULT FALSE")
@@ -408,6 +411,7 @@ def migrate_events_schema():
         # Define expected columns for SQLite
         expected_columns = [
             ('is_baby_friendly', 'INTEGER', 0),  # SQLite uses INTEGER for BOOLEAN
+            ('is_admin_only', 'INTEGER', 0),
             ('is_online', 'INTEGER', 0),
             ('is_registration_required', 'INTEGER', 0),
             ('is_permanent', 'INTEGER', 0),
@@ -459,22 +463,30 @@ def migrate_venues_schema():
                 railway_cursor = railway_conn.cursor()
                 
                 # Check if ticketing_url column exists
-                railway_cursor.execute("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'venues' AND column_name = 'ticketing_url'
-                """)
-                exists = railway_cursor.fetchone()
-                
-                if not exists:
-                    railway_cursor.execute("ALTER TABLE venues ADD COLUMN ticketing_url VARCHAR(200)")
-                    railway_cursor.close()
-                    railway_conn.close()
-                    return True, "Added ticketing_url column to venues table", ['ticketing_url']
-                else:
-                    railway_cursor.close()
-                    railway_conn.close()
-                    return True, "Venues schema is already up to date", []
+                added_columns = []
+                for col_name, col_type, default_sql in (
+                    ('ticketing_url', 'VARCHAR(200)', None),
+                    ('visibility', 'VARCHAR(20)', "DEFAULT 'public'"),
+                ):
+                    railway_cursor.execute(
+                        """
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_name = 'venues' AND column_name = %s
+                        """,
+                        (col_name,),
+                    )
+                    if not railway_cursor.fetchone():
+                        ddl = f"ALTER TABLE venues ADD COLUMN {col_name} {col_type}"
+                        if default_sql:
+                            ddl += f" {default_sql}"
+                        railway_cursor.execute(ddl)
+                        added_columns.append(col_name)
+                railway_cursor.close()
+                railway_conn.close()
+                if added_columns:
+                    return True, f"Added venue columns: {', '.join(added_columns)}", added_columns
+                return True, "Venues schema is already up to date", []
             except ImportError:
                 pass
             except Exception as e:
@@ -486,13 +498,21 @@ def migrate_venues_schema():
             inspector = sqlalchemy.inspect(db.engine)
             existing_columns = [col['name'] for col in inspector.get_columns('venues')]
             
-            if 'ticketing_url' not in existing_columns:
-                with db.engine.connect() as conn:
+            added_columns = []
+            with db.engine.connect() as conn:
+                if 'ticketing_url' not in existing_columns:
                     conn.execute(sqlalchemy.text("ALTER TABLE venues ADD COLUMN ticketing_url VARCHAR(200)"))
+                    added_columns.append('ticketing_url')
+                if 'visibility' not in existing_columns:
+                    conn.execute(sqlalchemy.text(
+                        "ALTER TABLE venues ADD COLUMN visibility VARCHAR(20) DEFAULT 'public'"
+                    ))
+                    added_columns.append('visibility')
+                if added_columns:
                     conn.commit()
-                return True, "Added ticketing_url column to venues table", ['ticketing_url']
-            else:
-                return True, "Venues schema is already up to date", []
+            if added_columns:
+                return True, f"Added venue columns: {', '.join(added_columns)}", added_columns
+            return True, "Venues schema is already up to date", []
         except Exception as e:
             return False, f"Venues migration error: {str(e)}", []
     except Exception as e:
@@ -583,6 +603,7 @@ class Venue(db.Model):
     tour_info = db.Column(db.Text)
     admission_fee = db.Column(db.Text)
     additional_info = db.Column(db.Text)  # JSON blob for extra venue details
+    visibility = db.Column(db.String(20), default='public', nullable=False)  # public | admin_only
     city_id = db.Column(db.Integer, db.ForeignKey('cities.id', ondelete='CASCADE'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -660,6 +681,7 @@ class Venue(db.Model):
             'tour_info': self.tour_info,
             'admission_fee': self.admission_fee,
             'additional_info': self.additional_info,
+            'visibility': self.visibility if hasattr(self, 'visibility') and self.visibility else 'public',
             'city_id': self.city_id,
             'city_name': self.city.name if self.city else None,
             'city_timezone': self._get_city_timezone(),
@@ -693,6 +715,7 @@ class Event(db.Model):
     is_selected = db.Column(db.Boolean, default=True)
     is_online = db.Column(db.Boolean, default=False)  # True for online/virtual events
     is_baby_friendly = db.Column(db.Boolean, default=False)  # True for baby/toddler-friendly events
+    is_admin_only = db.Column(db.Boolean, default=False, nullable=False)  # Hidden from public UI/API unless admin
     event_type = db.Column(db.String(50), nullable=False)  # 'tour', 'exhibition', 'festival', 'photowalk'
     
     # Registration fields
@@ -835,6 +858,7 @@ class Event(db.Model):
             'maps_link': maps_link,  # Add clickable Google Maps link
             'is_online': self.is_online if hasattr(self, 'is_online') else False,  # Online/virtual event flag
             'is_baby_friendly': self.is_baby_friendly if hasattr(self, 'is_baby_friendly') else False,  # Baby/toddler-friendly event flag
+            'is_admin_only': self.is_admin_only if hasattr(self, 'is_admin_only') else False,
             'url': self.url,
             'is_selected': self.is_selected,
             'event_type': self.event_type,
@@ -847,6 +871,11 @@ class Event(db.Model):
             'end_location': self.end_location,
             'venue_id': self.venue_id,
             'venue_name': self.venue.name if self.venue else None,
+            'venue_visibility': (
+                self.venue.visibility
+                if self.venue and hasattr(self.venue, 'visibility') and self.venue.visibility
+                else 'public'
+            ),
             'venue_type': self.venue.venue_type if self.venue else None,
             'venue_address': self.venue.address if self.venue else None,
             'city_id': self.city_id,
@@ -1034,6 +1063,23 @@ def _is_admin_authenticated():
     if not is_admin_email(session['user_email']):
         return False
     return True
+
+
+def _event_is_public_for_api(event):
+    """True when an event may appear in public /api/events (venue visibility is primary)."""
+    venue_vis = event.get('venue_visibility') or 'public'
+    if venue_vis == 'admin_only':
+        return False
+    if event.get('is_admin_only'):
+        return False
+    return True
+
+
+def _filter_public_event_dicts(events):
+    """Drop admin-only events for non-admin requests (public /api/events)."""
+    if _is_admin_authenticated():
+        return events
+    return [event for event in events if _event_is_public_for_api(event)]
 
 
 def login_required(f):
@@ -1668,6 +1714,8 @@ def get_events():
         if (e.get('language') or 'English').lower() == 'english'
         and not is_spanish_language_event(e.get('title', ''))
     ]
+
+    events = _filter_public_event_dicts(events)
     
     return jsonify(events)
 
@@ -5427,6 +5475,8 @@ def reload_venues_from_json():
                 venue.tour_info = venue_data.get('tour_info', venue.tour_info)
                 venue.admission_fee = venue_data.get('admission_fee', venue.admission_fee)
                 venue.additional_info = venue_data.get('additional_info', venue.additional_info)
+                if 'visibility' in venue_data:
+                    venue.visibility = venue_data.get('visibility') or 'public'
                 venue.updated_at = datetime.utcnow()
                 updated_count += 1
             else:
@@ -5466,6 +5516,7 @@ def reload_venues_from_json():
                     tour_info=venue_data.get('tour_info'),
                     admission_fee=venue_data.get('admission_fee'),
                     additional_info=venue_data.get('additional_info'),
+                    visibility=venue_data.get('visibility') or 'public',
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
@@ -6087,6 +6138,9 @@ def edit_venue():
             venue.tour_info = clean_text_field(data['tour_info'])
         if 'admission_fee' in data:
             venue.admission_fee = clean_text_field(data['admission_fee'])
+        if 'visibility' in data:
+            vis = (data.get('visibility') or 'public').strip().lower()
+            venue.visibility = vis if vis in ('public', 'admin_only') else 'public'
         
         db.session.commit()
         
@@ -9799,8 +9853,8 @@ def scrape_wit_eventbrite_endpoint():
             custom_event_processor=lambda e: e.update({
                 'source': 'eventbrite',
                 'organizer': venue.name,
-                'multiple_locations': True
-            })
+                'multiple_locations': True,
+            }),
         )
 
         progress_data.update({
