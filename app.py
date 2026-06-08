@@ -9137,6 +9137,46 @@ def scrape_tenement_museum_endpoint():
             'events_skipped': 0,
         }), 500
 
+@app.route('/api/admin/scrape-dc-urban-walkers', methods=['POST'])
+def scrape_dc_urban_walkers_endpoint():
+    """Scrape DC Urban Walkers upcoming walks from Meetup."""
+    try:
+        app_logger.info("Starting DC Urban Walkers Meetup scraping...")
+
+        from scripts.dc_urban_walkers_scraper import (
+            create_events_in_database_wrapper,
+            scrape_dc_urban_walkers_events,
+        )
+
+        events = scrape_dc_urban_walkers_events()
+        created, updated, skipped = 0, 0, 0
+        if events:
+            created, updated, skipped = create_events_in_database_wrapper(events)
+
+        return jsonify({
+            'success': True,
+            'events_found': len(events),
+            'events_saved': created,
+            'events_updated': updated,
+            'events_skipped': skipped,
+            'message': (
+                f"Found {len(events)} DC Urban Walkers event(s) (created: {created}, "
+                f"updated: {updated}, skipped: {skipped})"
+            ),
+        })
+    except Exception as e:
+        app_logger.error(f"Error scraping DC Urban Walkers: {e}")
+        import traceback
+        app_logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'events_found': 0,
+            'events_saved': 0,
+            'events_updated': 0,
+            'events_skipped': 0,
+        }), 500
+
 @app.route('/api/admin/scrape-big-onion', methods=['POST'])
 def scrape_big_onion_endpoint():
     """Scrape Big Onion Walking Tours (bigonion.com listing)."""

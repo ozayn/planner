@@ -578,6 +578,26 @@ def main():
                 import traceback
                 logger.error(traceback.format_exc())
 
+            # DC Urban Walkers (Meetup)
+            logger.info(f"🚶 DC Urban Walkers | Meetup")
+            try:
+                from scripts.dc_urban_walkers_scraper import (
+                    scrape_dc_urban_walkers_events,
+                    create_events_in_database_wrapper as save_dc_urban_walkers_events,
+                )
+                duw_events = scrape_dc_urban_walkers_events()
+                if duw_events:
+                    created, updated, skipped = save_dc_urban_walkers_events(duw_events)
+                    total_events_saved += created
+                    total_events_found += len(duw_events)
+                    logger.info(f"   → found {len(duw_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                else:
+                    logger.info(f"   → found 0")
+            except Exception as e:
+                logger.error(f"   ❌ {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+
             # Austrian Cultural Forum Washington (acfdc.org — shared VenueEventScraper + event_paths.events)
             rule, months = get_standalone_schedule_rule("acfdc_dc")
             if not should_run(rule, months):
