@@ -43,6 +43,7 @@ from scripts.cron_scheduler_config import (
     get_venue_schedule_rule,
     get_standalone_schedule_rule,
 )
+from scripts.cron.cron_env_validation import validate_cron_env
 
 
 def configure_logging(bucket: str) -> None:
@@ -132,6 +133,10 @@ def run_scheduled_scrapers(bucket: str = BUCKET_STABLE) -> int:
         raise ValueError(f"Unknown cron bucket: {bucket}")
 
     configure_logging(bucket)
+
+    if not validate_cron_env(bucket):
+        return 1
+
     start_time = datetime.now()
     logger.info(
         f"🏛️  {bucket_display_name(bucket)} ({bucket}): scheduled scrapers — "
