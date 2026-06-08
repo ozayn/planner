@@ -3,7 +3,7 @@
 Operational buckets for scheduled cron scrapers.
 
 - stable: reliable sources (Eventbrite, Meetup, most venue HTML scrapers)
-- protected: recurring 403 / Cloudflare / proxy-sensitive or heavy sources (NGA, Asian Art, NPG, Hirshhorn)
+- protected: recurring 403 / Cloudflare / proxy-sensitive or heavy sources (NGA, Asian Art, NPG, Hirshhorn, OCMA, etc.)
 
 Classify new scrapers here when adding them to cron_run_scheduled_scrapers.py.
 """
@@ -17,6 +17,11 @@ VENUE_URL_BUCKET: dict[str, str] = {
     "asia.si.edu": BUCKET_PROTECTED,       # Smithsonian National Museum of Asian Art
     "npg.si.edu": BUCKET_PROTECTED,        # National Portrait Gallery
     "hirshhorn.si.edu": BUCKET_PROTECTED,  # Hirshhorn Museum
+    "africa.si.edu": BUCKET_PROTECTED,     # African Art (legacy URL)
+    "african-art-museum": BUCKET_PROTECTED,  # si.edu/museums/african-art-museum
+    "ocma.art": BUCKET_PROTECTED,          # Orange County Museum of Art (OCMA)
+    "tenement.org": BUCKET_PROTECTED,      # Tenement Museum
+    "deyoung.famsf.org": BUCKET_PROTECTED,  # de Young Museum
 }
 
 # Fallback when URL does not match (Freer/Sackler share asia.si.edu; name guard)
@@ -25,9 +30,25 @@ VENUE_NAME_BUCKET: dict[str, str] = {
     "hirshhorn": BUCKET_PROTECTED,
     "national portrait gallery": BUCKET_PROTECTED,
     "smithsonian national museum of asian art": BUCKET_PROTECTED,
+    "national museum of african art": BUCKET_PROTECTED,
     "freer gallery": BUCKET_PROTECTED,
     "sackler gallery": BUCKET_PROTECTED,
+    "orange county museum of art": BUCKET_PROTECTED,
+    "tenement museum": BUCKET_PROTECTED,
+    "de young": BUCKET_PROTECTED,
 }
+
+# Standalone scraper blocks in cron_run_scheduled_scrapers (default: stable)
+STANDALONE_SCRAPER_BUCKET: dict[str, str] = {
+    "tenement_museum": BUCKET_PROTECTED,
+    "deyoung": BUCKET_PROTECTED,
+    "ocma": BUCKET_PROTECTED,
+}
+
+
+def standalone_runs_in_bucket(scraper_id: str, bucket: str) -> bool:
+    """Whether a standalone cron scraper block should run in this bucket."""
+    return STANDALONE_SCRAPER_BUCKET.get(scraper_id, BUCKET_STABLE) == bucket
 
 
 def parse_venue_cron_bucket_setting(value) -> str | None:
@@ -79,5 +100,5 @@ def bucket_display_name(bucket: str) -> str:
 
 
 def bucket_runs_stable_sections(bucket: str) -> bool:
-    """Embassies, Eventbrite extras, and standalone scrapers run on stable cron only."""
+    """Embassies and Eventbrite extras run on stable cron only (standalones use standalone_runs_in_bucket)."""
     return bucket == BUCKET_STABLE

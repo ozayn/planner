@@ -36,6 +36,7 @@ from scripts.cron_bucket_config import (
     bucket_display_name,
     bucket_runs_stable_sections,
     resolve_venue_scraper_bucket,
+    standalone_runs_in_bucket,
 )
 from scripts.cron_scheduler_config import (
     should_run,
@@ -561,376 +562,378 @@ def run_scheduled_scrapers(bucket: str = BUCKET_STABLE) -> int:
                     import traceback
                     logger.error(traceback.format_exc())
 
-            if not bucket_runs_stable_sections(bucket):
-                end_time = datetime.now()
-                duration = end_time - start_time
-                logger.info(
-                    f"📊 {bucket_display_name(bucket)} summary: venues {venues_processed} "
-                    f"(with events: {venues_with_events}, failed: {venues_failed}) | "
-                    f"found {total_events_found} | saved {total_events_saved} | {duration}"
-                )
-                return 0 if venues_failed == 0 else 1
-
-            # --- Stable-only standalone scrapers below ---
-
-            # Webster's Bookstore Cafe (State College, PA)
-            logger.info(f"🏛️  Webster's | Webster's Bookstore Cafe")
-            try:
-                from scripts.websters_scraper import scrape_websters_events, create_events_in_database
-                websters_events = scrape_websters_events()
-                if websters_events:
-                    created = create_events_in_database(websters_events)
-                    total_events_saved += created
-                    total_events_found += len(websters_events)
-                    logger.info(f"   → found {len(websters_events)}, saved {created}")
-                else:
-                    logger.info(f"   → found 0")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # The Wharf DC
-            logger.info(f"🏛️  Wharf DC | The Wharf DC")
-            try:
-                from scripts.wharf_dc_scraper import scrape_wharf_dc_events, create_events_in_database_wrapper
-                wharf_events = scrape_wharf_dc_events()
-                if wharf_events:
-                    created, updated, skipped = create_events_in_database_wrapper(wharf_events)
-                    total_events_saved += created
-                    total_events_found += len(wharf_events)
-                    logger.info(f"   → found {len(wharf_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                else:
-                    logger.info(f"   → found 0")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # DC Urban Walkers (Meetup)
-            logger.info(f"🚶 DC Urban Walkers | Meetup")
-            try:
-                from scripts.dc_urban_walkers_scraper import (
-                    scrape_dc_urban_walkers_events,
-                    create_events_in_database_wrapper as save_dc_urban_walkers_events,
-                )
-                duw_events = scrape_dc_urban_walkers_events()
-                if duw_events:
-                    created, updated, skipped = save_dc_urban_walkers_events(duw_events)
-                    total_events_saved += created
-                    total_events_found += len(duw_events)
-                    logger.info(f"   → found {len(duw_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                else:
-                    logger.info(f"   → found 0")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # Austrian Cultural Forum Washington (acfdc.org — shared VenueEventScraper + event_paths.events)
-            rule, months = get_standalone_schedule_rule("acfdc_dc")
-            if not should_run(rule, months):
-                logger.info(f"⏭️  ACF DC | skipped (scheduler)")
-            else:
-                logger.info(f"🏛️  ACF DC | Austrian Cultural Forum Washington")
+            # --- Standalone scrapers (per-scraper bucket in cron_bucket_config) ---
+            if standalone_runs_in_bucket("websters", bucket):
+                # Webster's Bookstore Cafe (State College, PA)
+                logger.info(f"🏛️  Webster's | Webster's Bookstore Cafe")
                 try:
-                    acf = Venue.query.filter(
-                        (Venue.website_url.ilike('%acfdc.org%'))
-                        | (Venue.name.ilike('%austrian cultural forum%washington%'))
-                    ).first()
-                    if acf:
-                        scraped_events = venue_scraper.scrape_venue_events(
-                            venue_ids=[acf.id],
-                            event_type=None,
-                            time_range=time_range,
-                            max_exhibitions_per_venue=max_exhibitions_per_venue,
-                            max_events_per_venue=max_events_per_venue,
+                    from scripts.websters_scraper import scrape_websters_events, create_events_in_database
+                    websters_events = scrape_websters_events()
+                    if websters_events:
+                        created = create_events_in_database(websters_events)
+                        total_events_saved += created
+                        total_events_found += len(websters_events)
+                        logger.info(f"   → found {len(websters_events)}, saved {created}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("wharf_dc", bucket):
+                # The Wharf DC
+                logger.info(f"🏛️  Wharf DC | The Wharf DC")
+                try:
+                    from scripts.wharf_dc_scraper import scrape_wharf_dc_events, create_events_in_database_wrapper
+                    wharf_events = scrape_wharf_dc_events()
+                    if wharf_events:
+                        created, updated, skipped = create_events_in_database_wrapper(wharf_events)
+                        total_events_saved += created
+                        total_events_found += len(wharf_events)
+                        logger.info(f"   → found {len(wharf_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("dc_urban_walkers", bucket):
+                # DC Urban Walkers (Meetup)
+                logger.info(f"🚶 DC Urban Walkers | Meetup")
+                try:
+                    from scripts.dc_urban_walkers_scraper import (
+                        scrape_dc_urban_walkers_events,
+                        create_events_in_database_wrapper as save_dc_urban_walkers_events,
+                    )
+                    duw_events = scrape_dc_urban_walkers_events()
+                    if duw_events:
+                        created, updated, skipped = save_dc_urban_walkers_events(duw_events)
+                        total_events_saved += created
+                        total_events_found += len(duw_events)
+                        logger.info(f"   → found {len(duw_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("acfdc_dc", bucket):
+                # Austrian Cultural Forum Washington (acfdc.org — shared VenueEventScraper + event_paths.events)
+                rule, months = get_standalone_schedule_rule("acfdc_dc")
+                if not should_run(rule, months):
+                    logger.info(f"⏭️  ACF DC | skipped (scheduler)")
+                else:
+                    logger.info(f"🏛️  ACF DC | Austrian Cultural Forum Washington")
+                    try:
+                        acf = Venue.query.filter(
+                            (Venue.website_url.ilike('%acfdc.org%'))
+                            | (Venue.name.ilike('%austrian cultural forum%washington%'))
+                        ).first()
+                        if acf:
+                            scraped_events = venue_scraper.scrape_venue_events(
+                                venue_ids=[acf.id],
+                                event_type=None,
+                                time_range=time_range,
+                                max_exhibitions_per_venue=max_exhibitions_per_venue,
+                                max_events_per_venue=max_events_per_venue,
+                            )
+                            if scraped_events:
+                                from scripts.event_database_handler import create_events_in_database as shared_create_events
+                                created, updated, skipped = shared_create_events(
+                                    events=scraped_events,
+                                    venue_id=acf.id,
+                                    city_id=acf.city_id,
+                                    venue_name=acf.name,
+                                    db=db,
+                                    Event=Event,
+                                    Venue=Venue,
+                                    batch_size=5,
+                                    logger_instance=logger,
+                                    source_url='https://www.acfdc.org/events',
+                                    custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': acf.name}),
+                                )
+                                total_events_saved += created
+                                total_events_found += len(scraped_events)
+                                logger.info(
+                                    f"   → found {len(scraped_events)}, saved {created}, updated {updated}, skipped {skipped}"
+                                )
+                            else:
+                                logger.info(f"   → found 0")
+                        else:
+                            logger.warning(f"   ⚠️  ACF DC venue not found, skipping")
+                    except Exception as e:
+                        logger.error(f"   ❌ {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("shoot_nyc", bucket):
+                # Shoot New York City (NYC workshops)
+                logger.info(f"📷 Shoot NYC | Shoot New York City")
+                try:
+                    from scripts.shoot_nyc_scraper import scrape_shoot_nyc_events, create_events_in_database_wrapper
+                    shoot_nyc_events = scrape_shoot_nyc_events()
+                    if shoot_nyc_events:
+                        created, updated, skipped = create_events_in_database_wrapper(shoot_nyc_events)
+                        total_events_saved += created
+                        total_events_found += len(shoot_nyc_events)
+                        logger.info(f"   → found {len(shoot_nyc_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("metmuseum", bucket):
+                # The Metropolitan Museum of Art (NYC — met-tours & programs)
+                rule, months = get_standalone_schedule_rule("metmuseum")
+                if not should_run(rule, months):
+                    logger.info(f"⏭️  The Met | skipped (scheduler)")
+                else:
+                    logger.info(f"🏛️  The Met | The Metropolitan Museum of Art")
+                    try:
+                        from scripts.metmuseum_scraper import scrape_metmuseum_events, create_events_in_database_wrapper
+                        met_events = scrape_metmuseum_events()
+                        if met_events:
+                            created, updated, skipped = create_events_in_database_wrapper(met_events)
+                            total_events_saved += created
+                            total_events_found += len(met_events)
+                            logger.info(f"   → found {len(met_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.info(f"   → found 0")
+                    except Exception as e:
+                        logger.error(f"   ❌ {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("tenement_museum", bucket):
+                # Tenement Museum (NYC — tours & programs)
+                rule, months = get_standalone_schedule_rule("tenement_museum")
+                if not should_run(rule, months):
+                    logger.info(f"⏭️  Tenement Museum | skipped (scheduler)")
+                else:
+                    logger.info(f"🏠  Tenement Museum | Tenement Museum")
+                    try:
+                        from scripts.tenement_museum_scraper import (
+                            create_events_in_database_wrapper,
+                            scrape_tenement_museum_events,
                         )
-                        if scraped_events:
-                            from scripts.event_database_handler import create_events_in_database as shared_create_events
+                        tenement_events = scrape_tenement_museum_events()
+                        if tenement_events:
+                            created, updated, skipped = create_events_in_database_wrapper(tenement_events)
+                            total_events_saved += created
+                            total_events_found += len(tenement_events)
+                            logger.info(f"   → found {len(tenement_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.info(f"   → found 0")
+                    except Exception as e:
+                        logger.error(f"   ❌ {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("big_onion", bucket):
+                # Big Onion Walking Tours (NYC)
+                rule, months = get_standalone_schedule_rule("big_onion")
+                if not should_run(rule, months):
+                    logger.info(f"⏭️  Big Onion | skipped (scheduler)")
+                else:
+                    logger.info(f"🧅  Big Onion | Big Onion Walking Tours")
+                    try:
+                        from scripts.big_onion_scraper import (
+                            create_events_in_database_wrapper,
+                            scrape_big_onion_events,
+                        )
+                        big_onion_events = scrape_big_onion_events()
+                        if big_onion_events:
+                            created, updated, skipped = create_events_in_database_wrapper(big_onion_events)
+                            total_events_saved += created
+                            total_events_found += len(big_onion_events)
+                            logger.info(f"   → found {len(big_onion_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.info(f"   → found 0")
+                    except Exception as e:
+                        logger.error(f"   ❌ {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("deyoung", bucket):
+                # de Young Museum (SF exhibitions)
+                logger.info(f"🏛️  de Young Museum | de Young Museum")
+                try:
+                    from scripts.deyoung_scraper import scrape_all_deyoung_events
+                    from scripts.event_database_handler import create_events_in_database as shared_create_events
+                    deyoung_events = scrape_all_deyoung_events()
+                    if deyoung_events:
+                        venue = Venue.query.filter(
+                            (Venue.website_url.ilike('%deyoung.famsf.org%')) |
+                            (Venue.name.ilike('%de young%'))
+                        ).first()
+                        if venue:
                             created, updated, skipped = shared_create_events(
-                                events=scraped_events,
-                                venue_id=acf.id,
-                                city_id=acf.city_id,
-                                venue_name=acf.name,
+                                events=deyoung_events,
+                                venue_id=venue.id,
+                                city_id=venue.city_id,
+                                venue_name=venue.name,
                                 db=db,
                                 Event=Event,
                                 Venue=Venue,
                                 batch_size=5,
                                 logger_instance=logger,
-                                source_url='https://www.acfdc.org/events',
-                                custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': acf.name}),
+                                source_url='https://www.famsf.org/exhibitions?where=de-young',
+                                custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+                            )
+                            total_events_saved += created
+                            total_events_found += len(deyoung_events)
+                            logger.info(f"   → found {len(deyoung_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.warning(f"   ⚠️  de Young Museum venue not found, skipping")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("hammer", bucket):
+                # Hammer Museum (LA programs and events)
+                logger.info(f"🏛️  Hammer Museum | Hammer Museum")
+                try:
+                    from scripts.hammer_scraper import scrape_all_hammer_events
+                    from scripts.event_database_handler import create_events_in_database as shared_create_events
+                    hammer_events = scrape_all_hammer_events()
+                    if hammer_events:
+                        venue = Venue.query.filter(
+                            (Venue.website_url.ilike('%hammer.ucla.edu%')) |
+                            (Venue.name.ilike('%hammer museum%'))
+                        ).first()
+                        if venue:
+                            created, updated, skipped = shared_create_events(
+                                events=hammer_events,
+                                venue_id=venue.id,
+                                city_id=venue.city_id,
+                                venue_name=venue.name,
+                                db=db,
+                                Event=Event,
+                                Venue=Venue,
+                                batch_size=5,
+                                logger_instance=logger,
+                                source_url='https://hammer.ucla.edu/programs-events',
+                                custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
+                            )
+                            total_events_saved += created
+                            total_events_found += len(hammer_events)
+                            logger.info(f"   → found {len(hammer_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.warning(f"   ⚠️  Hammer Museum venue not found, skipping")
+                    else:
+                        logger.info(f"   → found 0")
+                except Exception as e:
+                    logger.error(f"   ❌ {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("ocma", bucket):
+                # OCMA (Orange County Museum of Art, Irvine/Costa Mesa)
+                logger.info(f"🏛️  OCMA | Orange County Museum of Art")
+                try:
+                    ocma = Venue.query.filter(
+                        (Venue.website_url.ilike('%ocma.art%')) |
+                        (Venue.name.ilike('%orange county museum%'))
+                    ).first()
+                    if ocma:
+                        scraped_events = venue_scraper.scrape_venue_events(
+                            venue_ids=[ocma.id],
+                            event_type=None,
+                            time_range=time_range,
+                            max_exhibitions_per_venue=max_exhibitions_per_venue,
+                            max_events_per_venue=max_events_per_venue
+                        )
+                        if scraped_events:
+                            from scripts.event_database_handler import create_events_in_database as shared_create_events
+                            created, updated, skipped = shared_create_events(
+                                events=scraped_events,
+                                venue_id=ocma.id,
+                                city_id=ocma.city_id,
+                                venue_name=ocma.name,
+                                db=db,
+                                Event=Event,
+                                Venue=Venue,
+                                batch_size=5,
+                                logger_instance=logger,
+                                source_url=ocma.website_url or 'https://ocma.art',
+                                custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': ocma.name})
                             )
                             total_events_saved += created
                             total_events_found += len(scraped_events)
-                            logger.info(
-                                f"   → found {len(scraped_events)}, saved {created}, updated {updated}, skipped {skipped}"
-                            )
+                            logger.info(f"   → found {len(scraped_events)}, saved {created}, updated {updated}, skipped {skipped}")
                         else:
                             logger.info(f"   → found 0")
                     else:
-                        logger.warning(f"   ⚠️  ACF DC venue not found, skipping")
+                        logger.warning(f"   ⚠️  OCMA venue not found, skipping")
                 except Exception as e:
                     logger.error(f"   ❌ {e}")
                     import traceback
                     logger.error(traceback.format_exc())
 
-            # Shoot New York City (NYC workshops)
-            logger.info(f"📷 Shoot NYC | Shoot New York City")
-            try:
-                from scripts.shoot_nyc_scraper import scrape_shoot_nyc_events, create_events_in_database_wrapper
-                shoot_nyc_events = scrape_shoot_nyc_events()
-                if shoot_nyc_events:
-                    created, updated, skipped = create_events_in_database_wrapper(shoot_nyc_events)
-                    total_events_saved += created
-                    total_events_found += len(shoot_nyc_events)
-                    logger.info(f"   → found {len(shoot_nyc_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                else:
-                    logger.info(f"   → found 0")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # The Metropolitan Museum of Art (NYC — met-tours & programs)
-            rule, months = get_standalone_schedule_rule("metmuseum")
-            if not should_run(rule, months):
-                logger.info(f"⏭️  The Met | skipped (scheduler)")
-            else:
-                logger.info(f"🏛️  The Met | The Metropolitan Museum of Art")
+            if standalone_runs_in_bucket("university_park_library", bucket):
+                # University Park Library (Irvine) - PDF program guide
+                logger.info(f"📚 University Park Library | Irvine")
                 try:
-                    from scripts.metmuseum_scraper import scrape_metmuseum_events, create_events_in_database_wrapper
-                    met_events = scrape_metmuseum_events()
-                    if met_events:
-                        created, updated, skipped = create_events_in_database_wrapper(met_events)
-                        total_events_saved += created
-                        total_events_found += len(met_events)
-                        logger.info(f"   → found {len(met_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.info(f"   → found 0")
-                except Exception as e:
-                    logger.error(f"   ❌ {e}")
-                    import traceback
-                    logger.error(traceback.format_exc())
-
-            # Tenement Museum (NYC — tours & programs)
-            rule, months = get_standalone_schedule_rule("tenement_museum")
-            if not should_run(rule, months):
-                logger.info(f"⏭️  Tenement Museum | skipped (scheduler)")
-            else:
-                logger.info(f"🏠  Tenement Museum | Tenement Museum")
-                try:
-                    from scripts.tenement_museum_scraper import (
-                        create_events_in_database_wrapper,
-                        scrape_tenement_museum_events,
-                    )
-                    tenement_events = scrape_tenement_museum_events()
-                    if tenement_events:
-                        created, updated, skipped = create_events_in_database_wrapper(tenement_events)
-                        total_events_saved += created
-                        total_events_found += len(tenement_events)
-                        logger.info(f"   → found {len(tenement_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.info(f"   → found 0")
-                except Exception as e:
-                    logger.error(f"   ❌ {e}")
-                    import traceback
-                    logger.error(traceback.format_exc())
-
-            # Big Onion Walking Tours (NYC)
-            rule, months = get_standalone_schedule_rule("big_onion")
-            if not should_run(rule, months):
-                logger.info(f"⏭️  Big Onion | skipped (scheduler)")
-            else:
-                logger.info(f"🧅  Big Onion | Big Onion Walking Tours")
-                try:
-                    from scripts.big_onion_scraper import (
-                        create_events_in_database_wrapper,
-                        scrape_big_onion_events,
-                    )
-                    big_onion_events = scrape_big_onion_events()
-                    if big_onion_events:
-                        created, updated, skipped = create_events_in_database_wrapper(big_onion_events)
-                        total_events_saved += created
-                        total_events_found += len(big_onion_events)
-                        logger.info(f"   → found {len(big_onion_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.info(f"   → found 0")
-                except Exception as e:
-                    logger.error(f"   ❌ {e}")
-                    import traceback
-                    logger.error(traceback.format_exc())
-
-            # de Young Museum (SF exhibitions)
-            logger.info(f"🏛️  de Young Museum | de Young Museum")
-            try:
-                from scripts.deyoung_scraper import scrape_all_deyoung_events
-                from scripts.event_database_handler import create_events_in_database as shared_create_events
-                deyoung_events = scrape_all_deyoung_events()
-                if deyoung_events:
-                    venue = Venue.query.filter(
-                        (Venue.website_url.ilike('%deyoung.famsf.org%')) |
-                        (Venue.name.ilike('%de young%'))
-                    ).first()
-                    if venue:
-                        created, updated, skipped = shared_create_events(
-                            events=deyoung_events,
-                            venue_id=venue.id,
-                            city_id=venue.city_id,
-                            venue_name=venue.name,
-                            db=db,
-                            Event=Event,
-                            Venue=Venue,
-                            batch_size=5,
-                            logger_instance=logger,
-                            source_url='https://www.famsf.org/exhibitions?where=de-young',
-                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
-                        )
-                        total_events_saved += created
-                        total_events_found += len(deyoung_events)
-                        logger.info(f"   → found {len(deyoung_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.warning(f"   ⚠️  de Young Museum venue not found, skipping")
-                else:
-                    logger.info(f"   → found 0")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # Hammer Museum (LA programs and events)
-            logger.info(f"🏛️  Hammer Museum | Hammer Museum")
-            try:
-                from scripts.hammer_scraper import scrape_all_hammer_events
-                from scripts.event_database_handler import create_events_in_database as shared_create_events
-                hammer_events = scrape_all_hammer_events()
-                if hammer_events:
-                    venue = Venue.query.filter(
-                        (Venue.website_url.ilike('%hammer.ucla.edu%')) |
-                        (Venue.name.ilike('%hammer museum%'))
-                    ).first()
-                    if venue:
-                        created, updated, skipped = shared_create_events(
-                            events=hammer_events,
-                            venue_id=venue.id,
-                            city_id=venue.city_id,
-                            venue_name=venue.name,
-                            db=db,
-                            Event=Event,
-                            Venue=Venue,
-                            batch_size=5,
-                            logger_instance=logger,
-                            source_url='https://hammer.ucla.edu/programs-events',
-                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': venue.name})
-                        )
-                        total_events_saved += created
-                        total_events_found += len(hammer_events)
-                        logger.info(f"   → found {len(hammer_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.warning(f"   ⚠️  Hammer Museum venue not found, skipping")
-                else:
-                    logger.info(f"   → found 0")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # OCMA (Orange County Museum of Art, Irvine/Costa Mesa)
-            logger.info(f"🏛️  OCMA | Orange County Museum of Art")
-            try:
-                ocma = Venue.query.filter(
-                    (Venue.website_url.ilike('%ocma.art%')) |
-                    (Venue.name.ilike('%orange county museum%'))
-                ).first()
-                if ocma:
-                    scraped_events = venue_scraper.scrape_venue_events(
-                        venue_ids=[ocma.id],
-                        event_type=None,
-                        time_range=time_range,
-                        max_exhibitions_per_venue=max_exhibitions_per_venue,
-                        max_events_per_venue=max_events_per_venue
-                    )
-                    if scraped_events:
+                    upl = Venue.query.filter(Venue.name.ilike('%university park library%')).first()
+                    if upl:
+                        from scripts.university_park_library_scraper import scrape_all_university_park_library_events
                         from scripts.event_database_handler import create_events_in_database as shared_create_events
-                        created, updated, skipped = shared_create_events(
-                            events=scraped_events,
-                            venue_id=ocma.id,
-                            city_id=ocma.city_id,
-                            venue_name=ocma.name,
-                            db=db,
-                            Event=Event,
-                            Venue=Venue,
-                            batch_size=5,
-                            logger_instance=logger,
-                            source_url=ocma.website_url or 'https://ocma.art',
-                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': ocma.name})
-                        )
-                        total_events_saved += created
-                        total_events_found += len(scraped_events)
-                        logger.info(f"   → found {len(scraped_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        upl_events = scrape_all_university_park_library_events()
+                        if upl_events:
+                            created, updated, skipped = shared_create_events(
+                                events=upl_events,
+                                venue_id=upl.id,
+                                city_id=upl.city_id,
+                                venue_name=upl.name,
+                                db=db,
+                                Event=Event,
+                                Venue=Venue,
+                                batch_size=5,
+                                logger_instance=logger,
+                                source_url='https://legacy.cityofirvine.org/civica/filebank/blobdload.asp?BlobID=36797',
+                                custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': upl.name})
+                            )
+                            total_events_saved += created
+                            total_events_found += len(upl_events)
+                            logger.info(f"   → found {len(upl_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.info(f"   → found 0")
                     else:
-                        logger.info(f"   → found 0")
-                else:
-                    logger.warning(f"   ⚠️  OCMA venue not found, skipping")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # University Park Library (Irvine) - PDF program guide
-            logger.info(f"📚 University Park Library | Irvine")
-            try:
-                upl = Venue.query.filter(Venue.name.ilike('%university park library%')).first()
-                if upl:
-                    from scripts.university_park_library_scraper import scrape_all_university_park_library_events
-                    from scripts.event_database_handler import create_events_in_database as shared_create_events
-                    upl_events = scrape_all_university_park_library_events()
-                    if upl_events:
-                        created, updated, skipped = shared_create_events(
-                            events=upl_events,
-                            venue_id=upl.id,
-                            city_id=upl.city_id,
-                            venue_name=upl.name,
-                            db=db,
-                            Event=Event,
-                            Venue=Venue,
-                            batch_size=5,
-                            logger_instance=logger,
-                            source_url='https://legacy.cityofirvine.org/civica/filebank/blobdload.asp?BlobID=36797',
-                            custom_event_processor=lambda e: e.update({'source': 'website', 'organizer': upl.name})
-                        )
-                        total_events_saved += created
-                        total_events_found += len(upl_events)
-                        logger.info(f"   → found {len(upl_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.info(f"   → found 0")
-                else:
-                    logger.warning(f"   ⚠️  University Park Library venue not found, skipping")
-            except Exception as e:
-                logger.error(f"   ❌ {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-
-            # DC Chinese New Year Parade (seasonal: Jan–Feb)
-            rule, months = get_standalone_schedule_rule("dcparade")
-            if not should_run(rule, months):
-                logger.info(f"⏭️  DC Parade | skipped (out of season, runs Jan–Feb)")
-            else:
-                logger.info(f"🏮 DC Parade | DC Chinese New Year Parade")
-                try:
-                    from scripts.dcparade_scraper import scrape_dcparade_events, create_events_in_database_wrapper
-                    dcparade_events = scrape_dcparade_events()
-                    if dcparade_events:
-                        created, updated, skipped = create_events_in_database_wrapper(dcparade_events)
-                        total_events_saved += created
-                        total_events_found += len(dcparade_events)
-                        logger.info(f"   → found {len(dcparade_events)}, saved {created}, updated {updated}, skipped {skipped}")
-                    else:
-                        logger.info(f"   → found 0")
+                        logger.warning(f"   ⚠️  University Park Library venue not found, skipping")
                 except Exception as e:
                     logger.error(f"   ❌ {e}")
                     import traceback
                     logger.error(traceback.format_exc())
+
+            if standalone_runs_in_bucket("dcparade", bucket):
+                # DC Chinese New Year Parade (seasonal: Jan–Feb)
+                rule, months = get_standalone_schedule_rule("dcparade")
+                if not should_run(rule, months):
+                    logger.info(f"⏭️  DC Parade | skipped (out of season, runs Jan–Feb)")
+                else:
+                    logger.info(f"🏮 DC Parade | DC Chinese New Year Parade")
+                    try:
+                        from scripts.dcparade_scraper import scrape_dcparade_events, create_events_in_database_wrapper
+                        dcparade_events = scrape_dcparade_events()
+                        if dcparade_events:
+                            created, updated, skipped = create_events_in_database_wrapper(dcparade_events)
+                            total_events_saved += created
+                            total_events_found += len(dcparade_events)
+                            logger.info(f"   → found {len(dcparade_events)}, saved {created}, updated {updated}, skipped {skipped}")
+                        else:
+                            logger.info(f"   → found 0")
+                    except Exception as e:
+                        logger.error(f"   ❌ {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
             
             # Final summary
             end_time = datetime.now()
