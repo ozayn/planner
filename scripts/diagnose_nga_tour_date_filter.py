@@ -1,35 +1,16 @@
-#!/usr/bin/env python3
-"""
-Diagnose why Dec 10, 2025 tours might be filtered out
-"""
+"""Compatibility shim — canonical path: scripts/diagnostics/diagnose_nga_tour_date_filter.py"""
+import sys
+from pathlib import Path
 
-from datetime import date, timedelta
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-# Simulate the date filtering logic
-today = date.today()
-one_month_later = today + timedelta(days=30)
+from scripts.diagnostics.diagnose_nga_tour_date_filter import *  # noqa: F403
 
-print(f"Today: {today}")
-print(f"One month later: {one_month_later}")
-print()
-
-# The missing tours are from Dec 10, 2025
-missing_tour_date = date(2025, 12, 10)
-
-print(f"Missing tour date: {missing_tour_date}")
-print(f"tour_date >= today: {missing_tour_date >= today}")
-print(f"tour_date <= one_month_later: {missing_tour_date <= one_month_later}")
-print(f"Should be included: {missing_tour_date >= today and missing_tour_date <= one_month_later}")
-print()
-
-# Check if today is actually Dec 10
-if today == missing_tour_date:
-    print("✅ Today IS Dec 10, 2025 - tours should be included")
-    print("   The filter 'tour_date >= today' should include today's tours")
-elif today > missing_tour_date:
-    print(f"⚠️  Today ({today}) is AFTER Dec 10, 2025")
-    print(f"   The filter 'tour_date >= today' will EXCLUDE Dec 10 tours")
-    print(f"   This is the problem!")
-elif today < missing_tour_date:
-    print(f"ℹ️  Today ({today}) is BEFORE Dec 10, 2025")
-    print(f"   Dec 10 tours should be included (they're in the future)")
+if __name__ == "__main__":
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "diagnostics" / "diagnose_nga_tour_date_filter.py"),
+        run_name="__main__",
+    )

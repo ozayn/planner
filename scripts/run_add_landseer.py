@@ -1,38 +1,16 @@
-#!/usr/bin/env python3
-"""
-Wrapper to run add_landseer_event.py
-"""
-import subprocess
+"""Compatibility shim — canonical path: scripts/one_off/run_add_landseer.py"""
 import sys
-import os
+from pathlib import Path
 
-# Get the directory of this script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(script_dir)
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-# Path to the script
-script_path = os.path.join(script_dir, 'add_landseer_event.py')
+from scripts.one_off.run_add_landseer import *  # noqa: F403
 
-# Path to venv python
-venv_python = os.path.join(project_root, 'venv', 'bin', 'python3')
-
-if not os.path.exists(venv_python):
-    venv_python = sys.executable
-
-print(f"Running: {script_path}")
-print(f"Using Python: {venv_python}")
-print("=" * 80)
-
-try:
-    result = subprocess.run(
-        [venv_python, script_path],
-        cwd=project_root,
-        capture_output=False,
-        text=True
+if __name__ == "__main__":
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "one_off" / "run_add_landseer.py"),
+        run_name="__main__",
     )
-    sys.exit(result.returncode)
-except Exception as e:
-    print(f"Error running script: {e}")
-    sys.exit(1)
-
-

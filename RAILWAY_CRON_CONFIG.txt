@@ -5,7 +5,9 @@ Two operational buckets — use separate Railway cron services (or schedules):
 
 --- Stable cron (main) ---
 Start Command:
-python scripts/cron_run_scheduled_scrapers.py
+python scripts/cron/cron_run_scheduled_scrapers.py
+
+(Legacy shim still works: python scripts/cron_run_scheduled_scrapers.py)
 
 Suggested schedule:
 25 20 * * 1    (Monday 8:25 PM UTC ≈ 3:25 PM ET EST)
@@ -17,7 +19,9 @@ Log file: logs/cron_stable_YYYYMMDD.log
 
 --- Protected cron (403 / Cloudflare / proxy-sensitive) ---
 Start Command:
-python scripts/cron_run_protected_scrapers.py
+python scripts/cron/cron_run_protected_scrapers.py
+
+(Legacy shim still works: python scripts/cron_run_protected_scrapers.py)
 
 Suggested schedule (offset from stable, e.g. 30 min later):
 55 20 * * 1    (Monday 8:55 PM UTC)
@@ -26,7 +30,8 @@ Runs: Smithsonian Asian Art, National Portrait Gallery, Hirshhorn only.
 
 Log file: logs/cron_protected_YYYYMMDD.log
 
-Bucket classification: scripts/cron_bucket_config.py
+Bucket classification: scripts/cron/cron_bucket_config.py
+(Shim: scripts/cron_bucket_config.py)
 
 Setup Steps:
 1. Railway Dashboard → Project → add or duplicate cron service per bucket

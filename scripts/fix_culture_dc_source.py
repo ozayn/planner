@@ -1,17 +1,16 @@
-from app import app, db, Event, Venue
+"""Compatibility shim — canonical path: scripts/cleanup/fix_culture_dc_source.py"""
+import sys
+from pathlib import Path
 
-def fix_culture_dc_source():
-    with app.app_context():
-        # Find Culture DC venue
-        venue = Venue.query.filter(Venue.name.like('%Culture DC%')).first()
-        if not venue:
-            print("Culture DC venue not found.")
-            return
-        
-        # Update events for this venue that have source='scraper'
-        updated_count = Event.query.filter_by(venue_id=venue.id, source='scraper').update({'source': 'website'})
-        db.session.commit()
-        print(f"Updated {updated_count} events for Culture DC to have source='website'.")
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from scripts.cleanup.fix_culture_dc_source import *  # noqa: F403
 
 if __name__ == "__main__":
-    fix_culture_dc_source()
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "cleanup" / "fix_culture_dc_source.py"),
+        run_name="__main__",
+    )

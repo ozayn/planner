@@ -1,61 +1,16 @@
-#!/usr/bin/env python3
-"""
-Add events path to The Wharf DC venue's additional_info (for venue scraping)
-"""
-
-import json
+"""Compatibility shim — canonical path: scripts/one_off/add_wharf_dc_venue_events_path.py"""
 import sys
-sys.path.append('.')
+from pathlib import Path
 
-from app import app, db, Venue, City
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-EVENTS_URL = 'https://www.wharfdc.com/upcoming-events/'
+from scripts.one_off.add_wharf_dc_venue_events_path import *  # noqa: F403
 
-def add_venue_events_path():
-    """Add events path to The Wharf DC venue"""
-    print("🏛️ Adding events path to The Wharf DC venue...")
-    
-    with app.app_context():
-        try:
-            dc_city = City.query.filter_by(name='Washington', country='United States').first()
-            if not dc_city:
-                print("❌ Washington DC city not found")
-                return False
-            
-            venue = Venue.query.filter_by(
-                name='The Wharf DC',
-                city_id=dc_city.id
-            ).first()
-            
-            if not venue:
-                print("❌ The Wharf DC venue not found")
-                return False
-            
-            # Get existing additional_info
-            info = {}
-            if venue.additional_info:
-                try:
-                    info = json.loads(venue.additional_info) if isinstance(venue.additional_info, str) else venue.additional_info
-                except (json.JSONDecodeError, TypeError):
-                    info = {}
-            
-            # Add/update event_paths
-            event_paths = info.get('event_paths', {})
-            event_paths['events'] = EVENTS_URL
-            info['event_paths'] = event_paths
-            
-            venue.additional_info = json.dumps(info)
-            db.session.commit()
-            
-            print(f"✅ Added events path to The Wharf DC venue")
-            print(f"   URL: {EVENTS_URL}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            db.session.rollback()
-            return False
-
-if __name__ == '__main__':
-    success = add_venue_events_path()
-    sys.exit(0 if success else 1)
+if __name__ == "__main__":
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "one_off" / "add_wharf_dc_venue_events_path.py"),
+        run_name="__main__",
+    )

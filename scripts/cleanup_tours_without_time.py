@@ -1,44 +1,16 @@
-#!/usr/bin/env python3
-"""
-Clean up tour events that don't have a start time
-"""
-
-import os
+"""Compatibility shim — canonical path: scripts/cleanup/cleanup_tours_without_time.py"""
 import sys
+from pathlib import Path
 
-# Add project root to path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from app import app, db, Event
-
-def cleanup_tours_without_time():
-    """Remove tour events that don't have a start time"""
-    
-    with app.app_context():
-        # Find all tour events
-        tour_events = Event.query.filter_by(event_type='tour').all()
-        print(f"📋 Found {len(tour_events)} tour events")
-        
-        events_to_delete = []
-        
-        for event in tour_events:
-            if not event.start_time:
-                events_to_delete.append(event)
-                print(f"❌ Marked for deletion: '{event.title}' (ID: {event.id}) - no start time")
-        
-        if events_to_delete:
-            print(f"\n🗑️  Deleting {len(events_to_delete)} tour events without start times...")
-            for event in events_to_delete:
-                print(f"   - {event.id}: {event.title}")
-                db.session.delete(event)
-            
-            db.session.commit()
-            print(f"\n✅ Successfully deleted {len(events_to_delete)} tour events without start times")
-            print(f"📊 Remaining tour events: {Event.query.filter_by(event_type='tour').count()}")
-        else:
-            print("\n✅ All tour events have start times")
+from scripts.cleanup.cleanup_tours_without_time import *  # noqa: F403
 
 if __name__ == "__main__":
-    cleanup_tours_without_time()
-
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "cleanup" / "cleanup_tours_without_time.py"),
+        run_name="__main__",
+    )

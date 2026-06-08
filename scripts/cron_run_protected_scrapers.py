@@ -1,22 +1,16 @@
-#!/usr/bin/env python3
-"""
-Protected cron entrypoint: Cloudflare / 403 / proxy-sensitive Smithsonian scrapers.
-
-Runs Asian Art, NPG, and Hirshhorn in isolation from the stable cron.
-See scripts/cron_bucket_config.py to add or reclassify scrapers.
-
-Usage:
-    source venv/bin/activate && python scripts/cron_run_protected_scrapers.py
-"""
-
+"""Compatibility shim — canonical path: scripts/cron/cron_run_protected_scrapers.py"""
 import sys
 from pathlib import Path
 
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from scripts.cron_bucket_config import BUCKET_PROTECTED
-from scripts.cron_run_scheduled_scrapers import run_scheduled_scrapers
+from scripts.cron.cron_run_protected_scrapers import *  # noqa: F403
 
-if __name__ == '__main__':
-    sys.exit(run_scheduled_scrapers(BUCKET_PROTECTED))
+if __name__ == "__main__":
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "cron" / "cron_run_protected_scrapers.py"),
+        run_name="__main__",
+    )

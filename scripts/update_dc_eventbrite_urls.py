@@ -1,81 +1,16 @@
-#!/usr/bin/env python3
-"""
-Update DC venues with correct Eventbrite URLs where available.
-Based on research, most major venues don't have Eventbrite organizer pages,
-but some embassies and cultural centers do.
-"""
-
+"""Compatibility shim — canonical path: scripts/admin_tools/update_dc_eventbrite_urls.py"""
 import sys
-import os
+from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from app import app, db, Venue
+from scripts.admin_tools.update_dc_eventbrite_urls import *  # noqa: F403
 
-# Eventbrite URLs for DC venues (organizer pages where they exist)
-EVENTBRITE_URLS = {
-    # Embassies with confirmed Eventbrite organizer pages
-    'Embassy of South Korea': 'https://www.eventbrite.com/o/korean-cultural-center-washington-dc-30268623512',
-    'Embassy of Italy': 'https://www.eventbrite.com/o/italian-cultural-institute-of-washington-3947489343',
-    'Embassy of Canada': 'https://www.eventbrite.com/d/dc--washington/canadian-embassy/',
-    'Embassy of Spain': 'https://www.eventbrite.com/o/spain-arts-culture-2142047099',
-    'Embassy of the Netherlands': 'https://www.eventbrite.com/o/embassy-of-the-kingdom-of-the-netherlands-32846230335',
-    'Embassy of Sweden': 'https://www.eventbrite.com/o/embassy-of-sweden-washington-dc-1856264527',
-    'Embassy of Finland': 'https://www.eventbrite.com/o/embassy-of-finland-25380847919',
-    'Embassy of Germany': 'https://www.eventbrite.fi/o/german-embassy-washington-dc-7550764939',
-    'Embassy of Switzerland': 'https://www.eventbrite.com/o/embassy-of-switzerland-in-the-usa-29752613551',
-    
-    # Note: Canadian Embassy URL is a discovery page, not an organizer page
-    # Most embassies don't have official Eventbrite organizer pages - they use third-party organizers
-    # or their own ticketing systems
-    
-    # The following venues typically use their own ticketing systems, not Eventbrite:
-    # - Smithsonian museums (use si.edu ticketing)
-    # - National Gallery of Art (use nga.gov)
-    # - Kennedy Center (use kennedy-center.org)
-    # - Major theaters (Arena Stage, Woolly Mammoth, Studio Theatre, Shakespeare Theatre)
-    # - Most museums and cultural institutions
-}
-
-def update_eventbrite_urls():
-    """Update DC venues with Eventbrite URLs where available"""
-    with app.app_context():
-        # Get all DC venues
-        from app import City
-        dc_city = City.query.filter_by(name='Washington').first()
-        
-        if not dc_city:
-            print("❌ Washington, DC not found in database")
-            return
-        
-        dc_venues = Venue.query.filter_by(city_id=dc_city.id).all()
-        print(f"Found {len(dc_venues)} DC venues")
-        
-        updated_count = 0
-        for venue in dc_venues:
-            if venue.name in EVENTBRITE_URLS:
-                new_url = EVENTBRITE_URLS[venue.name]
-                if venue.ticketing_url != new_url:
-                    old_url = venue.ticketing_url or '(none)'
-                    venue.ticketing_url = new_url
-                    print(f"✓ Updated {venue.name}: {old_url} → {new_url}")
-                    updated_count += 1
-                else:
-                    print(f"✓ {venue.name} already has correct URL: {new_url}")
-        
-        if updated_count > 0:
-            db.session.commit()
-            print(f"\n✅ Updated {updated_count} venues with Eventbrite URLs")
-        else:
-            print("\n✅ No updates needed - all URLs are already correct")
-        
-        # Show summary
-        print("\n📊 Summary:")
-        print(f"  - Venues with Eventbrite URLs: {sum(1 for v in dc_venues if v.ticketing_url and 'eventbrite.com' in v.ticketing_url)}")
-        print(f"  - Venues without Eventbrite URLs: {sum(1 for v in dc_venues if not v.ticketing_url or 'eventbrite.com' not in v.ticketing_url)}")
-        print("\n💡 Note: Most major DC venues (museums, theaters) use their own ticketing systems,")
-        print("   not Eventbrite. Only some embassies and cultural centers have Eventbrite organizer pages.")
-
-if __name__ == '__main__':
-    update_eventbrite_urls()
+if __name__ == "__main__":
+    import runpy
+    runpy.run_path(
+        str(Path(__file__).resolve().parent / "admin_tools" / "update_dc_eventbrite_urls.py"),
+        run_name="__main__",
+    )
