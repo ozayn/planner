@@ -10400,7 +10400,11 @@ def scrape_hirshhorn():
         with open('scraping_progress.json', 'w') as f:
             json.dump(progress_data, f)
         
-        from scripts.hirshhorn_scraper import scrape_all_hirshhorn_events, create_events_in_database
+        from scripts.hirshhorn_scraper import (
+            scrape_all_hirshhorn_events,
+            create_events_in_database,
+            get_last_scrape_failure,
+        )
         
         try:
             scraped_events = scrape_all_hirshhorn_events() or []
@@ -10428,11 +10432,19 @@ def scrape_hirshhorn():
             json.dump(progress_data, f)
         
         if not scraped_events:
-            error_message = (
-                'No Hirshhorn tours/programs from Tribe Events API. '
-                'Exhibitions are currently skipped (exhibition API and listing HTML blocked). '
-                'Check server logs for hirshhorn: Tribe Events API unavailable.'
-            )
+            failure = get_last_scrape_failure() or {}
+            if failure.get('kind') == 'bot_protection':
+                error_message = (
+                    'Hirshhorn Tribe Events API blocked by Smithsonian request verification. '
+                    f'HTTP {failure.get("status", 403)}. '
+                    f'proxy_used={failure.get("proxy_used")}. '
+                    'Exhibitions are deferred. On Railway, try DISABLE_PROXY_HIRSHHORN=1 for direct egress.'
+                )
+            else:
+                error_message = (
+                    'No Hirshhorn tours/programs from Tribe Events API. '
+                    'Exhibitions are currently skipped (exhibition API and listing HTML blocked).'
+                )
             progress_data.update({
                 'percentage': 100,
                 'message': f'❌ {error_message}',
@@ -10442,12 +10454,18 @@ def scrape_hirshhorn():
                 json.dump(progress_data, f)
             return jsonify({
                 'success': False,
+                'message': error_message,
                 'error': error_message,
                 'events_found': 0,
                 'events_saved': 0,
                 'exhibitions_found': 0,
                 'tours_found': 0,
-            }), 404
+                'exhibitions_deferred': True,
+                'proxy_used': failure.get('proxy_used'),
+                'cloudscraper_used': failure.get('cloudscraper_used'),
+                'api_status': failure.get('status'),
+                'scrape_failure': failure or None,
+            }), 503
         
         progress_data.update({
             'current_step': 3,

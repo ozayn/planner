@@ -1909,8 +1909,17 @@ async function startMuseumScraping() {
 }
 
 async function startHirshhornScraping() {
-    showScrapingProgressModal('Hirshhorn Museum');
-    
+    // No polling: Tribe API scrape uses final JSON response (polling would show stale parade/other runs).
+    showScrapingProgressModal('Hirshhorn Museum', false);
+    updateScrapingProgress({
+        percentage: 5,
+        message: 'Starting Hirshhorn Tribe Events API scrape (tours/programs; exhibitions deferred)...',
+        events_found: 0,
+        events_saved: 0,
+        events_updated: 0,
+        events_skipped: 0
+    });
+
     try {
         const response = await fetch('/api/admin/scrape-hirshhorn', {
             method: 'POST',
@@ -1923,7 +1932,7 @@ async function startHirshhornScraping() {
             let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
             try {
                 const errorData = await response.json();
-                errorMessage = errorData.error || errorMessage;
+                errorMessage = errorData.message || errorData.error || errorMessage;
             } catch (e) {
                 // If response is not JSON, try to get text
                 try {
@@ -1943,17 +1952,18 @@ async function startHirshhornScraping() {
         const result = await response.json();
 
         if (result.success) {
-            // Update modal with API result so it shows correct numbers (not stale poll data)
             updateScrapingProgress({
                 percentage: 100,
-                message: result.message || `✅ Found ${result.events_found || 0} events, saved ${result.events_saved || 0}`,
+                message: result.message || `✅ Found ${result.events_found ?? 0} Tribe API events, saved ${result.events_saved ?? 0}`,
                 events_found: result.events_found ?? 0,
-                events_saved: result.events_saved ?? 0
+                events_saved: result.events_saved ?? 0,
+                events_updated: result.events_updated ?? 0,
+                events_skipped: result.events_skipped ?? 0
             });
             await loadEvents();
             onScrapingComplete();
         } else {
-            updateScrapingStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+            updateScrapingStatus(`❌ Error: ${result.message || result.error || 'Unknown error'}`, 'error');
             onScrapingComplete();
         }
     } catch (error) {

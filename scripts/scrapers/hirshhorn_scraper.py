@@ -52,6 +52,34 @@ CHALLENGE_MARKERS = (
     'captcha',
 )
 
+_last_scrape_failure: Optional[Dict[str, Any]] = None
+
+
+def get_last_scrape_failure() -> Optional[Dict[str, Any]]:
+    """Last Tribe API fetch failure (for admin error responses)."""
+    return _last_scrape_failure
+
+
+def _record_tribe_fetch_failure(meta: Dict[str, Any]) -> None:
+    global _last_scrape_failure
+    status = meta.get('status')
+    challenge = meta.get('challenge_indicators') or []
+    blocked = status == 403 or bool(challenge)
+    _last_scrape_failure = {
+        'kind': 'bot_protection' if blocked else 'api_unavailable',
+        'venue': 'hirshhorn',
+        'url': meta.get('url'),
+        'status': status,
+        'proxy_used': meta.get('proxy_used'),
+        'cloudscraper_used': meta.get('cloudscraper_used'),
+        'challenge_indicators': challenge,
+    }
+
+
+def _clear_scrape_failure() -> None:
+    global _last_scrape_failure
+    _last_scrape_failure = None
+
 
 def _body_preview(response, max_len: int = 100) -> str:
     if response is None:
@@ -427,12 +455,14 @@ def scrape_hirshhorn_tribe_events(
     url: Optional[str] = f'{TRIBE_EVENTS_API}?per_page={per_page}&start_date={start}'
     mapped: List[Dict[str, Any]] = []
     page = 0
+    _clear_scrape_failure()
 
     while url and page < max_pages:
         page += 1
         payload, meta = fetch_hirshhorn_json(url, session=session, session_meta=session_meta)
         if not payload or not isinstance(payload, dict):
             if page == 1:
+                _record_tribe_fetch_failure(meta)
                 logger.warning(
                     'hirshhorn: Tribe Events API unavailable status=%s proxy_used=%s',
                     meta.get('status'),
@@ -441,6 +471,8 @@ def scrape_hirshhorn_tribe_events(
             break
 
         raw_events = payload.get('events') or []
+        if page == 1 and raw_events:
+            _clear_scrape_failure()
         mapped.extend(_map_tribe_event(ev) for ev in raw_events if isinstance(ev, dict))
         total = payload.get('total')
         logger.info(
