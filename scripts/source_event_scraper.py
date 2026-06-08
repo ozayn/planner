@@ -783,6 +783,7 @@ class SourceEventScraper:
                 'title': title,
                 'description': description[:2000] if len(description) > 2000 else description,  # Limit description length
                 'event_type': event_type,
+                'source_id': source.id,
                 'source_url': post_url or source.url,
                 'social_media_platform': 'instagram',
                 'social_media_url': post_url or source.url,
@@ -945,6 +946,7 @@ class SourceEventScraper:
                 'start_location': location or '',
                 'city_id': source.city_id,
                 'event_type': event_type,
+                'source_id': source.id,
                 'url': url,
                 'image_url': image_url,
                 'source': source.source_type,

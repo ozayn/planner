@@ -1,3 +1,7 @@
+function isEffectivelyAdminOnly(item) {
+    return (item.effective_visibility || '') === 'admin_only';
+}
+
 function renderDynamicTable(tableId, data, tableType = 'default') {
     const tableBody = document.getElementById(tableId);
     if (!tableBody) {
@@ -300,7 +304,7 @@ function renderEventsMobileCards(data) {
                         <button class="event-card-calendar-btn" onclick="event.stopPropagation(); addEventToCalendar(${item.id})" title="Add to Calendar">📅</button>
                     </div>
                     <span class="event-type-badge ${getEventTypeBadgeClass(eventType)}">${eventType}</span>
-                    ${(item.is_admin_only || item.venue_visibility === 'admin_only') ? '<span class="event-type-badge badge-default" title="Hidden from public users">Admin only</span>' : ''}
+                    ${isEffectivelyAdminOnly(item) ? '<span class="event-type-badge badge-default" title="Hidden from public users">Admin only</span>' : ''}
                 </div>
                 <div class="event-card-body">
                     ${dateTimeStr ? `<div class="event-card-field"><span class="field-label">📅 When:</span> <span class="field-value">${dateTimeStr}</span></div>` : ''}
@@ -573,12 +577,13 @@ function getFieldConfig(tableType) {
             }
         },
         sources: {
-            order: ['id', 'name', 'handle', 'source_type', 'city_name', 'is_active', 'events_found_count'],
+            order: ['id', 'name', 'handle', 'source_type', 'visibility', 'city_name', 'is_active', 'events_found_count'],
             fields: {
                 id: { label: 'ID', visible: true, sortable: true },
                 name: { label: 'Name', visible: true, sortable: true },
                 handle: { label: 'Handle', visible: true, sortable: true },
                 source_type: { label: 'Type', visible: true, sortable: true },
+                visibility: { label: 'Visibility', visible: true, sortable: true },
                 city_name: { label: 'City', visible: true, sortable: true },
                 event_types: { label: 'Event Types', visible: false, sortable: false },
                 reliability_score: { label: 'Reliability', visible: false, sortable: true },
@@ -591,10 +596,12 @@ function getFieldConfig(tableType) {
             }
         },
         events: {
-            order: ['id', 'title', 'description', 'start_date', 'start_time', 'end_date', 'end_time', 'event_type', 'venue_name', 'city_name', 'created_at', 'updated_at'],
+            order: ['id', 'title', 'effective_visibility', 'visibility', 'start_date', 'start_time', 'end_date', 'end_time', 'event_type', 'venue_name', 'city_name', 'description', 'created_at', 'updated_at'],
             fields: {
                 id: { label: 'ID', visible: true, sortable: true },
                 title: { label: 'Title', visible: true, sortable: true },
+                effective_visibility: { label: 'Effective', visible: true, sortable: true },
+                visibility: { label: 'Override', visible: true, sortable: true },
                 description: { label: 'Description', visible: true, sortable: false },
                 start_date: { label: 'Start Date', visible: true, sortable: true },
                 start_time: { label: 'Start Time', visible: true, sortable: true },
@@ -767,6 +774,15 @@ function formatFieldValue(fieldName, value, config = {}) {
         case 'visibility':
             if (value === 'admin_only') {
                 return '<span class="badge badge-default" title="Events hidden from public users">Admin only</span>';
+            }
+            if (value === 'public') {
+                return '<span class="badge">Public</span>';
+            }
+            return '<span class="badge">Inherit</span>';
+
+        case 'effective_visibility':
+            if (value === 'admin_only') {
+                return '<span class="badge badge-default" title="Hidden from public users">Admin only</span>';
             }
             return '<span class="badge">Public</span>';
         

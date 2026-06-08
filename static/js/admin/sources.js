@@ -110,6 +110,7 @@ function editSource(id) {
     document.getElementById('editSourceNotes').value = source.notes || '';
     document.getElementById('editSourceScrapingPattern').value = source.scraping_pattern || '';
     document.getElementById('editSourceActive').checked = source.is_active;
+    document.getElementById('editSourceVisibility').value = source.visibility || 'inherit';
     
     document.getElementById('editSourceModal').style.display = 'block';
 }
@@ -363,7 +364,8 @@ async function handleEditSource(event) {
         event_types: JSON.stringify(document.getElementById('editSourceEventTypes').value.split(',').map(t => t.trim()).filter(t => t)),
         notes: document.getElementById('editSourceNotes').value.trim(),
         scraping_pattern: document.getElementById('editSourceScrapingPattern').value.trim(),
-        is_active: document.getElementById('editSourceActive').checked
+        is_active: document.getElementById('editSourceActive').checked,
+        visibility: document.getElementById('editSourceVisibility').value
     };
     
     try {

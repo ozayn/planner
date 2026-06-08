@@ -222,7 +222,8 @@ function generateEventDetailsHTML(event) {
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${event.id}</div>
                     ${addField('Type', event.event_type)}
-                    ${(event.is_admin_only || event.venue_visibility === 'admin_only') ? addField('Visibility', 'Admin only') : ''}
+                    ${addField('Visibility override', event.visibility ? (event.visibility === 'admin_only' ? 'Admin only' : 'Public') : 'Inherit')}
+                    ${addField('Effective visibility', (event.effective_visibility || 'public') === 'admin_only' ? 'Admin only' : 'Public')}
                     ${addField('Price', (() => {
                         const p = (event.price !== null && event.price !== undefined) ? event.price : (event.admission_price !== null && event.admission_price !== undefined ? event.admission_price : null);
                         if (p === null) return null;
@@ -441,7 +442,7 @@ function generateVenueDetailsHTML(venue) {
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     <div style="margin-bottom: 6px; font-size: 0.875rem;"><strong>ID:</strong> ${venue.id}</div>
                     ${addField('Type', venue.venue_type)}
-                    ${addField('Event visibility', venue.visibility === 'admin_only' ? 'Admin only' : 'Public')}
+                    ${addField('Venue visibility', venue.visibility === 'admin_only' ? 'Admin only' : 'Public')}
                     ${addField('Description', venue.description)}
                     ${addField('City', venue.city_name)}
                 </div>

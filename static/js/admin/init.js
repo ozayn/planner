@@ -333,6 +333,7 @@ async function handleEditEvent(event) {
         start_time: document.getElementById('editEventStartTime').value || null,
         end_time: document.getElementById('editEventEndTime').value || null,
         event_type: document.getElementById('editEventType').value.trim(),
+        visibility: document.getElementById('editEventVisibility').value,
         city_id: cityId ? parseInt(cityId) : null,
         venue_id: venueId ? parseInt(venueId) : null
     };
@@ -427,6 +428,7 @@ function generateSourceDetailsHTML(source) {
                     ${addField('Name', source.name)}
                     ${addField('Handle', source.handle)}
                     ${addField('Type', source.source_type)}
+                    ${addField('Visibility', source.visibility ? (source.visibility === 'admin_only' ? 'Admin only' : 'Public') : 'Inherit')}
                     ${addField('Description', source.description)}
                 </div>
             </div>

@@ -40,6 +40,14 @@
                 <label for="editEventType">Event Type</label>
                 <input type="text" id="editEventType" onchange="toggleExhibitionFields()">
             </div>
+            <div class="form-group">
+                <label for="editEventVisibility">Event visibility</label>
+                <select id="editEventVisibility">
+                    <option value="inherit">Inherit — use source/venue rules</option>
+                    <option value="public">Public — visible to everyone</option>
+                    <option value="admin_only">Admin only — hidden from public users</option>
+                </select>
+            </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="editEventCityId">City *</label>

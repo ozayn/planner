@@ -198,6 +198,7 @@ async function editEvent(id) {
     document.getElementById('editEventStartTime').value = event.start_time || '';
     document.getElementById('editEventEndTime').value = event.end_time || '';
     document.getElementById('editEventType').value = event.event_type || '';
+    document.getElementById('editEventVisibility').value = event.visibility || 'inherit';
     
     // Populate city and venue dropdowns
     const citySelect = document.getElementById('editEventCityId');

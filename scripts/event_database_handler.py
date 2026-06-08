@@ -321,7 +321,8 @@ def update_existing_event(existing, event_data: Dict, venue_id: int, logger) -> 
     # Update other fields as needed
     for field in ['start_time', 'end_time', 'end_date', 'start_date', 'start_location', 'end_location',
                   'meeting_point', 'price', 'is_registration_required', 'registration_url', 'registration_info',
-                  'is_baby_friendly', 'is_admin_only', 'organizer', 'social_media_platform', 'social_media_handle']:
+                  'is_baby_friendly', 'is_admin_only', 'visibility', 'source_id', 'organizer',
+                  'social_media_platform', 'social_media_handle']:
         if field in event_data and hasattr(existing, field):
             new_value = event_data[field]
             
@@ -639,7 +640,8 @@ def create_events_in_database(
                     'venue_id', 'city_id', 'source', 'source_url', 'organizer',
                     'price', 'is_online', 'is_registration_required', 'registration_url',
                     'registration_info', 'social_media_platform', 'social_media_handle', 
-                    'social_media_url', 'is_baby_friendly', 'is_admin_only', 'is_selected'
+                    'social_media_url', 'is_baby_friendly', 'is_admin_only', 'visibility', 'source_id',
+                    'is_selected'
                 ]
                 
                 for field in valid_fields:

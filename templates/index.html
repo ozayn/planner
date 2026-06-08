@@ -8330,7 +8330,7 @@
                         <div class="event-time">${timeStr}</div>
                         <div class="event-title">${event.title}${isOnline ? ' <span class="online-badge">🌐 Online</span>' : ''}</div>
                         <div class="event-location">${locationDisplay}</div>
-                        <div class="event-type">${event.event_type || 'Event'}${(event.is_admin_only || event.venue_visibility === 'admin_only') ? ' <span class="online-badge" title="Hidden from public users">Admin only</span>' : ''}</div>
+                        <div class="event-type">${event.event_type || 'Event'}${(event.effective_visibility === 'admin_only') ? ' <span class="online-badge" title="Hidden from public users">Admin only</span>' : ''}</div>
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation();">
                         <input type="checkbox" id="discovered_event_chk_${event.id}" class="event-checkbox" ${isSelected ? 'checked' : ''} 
@@ -8410,7 +8410,7 @@
                         <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             ${addField('Title', event.title)}
                             ${addField('Type', event.event_type)}
-                            ${(event.is_admin_only || event.venue_visibility === 'admin_only') ? addField('Visibility', 'Admin only') : ''}
+                            ${(event.effective_visibility === 'admin_only') ? addField('Visibility', 'Admin only') : ''}
                             ${addField('Price', getEventPriceDisplay(event))}
                             ${addField('Description', event.description)}
                         </div>

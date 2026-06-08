@@ -354,7 +354,9 @@ def migrate_events_schema():
                 ('opening_reception_date', 'DATE'),
                 ('opening_reception_time', 'TIME'),
                 ('is_permanent', 'BOOLEAN'),
-                ('related_exhibitions', 'TEXT')
+                ('related_exhibitions', 'TEXT'),
+                ('visibility', 'VARCHAR(20)'),
+                ('source_id', 'INTEGER'),
             ]
             
             # Add missing columns with appropriate defaults
@@ -415,6 +417,8 @@ def migrate_events_schema():
             ('is_online', 'INTEGER', 0),
             ('is_registration_required', 'INTEGER', 0),
             ('is_permanent', 'INTEGER', 0),
+            ('visibility', 'VARCHAR(20)', None),
+            ('source_id', 'INTEGER', None),
         ]
         
         added_columns = []
@@ -424,7 +428,10 @@ def migrate_events_schema():
             if col_name not in existing_columns:
                 try:
                     with db.engine.connect() as conn:
-                        conn.execute(sqlalchemy.text(f"ALTER TABLE events ADD COLUMN {col_name} {col_type} DEFAULT {default_val}"))
+                        if default_val is None:
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE events ADD COLUMN {col_name} {col_type}"))
+                        else:
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE events ADD COLUMN {col_name} {col_type} DEFAULT {default_val}"))
                         conn.commit()
                     
                     added_columns.append(col_name)
@@ -518,6 +525,64 @@ def migrate_venues_schema():
     except Exception as e:
         return False, f"Venues migration error: {str(e)}", []
 
+def migrate_sources_schema():
+    """Migrate sources table schema to add visibility column if missing."""
+    try:
+        db_url = os.getenv('DATABASE_URL', '')
+        is_railway = os.getenv('RAILWAY_ENVIRONMENT') or ('postgresql' in db_url or 'postgres' in db_url)
+
+        if is_railway and db_url:
+            try:
+                import psycopg2
+                from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
+                railway_conn = psycopg2.connect(db_url)
+                railway_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                railway_cursor = railway_conn.cursor()
+                added_columns = []
+                railway_cursor.execute(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'sources' AND column_name = 'visibility'
+                    """
+                )
+                if not railway_cursor.fetchone():
+                    railway_cursor.execute(
+                        "ALTER TABLE sources ADD COLUMN visibility VARCHAR(20)"
+                    )
+                    added_columns.append('visibility')
+                railway_cursor.close()
+                railway_conn.close()
+                if added_columns:
+                    return True, f"Added source columns: {', '.join(added_columns)}", added_columns
+                return True, "Sources schema is already up to date", []
+            except ImportError:
+                pass
+            except Exception:
+                pass
+
+        try:
+            import sqlalchemy
+            inspector = sqlalchemy.inspect(db.engine)
+            existing_columns = [col['name'] for col in inspector.get_columns('sources')]
+            added_columns = []
+            with db.engine.connect() as conn:
+                if 'visibility' not in existing_columns:
+                    conn.execute(sqlalchemy.text(
+                        "ALTER TABLE sources ADD COLUMN visibility VARCHAR(20)"
+                    ))
+                    added_columns.append('visibility')
+                if added_columns:
+                    conn.commit()
+            if added_columns:
+                return True, f"Added source columns: {', '.join(added_columns)}", added_columns
+            return True, "Sources schema is already up to date", []
+        except Exception as e:
+            return False, f"Sources migration error: {str(e)}", []
+    except Exception as e:
+        return False, f"Sources migration error: {str(e)}", []
+
 def auto_migrate_schema():
     """Automatically migrate schema on startup (Railway PostgreSQL or local SQLite)."""
     try:
@@ -535,6 +600,12 @@ def auto_migrate_schema():
                 print(f"✅ Venues schema migration: {message}")
             else:
                 print(f"⚠️  Venues schema migration: {message}")
+
+            success, message, _ = migrate_sources_schema()
+            if success:
+                print(f"✅ Sources schema migration: {message}")
+            else:
+                print(f"⚠️  Sources schema migration: {message}")
     except Exception as e:
         # Migration can fail on startup if database isn't ready yet - that's okay
         print(f"⚠️  Schema migration: {str(e)}")
@@ -609,8 +680,8 @@ class Venue(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relationships
-    events = db.relationship('Event', backref='venue', lazy=True)
-    
+    events = db.relationship('Event', backref='venue', lazy=True, foreign_keys='Event.venue_id')
+
     def to_dict(self):
         # Handle image_url - use secure image proxy endpoint
         image_url = self.image_url
@@ -715,7 +786,9 @@ class Event(db.Model):
     is_selected = db.Column(db.Boolean, default=True)
     is_online = db.Column(db.Boolean, default=False)  # True for online/virtual events
     is_baby_friendly = db.Column(db.Boolean, default=False)  # True for baby/toddler-friendly events
-    is_admin_only = db.Column(db.Boolean, default=False, nullable=False)  # Hidden from public UI/API unless admin
+    is_admin_only = db.Column(db.Boolean, default=False, nullable=False)  # Legacy; use visibility when set
+    visibility = db.Column(db.String(20))  # NULL = inherit; public | admin_only = explicit override
+    source_id = db.Column(db.Integer, db.ForeignKey('sources.id', ondelete='SET NULL'))
     event_type = db.Column(db.String(50), nullable=False)  # 'tour', 'exhibition', 'festival', 'photowalk'
     
     # Registration fields
@@ -726,6 +799,7 @@ class Event(db.Model):
     registration_info = db.Column(db.Text)  # Additional registration details (e.g., "Registration opens 2 weeks before event")
     source = db.Column(db.String(50))  # 'instagram', 'facebook', 'website', etc.
     source_url = db.Column(db.String(1000))  # URL of the source (e.g., Instagram post URL) - increased for long URLs
+    linked_source = db.relationship('Source', foreign_keys=[source_id], lazy=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -859,6 +933,8 @@ class Event(db.Model):
             'is_online': self.is_online if hasattr(self, 'is_online') else False,  # Online/virtual event flag
             'is_baby_friendly': self.is_baby_friendly if hasattr(self, 'is_baby_friendly') else False,  # Baby/toddler-friendly event flag
             'is_admin_only': self.is_admin_only if hasattr(self, 'is_admin_only') else False,
+            'visibility': self.visibility if hasattr(self, 'visibility') and self.visibility else None,
+            'source_id': self.source_id if hasattr(self, 'source_id') else None,
             'url': self.url,
             'is_selected': self.is_selected,
             'event_type': self.event_type,
@@ -875,6 +951,12 @@ class Event(db.Model):
                 self.venue.visibility
                 if self.venue and hasattr(self.venue, 'visibility') and self.venue.visibility
                 else 'public'
+            ),
+            'source_visibility': (
+                self.linked_source.visibility
+                if getattr(self, 'linked_source', None)
+                and getattr(self.linked_source, 'visibility', None) in ('public', 'admin_only')
+                else None
             ),
             'venue_type': self.venue.venue_type if self.venue else None,
             'venue_address': self.venue.address if self.venue else None,
@@ -913,7 +995,22 @@ class Event(db.Model):
             'social_media_posted_by': self.social_media_posted_by,
             'social_media_url': self.social_media_url,
             'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None,
+            'effective_visibility': _effective_event_visibility({
+                'visibility': self.visibility if hasattr(self, 'visibility') and self.visibility else None,
+                'is_admin_only': self.is_admin_only if hasattr(self, 'is_admin_only') else False,
+                'source_visibility': (
+                    self.linked_source.visibility
+                    if getattr(self, 'linked_source', None)
+                    and getattr(self.linked_source, 'visibility', None) in (VISIBILITY_PUBLIC, VISIBILITY_ADMIN_ONLY)
+                    else None
+                ),
+                'venue_visibility': (
+                    self.venue.visibility
+                    if self.venue and hasattr(self.venue, 'visibility') and self.venue.visibility
+                    else VISIBILITY_PUBLIC
+                ),
+            }),
         }
     
     def _get_city_timezone(self):
@@ -958,7 +1055,8 @@ class Source(db.Model):
     # Notes and patterns
     notes = db.Column(db.Text)  # Special instructions, patterns, etc.
     scraping_pattern = db.Column(db.Text)  # Any specific scraping patterns or rules
-    
+    visibility = db.Column(db.String(20))  # NULL = inherit from venue; public | admin_only
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -988,6 +1086,7 @@ class Source(db.Model):
             'posting_frequency': self.posting_frequency,
             'notes': self.notes,
             'scraping_pattern': self.scraping_pattern,
+            'visibility': self.visibility if hasattr(self, 'visibility') and self.visibility else None,
             'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
             'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
         }
@@ -1065,14 +1164,85 @@ def _is_admin_authenticated():
     return True
 
 
-def _event_is_public_for_api(event):
-    """True when an event may appear in public /api/events (venue visibility is primary)."""
-    venue_vis = event.get('venue_visibility') or 'public'
-    if venue_vis == 'admin_only':
-        return False
+VISIBILITY_PUBLIC = 'public'
+VISIBILITY_ADMIN_ONLY = 'admin_only'
+
+
+def _parse_visibility_setting(value, allow_inherit=True):
+    """Normalize visibility from API/admin input. NULL/empty/inherit = no explicit setting."""
+    if value is None:
+        return None
+    if allow_inherit and str(value).strip().lower() in ('', 'inherit', 'default'):
+        return None
+    vis = str(value).strip().lower()
+    if vis in (VISIBILITY_PUBLIC, VISIBILITY_ADMIN_ONLY):
+        return vis
+    return None
+
+
+def _effective_event_visibility(event):
+    """Precedence: event.visibility > legacy is_admin_only > source.visibility > venue.visibility > public."""
+    event_vis = _parse_visibility_setting(event.get('visibility'), allow_inherit=True)
+    if event_vis:
+        return event_vis
     if event.get('is_admin_only'):
-        return False
-    return True
+        return VISIBILITY_ADMIN_ONLY
+    source_vis = _parse_visibility_setting(event.get('source_visibility'), allow_inherit=True)
+    if source_vis:
+        return source_vis
+    venue_vis = _parse_visibility_setting(event.get('venue_visibility'), allow_inherit=False)
+    if venue_vis:
+        return venue_vis
+    return VISIBILITY_PUBLIC
+
+
+def _match_source_for_event_dict(event_dict, sources_by_id, sources_list):
+    """Resolve a Source row for an event dict (FK first, then handle/URL heuristics)."""
+    source_id = event_dict.get('source_id')
+    if source_id and source_id in sources_by_id:
+        return sources_by_id[source_id]
+    handle = (event_dict.get('social_media_handle') or '').lstrip('@').lower()
+    if handle:
+        for source in sources_list:
+            source_handle = (source.handle or '').lstrip('@').lower()
+            if source_handle and handle == source_handle:
+                return source
+    event_url = event_dict.get('source_url') or event_dict.get('url') or ''
+    if event_url:
+        normalized_event_url = event_url.rstrip('/').lower()
+        for source in sources_list:
+            if not source.url:
+                continue
+            source_url = source.url.rstrip('/').lower()
+            if source_url and source_url in normalized_event_url:
+                return source
+    return None
+
+
+def _enrich_event_dict_visibility(event_dict, sources_by_id, sources_list):
+    """Attach source_visibility and effective_visibility for API/admin consumers."""
+    matched_source = _match_source_for_event_dict(event_dict, sources_by_id, sources_list)
+    if matched_source:
+        if not event_dict.get('source_id'):
+            event_dict['source_id'] = matched_source.id
+        if matched_source.visibility in (VISIBILITY_PUBLIC, VISIBILITY_ADMIN_ONLY):
+            event_dict['source_visibility'] = matched_source.visibility
+        else:
+            event_dict['source_visibility'] = None
+    else:
+        event_dict.setdefault('source_visibility', None)
+    event_dict['effective_visibility'] = _effective_event_visibility(event_dict)
+    return event_dict
+
+
+def _enrich_event_dicts_visibility(events, sources_list):
+    sources_by_id = {source.id: source for source in sources_list}
+    return [_enrich_event_dict_visibility(event, sources_by_id, sources_list) for event in events]
+
+
+def _event_is_public_for_api(event):
+    """True when an event may appear in public /api/events."""
+    return _effective_event_visibility(event) != VISIBILITY_ADMIN_ONLY
 
 
 def _filter_public_event_dicts(events):
@@ -1715,6 +1885,8 @@ def get_events():
         and not is_spanish_language_event(e.get('title', ''))
     ]
 
+    city_sources = Source.query.filter_by(city_id=city_id_int).all()
+    events = _enrich_event_dicts_visibility(events, city_sources)
     events = _filter_public_event_dicts(events)
     
     return jsonify(events)
@@ -3784,6 +3956,7 @@ def admin_events():
     """Get all events for admin, sorted by most recently updated (most recent first)"""
     try:
         events = Event.query.order_by(Event.updated_at.desc()).all()
+        all_sources = Source.query.all()
         events_data = []
         
         for event in events:
@@ -3794,6 +3967,8 @@ def admin_events():
                 'city_timezone': event.city.timezone if event.city else 'UTC'
             })
             events_data.append(event_dict)
+
+        events_data = _enrich_event_dicts_visibility(events_data, all_sources)
         
         return jsonify(events_data)
     except Exception as e:
@@ -5019,6 +5194,10 @@ def load_all_data_to_database():
                     existing_source.posting_frequency = source_info.get('posting_frequency', '')
                     existing_source.notes = source_info.get('notes', '')
                     existing_source.scraping_pattern = source_info.get('scraping_pattern', '')
+                    if 'visibility' in source_info:
+                        existing_source.visibility = _parse_visibility_setting(
+                            source_info.get('visibility'), allow_inherit=True
+                        )
                     sources_updated += 1
                 else:
                     # Add new source
@@ -5036,7 +5215,10 @@ def load_all_data_to_database():
                         reliability_score=source_info.get('reliability_score', 3.0),
                         posting_frequency=source_info.get('posting_frequency', ''),
                         notes=source_info.get('notes', ''),
-                        scraping_pattern=source_info.get('scraping_pattern', '')
+                        scraping_pattern=source_info.get('scraping_pattern', ''),
+                        visibility=_parse_visibility_setting(
+                            source_info.get('visibility'), allow_inherit=True
+                        ),
                     )
                     db.session.add(source)
                     sources_added += 1
@@ -5897,6 +6079,8 @@ def update_source(source_id):
         for field in ['reliability_score', 'posting_frequency', 'event_types', 'notes', 'scraping_pattern', 'is_active']:
             if field in data:
                 setattr(source, field, data[field])
+        if 'visibility' in data:
+            source.visibility = _parse_visibility_setting(data.get('visibility'), allow_inherit=True)
         
         source.updated_at = datetime.utcnow()
         db.session.commit()
@@ -5961,6 +6145,8 @@ def edit_source():
             source.notes = clean_text_field(data['notes'])
         if 'scraping_pattern' in data:
             source.scraping_pattern = clean_text_field(data['scraping_pattern'])
+        if 'visibility' in data:
+            source.visibility = _parse_visibility_setting(data.get('visibility'), allow_inherit=True)
         
         source.updated_at = datetime.utcnow()
         
@@ -6205,6 +6391,10 @@ def edit_event():
             event.city_id = data['city_id']
         if 'venue_id' in data:
             event.venue_id = data['venue_id']
+        if 'visibility' in data:
+            event.visibility = _parse_visibility_setting(data.get('visibility'), allow_inherit=True)
+        if 'source_id' in data:
+            event.source_id = data['source_id'] or None
         if 'start_location' in data:
             event.start_location = clean_text_field(data['start_location'])
         if 'end_location' in data:

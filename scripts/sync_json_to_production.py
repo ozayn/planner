@@ -164,6 +164,9 @@ def _source_field_diff(existing, info: dict) -> dict:
     rel_new = _safe_float(info.get("reliability_score"), existing.reliability_score)
     if rel_new is not None and rel_new != (existing.reliability_score or 0):
         diff["reliability_score"] = (existing.reliability_score, rel_new)
+    vis_new = info.get("visibility")
+    if vis_new and vis_new != (existing.visibility or None):
+        diff["visibility"] = (existing.visibility, vis_new)
     for attr, key in [
         ("handle", "handle"),
         ("url", "url"),
@@ -515,6 +518,8 @@ def run_sync(apply: bool):
                     existing.posting_frequency = info.get("posting_frequency", "") or ""
                     existing.notes = info.get("notes", "") or ""
                     existing.scraping_pattern = info.get("scraping_pattern", "") or ""
+                    if "visibility" in info:
+                        existing.visibility = info.get("visibility") or None
                     existing.updated_at = datetime.utcnow()
             else:
                 stats["sources"]["create"] += 1
